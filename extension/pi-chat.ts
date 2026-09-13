@@ -91,6 +91,24 @@ async function waitForHealth(port: number, deadline: number): Promise<boolean> {
   return false;
 }
 
+/**
+ * Builds the client, returning a message when it failed and nothing when it
+ * worked.
+ *
+ * Only the exit code decides. `vite build` writes its chunk-size advice to
+ * stderr on a perfectly good build, so treating stderr as failure reports
+ * "build failed: - Adjust chunk size limit..." on every run. Note the field is
+ * `code`, not `exitCode`: reading the wrong one yields undefined, and
+ * `undefined !== 0` makes every build look broken.
+ */
+export async function build(pi: Pick<ExtensionAPI, "exec">, home: string): Promise<string | undefined> {
+  const result = await pi.exec("npm", ["run", "build"], { cwd: home });
+  if (result.code === 0) return undefined;
+  const output = `${result.stderr}\n${result.stdout}`.trim();
+  const detail = output.split("\n").filter((line) => line.trim() !== "").at(-1);
+  return detail ?? `npm run build exited with ${result.code}`;
+}
+
 async function stopRunningServer(running: Running): Promise<boolean> {
   try {
     // The npm wrapper spawns the real server, so the whole process group has to
@@ -193,9 +211,9 @@ export default function piChatExtension(pi: ExtensionAPI): void {
       // needs one build before it can answer anything but the API.
       if (!existsSync(join(home, "dist/web/index.html"))) {
         ctx.ui.notify("Building the Pi Chat client…", "info");
-        const build = await pi.exec("npm", ["run", "build"], { cwd: home });
-        if (build.exitCode !== 0) {
-          ctx.ui.notify(`Pi Chat build failed: ${build.stderr.trim().split("\n").at(-1) ?? "unknown error"}`, "error");
+        const failure = await build(pi, home);
+        if (failure) {
+          ctx.ui.notify(`Pi Chat build failed: ${failure}`, "error");
           return;
         }
       }
@@ -264,6 +282,14 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         return;
       }
 
+      // Build first: a broken build must never leave the UI stopped.
+      ctx.ui.notify("Building the Pi Chat client…", "info");
+      const failure = await build(pi, home);
+      if (failure) {
+        ctx.ui.notify(`Pi Chat build failed, so the running server was left alone: ${failure}`, "error");
+        return;
+      }
+
       if (running && (await isHealthy(running.port))) {
         ctx.ui.notify(`Restarting Pi Chat on http://127.0.0.1:${port}…`, "info");
         const stopped = await stopRunningServer(running);
@@ -287,12 +313,6 @@ export default function piChatExtension(pi: ExtensionAPI): void {
             : `Port ${port} is used by another program. Pick another with /pi-chat-restart --port N.`,
           "error",
         );
-        return;
-      }
-
-      const build = await pi.exec("npm", ["run", "build"], { cwd: home });
-      if (build.exitCode !== 0) {
-        ctx.ui.notify(`Pi Chat build failed: ${build.stderr.trim().split("\n").at(-1) ?? "unknown error"}`, "error");
         return;
       }
 
