@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.85.1",
+    "@mantine/core": "^9.6.1",
+    "@mantine/hooks": "^9.6.1",
     "express": "^5.2.1",
     "katex": "^0.18.7",
     "react": "^19.3.0",
@@ -31,6 +33,7 @@
     "zod": "^4.6.4"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/express": "^5.0.6",
     "@types/node": "^26.5.1",
@@ -40,6 +43,8 @@
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
     "jsdom": "^30.0.1",
+    "postcss-preset-mantine": "^1.18.0",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
