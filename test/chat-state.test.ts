@@ -157,3 +157,37 @@ describe("extension notifications", () => {
     expect(next.sequence).toBe(1);
   });
 });
+
+describe("ui prompts", () => {
+  it("tracks pending prompts and restores them from a snapshot", () => {
+    const prompt = { id: "p1", kind: "confirm" as const, title: "Allow?" };
+    const opened = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "prompts",
+      sequence: 1,
+      prompts: [prompt],
+    });
+    expect(opened.prompts).toEqual([prompt]);
+
+    const reconnected = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 5,
+      throughSequence: 5,
+      sessionId: "s1",
+      projectPath: "/tmp",
+      messages: [],
+      isStreaming: false,
+      prompts: [prompt],
+    });
+    expect(reconnected.prompts).toEqual([prompt]);
+
+    const answered = reduceServerMessage(opened, {
+      version: PROTOCOL_VERSION,
+      type: "prompts",
+      sequence: 2,
+      prompts: [],
+    });
+    expect(answered.prompts).toEqual([]);
+  });
+});

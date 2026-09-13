@@ -7,6 +7,7 @@ import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
+import { PromptModal } from "../prompts/PromptModal.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 
 export function App() {
@@ -100,6 +101,9 @@ export function App() {
           </Group>
         </Group>
       </AppShell.Header>
+
+      {/* Nested prompts stack, so the newest question is the one answered. */}
+      <PromptModal prompt={state.prompts.at(-1)} onRespond={chat.respondToPrompt} />
 
       <ProjectSessionDrawer
         opened={projectsOpen}

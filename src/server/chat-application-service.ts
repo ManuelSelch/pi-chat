@@ -1,4 +1,4 @@
-import type { ClientMessage } from "../shared/protocol.js";
+import type { ClientMessage, UiPromptResult } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
 
@@ -40,6 +40,18 @@ export class ChatApplicationService {
 
   abort(): Promise<void> {
     return this.runtime.abort();
+  }
+
+  respondToPrompt(promptId: string, result: UiPromptResult): void {
+    this.runtime.respondToPrompt(promptId, result);
+  }
+
+  suspendPrompts(): void {
+    this.runtime.suspendPrompts();
+  }
+
+  resumePrompts(): void {
+    this.runtime.resumePrompts();
   }
 
   async openProject(path: string): Promise<void> {

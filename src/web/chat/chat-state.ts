@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage } from "../../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage, UiPrompt } from "../../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -18,6 +18,8 @@ export interface ChatState {
   projectPath: string;
   catalogue: ProjectCatalogue;
   actions: ActionRegistry;
+  /** Blocking `ctx.ui` questions; the newest is the one on screen. */
+  prompts: UiPrompt[];
   sequence: number;
 }
 
@@ -28,6 +30,7 @@ export const initialChatState: ChatState = {
   projectPath: "",
   catalogue: { projects: [] },
   actions: { features: [], commands: [] },
+  prompts: [],
   sequence: -1,
 };
 
@@ -50,6 +53,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       projectPath: message.projectPath,
       catalogue: message.catalogue ?? state.catalogue,
       actions: message.actions ?? state.actions,
+      prompts: message.prompts ?? [],
       sequence: message.throughSequence,
     };
   }
@@ -92,6 +96,9 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       ? state.messages
       : [...state.messages, message.message];
     return { ...state, sequence: message.sequence, messages, draft: message.message.role === "assistant" ? undefined : state.draft };
+  }
+  if (message.type === "prompts") {
+    return { ...state, sequence: message.sequence, prompts: message.prompts };
   }
   if (message.type === "notification") {
     // Extension output is transient: it belongs in the transcript next to the

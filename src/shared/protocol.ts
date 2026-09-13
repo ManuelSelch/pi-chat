@@ -101,6 +101,30 @@ export const webFeatureSchema = z.discriminatedUnion("kind", [
 ]);
 
 /**
+ * A blocking question an extension asked through `ctx.ui`. The extension is
+ * suspended on a promise until it is answered, so this is server state that
+ * every snapshot must carry, not something the browser owns.
+ */
+export const uiPromptSchema = z.object({
+  id: z.string().min(1),
+  kind: z.enum(["select", "confirm", "input", "editor"]),
+  title: z.string(),
+  message: z.string().optional(),
+  options: z.array(z.string()).optional(),
+  placeholder: z.string().optional(),
+  prefill: z.string().optional(),
+});
+
+export type UiPrompt = z.infer<typeof uiPromptSchema>;
+
+export const uiPromptResultSchema = z.union([
+  z.object({ cancelled: z.literal(true) }),
+  z.object({ cancelled: z.literal(false), value: z.union([z.string(), z.boolean()]) }),
+]);
+
+export type UiPromptResult = z.infer<typeof uiPromptResultSchema>;
+
+/**
  * A slash command Pi can dispatch. Typed UI actions stay the primary surface;
  * this catalogue is the generic fallback for everything else a session offers.
  */
@@ -123,6 +147,12 @@ const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("abort") }),
+  z.object({
+    ...baseClientMessage,
+    type: z.literal("uiPromptResponse"),
+    promptId: z.string().min(1),
+    result: uiPromptResultSchema,
+  }),
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
@@ -149,7 +179,9 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     isStreaming: z.boolean(),
     catalogue: projectCatalogueSchema.optional(),
     actions: actionRegistrySchema.optional(),
+    prompts: z.array(uiPromptSchema).optional(),
   }),
+  z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
   z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),

@@ -5,6 +5,7 @@ import {
   serverMessageSchema,
   type ClientMessage,
   type ThinkingLevel,
+  type UiPromptResult,
 } from "../../shared/protocol.js";
 import { initialChatState, reduceServerMessage } from "./chat-state.js";
 
@@ -93,6 +94,8 @@ export function usePiChat() {
     state,
     prompt: (message: string) => send({ version: PROTOCOL_VERSION, type: "prompt", message }),
     abort: () => send({ version: PROTOCOL_VERSION, type: "abort" }),
+    respondToPrompt: (promptId: string, result: UiPromptResult) =>
+      send({ version: PROTOCOL_VERSION, type: "uiPromptResponse", promptId, result }),
     openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),

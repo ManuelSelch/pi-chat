@@ -1,10 +1,11 @@
-import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult } from "../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
   | { type: "messageFinal"; runId: string; message: ChatMessage }
   | { type: "toolEvent"; runId: string; tool: ToolCard }
   | { type: "notification"; level: "info" | "warning" | "error"; message: string }
+  | { type: "prompts"; prompts: UiPrompt[] }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
 
 export interface RuntimeSnapshot {
@@ -15,12 +16,17 @@ export interface RuntimeSnapshot {
   messages: ChatMessage[];
   isStreaming: boolean;
   actions: ActionRegistry;
+  prompts: UiPrompt[];
 }
 
 export interface RuntimeAdapter {
   snapshot(): RuntimeSnapshot;
   prompt(message: string): Promise<void>;
   abort(): Promise<void>;
+  respondToPrompt(promptId: string, result: UiPromptResult): void;
+  /** Called when no browser controls the session, and when one takes over again. */
+  suspendPrompts(): void;
+  resumePrompts(): void;
   renameSession(name: string): Promise<void> | void;
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
   subscribe(listener: (event: RuntimeEvent) => void): () => void;
@@ -47,6 +53,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
         ],
         commands: [{ name: "fake", description: "A command for tests" }],
       },
+      prompts: [],
     };
   }
 
@@ -64,6 +71,12 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
     this.streaming = false;
     this.emit({ type: "runtimeStatus", status: "idle" });
   }
+
+  respondToPrompt(): void {}
+
+  suspendPrompts(): void {}
+
+  resumePrompts(): void {}
 
   async abort(): Promise<void> {
     this.streaming = false;

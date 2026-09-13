@@ -33,6 +33,8 @@ export class WebSocketTransport {
       this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
     this.controller = socket;
+    // A browser is in control again, so pending dialogs stop counting down.
+    this.chat.resumePrompts();
     void this.sendSnapshot(socket);
 
     socket.on("message", (data) => {
@@ -60,6 +62,8 @@ export class WebSocketTransport {
         void this.chat.abort().catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "prompt") {
         void this.chat.prompt(result.value.message).catch((error: unknown) => this.publishError(error));
+      } else if (result.value.type === "uiPromptResponse") {
+        this.chat.respondToPrompt(result.value.promptId, result.value.result);
       } else if (result.value.type === "runFeature") {
         void this.chat.runFeature(result.value).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "openProject") {
@@ -72,7 +76,11 @@ export class WebSocketTransport {
     });
 
     socket.on("close", () => {
-      if (this.controller === socket) this.controller = undefined;
+      if (this.controller !== socket) return;
+      this.controller = undefined;
+      // A reload must not cancel a permission gate, so pending dialogs only
+      // expire after the registry's grace period without a controller.
+      this.chat.suspendPrompts();
     });
   }
 

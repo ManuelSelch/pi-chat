@@ -9,13 +9,14 @@ import {
   type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, SlashCommand, ThinkingLevel, ToolCard } from "../shared/protocol.js";
+import type { ChatMessage, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
+import { UiPromptRegistry } from "./ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
 
 const ARGS_TEXT_MAX = 4_000;
@@ -199,6 +200,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * until the run settles, because `agent_settled` publishes the final status.
    */
   private lastError?: string;
+  private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
 
   private constructor(private readonly runtime: AgentSessionRuntime) {
     this.bindSession();
@@ -212,8 +214,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    */
   private bindUi(): void {
     this.runtime.session.extensionRunner.setUIContext(
-      createWebUiContext({ onNotify: (message, level) => this.emit({ type: "notification", level, message }) }),
-      "print",
+      createWebUiContext({
+        onNotify: (message, level) => this.emit({ type: "notification", level, message }),
+        onPrompt: (request) => this.prompts.ask(request),
+      }),
+      // "rpc" rather than "print": this host can answer blocking questions.
+      "rpc",
     );
   }
 
@@ -319,6 +325,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         ],
         commands: this.commands(),
       },
+      prompts: this.prompts.list(),
     };
   }
 
@@ -342,8 +349,23 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async abort(): Promise<void> {
+    // A pending dialog would otherwise keep a blocked tool call waiting after
+    // the user already asked the run to stop.
+    this.prompts.cancelAll();
     this.emit({ type: "runtimeStatus", status: "aborting" });
     await this.runtime.session.abort();
+  }
+
+  respondToPrompt(promptId: string, result: UiPromptResult): void {
+    this.prompts.respond(promptId, result);
+  }
+
+  suspendPrompts(): void {
+    this.prompts.suspend();
+  }
+
+  resumePrompts(): void {
+    this.prompts.resume();
   }
 
   renameSession(name: string): void {
@@ -361,6 +383,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   async dispose(): Promise<void> {
     this.unsubscribe?.();
+    // Cancel before clearing listeners: a switched-away session must not leave
+    // an extension waiting on a dialog nobody can answer.
+    this.prompts.dispose();
     this.listeners.clear();
     await this.runtime.dispose();
   }
