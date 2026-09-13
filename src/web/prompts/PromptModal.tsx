@@ -12,27 +12,36 @@ interface PromptModalProps {
  * until this answers, so dismissing must send an explicit cancellation rather
  * than just closing the window.
  */
+/** Below this a filter box is more clutter than help. */
+const SEARCH_THRESHOLD = 8;
+
 export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   const [value, setValue] = useState("");
+  const [query, setQuery] = useState("");
   const [activeOption, setActiveOption] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
-  const options = prompt?.options ?? [];
+  const allOptions = prompt?.options ?? [];
+  const searchable = allOptions.length > SEARCH_THRESHOLD;
+  const needle = query.trim().toLowerCase();
+  const options = needle ? allOptions.filter((option) => option.toLowerCase().includes(needle)) : allOptions;
 
   useEffect(() => {
     // Each prompt starts from its own defaults, including one restored from a
     // snapshot after a reload.
     setValue(prompt?.prefill ?? "");
+    setQuery("");
     setActiveOption(0);
   }, [prompt?.id, prompt?.prefill]);
 
   useEffect(() => {
     // The modal's focus trap runs after mount and would otherwise leave focus
-    // on the close button, where arrow keys do nothing.
-    if (prompt?.kind !== "select") return;
+    // on the close button, where arrow keys do nothing. With a filter box the
+    // trap's own autofocus already lands in the right place.
+    if (prompt?.kind !== "select" || searchable) return;
     const frame = requestAnimationFrame(() => listRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [prompt?.id, prompt?.kind]);
+  }, [prompt?.id, prompt?.kind, searchable]);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: "nearest" });
@@ -43,7 +52,8 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   const cancel = (): void => onRespond(prompt.id, { cancelled: true });
   const submit = (result: string | boolean): void => onRespond(prompt.id, { cancelled: false, value: result });
 
-  function optionKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+  function optionKeyDown(event: KeyboardEvent<HTMLElement>): void {
+    if (options.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
@@ -84,6 +94,17 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
           <Text size="sm" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>{prompt.message}</Text>
         ) : null}
 
+        {prompt.kind === "select" && searchable ? (
+          <TextInput
+            aria-label="Filter options"
+            data-autofocus
+            placeholder="Type to filter…"
+            value={query}
+            onChange={(event) => { setQuery(event.currentTarget.value); setActiveOption(0); }}
+            onKeyDown={optionKeyDown}
+          />
+        ) : null}
+
         {prompt.kind === "select" ? (
           <ScrollArea.Autosize mah="50vh">
             <Stack
@@ -96,6 +117,9 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
               onKeyDown={optionKeyDown}
               style={{ outline: "none" }}
             >
+              {options.length === 0 ? (
+                <Text size="sm" c="dimmed" p="8px 12px">No option matches “{query.trim()}”.</Text>
+              ) : null}
               {options.map((option, index) => (
                 <UnstyledButton
                   key={option}
@@ -151,7 +175,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
           <Group gap="xs">
             <Button variant="default" onClick={cancel}>Cancel</Button>
             {prompt.kind === "select" ? (
-              <Button disabled={options.length === 0} onClick={() => submit(options[activeOption]!)}>
+              <Button disabled={!options[activeOption]} onClick={() => submit(options[activeOption]!)}>
                 {confirmLabel}
               </Button>
             ) : (

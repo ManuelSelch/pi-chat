@@ -93,3 +93,36 @@ describe("PromptModal", () => {
     expect(onRespond).toHaveBeenCalledWith("p5", { cancelled: true });
   });
 });
+
+describe("PromptModal option filter", () => {
+  const many = Array.from({ length: 12 }, (_, index) => `provider/model-${index}`);
+
+  it("has no filter box for a short list", () => {
+    show({ id: "s1", kind: "select", title: "Pick", options: ["allow", "deny"] });
+    expect(screen.queryByLabelText("Filter options")).toBeNull();
+  });
+
+  it("filters a long list and keeps arrow keys working", () => {
+    const onRespond = show({ id: "s2", kind: "select", title: "Pick", options: many });
+    const search = screen.getByLabelText("Filter options");
+
+    fireEvent.change(search, { target: { value: "model-1" } });
+    // model-1, model-10, model-11
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(search, { key: "Enter" });
+
+    expect(onRespond).toHaveBeenCalledWith("s2", { cancelled: false, value: "provider/model-10" });
+  });
+
+  it("reports when nothing matches and cannot submit", () => {
+    show({ id: "s3", kind: "select", title: "Pick", options: many });
+
+    fireEvent.change(screen.getByLabelText("Filter options"), { target: { value: "nope" } });
+
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByText(/No option matches/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "OK" }).hasAttribute("disabled")).toBe(true);
+  });
+});
