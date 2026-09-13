@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Drawer, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Drawer, Group, Paper, Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { IconBrain, IconDeviceFloppy, IconPencil } from "@tabler/icons-react";
 import type { ThinkingLevel } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
@@ -17,7 +17,11 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
-  const sessionName = sessionNameInput ?? renameFeature?.state.name ?? "";
+  const currentName = renameFeature?.state.name ?? "";
+  const sessionName = sessionNameInput ?? currentName;
+  // Renaming to the name it already has is a no-op, so the control stays inert
+  // until the field actually differs.
+  const nameChanged = sessionName.trim().length > 0 && sessionName.trim() !== currentName.trim();
 
   return (
     <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
@@ -36,9 +40,18 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
                 onChange={(event) => setSessionNameInput(event.currentTarget.value)}
                 flex={1}
               />
-              <Button leftSection={<IconDeviceFloppy size={14} />} disabled={busy || !sessionName.trim()} onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}>
-                Save
-              </Button>
+              <Tooltip label="Save session name">
+                <ActionIcon
+                  size="lg"
+                  variant={nameChanged ? "filled" : "default"}
+                  color={nameChanged ? undefined : "gray"}
+                  aria-label="Save session name"
+                  disabled={busy || !nameChanged}
+                  onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}
+                >
+                  <IconDeviceFloppy size={16} />
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Paper>
         ) : null}
