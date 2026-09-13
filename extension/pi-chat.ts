@@ -91,24 +91,40 @@ async function waitForHealth(port: number, deadline: number): Promise<boolean> {
   return false;
 }
 
-function parseArgs(args: string): { port: number; cwd?: string } {
+/** Opens the default browser without blocking the command. */
+function openBrowser(url: string): void {
+  const [command, args] =
+    process.platform === "darwin"
+      ? ["open", [url]]
+      : process.platform === "win32"
+        ? ["cmd", ["/c", "start", "", url]]
+        : ["xdg-open", [url]];
+  const child = spawn(command, args as string[], { stdio: "ignore", detached: true });
+  child.unref();
+  // A missing opener must not fail the command; the URL is always reported too.
+  child.on("error", () => {});
+}
+
+function parseArgs(args: string): { port: number; cwd?: string; open: boolean } {
   const tokens = args.trim().split(/\s+/).filter(Boolean);
   let port = Number(process.env.PI_CHAT_PORT ?? DEFAULT_PORT);
   let cwd: string | undefined;
+  let open = true;
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index]!;
     if ((token === "--port" || token === "-p") && tokens[index + 1]) port = Number(tokens[++index]);
     else if (token === "--cwd" && tokens[index + 1]) cwd = resolve(tokens[++index]!);
+    else if (token === "--no-open") open = false;
     else if (/^\d+$/.test(token)) port = Number(token);
   }
-  return { port, ...(cwd ? { cwd } : {}) };
+  return { port, open, ...(cwd ? { cwd } : {}) };
 }
 
 export default function piChatExtension(pi: ExtensionAPI): void {
   pi.registerCommand("pi-chat-start", {
-    description: "Start the Pi Chat web UI (/pi-chat-start [--port N] [--cwd PATH])",
+    description: "Start the Pi Chat web UI and open it (/pi-chat-start [--port N] [--cwd PATH] [--no-open])",
     handler: async (args, ctx) => {
-      const { port, cwd } = parseArgs(args);
+      const { port, cwd, open } = parseArgs(args);
       const home = projectHome();
       const projectCwd = cwd ?? ctx.cwd;
 
@@ -120,17 +136,23 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         return;
       }
 
+      // An already-running Pi Chat is not an error: just show it again.
       const running = readPidFile();
       if (running && (await isHealthy(running.port))) {
-        ctx.ui.notify(`Pi Chat already runs on http://127.0.0.1:${running.port} (pid ${running.pid})`, "warning");
+        if (open) openBrowser(`http://127.0.0.1:${running.port}`);
+        ctx.ui.notify(
+          `Pi Chat already runs on http://127.0.0.1:${running.port} (pid ${running.pid})${open ? " · opening browser" : ""}`,
+          "info",
+        );
         return;
       }
 
       const state = await probePort(port);
       if (state === "pi-chat") {
+        if (open) openBrowser(`http://127.0.0.1:${port}`);
         ctx.ui.notify(
-          `Pi Chat already runs on http://127.0.0.1:${port}. It was started outside these commands (e.g. npm run dev), so /pi-chat-stop cannot stop it.`,
-          "warning",
+          `Pi Chat already runs on http://127.0.0.1:${port}, started outside these commands${open ? " · opening browser" : ""}. /pi-chat-stop cannot stop it.`,
+          "info",
         );
         return;
       }
@@ -168,9 +190,12 @@ export default function piChatExtension(pi: ExtensionAPI): void {
 
       ctx.ui.notify(`Starting Pi Chat on http://127.0.0.1:${port}…`, "info");
       const ready = await waitForHealth(port, Date.now() + START_TIMEOUT_MS);
+      // Only open once the server actually answers, so the browser never lands
+      // on a connection error.
+      if (ready && open) openBrowser(`http://127.0.0.1:${port}`);
       ctx.ui.notify(
         ready
-          ? `Pi Chat is running: http://127.0.0.1:${port} (project ${projectCwd})`
+          ? `Pi Chat is running: http://127.0.0.1:${port} (project ${projectCwd})${open ? " · opening browser" : ""}`
           : `Pi Chat did not become healthy within ${START_TIMEOUT_MS / 1000}s. Check it with /pi-chat.`,
         ready ? "info" : "error",
       );
