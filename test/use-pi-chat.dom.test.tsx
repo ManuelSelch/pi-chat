@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../src/shared/protocol.js";
-import { usePiChat } from "../src/web/use-pi-chat.js";
+import { usePiChat } from "../src/web/chat/use-pi-chat.js";
 
 /** Minimal stand-in for the browser WebSocket, recording every instance. */
 class FakeWebSocket {

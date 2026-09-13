@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Drawer, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
-import type { ThinkingLevel } from "../shared/protocol.js";
-import type { ChatState } from "./chat-state.js";
+import type { ThinkingLevel } from "../../shared/protocol.js";
+import type { ChatState } from "../chat/chat-state.js";
 
 interface SettingsDrawerProps {
   opened: boolean;

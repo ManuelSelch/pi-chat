@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage } from "../../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an

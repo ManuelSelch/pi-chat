@@ -5,7 +5,7 @@ import {
   serverMessageSchema,
   type ClientMessage,
   type ThinkingLevel,
-} from "../shared/protocol.js";
+} from "../../shared/protocol.js";
 import { initialChatState, reduceServerMessage } from "./chat-state.js";
 
 const FIRST_RETRY_MS = 250;

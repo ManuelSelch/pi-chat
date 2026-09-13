@@ -1,9 +1,9 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Anchor, AppShell, Box, Button, Container, Group, Paper, Text, Textarea } from "@mantine/core";
-import { MessageList } from "./MessageList.js";
-import { ProjectSessionDrawer } from "./ProjectSessionDrawer.js";
-import { SettingsDrawer } from "./SettingsDrawer.js";
-import { usePiChat } from "./use-pi-chat.js";
+import { MessageList } from "../chat/MessageList.js";
+import { usePiChat } from "../chat/use-pi-chat.js";
+import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
+import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 
 export function App() {
   const chat = usePiChat();

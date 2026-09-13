@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Badge, Button, Drawer, Group, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
-import type { ChatState } from "./chat-state.js";
+import type { ChatState } from "../chat/chat-state.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;

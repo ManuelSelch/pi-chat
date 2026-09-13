@@ -1,5 +1,5 @@
 import { Badge, Box, Group, Text } from "@mantine/core";
-import type { ToolCard as ToolCardState } from "../shared/protocol.js";
+import type { ToolCard as ToolCardState } from "../../shared/protocol.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
   running: "yellow",

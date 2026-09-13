@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Markdown } from "../src/web/Markdown.js";
+import { Markdown } from "../src/web/chat/Markdown.js";
 
 function withMantine(children: ReactNode) {
   return <MantineProvider>{children}</MantineProvider>;
@@ -77,7 +77,7 @@ describe("Markdown rendering", () => {
 
 describe("ToolCard rendering", () => {
   it("is collapsed by default and expands to show arguments and result", async () => {
-    const { ToolCard } = await import("../src/web/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
     render(withMantine(
       <ToolCard
         tool={{ toolCallId: "c1", name: "bash", status: "success", argsText: '{"command":"ls"}', outputText: "README.md" }}
@@ -94,7 +94,7 @@ describe("ToolCard rendering", () => {
   });
 
   it("marks errors visually", async () => {
-    const { ToolCard } = await import("../src/web/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
     render(withMantine(<ToolCard tool={{ toolCallId: "c2", name: "edit", status: "error", outputText: "permission denied" }} />));
     const card = screen.getByTestId("tool-card");
     expect(card.className).toContain("error");
