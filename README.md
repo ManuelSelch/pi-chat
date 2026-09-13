@@ -38,6 +38,28 @@ The Pi project defaults to this repository. To use another working directory:
 PI_CHAT_CWD="$HOME/Documents/U_Uni" npm run dev
 ```
 
+## Starting it from a Pi terminal
+
+`extension/pi-chat.ts` adds slash commands to Pi itself. Install it once by
+linking it into the global extensions folder:
+
+```bash
+ln -sf "$PWD/extension/pi-chat.ts" ~/.pi/agent/extensions/pi-chat.ts
+```
+
+| Command | Effect |
+| --- | --- |
+| `/pi-chat-start [--port N] [--cwd PATH]` | Build if needed, then serve the UI for the current Pi project |
+| `/pi-chat-stop` | Stop the server |
+| `/pi-chat` | Show whether it runs, on which port, for which project |
+
+The server is spawned detached, so it keeps running when the Pi session ends and
+can still be stopped from a later session. Its pid and port live in
+`$TMPDIR/pi-chat-server.pid`. This mode serves the built client from `dist/web`
+on a single port (default 8788), so there is no Vite dev server and no `5173`.
+Set `PI_CHAT_HOME` if the repository lives somewhere other than the extension's
+own folder.
+
 ## Choosing the model
 
 By default the session uses whatever Pi would use: a resumed session keeps the
