@@ -40,6 +40,10 @@ export function usePiChat() {
         if (parsed.success) dispatch(parsed.data);
       });
 
+      // A refused connection fires error and then close on its own, so close is
+      // the single place that schedules a retry. Calling close() from the error
+      // handler would only abort a still-connecting socket and log
+      // "closed before the connection is established".
       socket.addEventListener("close", () => {
         if (socketRef.current === socket) socketRef.current = undefined;
         if (disposed) return;
@@ -47,12 +51,13 @@ export function usePiChat() {
         retryTimer = setTimeout(connect, retryMs);
         retryMs = Math.min(retryMs * 2, MAX_RETRY_MS);
       });
-
-      // A refused connection fires error then close; close owns the retry.
-      socket.addEventListener("error", () => socket.close());
     }
 
-    connect();
+    // Deferred by a tick so React StrictMode's throwaway first mount is cancelled
+    // before a socket exists. Connecting immediately would open a socket that the
+    // probe's cleanup closes mid-handshake, which the browser reports as
+    // "WebSocket is closed before the connection is established".
+    retryTimer = setTimeout(connect, 0);
 
     return () => {
       disposed = true;
