@@ -394,7 +394,18 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async compact(): Promise<void> {
-    const result = await this.runtime.session.compact();
+    // Compaction is a long model call. Without this the UI looks idle while Pi
+    // is busy, and a prompt sent meanwhile is rejected outright.
+    this.emit({ type: "notification", level: "info", message: "Compacting session…" });
+    this.emit({ type: "runtimeStatus", status: "running" });
+    let result;
+    try {
+      result = await this.runtime.session.compact();
+    } catch (error) {
+      this.emit({ type: "runtimeStatus", status: "idle" });
+      throw error;
+    }
+    this.emit({ type: "runtimeStatus", status: "idle" });
     const after = result.estimatedTokensAfter;
     this.emit({
       type: "notification",

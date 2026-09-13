@@ -127,7 +127,7 @@ export function App() {
 
       <AppShell.Main pb={170}>
         <Container size="sm" py="xl">
-          <MessageList state={state} />
+          <MessageList messages={state.messages} draft={state.draft} />
           <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
         </Container>
       </AppShell.Main>
