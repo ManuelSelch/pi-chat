@@ -3,11 +3,18 @@ import {
   createAgentSessionRuntime,
   createAgentSessionServices,
   getAgentDir,
+  resolveCliModel,
   SessionManager,
   type AgentSessionRuntime,
+  type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage } from "../shared/protocol.js";
+
+/** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
+type ModelOverride = Partial<
+  Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
+>;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 
 function textFromContent(content: unknown): string {
@@ -63,17 +70,50 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
   private currentRunId = "";
+  /**
+   * A failed turn ends as an ordinary `message_end` with `stopReason: "error"`,
+   * so without this the UI shows an empty assistant bubble and no reason. Held
+   * until the run settles, because `agent_settled` publishes the final status.
+   */
+  private lastError?: string;
 
   private constructor(private readonly runtime: AgentSessionRuntime) {
     this.bindSession();
+  }
+
+  /**
+   * `PI_CHAT_MODEL` overrides the model for this server only, so testing a
+   * specific provider never edits the user's global Pi settings. Accepts the
+   * same spelling as the CLI, e.g. `doppelclaude/claude-opus-5`, optionally
+   * suffixed with a thinking level (`:high`).
+   *
+   * It must resolve against the services' runtime, not a bare `ModelRuntime`:
+   * providers contributed by extensions (doppelclaude among them) only exist
+   * once the resource loader has run.
+   */
+  private static resolveOverride(services: AgentSessionServices): ModelOverride {
+    const requested = process.env.PI_CHAT_MODEL?.trim();
+    if (!requested) return {};
+
+    const resolved = resolveCliModel({ cliModel: requested, modelRuntime: services.modelRuntime });
+    if (resolved.error) throw new Error(`PI_CHAT_MODEL=${requested}: ${resolved.error}`);
+    if (resolved.warning) console.warn(`PI_CHAT_MODEL: ${resolved.warning}`);
+    if (!resolved.model) throw new Error(`PI_CHAT_MODEL=${requested}: no matching model`);
+
+    console.log(`Model: ${resolved.model.provider}/${resolved.model.id}`);
+    return {
+      model: resolved.model,
+      ...(resolved.thinkingLevel ? { thinkingLevel: resolved.thinkingLevel } : {}),
+    };
   }
 
   static async create(cwd: string): Promise<PiRuntimeAdapter> {
     const agentDir = getAgentDir();
     const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager, sessionStartEvent }) => {
       const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
+      const override = PiRuntimeAdapter.resolveOverride(services);
       return {
-        ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent })),
+        ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent, ...override })),
         services,
         diagnostics: services.diagnostics,
       };
@@ -100,6 +140,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async prompt(message: string): Promise<void> {
+    this.lastError = undefined;
     await this.runtime.session.prompt(message);
   }
 
@@ -132,6 +173,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         return;
       }
       if (event.type === "message_end") {
+        const failure = event.message as { stopReason?: string; errorMessage?: string };
+        if (failure.stopReason === "error") {
+          this.lastError = failure.errorMessage?.trim() || "The model ended the turn with an error.";
+        }
         const final = toChatMessage(event.message, this.identity);
         if (final && (final.role === "user" || final.role === "assistant")) {
           this.emit({ type: "messageFinal", runId: this.currentRunId, message: final });
@@ -139,7 +184,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         return;
       }
       if (event.type === "agent_settled") {
-        this.emit({ type: "runtimeStatus", status: "idle" });
+        const error = this.lastError;
+        this.lastError = undefined;
+        this.emit({ type: "runtimeStatus", status: "idle", ...(error ? { error } : {}) });
       }
     });
   }

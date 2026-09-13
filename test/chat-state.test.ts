@@ -68,6 +68,16 @@ describe("chat state", () => {
     expect(next.status).toBe("running");
   });
 
+  it("keeps a failed turn's reason visible once the run settles", () => {
+    const running = { ...initialChatState, status: "running" as const, sequence: 1 };
+    const settled = reduceServerMessage(running, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 2, status: "idle",
+      error: "Codex error: The usage limit has been reached",
+    });
+    expect(settled.status).toBe("idle");
+    expect(settled.error).toBe("Codex error: The usage limit has been reached");
+  });
+
   it("ignores duplicate and stale sequenced events", () => {
     const state = { ...initialChatState, sequence: 4, status: "idle" as const };
     const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 4, status: "running" });

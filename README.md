@@ -38,6 +38,31 @@ The Pi project defaults to this repository. To use another working directory:
 PI_CHAT_CWD="$HOME/Documents/U_Uni" npm run dev
 ```
 
+## Choosing the model
+
+By default the session uses whatever Pi would use: a resumed session keeps the
+model it was last run with, otherwise `defaultProvider`/`defaultModel` from
+`~/.pi/agent/settings.json` apply. **A resumed session can therefore keep a model
+you have since stopped using**, which shows up as failing turns.
+
+`PI_CHAT_MODEL` overrides it for this server only, without touching your global
+Pi settings:
+
+```bash
+PI_CHAT_MODEL=doppelclaude/claude-opus-5 npm run dev
+PI_CHAT_MODEL=doppelclaude/claude-opus-5:high npm run dev   # with thinking level
+```
+
+It accepts the same spelling as the Pi CLI and is resolved against the runtime
+*after* extensions load, so extension-provided providers such as `doppelclaude`
+resolve correctly. An unknown name fails fast at startup.
+
+To list the models that currently have working auth:
+
+```bash
+npx tsx scripts/list-models.ts
+```
+
 The first prompt creates a standard persistent Pi session. Existing credentials and configuration are loaded from the normal Pi agent directory.
 
 ## Verification
