@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -102,5 +103,54 @@ describe("ProjectSessionService", () => {
     });
 
     expect(catalogue.projects[0]?.sessions[0]).toMatchObject({ title: "New name", name: "New name", nameSource: "manual", messageCount: 2 });
+  });
+});
+
+describe("deleting a session", () => {
+  it("removes the file from the session folder", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-chat-delete-"));
+    const sessions = join(root, "sessions", "project");
+    await mkdir(sessions, { recursive: true });
+    const target = join(sessions, "one.jsonl");
+    await writeFile(target, "{}");
+
+    const service = new ProjectSessionService({ listAll: async () => [] }, join(root, "sessions"));
+    await service.delete(target);
+
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("refuses a path outside the session folder", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-chat-delete-"));
+    const outsider = join(root, "notes.jsonl");
+    await writeFile(outsider, "{}");
+
+    const service = new ProjectSessionService({ listAll: async () => [] }, join(root, "sessions"));
+
+    await expect(service.delete(outsider)).rejects.toThrow(/outside the Pi session folder/);
+    expect(existsSync(outsider)).toBe(true);
+  });
+
+  it("refuses anything that is not a session file", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-chat-delete-"));
+    const sessions = join(root, "sessions");
+    await mkdir(sessions, { recursive: true });
+    const settings = join(sessions, "settings.json");
+    await writeFile(settings, "{}");
+
+    const service = new ProjectSessionService({ listAll: async () => [] }, sessions);
+
+    await expect(service.delete(settings)).rejects.toThrow(/outside the Pi session folder/);
+    expect(existsSync(settings)).toBe(true);
+  });
+
+  it("reports a session that is already gone", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-chat-delete-"));
+    const sessions = join(root, "sessions");
+    await mkdir(sessions, { recursive: true });
+
+    const service = new ProjectSessionService({ listAll: async () => [] }, sessions);
+
+    await expect(service.delete(join(sessions, "missing.jsonl"))).rejects.toThrow(/no longer exists/);
   });
 });

@@ -90,6 +90,18 @@ export class ChatApplicationService {
     this.sessions.focus(sessionId);
   }
 
+  /**
+   * Deleting a session whose runtime is still live would leave a tab pointing at
+   * a file that no longer exists, so the tab has to go first.
+   */
+  async deleteSession(path: string): Promise<void> {
+    if (this.sessions.findByPath(path)) {
+      throw new Error("That session is open. Close its tab before deleting it.");
+    }
+    await this.projectSessions.delete(path);
+    this.catalogueCache = undefined;
+  }
+
   async closeTab(sessionId: string): Promise<void> {
     // The last tab stays open: the app has no meaningful empty state.
     if (this.sessions.list().length <= 1) throw new Error("The last session cannot be closed.");

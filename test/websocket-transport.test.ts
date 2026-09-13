@@ -5,6 +5,24 @@ import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../sr
 import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
 import { createPiChatServer, type PiChatServer } from "../src/server/server.js";
 
+/** Waits for one specific message type; connect also pushes snapshots and tabs. */
+function receiveOfType(socket: WebSocket, type: ServerMessage["type"]): Promise<ServerMessage> {
+  return new Promise((resolve, reject) => {
+    const onMessage = (data: Buffer) => {
+      const parsed = serverMessageSchema.safeParse(JSON.parse(data.toString()));
+      if (!parsed.success) {
+        socket.off("message", onMessage);
+        reject(parsed.error);
+        return;
+      }
+      if (parsed.data.type !== type) return;
+      socket.off("message", onMessage);
+      resolve(parsed.data);
+    };
+    socket.on("message", onMessage);
+  });
+}
+
 function receive(socket: WebSocket): Promise<ServerMessage> {
   return new Promise((resolve, reject) => {
     socket.once("message", (data) => {
@@ -45,7 +63,7 @@ describe("WebSocket transport", () => {
     expect(snapshot).toMatchObject({ version: PROTOCOL_VERSION, type: "snapshot", sessionId: "fake-session", throughSequence: 0 });
 
     socket.send("not json");
-    expect(await receive(socket)).toMatchObject({ type: "protocolError", error: "Message must be valid JSON." });
+    expect(await receiveOfType(socket, "protocolError")).toMatchObject({ error: "Message must be valid JSON." });
     expect(socket.readyState).toBe(WebSocket.OPEN);
   });
 

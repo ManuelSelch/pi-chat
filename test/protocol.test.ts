@@ -57,3 +57,11 @@ describe("native built-in features", () => {
     })).toThrow();
   });
 });
+
+describe("session deletion", () => {
+  it("accepts a session path and rejects an empty one", () => {
+    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "/sessions/a.jsonl" }))
+      .toMatchObject({ type: "deleteSession" });
+    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "" })).toThrow();
+  });
+});

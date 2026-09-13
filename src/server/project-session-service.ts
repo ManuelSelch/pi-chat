@@ -1,8 +1,27 @@
+import { execFile } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
+import { unlink } from "node:fs/promises";
 import { createInterface } from "node:readline";
-import { basename, resolve } from "node:path";
-import { SessionManager, type SessionInfo } from "@earendil-works/pi-coding-agent";
+import { basename, resolve, sep } from "node:path";
+import { promisify } from "node:util";
+import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
 import type { SessionNameSource } from "../shared/protocol.js";
+
+const run = promisify(execFile);
+
+/**
+ * Recoverable delete, matching Pi's own session picker: a mistaken click should
+ * be undoable from the Trash rather than gone for good.
+ */
+async function moveToTrash(path: string): Promise<void> {
+  try {
+    await run("trash", [path]);
+    return;
+  } catch {
+    // No `trash` binary (or it refused); a plain unlink still has to work.
+    await unlink(path);
+  }
+}
 
 export interface ChatSessionSummary {
   path: string;
@@ -72,7 +91,23 @@ export async function readLatestSessionNameInfo(path: string): Promise<SessionNa
 }
 
 export class ProjectSessionService {
-  constructor(private readonly lister: ProjectSessionLister = SessionManager) {}
+  constructor(
+    private readonly lister: ProjectSessionLister = SessionManager,
+    private readonly sessionsRoot = resolve(getAgentDir(), "sessions"),
+  ) {}
+
+  /**
+   * Deletes one session file. The path arrives from the browser, so it is
+   * checked against the Pi session folder instead of being trusted.
+   */
+  async delete(sessionPath: string): Promise<void> {
+    const target = resolve(sessionPath);
+    if (!target.endsWith(".jsonl") || !target.startsWith(this.sessionsRoot + sep)) {
+      throw new Error("Refusing to delete a path outside the Pi session folder.");
+    }
+    if (!existsSync(target)) throw new Error("That session file no longer exists.");
+    await moveToTrash(target);
+  }
 
   async catalogue(active?: ActiveSessionSummary): Promise<ProjectCatalogue> {
     const sessions = await this.lister.listAll();

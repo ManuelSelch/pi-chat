@@ -105,6 +105,7 @@ export function usePiChat() {
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
+    deleteSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "deleteSession", path }),
     closeTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId }),
     renameSession: (name: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.rename", input: { name } }),

@@ -144,6 +144,7 @@ export function App() {
         busy={busy}
         openSession={chat.openSession}
         newSession={chat.newSession}
+        deleteSession={chat.deleteSession}
       />
       <SettingsDrawer
         opened={settingsOpen}

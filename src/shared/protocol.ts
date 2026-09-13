@@ -189,6 +189,7 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
+  z.object({ ...baseClientMessage, type: z.literal("deleteSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),

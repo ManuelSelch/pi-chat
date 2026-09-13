@@ -79,6 +79,12 @@ export class WebSocketTransport {
       } else if (command.type === "focusTab") {
         this.chat.focusTab(command.sessionId);
         this.sendTabs();
+      } else if (command.type === "deleteSession") {
+        void this.chat
+          .deleteSession(command.path)
+          // The catalogue lives in the snapshot, so the list refreshes itself.
+          .then(() => this.sendSnapshot(this.chat.activeSessionId()))
+          .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
       } else if (command.type === "closeTab") {
         void this.chat
           .closeTab(command.sessionId)
