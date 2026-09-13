@@ -91,10 +91,8 @@ export function usePiChat() {
 
   return {
     state,
-    prompt: (message: string, attachments: string[] = []) =>
-      send({ version: PROTOCOL_VERSION, type: "prompt", message, ...(attachments.length > 0 ? { attachments } : {}) }),
+    prompt: (message: string) => send({ version: PROTOCOL_VERSION, type: "prompt", message }),
     abort: () => send({ version: PROTOCOL_VERSION, type: "abort" }),
-    browseDirectory: (path?: string) => send({ version: PROTOCOL_VERSION, type: "browseDirectory", ...(path ? { path } : {}) }),
     openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),

@@ -27,22 +27,3 @@ describe("client protocol", () => {
     });
   });
 });
-
-describe("prompt attachments", () => {
-  it("accepts local paths alongside the message", () => {
-    const message = parseClientMessage({
-      version: PROTOCOL_VERSION,
-      type: "prompt",
-      message: "Summarise this",
-      attachments: ["~/Documents/notes.pdf"],
-    });
-
-    expect(message).toMatchObject({ type: "prompt", attachments: ["~/Documents/notes.pdf"] });
-  });
-
-  it("rejects empty attachment paths", () => {
-    expect(() =>
-      parseClientMessage({ version: PROTOCOL_VERSION, type: "prompt", message: "hi", attachments: ["  "] }),
-    ).toThrow();
-  });
-});

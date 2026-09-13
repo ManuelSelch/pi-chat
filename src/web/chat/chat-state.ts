@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, DirectoryListing, ProjectCatalogue, ServerMessage } from "../../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage } from "../../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -18,8 +18,6 @@ export interface ChatState {
   projectPath: string;
   catalogue: ProjectCatalogue;
   actions: ActionRegistry;
-  /** Latest answer to a file-picker request; the browser cannot read paths itself. */
-  listing?: DirectoryListing;
   sequence: number;
 }
 
@@ -52,14 +50,8 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       projectPath: message.projectPath,
       catalogue: message.catalogue ?? state.catalogue,
       actions: message.actions ?? state.actions,
-      listing: state.listing,
       sequence: message.throughSequence,
     };
-  }
-  if (message.type === "directoryListing") {
-    // A picker answer carries no transcript state, so it must not be dropped by
-    // the monotonic sequence gate that protects replayed run events.
-    return { ...state, listing: message.listing };
   }
   if (message.sequence <= state.sequence) return state;
   if (message.type === "assistantDelta") {

@@ -15,7 +15,6 @@ import type { ChatMessage, ThinkingLevel, ToolCard } from "../shared/protocol.js
 type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
-import { AttachmentService, withReferences } from "./attachment-service.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 
 const ARGS_TEXT_MAX = 4_000;
@@ -199,7 +198,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * until the run settles, because `agent_settled` publishes the final status.
    */
   private lastError?: string;
-  private readonly attachments = new AttachmentService();
 
   private constructor(private readonly runtime: AgentSessionRuntime) {
     this.bindSession();
@@ -309,16 +307,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     };
   }
 
-  async prompt(message: string, attachments: readonly string[] = []): Promise<void> {
+  async prompt(message: string): Promise<void> {
     this.lastError = undefined;
-    if (attachments.length === 0) {
-      await this.runtime.session.prompt(message);
-      return;
-    }
-    // Resolution can reject (missing path, folder), and that must surface before
-    // the run starts rather than as an unexplained model answer.
-    const { images, references } = await this.attachments.resolve(attachments, this.snapshot().projectPath);
-    await this.runtime.session.prompt(withReferences(message, references), images.length > 0 ? { images } : undefined);
+    await this.runtime.session.prompt(message);
   }
 
   async abort(): Promise<void> {

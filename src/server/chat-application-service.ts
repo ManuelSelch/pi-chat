@@ -1,8 +1,6 @@
 import type { ClientMessage } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
-import { FileBrowserService } from "./file-browser-service.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
-import type { DirectoryListing } from "../shared/protocol.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
   for (const message of snapshot.messages) {
@@ -26,7 +24,6 @@ export class ChatApplicationService {
     private runtime: RuntimeAdapter,
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
-    private readonly fileBrowser = new FileBrowserService(),
   ) {
     this.bindRuntime();
   }
@@ -37,16 +34,12 @@ export class ChatApplicationService {
     return { ...snapshot, catalogue };
   }
 
-  prompt(message: string, attachments?: readonly string[]): Promise<void> {
-    return this.runtime.prompt(message, attachments);
+  prompt(message: string): Promise<void> {
+    return this.runtime.prompt(message);
   }
 
   abort(): Promise<void> {
     return this.runtime.abort();
-  }
-
-  browseDirectory(path?: string): Promise<DirectoryListing> {
-    return this.fileBrowser.list(path, this.runtime.snapshot().projectPath);
   }
 
   async openProject(path: string): Promise<void> {
