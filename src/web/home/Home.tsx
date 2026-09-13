@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { Badge, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { Badge, Box, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../shared/protocol.js";
 import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quickopen/quick-open.js";
@@ -52,7 +52,7 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
 
   return (
     <Center h="100%" px="md">
-      <Stack gap="lg" w="100%" maw={620}>
+      <Stack gap="lg" w="100%" maw={620} style={{ height: "min(560px, calc(100dvh - 150px))" }}>
         <Stack gap={4} align="center">
           <Text size="xl" fw={600}>Pi Chat</Text>
           <Text size="sm" c="dimmed">Open a session to start</Text>
@@ -74,12 +74,13 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
           </Button>
         </Stack>
 
-        {hasQuery ? (
-          <Stack gap={2} role="listbox" aria-label="Sessions">
-            {results.length === 0 ? (
-              <Text size="sm" c="dimmed" ta="center" py="md">No matching sessions</Text>
-            ) : (
-              results.slice(0, 8).map((item, index) => (
+        <Box h={320}>
+          {hasQuery ? (
+            <Stack gap={2} role="listbox" aria-label="Sessions">
+              {results.length === 0 ? (
+                <Text size="sm" c="dimmed" ta="center" py="md">No matching sessions</Text>
+              ) : (
+                results.slice(0, 8).map((item, index) => (
               <UnstyledButton
                 key={`${item.kind}:${item.path}`}
                 role="option"
@@ -101,10 +102,11 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
                   </Text>
                 </Group>
               </UnstyledButton>
-              ))
-            )}
-          </Stack>
-        ) : null}
+                ))
+              )}
+            </Stack>
+          ) : null}
+        </Box>
       </Stack>
     </Center>
   );
