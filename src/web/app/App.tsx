@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Anchor, AppShell, Box, Button, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { AttachmentBar } from "../attachments/AttachmentBar.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -10,6 +11,7 @@ export function App() {
   const chat = usePiChat();
   const { state, prompt, abort, takeControl } = chat;
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const busy = state.status === "running" || state.status === "aborting";
@@ -20,8 +22,9 @@ export function App() {
     event?.preventDefault();
     const message = input.trim();
     if (!message || state.status !== "idle") return;
-    prompt(message);
+    prompt(message, attachments);
     setInput("");
+    setAttachments([]);
   }
 
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
@@ -93,6 +96,7 @@ export function App() {
           ) : null}
 
           <Paper component="form" onSubmit={submit} withBorder radius="lg" p="xs" shadow="md">
+            <AttachmentBar paths={attachments} onChange={setAttachments} disabled={busy} />
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <Textarea
                 aria-label="Message Pi"

@@ -34,8 +34,8 @@ export class ChatApplicationService {
     return { ...snapshot, catalogue };
   }
 
-  prompt(message: string): Promise<void> {
-    return this.runtime.prompt(message);
+  prompt(message: string, attachments?: readonly string[]): Promise<void> {
+    return this.runtime.prompt(message, attachments);
   }
 
   abort(): Promise<void> {

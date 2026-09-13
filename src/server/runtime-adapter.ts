@@ -18,7 +18,7 @@ export interface RuntimeSnapshot {
 
 export interface RuntimeAdapter {
   snapshot(): RuntimeSnapshot;
-  prompt(message: string): Promise<void>;
+  prompt(message: string, attachments?: readonly string[]): Promise<void>;
   abort(): Promise<void>;
   renameSession(name: string): Promise<void> | void;
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
@@ -48,10 +48,11 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
     };
   }
 
-  async prompt(message: string): Promise<void> {
+  async prompt(message: string, attachments: readonly string[] = []): Promise<void> {
     if (this.streaming) throw new Error("The runtime is already streaming");
     const runId = `fake-${++this.run}`;
-    this.messages.push({ id: `${runId}-user`, role: "user", text: message });
+    const text = attachments.length === 0 ? message : `${message}\n\nAttached files (local paths):\n${attachments.map((path) => `- ${path}`).join("\n")}`;
+    this.messages.push({ id: `${runId}-user`, role: "user", text });
     this.streaming = true;
     this.emit({ type: "runtimeStatus", status: "running" });
     this.emit({ type: "assistantDelta", runId, delta: "Hello " });

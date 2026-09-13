@@ -99,7 +99,13 @@ export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 
 export const clientMessageSchema = z.union([
-  z.object({ ...baseClientMessage, type: z.literal("prompt"), message: z.string().trim().min(1) }),
+  z.object({
+    ...baseClientMessage,
+    type: z.literal("prompt"),
+    message: z.string().trim().min(1),
+    /** Local paths only: the server resolves and validates them, nothing is uploaded. */
+    attachments: z.array(z.string().trim().min(1)).max(20).optional(),
+  }),
   z.object({ ...baseClientMessage, type: z.literal("abort") }),
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
