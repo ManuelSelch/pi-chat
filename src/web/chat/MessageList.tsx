@@ -30,7 +30,7 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
   return (
     <Box component="article">
       {message.role === "assistant" ? (
-        <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={6}>Pi</Text>
+        <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
       ) : null}
       {message.role === "user" ? (
         <Paper bg="var(--mantine-color-default-hover)" radius="lg" p="sm" px="md" ml="auto" maw="82%">
@@ -72,7 +72,9 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
         </Center>
       ) : null}
 
-      <Stack gap="xl" component="section" aria-live="polite">
+      {/* One gap owns the rhythm: rows must not add their own margins, or a
+          tool call between two messages gets counted twice. */}
+      <Stack gap="md" component="section" aria-live="polite">
         {hidden > 0 ? (
           <Button variant="subtle" size="compact-sm" onClick={() => setVisible((count) => count + OLDER_STEP)}>
             Show earlier messages ({hidden})
@@ -81,7 +83,7 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
         {shown.map((message) => <MessageRow key={message.id} message={message} />)}
         {draft ? (
           <Box component="article">
-            <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={6}>Pi</Text>
+            <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
             <div className="markdown">
               <Markdown>{draft.text}</Markdown>
               <span className="stream-cursor" />

@@ -13,6 +13,27 @@ const STATUS_LABEL: Record<ToolCardState["status"], string> = {
   error: "Failed",
 };
 
+/** Tools whose subject is a file, so the path belongs in the collapsed bar. */
+const PATH_TOOLS = new Set(["edit", "write"]);
+
+/**
+ * The path a file tool writes to, read from its own arguments.
+ *
+ * Arguments stream in as text, so a running call often holds half a JSON
+ * object; an unparsable fragment simply has no path to show yet.
+ */
+export function toolPath(tool: ToolCardState): string | undefined {
+  if (!PATH_TOOLS.has(tool.name) || tool.argsText === undefined) return undefined;
+  try {
+    const args: unknown = JSON.parse(tool.argsText);
+    if (typeof args !== "object" || args === null) return undefined;
+    const path = (args as { path?: unknown }).path;
+    return typeof path === "string" && path.trim() !== "" ? path : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * One tool call, collapsed by default so tools never dominate the transcript.
  * Native details/summary keeps it keyboard-operable without state. Arguments
@@ -20,12 +41,12 @@ const STATUS_LABEL: Record<ToolCardState["status"], string> = {
  * inject anything.
  */
 export function ToolCard({ tool }: { tool: ToolCardState }) {
+  const path = toolPath(tool);
   return (
     <Box
       component="details"
       className={`tool-card ${tool.status}`}
       data-testid="tool-card"
-      mb="xl"
       style={{
         border: "1px solid var(--mantine-color-default-border)",
         borderRadius: "var(--mantine-radius-md)",
@@ -45,7 +66,14 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
             style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[tool.status]}-filled)`, flex: "none" }}
           />
           <Text ff="monospace" fw={600} size="sm">{tool.name}</Text>
-          <Badge color={STATUS_COLOR[tool.status]} variant="light" size="sm">{STATUS_LABEL[tool.status]}</Badge>
+          {path ? (
+            <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} title={path} data-testid="tool-path">
+              {path}
+            </Text>
+          ) : null}
+          <Badge color={STATUS_COLOR[tool.status]} variant="light" size="sm" style={{ flex: "none" }}>
+            {STATUS_LABEL[tool.status]}
+          </Badge>
         </Group>
       </Box>
       {tool.argsText !== undefined || tool.outputText !== undefined ? (

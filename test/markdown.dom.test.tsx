@@ -115,3 +115,31 @@ describe("ToolCard rendering", () => {
     expect(card.textContent).toContain("Failed");
   });
 });
+
+describe("tool path in the collapsed bar", () => {
+  it("shows the path for edit and write calls", async () => {
+    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    render(withMantine(
+      <ToolCard tool={{ toolCallId: "p1", name: "edit", status: "success", argsText: '{"path":"src/web/chat/ToolCard.tsx","edits":[]}' }} />,
+    ));
+
+    expect(screen.getByTestId("tool-path").textContent).toBe("src/web/chat/ToolCard.tsx");
+  });
+
+  it("leaves other tools alone", async () => {
+    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    render(withMantine(
+      <ToolCard tool={{ toolCallId: "p2", name: "bash", status: "success", argsText: '{"command":"ls"}' }} />,
+    ));
+
+    expect(screen.queryByTestId("tool-path")).toBeNull();
+  });
+
+  it("shows nothing while the arguments are still a half-streamed fragment", async () => {
+    const { toolPath } = await import("../src/web/chat/ToolCard.js");
+
+    expect(toolPath({ toolCallId: "p3", name: "write", status: "running", argsText: '{"path":"src/we' })).toBeUndefined();
+    expect(toolPath({ toolCallId: "p4", name: "write", status: "running" })).toBeUndefined();
+    expect(toolPath({ toolCallId: "p5", name: "write", status: "success", argsText: '{"path":"a.ts"}' })).toBe("a.ts");
+  });
+});
