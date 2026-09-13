@@ -66,14 +66,42 @@ export type ChatSessionSummary = z.infer<typeof chatSessionSummarySchema>;
 export type ChatProjectSummary = z.infer<typeof chatProjectSummarySchema>;
 export type ProjectCatalogue = z.infer<typeof projectCatalogueSchema>;
 
+export const thinkingLevelSchema = z.enum(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
+
+export const webFeatureSchema = z.discriminatedUnion("kind", [
+  z.object({
+    id: z.literal("session.rename"),
+    group: z.literal("session"),
+    kind: z.literal("form"),
+    title: z.string(),
+    description: z.string().optional(),
+    state: z.object({ name: z.string() }),
+  }),
+  z.object({
+    id: z.literal("thinking.level"),
+    group: z.literal("model"),
+    kind: z.literal("select"),
+    title: z.string(),
+    description: z.string().optional(),
+    state: z.object({ value: thinkingLevelSchema, options: z.array(thinkingLevelSchema) }),
+  }),
+]);
+
+export const actionRegistrySchema = z.object({ features: z.array(webFeatureSchema) });
+export type WebFeature = z.infer<typeof webFeatureSchema>;
+export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
+
 const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 
-export const clientMessageSchema = z.discriminatedUnion("type", [
+export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("abort") }),
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
+  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),
+  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -94,6 +122,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     messages: z.array(chatMessageSchema),
     isStreaming: z.boolean(),
     catalogue: projectCatalogueSchema.optional(),
+    actions: actionRegistrySchema.optional(),
   }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),

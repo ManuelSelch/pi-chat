@@ -9,7 +9,7 @@ import {
   type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, ToolCard } from "../shared/protocol.js";
+import type { ChatMessage, ThinkingLevel, ToolCard } from "../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
@@ -277,9 +277,33 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     return {
       sessionId: this.runtime.session.sessionId,
       ...(this.runtime.session.sessionFile ? { sessionPath: this.runtime.session.sessionFile } : {}),
+      ...(this.runtime.session.sessionName ? { sessionName: this.runtime.session.sessionName } : {}),
       projectPath: this.runtime.cwd,
       messages,
       isStreaming,
+      actions: {
+        features: [
+          {
+            id: "session.rename",
+            group: "session",
+            kind: "form",
+            title: "Rename session",
+            description: "Set the display name shown in Pi session lists.",
+            state: { name: this.runtime.session.sessionName ?? "" },
+          },
+          {
+            id: "thinking.level",
+            group: "model",
+            kind: "select",
+            title: "Thinking level",
+            description: "Change the reasoning effort for the current session when the model supports it.",
+            state: {
+              value: this.runtime.session.thinkingLevel as ThinkingLevel,
+              options: this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[],
+            },
+          },
+        ],
+      },
     };
   }
 
@@ -291,6 +315,14 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   async abort(): Promise<void> {
     this.emit({ type: "runtimeStatus", status: "aborting" });
     await this.runtime.session.abort();
+  }
+
+  renameSession(name: string): void {
+    this.runtime.session.setSessionName(name);
+  }
+
+  setThinkingLevel(level: ThinkingLevel): void {
+    this.runtime.session.setThinkingLevel(level);
   }
 
   subscribe(listener: (event: RuntimeEvent) => void): () => void {

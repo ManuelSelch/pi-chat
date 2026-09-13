@@ -29,6 +29,7 @@ export interface ProjectCatalogue {
 export interface ActiveSessionSummary {
   path?: string;
   id: string;
+  name?: string;
   cwd: string;
   messageCount: number;
   firstMessage?: string;
@@ -104,13 +105,21 @@ export class ProjectSessionService {
       };
       byProject.set(projectPath, project);
     }
-    if (project.sessions.some((session) => session.path === sessionPath || session.id === active.id)) return;
+    const title = active.name || active.firstMessage || "New session";
+    const existing = project.sessions.find((session) => session.path === sessionPath || session.id === active.id);
+    if (existing) {
+      existing.title = title;
+      if (active.name) existing.name = active.name;
+      existing.messageCount = active.messageCount;
+      return;
+    }
     project.sessionCount += 1;
     project.modified = Math.max(project.modified, now);
     project.sessions.unshift({
       path: sessionPath,
       id: active.id,
-      title: active.firstMessage || "New session",
+      title,
+      ...(active.name ? { name: active.name } : {}),
       ...(active.firstMessage ? { firstMessage: active.firstMessage } : {}),
       modified: now,
       created: now,

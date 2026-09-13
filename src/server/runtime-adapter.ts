@@ -1,4 +1,4 @@
-import type { ChatMessage, ToolCard } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard } from "../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -9,15 +9,19 @@ export type RuntimeEvent =
 export interface RuntimeSnapshot {
   sessionId: string;
   sessionPath?: string;
+  sessionName?: string;
   projectPath: string;
   messages: ChatMessage[];
   isStreaming: boolean;
+  actions: ActionRegistry;
 }
 
 export interface RuntimeAdapter {
   snapshot(): RuntimeSnapshot;
   prompt(message: string): Promise<void>;
   abort(): Promise<void>;
+  renameSession(name: string): Promise<void> | void;
+  setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
   subscribe(listener: (event: RuntimeEvent) => void): () => void;
   dispose(): Promise<void> | void;
 }
@@ -35,6 +39,12 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
       projectPath: process.cwd(),
       messages: [...this.messages],
       isStreaming: this.streaming,
+      actions: {
+        features: [
+          { id: "session.rename", group: "session", kind: "form", title: "Rename session", state: { name: "" } },
+          { id: "thinking.level", group: "model", kind: "select", title: "Thinking level", state: { value: "off", options: ["off"] } },
+        ],
+      },
     };
   }
 
@@ -57,6 +67,10 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
     this.streaming = false;
     this.emit({ type: "runtimeStatus", status: "idle" });
   }
+
+  renameSession(_name: string): void {}
+
+  setThinkingLevel(_level: ThinkingLevel): void {}
 
   subscribe(listener: (event: RuntimeEvent) => void): () => void {
     this.listeners.add(listener);

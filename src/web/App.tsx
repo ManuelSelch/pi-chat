@@ -12,9 +12,11 @@ import {
   NavLink,
   Paper,
   ScrollArea,
+  Select,
   Stack,
   Text,
   Textarea,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { Markdown } from "./Markdown.js";
@@ -22,10 +24,11 @@ import { ToolCard } from "./ToolCard.js";
 import { usePiChat } from "./use-pi-chat.js";
 
 export function App() {
-  const { state, prompt, abort, openProject, openSession, newSession, takeControl } = usePiChat();
+  const { state, prompt, abort, openProject, openSession, newSession, renameSession, setThinkingLevel, takeControl } = usePiChat();
   const [input, setInput] = useState("");
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
+  const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
 
   function submit(event?: FormEvent): void {
     event?.preventDefault();
@@ -44,6 +47,9 @@ export function App() {
 
   const busy = state.status === "running" || state.status === "aborting";
   const activeProject = state.catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? state.catalogue.projects[0];
+  const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
+  const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
+  const sessionName = sessionNameInput ?? renameFeature?.state.name ?? "";
 
   return (
     <AppShell header={{ height: 58 }} padding={0}>
@@ -64,7 +70,41 @@ export function App() {
         </Group>
       </AppShell.Header>
 
-      <Drawer opened={projectsOpen} onClose={() => setProjectsOpen(false)} title="Projects and sessions" size="lg">
+      <Drawer opened={projectsOpen} onClose={() => setProjectsOpen(false)} title="Projects, sessions, and actions" size="lg">
+        <Stack gap="md" mb="md">
+          {renameFeature ? (
+            <Paper withBorder radius="md" p="sm">
+              <Text fw={650} size="sm" mb={6}>{renameFeature.title}</Text>
+              <Group gap="xs" align="flex-end" wrap="nowrap">
+                <TextInput
+                  aria-label="Session name"
+                  placeholder="Session name"
+                  value={sessionName}
+                  onChange={(event) => setSessionNameInput(event.currentTarget.value)}
+                  flex={1}
+                />
+                <Button
+                  disabled={busy || !sessionName.trim()}
+                  onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}
+                >
+                  Save
+                </Button>
+              </Group>
+            </Paper>
+          ) : null}
+          {thinkingFeature ? (
+            <Paper withBorder radius="md" p="sm">
+              <Text fw={650} size="sm" mb={6}>{thinkingFeature.title}</Text>
+              <Select
+                aria-label="Thinking level"
+                value={thinkingFeature.state.value}
+                data={thinkingFeature.state.options}
+                disabled={busy || thinkingFeature.state.options.length <= 1}
+                onChange={(value) => { if (value) setThinkingLevel(value as typeof thinkingFeature.state.value); }}
+              />
+            </Paper>
+          ) : null}
+        </Stack>
         <Group align="flex-start" wrap="nowrap">
           <ScrollArea h="70vh" flex={1}>
             <Stack gap={4}>

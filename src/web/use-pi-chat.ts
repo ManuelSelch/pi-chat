@@ -4,6 +4,7 @@ import {
   PROTOCOL_VERSION,
   serverMessageSchema,
   type ClientMessage,
+  type ThinkingLevel,
 } from "../shared/protocol.js";
 import { initialChatState, reduceServerMessage } from "./chat-state.js";
 
@@ -95,6 +96,8 @@ export function usePiChat() {
     openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
+    renameSession: (name: string) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.rename", input: { name } }),
+    setThinkingLevel: (level: ThinkingLevel) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "thinking.level", input: { level } }),
     takeControl: () => setClaim((value) => value + 1),
   };
 }

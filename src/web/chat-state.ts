@@ -1,4 +1,4 @@
-import type { ChatMessage, ProjectCatalogue, ServerMessage } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage } from "../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -17,6 +17,7 @@ export interface ChatState {
   sessionId: string;
   projectPath: string;
   catalogue: ProjectCatalogue;
+  actions: ActionRegistry;
   sequence: number;
 }
 
@@ -26,6 +27,7 @@ export const initialChatState: ChatState = {
   sessionId: "",
   projectPath: "",
   catalogue: { projects: [] },
+  actions: { features: [] },
   sequence: -1,
 };
 
@@ -47,6 +49,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       sessionId: message.sessionId,
       projectPath: message.projectPath,
       catalogue: message.catalogue ?? state.catalogue,
+      actions: message.actions ?? state.actions,
       sequence: message.throughSequence,
     };
   }

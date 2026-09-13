@@ -58,4 +58,18 @@ describe("ProjectSessionService", () => {
       messageCount: 0,
     });
   });
+
+  it("updates the active session title from active runtime state", async () => {
+    const lister = { listAll: async () => [info({ id: "s1", path: "/sessions/project/s1.jsonl", name: "Old name" })] };
+
+    const catalogue = await new ProjectSessionService(lister).catalogue({
+      id: "s1",
+      path: "/sessions/project/s1.jsonl",
+      name: "New name",
+      cwd: process.cwd(),
+      messageCount: 2,
+    });
+
+    expect(catalogue.projects[0]?.sessions[0]).toMatchObject({ title: "New name", name: "New name", messageCount: 2 });
+  });
 });

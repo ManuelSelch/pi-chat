@@ -13,4 +13,17 @@ describe("client protocol", () => {
   it("rejects an empty prompt", () => {
     expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "prompt", message: "  " })).toThrow();
   });
+
+  it("accepts native feature actions", () => {
+    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.rename", input: { name: "Study" } })).toMatchObject({
+      type: "runFeature",
+      featureId: "session.rename",
+      input: { name: "Study" },
+    });
+    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "thinking.level", input: { level: "high" } })).toMatchObject({
+      type: "runFeature",
+      featureId: "thinking.level",
+      input: { level: "high" },
+    });
+  });
 });

@@ -1,3 +1,4 @@
+import type { ClientMessage } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
 
@@ -53,6 +54,15 @@ export class ChatApplicationService {
     await this.replaceRuntime(() => this.factory.newSession(path));
   }
 
+  async runFeature(message: Extract<ClientMessage, { type: "runFeature" }>): Promise<void> {
+    if (this.runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before changing controls.");
+    if (message.featureId === "session.rename") {
+      await this.runtime.renameSession(message.input.name);
+      return;
+    }
+    await this.runtime.setThinkingLevel(message.input.level);
+  }
+
   subscribe(listener: (event: RuntimeEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -68,6 +78,7 @@ export class ChatApplicationService {
     this.catalogueCache = await this.projectSessions.catalogue({
       id: snapshot.sessionId,
       path: snapshot.sessionPath,
+      name: snapshot.sessionName,
       cwd: snapshot.projectPath,
       messageCount: snapshot.messages.filter((message) => message.role !== "tool").length,
       firstMessage: firstUserMessage(snapshot),

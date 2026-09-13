@@ -60,6 +60,8 @@ export class WebSocketTransport {
         void this.chat.abort().catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "prompt") {
         void this.chat.prompt(result.value.message).catch((error: unknown) => this.publishError(error));
+      } else if (result.value.type === "runFeature") {
+        void this.chat.runFeature(result.value).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "openProject") {
         void this.chat.openProject(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "openSession") {
