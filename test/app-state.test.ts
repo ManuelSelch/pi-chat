@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../src/shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage, visibleError } from "../src/web/chat/app-state.js";
+import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs } from "../src/web/chat/app-state.js";
 
 const snapshot = (sessionId: string, text: string): ServerMessage => ({
   version: PROTOCOL_VERSION,
@@ -111,5 +111,49 @@ describe("error reporting", () => {
     state = reduceAppMessage(state, { type: "clearError" });
 
     expect(visibleError(state, activeSession(state))).toBeUndefined();
+  });
+});
+
+describe("optimistic tab changes", () => {
+  const tabsMessage = (ids: string[]) => ({
+    version: PROTOCOL_VERSION,
+    type: "tabs" as const,
+    activeSessionId: ids[0] ?? "",
+    tabs: ids.map((id) => ({ sessionId: id, title: id, projectPath: "/p", projectName: "p", status: "idle" as const })),
+  });
+
+  it("shows a placeholder while a session is being opened", () => {
+    let state = reduceAppMessage(initialAppState, { type: "openPending" });
+    state = reduceAppMessage(state, { type: "openPending" });
+
+    expect(state.openingTabs).toBe(2);
+
+    state = reduceAppMessage(state, tabsMessage(["a", "b"]));
+
+    // The authoritative tab list replaces every guess.
+    expect(state.openingTabs).toBe(0);
+    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["a", "b"]);
+  });
+
+  it("hides a closing tab before the server confirms", () => {
+    let state = reduceAppMessage(initialAppState, tabsMessage(["a", "b"]));
+    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
+
+    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["b"]);
+    // Still present underneath until the server says otherwise.
+    expect(state.tabs).toHaveLength(2);
+
+    state = reduceAppMessage(state, tabsMessage(["b"]));
+    expect(state.closingSessionIds).toEqual([]);
+    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["b"]);
+  });
+
+  it("ignores a repeated close of the same tab", () => {
+    let state = reduceAppMessage(initialAppState, tabsMessage(["a"]));
+    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
+    const once = state;
+    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
+
+    expect(state).toBe(once);
   });
 });

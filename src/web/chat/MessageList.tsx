@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { Alert, Box, Center, Paper, Stack, Text, Title } from "@mantine/core";
+import { memo, useState } from "react";
+import { Alert, Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "./Markdown.js";
 import { ToolCard } from "./ToolCard.js";
@@ -43,12 +43,24 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
   );
 });
 
+/**
+ * Long transcripts are the reason switching tabs felt slow: every row remounts
+ * and re-renders markdown, KaTeX and highlighting. Only the tail is rendered
+ * until the reader asks for more.
+ */
+const INITIAL_VISIBLE = 40;
+const OLDER_STEP = 100;
+
 interface MessageListProps {
   messages: ChatState["messages"];
   draft: ChatState["draft"];
 }
 
 export const MessageList = memo(function MessageList({ messages, draft }: MessageListProps) {
+  const [visible, setVisible] = useState(INITIAL_VISIBLE);
+  const shown = messages.length > visible ? messages.slice(-visible) : messages;
+  const hidden = messages.length - shown.length;
+
   return (
     <>
       {messages.length === 0 && !draft ? (
@@ -61,7 +73,12 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
       ) : null}
 
       <Stack gap="xl" component="section" aria-live="polite">
-        {messages.map((message) => <MessageRow key={message.id} message={message} />)}
+        {hidden > 0 ? (
+          <Button variant="subtle" size="compact-sm" onClick={() => setVisible((count) => count + OLDER_STEP)}>
+            Show earlier messages ({hidden})
+          </Button>
+        ) : null}
+        {shown.map((message) => <MessageRow key={message.id} message={message} />)}
         {draft ? (
           <Box component="article">
             <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={6}>Pi</Text>

@@ -103,12 +103,24 @@ export function usePiChat() {
     abort: (sessionId?: string) => send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "abort" }),
     respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "uiPromptResponse", promptId, result }),
-    openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
-    openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
-    newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
+    openProject: (path: string) => {
+      dispatch({ type: "openPending" });
+      send({ version: PROTOCOL_VERSION, type: "openProject", path });
+    },
+    openSession: (path: string) => {
+      dispatch({ type: "openPending" });
+      send({ version: PROTOCOL_VERSION, type: "openSession", path });
+    },
+    newSession: (path?: string) => {
+      dispatch({ type: "openPending" });
+      send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) });
+    },
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
     deleteSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "deleteSession", path }),
-    closeTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId }),
+    closeTab: (sessionId: string) => {
+      dispatch({ type: "closePending", sessionId });
+      send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId });
+    },
     renameSession: (name: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.rename", input: { name } }),
     setModel: (model: string) =>

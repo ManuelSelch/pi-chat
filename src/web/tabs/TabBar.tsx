@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Group, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import type { Tab, TabStatus } from "../../shared/protocol.js";
 
@@ -17,14 +17,16 @@ const STATUS_LABEL: Record<TabStatus, string> = {
 
 interface TabBarProps {
   tabs: Tab[];
+  /** Sessions whose runtime the server is still creating. */
+  opening: number;
   activeSessionId: string;
   onFocus: (sessionId: string) => void;
   onClose: (tab: Tab) => void;
   onNew: () => void;
 }
 
-export function TabBar({ tabs, activeSessionId, onFocus, onClose, onNew }: TabBarProps) {
-  if (tabs.length === 0) return null;
+export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew }: TabBarProps) {
+  if (tabs.length === 0 && opening === 0) return null;
 
   return (
     <Group gap={4} wrap="nowrap" px="xs" py={4} style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
@@ -73,6 +75,12 @@ export function TabBar({ tabs, activeSessionId, onFocus, onClose, onNew }: TabBa
               </UnstyledButton>
             );
           })}
+          {Array.from({ length: opening }, (_, index) => (
+            <Group key={`opening-${index}`} gap={6} wrap="nowrap" px="xs" py={4} opacity={0.7}>
+              <Loader size={8} />
+              <Text size="xs" c="dimmed">Opening…</Text>
+            </Group>
+          ))}
         </Group>
       </ScrollArea>
       <Tooltip label="New session in this project">

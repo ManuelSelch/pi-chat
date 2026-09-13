@@ -5,7 +5,9 @@ export type AppAction =
   | ServerMessage
   | { type: "connectionLost"; error?: string }
   | { type: "superseded" }
-  | { type: "clearError" };
+  | { type: "clearError" }
+  | { type: "openPending" }
+  | { type: "closePending"; sessionId: string };
 
 export interface AppState {
   tabs: Tab[];
@@ -14,6 +16,13 @@ export interface AppState {
   sessions: Record<string, ChatState>;
   /** The project list is global, so it is kept outside the per-session state. */
   catalogue: ProjectCatalogue;
+  /**
+   * Opening a session takes a server round trip. The tab bar shows a placeholder
+   * straight away so the click feels instant, and a closing tab disappears
+   * immediately instead of waiting for confirmation.
+   */
+  openingTabs: number;
+  closingSessionIds: string[];
   connection: "connecting" | "open" | "superseded";
   error?: string;
 }
@@ -23,6 +32,8 @@ export const initialAppState: AppState = {
   activeSessionId: "",
   sessions: {},
   catalogue: { projects: [] },
+  openingTabs: 0,
+  closingSessionIds: [],
   connection: "connecting",
 };
 
@@ -34,6 +45,11 @@ export function visibleError(state: AppState, session: ChatState): string | unde
   return state.error ?? session.error;
 }
 
+/** Tabs as the user should see them right now, including optimistic changes. */
+export function visibleTabs(state: AppState): Tab[] {
+  return state.tabs.filter((tab) => !state.closingSessionIds.includes(tab.sessionId));
+}
+
 export function activeSession(state: AppState): ChatState {
   // Snapshots arrive before the tab list, so fall back to the only known
   // session rather than briefly rendering an empty app.
@@ -41,6 +57,14 @@ export function activeSession(state: AppState): ChatState {
 }
 
 export function reduceAppMessage(state: AppState, message: AppAction): AppState {
+  if (message.type === "openPending") {
+    return { ...state, openingTabs: state.openingTabs + 1 };
+  }
+  if (message.type === "closePending") {
+    return state.closingSessionIds.includes(message.sessionId)
+      ? state
+      : { ...state, closingSessionIds: [...state.closingSessionIds, message.sessionId] };
+  }
   if (message.type === "clearError") {
     return state.error === undefined ? state : { ...state, error: undefined };
   }
@@ -64,7 +88,15 @@ export function reduceAppMessage(state: AppState, message: AppAction): AppState 
     const sessions = Object.fromEntries(
       Object.entries(state.sessions).filter(([id]) => message.tabs.some((tab) => tab.sessionId === id)),
     );
-    return { ...state, tabs: message.tabs, activeSessionId: message.activeSessionId, sessions, connection: "open" };
+    return {
+      ...state,
+      tabs: message.tabs,
+      activeSessionId: message.activeSessionId,
+      sessions,
+      openingTabs: 0,
+      closingSessionIds: [],
+      connection: "open",
+    };
   }
 
   if (message.type === "protocolError") {

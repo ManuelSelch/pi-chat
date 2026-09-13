@@ -6,7 +6,7 @@ import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands } from "../commands/command-menu.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
-import { visibleError } from "../chat/app-state.js";
+import { visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
@@ -139,7 +139,8 @@ export function App() {
           </Group>
         </Group>
         <TabBar
-          tabs={app.tabs}
+          tabs={visibleTabs(app)}
+          opening={app.openingTabs}
           activeSessionId={app.activeSessionId}
           onFocus={chat.focusTab}
           onClose={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : setClosing(tab))}
@@ -196,7 +197,7 @@ export function App() {
 
       <AppShell.Main pb={170}>
         <Container size="sm" py="xl">
-          <MessageList messages={state.messages} draft={state.draft} />
+          <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />
           <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
         </Container>
       </AppShell.Main>
