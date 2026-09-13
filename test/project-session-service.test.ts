@@ -1,5 +1,8 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { ProjectSessionService } from "../src/server/project-session-service.js";
+import { ProjectSessionService, readLatestSessionNameInfo } from "../src/server/project-session-service.js";
 
 function info(overrides: Partial<any>) {
   return {
@@ -15,6 +18,33 @@ function info(overrides: Partial<any>) {
   };
 }
 
+describe("session name source detection", () => {
+  it("detects latest auto and manual session names", async () => {
+    const dir = join(tmpdir(), `pi-chat-session-${crypto.randomUUID()}`);
+    await mkdir(dir, { recursive: true });
+    const path = join(dir, "session.jsonl");
+    await writeFile(
+      path,
+      [
+        JSON.stringify({ type: "session", id: "s1", timestamp: new Date(0).toISOString() }),
+        JSON.stringify({ type: "session_info", name: "Generated", autoTitle: true }),
+        JSON.stringify({ type: "session_info", name: "Manual" }),
+      ].join("\n"),
+    );
+
+    await expect(readLatestSessionNameInfo(path)).resolves.toEqual({ name: "Manual", source: "manual" });
+  });
+
+  it("treats an empty latest session_info as unnamed", async () => {
+    const dir = join(tmpdir(), `pi-chat-session-${crypto.randomUUID()}`);
+    await mkdir(dir, { recursive: true });
+    const path = join(dir, "session.jsonl");
+    await writeFile(path, `${JSON.stringify({ type: "session_info", name: "Generated", autoTitle: true })}\n${JSON.stringify({ type: "session_info", name: "" })}`);
+
+    await expect(readLatestSessionNameInfo(path)).resolves.toEqual({ source: "none" });
+  });
+});
+
 describe("ProjectSessionService", () => {
   it("groups sessions by project and sorts by recent activity", async () => {
     const lister = {
@@ -29,7 +59,7 @@ describe("ProjectSessionService", () => {
     expect(catalogue.projects).toHaveLength(1);
     expect(catalogue.projects[0]?.sessionCount).toBe(2);
     expect(catalogue.projects[0]?.sessions.map((session) => session.id)).toEqual(["new", "old"]);
-    expect(catalogue.projects[0]?.sessions[0]?.title).toBe("Named chat");
+    expect(catalogue.projects[0]?.sessions[0]?.title).toBe("hello");
     expect(catalogue.projects[0]?.sessions[1]?.title).toBe("old chat");
   });
 
@@ -66,10 +96,11 @@ describe("ProjectSessionService", () => {
       id: "s1",
       path: "/sessions/project/s1.jsonl",
       name: "New name",
+      nameSource: "manual",
       cwd: process.cwd(),
       messageCount: 2,
     });
 
-    expect(catalogue.projects[0]?.sessions[0]).toMatchObject({ title: "New name", name: "New name", messageCount: 2 });
+    expect(catalogue.projects[0]?.sessions[0]).toMatchObject({ title: "New name", name: "New name", nameSource: "manual", messageCount: 2 });
   });
 });

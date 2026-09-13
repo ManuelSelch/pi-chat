@@ -1,12 +1,15 @@
-import { existsSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
+import { createInterface } from "node:readline";
 import { basename, resolve } from "node:path";
 import { SessionManager, type SessionInfo } from "@earendil-works/pi-coding-agent";
+import type { SessionNameSource } from "../shared/protocol.js";
 
 export interface ChatSessionSummary {
   path: string;
   id: string;
   title: string;
   name?: string;
+  nameSource: SessionNameSource;
   firstMessage?: string;
   modified: number;
   created: number;
@@ -30,6 +33,7 @@ export interface ActiveSessionSummary {
   path?: string;
   id: string;
   name?: string;
+  nameSource?: SessionNameSource;
   cwd: string;
   messageCount: number;
   firstMessage?: string;
@@ -37,6 +41,34 @@ export interface ActiveSessionSummary {
 
 export interface ProjectSessionLister {
   listAll(sessionDir?: string): Promise<SessionInfo[]>;
+}
+
+export interface SessionNameInfo {
+  name?: string;
+  source: SessionNameSource;
+}
+
+export async function readLatestSessionNameInfo(path: string): Promise<SessionNameInfo> {
+  let latest: SessionNameInfo = { source: "none" };
+  try {
+    const lines = createInterface({ input: createReadStream(path, { encoding: "utf8" }), crlfDelay: Infinity });
+    for await (const line of lines) {
+      let entry: unknown;
+      try {
+        entry = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (!entry || typeof entry !== "object") continue;
+      const value = entry as Record<string, unknown>;
+      if (value.type !== "session_info") continue;
+      const name = typeof value.name === "string" ? value.name.trim() : "";
+      latest = name ? { name, source: value.autoTitle === true ? "auto" : "manual" } : { source: "none" };
+    }
+  } catch {
+    return { source: "none" };
+  }
+  return latest;
 }
 
 export class ProjectSessionService {
@@ -47,6 +79,7 @@ export class ProjectSessionService {
     const byProject = new Map<string, ChatProjectSummary>();
 
     for (const session of sessions) {
+      const nameInfo = await readLatestSessionNameInfo(session.path);
       const cwd = session.cwd?.trim();
       if (!cwd) continue;
       const projectPath = resolve(cwd);
@@ -68,8 +101,9 @@ export class ProjectSessionService {
       project.sessions.push({
         path: session.path,
         id: session.id,
-        title: session.name || session.firstMessage || "Untitled session",
-        ...(session.name ? { name: session.name } : {}),
+        title: nameInfo.name || session.firstMessage || "Untitled session",
+        ...(nameInfo.name ? { name: nameInfo.name } : {}),
+        nameSource: nameInfo.source,
         ...(session.firstMessage ? { firstMessage: session.firstMessage } : {}),
         modified,
         created: session.created.getTime(),
@@ -105,11 +139,13 @@ export class ProjectSessionService {
       };
       byProject.set(projectPath, project);
     }
+    const nameSource = active.nameSource ?? (active.name ? "manual" : "none");
     const title = active.name || active.firstMessage || "New session";
     const existing = project.sessions.find((session) => session.path === sessionPath || session.id === active.id);
     if (existing) {
       existing.title = title;
       if (active.name) existing.name = active.name;
+      existing.nameSource = nameSource;
       existing.messageCount = active.messageCount;
       return;
     }
@@ -120,6 +156,7 @@ export class ProjectSessionService {
       id: active.id,
       title,
       ...(active.name ? { name: active.name } : {}),
+      nameSource,
       ...(active.firstMessage ? { firstMessage: active.firstMessage } : {}),
       modified: now,
       created: now,

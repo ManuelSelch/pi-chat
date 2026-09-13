@@ -41,11 +41,15 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
+export const sessionNameSourceSchema = z.enum(["manual", "auto", "none"]);
+export type SessionNameSource = z.infer<typeof sessionNameSourceSchema>;
+
 export const chatSessionSummarySchema = z.object({
   path: z.string().min(1),
   id: z.string().min(1),
   title: z.string().min(1),
   name: z.string().optional(),
+  nameSource: sessionNameSourceSchema,
   firstMessage: z.string().optional(),
   modified: z.number(),
   created: z.number(),

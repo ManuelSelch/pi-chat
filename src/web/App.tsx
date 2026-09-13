@@ -139,6 +139,11 @@ export function App() {
                     active={session.id === state.sessionId}
                     disabled={busy || !activeProject.exists}
                     label={session.title}
+                    rightSection={session.nameSource === "none" ? undefined : (
+                      <Badge size="xs" variant={session.nameSource === "manual" ? "filled" : "light"} color={session.nameSource === "manual" ? "blue" : "gray"}>
+                        {session.nameSource}
+                      </Badge>
+                    )}
                     description={`${new Date(session.modified).toLocaleString()} · ${session.messageCount} messages`}
                     onClick={() => { openSession(session.path); setProjectsOpen(false); }}
                   />
