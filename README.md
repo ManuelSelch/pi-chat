@@ -68,6 +68,17 @@ is copied rather than linked:
 export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 ```
 
+## Keyboard shortcuts
+
+| Shortcut | Effect |
+| --- | --- |
+| `⌘O` / `Ctrl+O` | Open the projects and sessions drawer |
+| `⌘K` / `Ctrl+K` | Open the slash-command menu in the composer |
+
+Both work while the composer has focus: `useHotkeys` ignores `INPUT`/`TEXTAREA`
+by default, so it is called with an empty ignore list. `⌘K` is preferred over
+`⌘P` for commands because it has no browser default to suppress.
+
 ## Choosing the model
 
 By default the session uses whatever Pi would use: a resumed session keeps the

@@ -1,5 +1,6 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands } from "../commands/command-menu.js";
@@ -24,6 +25,7 @@ export function App() {
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
   // The rename action already carries the live session name, so the header does
@@ -38,6 +40,23 @@ export function App() {
   function setInput(value: string): void {
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
   }
+
+  function openCommandMenu(): void {
+    // Reuses the composer's own slash menu rather than a second palette.
+    changeInput("/");
+    composerRef.current?.focus();
+  }
+
+  // `mod` is Cmd on macOS and Ctrl elsewhere. The empty tag list matters:
+  // useHotkeys ignores INPUT/TEXTAREA by default, which would disable these
+  // exactly when the composer has focus.
+  useHotkeys(
+    [
+      ["mod+O", () => setProjectsOpen(true)],
+      ["mod+K", openCommandMenu],
+    ],
+    [],
+  );
 
   function changeInput(value: string): void {
     setInput(value);
@@ -197,6 +216,7 @@ export function App() {
           <Paper component="form" onSubmit={submit} withBorder radius="lg" p="xs" shadow="md">
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <Textarea
+                ref={composerRef}
                 aria-label="Message Pi"
                 autosize
                 minRows={2}
