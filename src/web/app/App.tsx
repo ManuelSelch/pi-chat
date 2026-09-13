@@ -142,7 +142,6 @@ export function App() {
         onClose={() => setProjectsOpen(false)}
         state={state}
         busy={busy}
-        openProject={chat.openProject}
         openSession={chat.openSession}
         newSession={chat.newSession}
       />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Badge, Button, Drawer, Group, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
-import { IconFolder, IconFolderOff, IconHistory, IconMessage, IconPlus } from "@tabler/icons-react";
+import { IconFolder, IconFolderOff, IconMessage, IconPlus } from "@tabler/icons-react";
 import type { ChatState } from "../chat/chat-state.js";
 
 interface ProjectSessionDrawerProps {
@@ -8,12 +8,11 @@ interface ProjectSessionDrawerProps {
   onClose: () => void;
   state: ChatState;
   busy: boolean;
-  openProject: (path: string) => void;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
 }
 
-export function ProjectSessionDrawer({ opened, onClose, state, busy, openProject, openSession, newSession }: ProjectSessionDrawerProps) {
+export function ProjectSessionDrawer({ opened, onClose, state, busy, openSession, newSession }: ProjectSessionDrawerProps) {
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   const activeProject = state.catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? state.catalogue.projects[0];
 
@@ -39,12 +38,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, busy, openProject
         <ScrollArea h="70vh" flex={1}>
           {activeProject ? (
             <Stack gap="xs">
-              <Group justify="space-between" wrap="nowrap">
-                <Text fw={650}>{activeProject.name}</Text>
-                <Button size="compact-sm" leftSection={<IconHistory size={14} />} disabled={busy || !activeProject.exists} onClick={() => { openProject(activeProject.path); onClose(); }}>
-                  Open latest
-                </Button>
-              </Group>
+              <Text fw={650}>{activeProject.name}</Text>
               <Button variant="light" leftSection={<IconPlus size={14} />} disabled={busy || !activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
                 New session here
               </Button>
