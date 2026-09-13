@@ -1,24 +1,25 @@
 import { useState } from "react";
 import { ActionIcon, Badge, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
 import { IconFolder, IconFolderOff, IconMessage, IconPlus, IconTrash } from "@tabler/icons-react";
-import type { ChatSessionSummary } from "../../shared/protocol.js";
+import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;
   onClose: () => void;
   state: ChatState;
+  catalogue: ProjectCatalogue;
   busy: boolean;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
   deleteSession: (path: string) => void;
 }
 
-export function ProjectSessionDrawer({ opened, onClose, state, busy, openSession, newSession, deleteSession }: ProjectSessionDrawerProps) {
+export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, openSession, newSession, deleteSession }: ProjectSessionDrawerProps) {
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   // Deleting moves a file to the trash, so it is always confirmed first.
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
-  const activeProject = state.catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? state.catalogue.projects[0];
+  const activeProject = catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? catalogue.projects[0];
 
   return (
     <Drawer opened={opened} onClose={onClose} title="Projects and sessions" size="lg">
@@ -45,7 +46,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, busy, openSession
       <Group align="flex-start" wrap="nowrap">
         <ScrollArea h="70vh" flex={1}>
           <Stack gap={4}>
-            {state.catalogue.projects.map((project) => (
+            {catalogue.projects.map((project) => (
               <NavLink
                 key={project.path}
                 active={project.path === state.projectPath}

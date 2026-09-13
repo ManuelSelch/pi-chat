@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../src/shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs } from "../src/web/chat/app-state.js";
+import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs, atHome } from "../src/web/chat/app-state.js";
 
 const snapshot = (sessionId: string, text: string): ServerMessage => ({
   version: PROTOCOL_VERSION,
@@ -155,5 +155,48 @@ describe("optimistic tab changes", () => {
     state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
 
     expect(state).toBe(once);
+  });
+});
+
+describe("home screen", () => {
+  const tabsMessage = (tabs: { sessionId: string; title: string }[]): ServerMessage => ({
+    version: PROTOCOL_VERSION,
+    type: "tabs",
+    activeSessionId: tabs[0]?.sessionId ?? "",
+    tabs: tabs.map((tab) => ({ ...tab, status: "idle", projectPath: "/p", projectName: "p" })),
+  });
+
+  it("is not shown before the first tab list arrives", () => {
+    // Otherwise a fresh load flashes the home screen before its tabs land.
+    expect(atHome(initialAppState)).toBe(false);
+  });
+
+  it("is shown once the last tab closes", () => {
+    const open = reduceAppMessage(initialAppState, tabsMessage([{ sessionId: "a", title: "A" }]));
+    expect(atHome(open)).toBe(false);
+
+    const closed = reduceAppMessage(open, tabsMessage([]));
+    expect(atHome(closed)).toBe(true);
+  });
+
+  it("is hidden while a tab is being opened from it", () => {
+    const closed = reduceAppMessage(initialAppState, tabsMessage([]));
+    const opening = reduceAppMessage(closed, { type: "openPending" });
+
+    expect(atHome(opening)).toBe(false);
+  });
+
+  it("drops the closed session's transcript", () => {
+    const open = reduceAppMessage(initialAppState, tabsMessage([{ sessionId: "a", title: "A" }]));
+    const closed = reduceAppMessage(open, tabsMessage([]));
+
+    expect(closed.sessions).toEqual({});
+  });
+
+  it("keeps a catalogue that arrives without any session", () => {
+    const catalogue = { projects: [{ path: "/p", name: "p", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
+    const next = reduceAppMessage(initialAppState, { version: PROTOCOL_VERSION, type: "catalogue", catalogue });
+
+    expect(next.catalogue).toEqual(catalogue);
   });
 });

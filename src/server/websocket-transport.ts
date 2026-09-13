@@ -83,13 +83,13 @@ export class WebSocketTransport {
       } else if (command.type === "deleteSession") {
         void this.chat
           .deleteSession(command.path)
-          // The catalogue lives in the snapshot, so the list refreshes itself.
-          .then(() => this.sendSnapshot(this.chat.activeSessionId()))
+          .then(() => this.sendCatalogue())
           .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
       } else if (command.type === "closeTab") {
         void this.chat
           .closeTab(command.sessionId)
-          .then(() => this.sendTabs())
+          // Closing the last tab lands on the home screen, which searches the catalogue.
+          .then(() => { this.sendTabs(); return this.sendCatalogue(); })
           .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
       } else if (command.type === "openProject") {
         void this.openTab(() => this.chat.openProject(command.path));
@@ -114,6 +114,7 @@ export class WebSocketTransport {
       const sessionId = await open();
       await this.sendSnapshot(sessionId);
       this.sendTabs();
+      await this.sendCatalogue();
     } catch (error: unknown) {
       this.publishError(this.chat.activeSessionId(), error);
     }
@@ -135,6 +136,18 @@ export class WebSocketTransport {
   private async sendAll(socket: WebSocket): Promise<void> {
     for (const sessionId of this.chat.openSessionIds()) await this.sendSnapshot(sessionId, socket);
     this.sendTabs(socket);
+    await this.sendCatalogue(socket);
+  }
+
+  /** The home screen has no snapshot to read the catalogue from. */
+  private async sendCatalogue(socket = this.controller): Promise<void> {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    try {
+      const catalogue = await this.chat.currentCatalogue();
+      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue });
+    } catch (error: unknown) {
+      this.publishError(this.chat.activeSessionId(), error);
+    }
   }
 
   private sendTabs(socket = this.controller): void {

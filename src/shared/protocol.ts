@@ -233,6 +233,8 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   }),
   z.object({ ...baseClientMessage, type: z.literal("protocolError"), error: z.string() }),
   z.object({ ...baseClientMessage, type: z.literal("tabs"), tabs: z.array(tabSchema), activeSessionId: z.string() }),
+  // Sent on its own because the home screen needs projects with no session open.
+  z.object({ ...baseClientMessage, type: z.literal("catalogue"), catalogue: projectCatalogueSchema }),
 ]);
 
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

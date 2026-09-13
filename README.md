@@ -78,8 +78,16 @@ export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 | `Esc` | Stop the current run; an open dialog or the command menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
 
-`⌘K` is context-aware: it does nothing inside the quick-open palette, so it
-never hijacks that search field.
+Shortcuts are context-aware: `⌘K` does nothing inside the quick-open palette, and
+neither palette shortcut fires on the home screen, so neither hijacks a search
+field that is already open.
+
+## Home screen
+
+Closing the last tab is allowed. With no session open, Pi Chat shows a home
+screen: the quick-open search, always visible, listing recent sessions and
+projects. It survives a reload, because the server holds no open session either.
+The projects drawer still works there, including `New session here`.
 
 The palette lists the most recent sessions before anything is typed, matches a
 query against both the session title and its project, marks sessions that

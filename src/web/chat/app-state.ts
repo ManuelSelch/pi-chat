@@ -23,6 +23,8 @@ export interface AppState {
    */
   openingTabs: number;
   closingSessionIds: string[];
+  /** Until the first tab list arrives, "no tabs" means "not loaded yet". */
+  tabsKnown: boolean;
   connection: "connecting" | "open" | "superseded";
   error?: string;
 }
@@ -34,8 +36,14 @@ export const initialAppState: AppState = {
   catalogue: { projects: [] },
   openingTabs: 0,
   closingSessionIds: [],
+  tabsKnown: false,
   connection: "connecting",
 };
+
+/** With every tab closed the app shows the home screen instead of a transcript. */
+export function atHome(state: AppState): boolean {
+  return state.tabsKnown && state.openingTabs === 0 && visibleTabs(state).length === 0;
+}
 
 /**
  * A protocol-level rejection belongs to no session, so it has to win over the
@@ -95,8 +103,13 @@ export function reduceAppMessage(state: AppState, message: AppAction): AppState 
       sessions,
       openingTabs: 0,
       closingSessionIds: [],
+      tabsKnown: true,
       connection: "open",
     };
+  }
+
+  if (message.type === "catalogue") {
+    return { ...state, catalogue: message.catalogue, connection: "open" };
   }
 
   if (message.type === "protocolError") {

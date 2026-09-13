@@ -6,12 +6,13 @@ import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
-import { visibleError, visibleTabs } from "../chat/app-state.js";
+import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { clearInputIntent, escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
 import { QuickOpen } from "../quickopen/QuickOpen.js";
+import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import type { Tab } from "../../shared/protocol.js";
@@ -36,7 +37,8 @@ export function App() {
   // not need its own snapshot field.
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
-  const headerTitle = state.projectPath ? sessionName || "New session" : "Connecting…";
+  const home = atHome(app);
+  const headerTitle = home ? "No session open" : state.projectPath ? sessionName || "New session" : "Connecting…";
   const sessionActions: LocalAction[] = [
     { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
     { name: "Rename session", description: "Set the display name for this session", run: () => setRenaming(sessionName ?? "") },
@@ -90,8 +92,10 @@ export function App() {
   // because no browser claims it.
   useHotkeys(
     [
-      ["mod+shift+O", () => setQuickOpen(true)],
-      ["mod+O", () => setQuickOpen(true)],
+      // The home screen is the palette, so opening it over itself would stack
+      // two identical search fields.
+      ["mod+shift+O", () => { if (!home) setQuickOpen(true); }],
+      ["mod+O", () => { if (!home) setQuickOpen(true); }],
       // Context matters: inside the palette Cmd+K must not hijack the search.
       ["mod+K", () => { if (!quickOpen) openCommandMenu(); }],
       // preventDefault stays off so Ctrl+C remains Copy when text is selected.
@@ -176,9 +180,11 @@ export function App() {
             <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
           <Group gap="sm" wrap="nowrap">
-            <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
-              {state.status}
-            </Text>
+            {home ? null : (
+              <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
+                {state.status}
+              </Text>
+            )}
             <Tooltip label="Settings">
               <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
                 <IconSettings size={18} />
@@ -253,6 +259,7 @@ export function App() {
         opened={projectsOpen}
         onClose={() => setProjectsOpen(false)}
         state={state}
+        catalogue={app.catalogue}
         busy={busy}
         openSession={chat.openSession}
         newSession={chat.newSession}
@@ -269,13 +276,18 @@ export function App() {
         compactSession={chat.compactSession}
       />
 
-      <AppShell.Main pb={170}>
-        <Container size="sm" py="xl">
-          <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />
-          <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
-        </Container>
+      <AppShell.Main pb={home ? 0 : 170} h={home ? "calc(100dvh - 96px)" : undefined}>
+        {home ? (
+          <Home catalogue={app.catalogue} onOpenSession={chat.openSession} onOpenProject={chat.openProject} />
+        ) : (
+          <Container size="sm" py="xl">
+            <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />
+            <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
+          </Container>
+        )}
       </AppShell.Main>
 
+      {home ? null : (
       <Box
         component="footer"
         pos="fixed"
@@ -335,6 +347,7 @@ export function App() {
           <Text size="xs" c="dimmed" mt={6} pl={12}>Enter to send · Shift+Enter for a new line</Text>
         </Container>
       </Box>
+      )}
     </AppShell>
   );
 }

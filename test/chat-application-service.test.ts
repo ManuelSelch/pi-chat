@@ -30,3 +30,38 @@ describe("deleting sessions", () => {
     expect(deleteSpy).toHaveBeenCalledWith("/sessions/project/other.jsonl");
   });
 });
+
+describe("closing the last tab", () => {
+  it("leaves no session open", async () => {
+    const { chat } = service();
+    const only = chat.activeSessionId();
+
+    await chat.closeTab(only);
+
+    expect(chat.tabs()).toEqual([]);
+    expect(chat.activeSessionId()).toBe("");
+  });
+
+  it("still serves a catalogue with nothing open, for the home screen", async () => {
+    const { chat } = service();
+    await chat.closeTab(chat.activeSessionId());
+
+    await expect(chat.currentCatalogue()).resolves.toEqual({ projects: [] });
+  });
+
+  it("explains that a new session needs a project when none is open", async () => {
+    const { chat } = service();
+    await chat.closeTab(chat.activeSessionId());
+
+    await expect(chat.newSession()).rejects.toThrow(/Choose a project/);
+  });
+
+  it("opens a session from the home screen", async () => {
+    const { chat } = service();
+    await chat.closeTab(chat.activeSessionId());
+
+    await chat.openSession("/sessions/project/other.jsonl");
+
+    expect(chat.tabs()).toHaveLength(1);
+  });
+});

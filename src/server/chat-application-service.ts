@@ -82,8 +82,21 @@ export class ChatApplicationService {
     return this.openTab(() => this.factory.openSession(path));
   }
 
-  async newSession(path = this.sessions.get(this.activeSessionId()).snapshot().projectPath): Promise<string> {
-    return this.openTab(() => this.factory.newSession(path));
+  async newSession(path?: string): Promise<string> {
+    const active = this.activeSessionId();
+    if (!path && !active) throw new Error("Choose a project to start a new session.");
+    const target = path ?? this.sessions.get(active).snapshot().projectPath;
+    return this.openTab(() => this.factory.newSession(target));
+  }
+
+  /**
+   * The catalogue the home screen searches. With every tab closed there is no
+   * snapshot to fold in, so the on-disk sessions stand on their own.
+   */
+  async currentCatalogue(): Promise<ProjectCatalogue> {
+    const active = this.activeSessionId();
+    if (!active) return this.projectSessions.catalogue();
+    return this.catalogue(this.sessions.get(active).snapshot());
   }
 
   focusTab(sessionId: string): void {
@@ -102,9 +115,8 @@ export class ChatApplicationService {
     this.catalogueCache = undefined;
   }
 
+  /** Closing the last tab is allowed: the browser falls back to the home screen. */
   async closeTab(sessionId: string): Promise<void> {
-    // The last tab stays open: the app has no meaningful empty state.
-    if (this.sessions.list().length <= 1) throw new Error("The last session cannot be closed.");
     await this.sessions.close(sessionId);
     this.catalogueCache = undefined;
   }

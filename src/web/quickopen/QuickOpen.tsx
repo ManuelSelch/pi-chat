@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Badge, Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { IconFolder, IconMessage } from "@tabler/icons-react";
 import type { ProjectCatalogue, Tab } from "../../shared/protocol.js";
-import { buildQuickOpenItems, rankQuickOpen, type QuickOpenItem } from "./quick-open.js";
+import { buildQuickOpenItems, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
 
 interface QuickOpenProps {
   opened: boolean;
@@ -11,15 +11,6 @@ interface QuickOpenProps {
   tabs: Tab[];
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
-}
-
-function relativeTime(timestamp: number): string {
-  const minutes = Math.round((Date.now() - timestamp) / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
 }
 
 /** Type-to-open palette: one query matches a session title or its project. */
