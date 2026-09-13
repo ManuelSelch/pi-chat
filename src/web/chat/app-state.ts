@@ -4,7 +4,8 @@ import { initialChatState, reduceServerMessage, type ChatState } from "./chat-st
 export type AppAction =
   | ServerMessage
   | { type: "connectionLost"; error?: string }
-  | { type: "superseded" };
+  | { type: "superseded" }
+  | { type: "clearError" };
 
 export interface AppState {
   tabs: Tab[];
@@ -25,6 +26,14 @@ export const initialAppState: AppState = {
   connection: "connecting",
 };
 
+/**
+ * A protocol-level rejection belongs to no session, so it has to win over the
+ * session error; otherwise a refused command looks like nothing happened.
+ */
+export function visibleError(state: AppState, session: ChatState): string | undefined {
+  return state.error ?? session.error;
+}
+
 export function activeSession(state: AppState): ChatState {
   // Snapshots arrive before the tab list, so fall back to the only known
   // session rather than briefly rendering an empty app.
@@ -32,6 +41,10 @@ export function activeSession(state: AppState): ChatState {
 }
 
 export function reduceAppMessage(state: AppState, message: AppAction): AppState {
+  if (message.type === "clearError") {
+    return state.error === undefined ? state : { ...state, error: undefined };
+  }
+
   if (message.type === "superseded" || message.type === "connectionLost") {
     // Connection loss is app-wide, but each transcript must also drop its
     // partial stream, because only the next snapshot is authoritative.

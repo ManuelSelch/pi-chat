@@ -87,6 +87,7 @@ export function usePiChat() {
       dispatch({ type: "connectionLost", error: "Not connected to the Pi Chat server yet." });
       return;
     }
+    dispatch({ type: "clearError" });
     socket.send(JSON.stringify(message));
   }, []);
 

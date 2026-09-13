@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../src/shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage } from "../src/web/chat/app-state.js";
+import { activeSession, initialAppState, reduceAppMessage, visibleError } from "../src/web/chat/app-state.js";
 
 const snapshot = (sessionId: string, text: string): ServerMessage => ({
   version: PROTOCOL_VERSION,
@@ -79,5 +79,37 @@ describe("app state", () => {
     expect(state.error).toBe("gone");
     expect(state.sessions.a!.messages).toHaveLength(1);
     expect(state.sessions.b!.status).toBe("connecting");
+  });
+});
+
+describe("error reporting", () => {
+  it("surfaces a protocol rejection that belongs to no session", () => {
+    const state = reduceAppMessage(initialAppState, {
+      version: PROTOCOL_VERSION,
+      type: "protocolError",
+      error: "Message does not match protocol version 1.",
+    });
+
+    expect(state.error).toBe("Message does not match protocol version 1.");
+    // The regression: App rendered only the session error, so this was silent.
+    expect(visibleError(state, activeSession(state))).toBe("Message does not match protocol version 1.");
+  });
+
+  it("prefers the session error when no protocol error is pending", () => {
+    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
+    state = reduceAppMessage(state, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "a", sequence: 1, status: "idle", error: "run failed",
+    });
+
+    expect(visibleError(state, activeSession(state))).toBe("run failed");
+  });
+
+  it("clears a protocol rejection once another command is sent", () => {
+    let state = reduceAppMessage(initialAppState, {
+      version: PROTOCOL_VERSION, type: "protocolError", error: "nope",
+    });
+    state = reduceAppMessage(state, { type: "clearError" });
+
+    expect(visibleError(state, activeSession(state))).toBeUndefined();
   });
 });

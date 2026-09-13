@@ -5,6 +5,7 @@ import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands } from "../commands/command-menu.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
+import { visibleError } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
@@ -180,8 +181,8 @@ export function App() {
             </Text>
           ) : connecting ? (
             <Text size="sm" c="dimmed" mb="xs">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</Text>
-          ) : state.error ? (
-            <Text size="sm" c="red" mb="xs" role="alert">{state.error}</Text>
+          ) : visibleError(app, state) ? (
+            <Text size="sm" c="red" mb="xs" role="alert">{visibleError(app, state)}</Text>
           ) : null}
 
           {menuOpen ? (
