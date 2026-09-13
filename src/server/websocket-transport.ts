@@ -74,7 +74,8 @@ export class WebSocketTransport {
       } else if (command.type === "runFeature") {
         void this.chat
           .runFeature(command)
-          .then(() => this.sendSnapshot(command.sessionId))
+          // Renaming changes the tab label too, so the tab list must follow.
+          .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
           .catch((error: unknown) => this.publishError(command.sessionId, error));
       } else if (command.type === "focusTab") {
         this.chat.focusTab(command.sessionId);

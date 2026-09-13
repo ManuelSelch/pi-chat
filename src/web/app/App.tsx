@@ -1,9 +1,9 @@
 import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
-import { commandQuery, filterCommands } from "../commands/command-menu.js";
+import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { visibleError, visibleTabs } from "../chat/app-state.js";
@@ -27,6 +27,7 @@ export function App() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [renaming, setRenaming] = useState<string | undefined>();
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
@@ -35,8 +36,12 @@ export function App() {
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
   const headerTitle = state.projectPath ? sessionName || "New session" : "Connecting…";
+  const sessionActions: LocalAction[] = [
+    { name: "Rename session", description: "Set the display name for this session", run: () => setRenaming(sessionName ?? "") },
+    { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
+  ];
   const query = menuDismissed ? undefined : commandQuery(input);
-  const matches = query === undefined ? [] : filterCommands(state.actions.commands, query);
+  const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
   const menuOpen = matches.length > 0;
 
   function setInput(value: string): void {
@@ -61,7 +66,8 @@ export function App() {
     [
       ["mod+shift+O", () => setQuickOpen(true)],
       ["mod+O", () => setQuickOpen(true)],
-      ["mod+K", openCommandMenu],
+      // Context matters: inside the palette Cmd+K must not hijack the search.
+      ["mod+K", () => { if (!quickOpen) openCommandMenu(); }],
     ],
     [],
   );
@@ -72,9 +78,16 @@ export function App() {
     setMenuDismissed(false);
   }
 
-  function pickCommand(name: string): void {
+  function runMenuItem(item: MenuItem): void {
+    if (item.kind === "action") {
+      // The menu was opened by typing "/", so the composer has to be cleared.
+      setInput("");
+      setActiveCommand(0);
+      item.run();
+      return;
+    }
     // A trailing space both closes the menu and starts the argument.
-    setInput(`/${name} `);
+    setInput(`/${item.name} `);
     setActiveCommand(0);
   }
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
@@ -100,7 +113,7 @@ export function App() {
       }
       if (event.key === "Enter" || event.key === "Tab") {
         event.preventDefault();
-        pickCommand(matches[activeCommand]!.name);
+        runMenuItem(matches[activeCommand]!);
         return;
       }
       if (event.key === "Escape") {
@@ -161,6 +174,32 @@ export function App() {
             <Button variant="default" onClick={() => setClosing(undefined)}>Keep open</Button>
             <Button color="red" onClick={() => { chat.closeTab(closing!.sessionId); setClosing(undefined); }}>
               Stop and close
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal opened={renaming !== undefined} onClose={() => setRenaming(undefined)} title="Rename session" centered size="sm">
+        <Stack gap="md">
+          <TextInput
+            data-autofocus
+            aria-label="Session name"
+            value={renaming ?? ""}
+            onChange={(event) => setRenaming(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || !renaming?.trim()) return;
+              event.preventDefault();
+              chat.renameSession(renaming.trim());
+              setRenaming(undefined);
+            }}
+          />
+          <Group justify="flex-end" gap="xs">
+            <Button variant="default" onClick={() => setRenaming(undefined)}>Cancel</Button>
+            <Button
+              disabled={!renaming?.trim()}
+              onClick={() => { chat.renameSession(renaming!.trim()); setRenaming(undefined); }}
+            >
+              Rename
             </Button>
           </Group>
         </Stack>
@@ -227,7 +266,7 @@ export function App() {
               commands={matches}
               activeIndex={activeCommand}
               onHover={setActiveCommand}
-              onSelect={(command) => pickCommand(command.name)}
+              onSelect={runMenuItem}
             />
           ) : null}
 

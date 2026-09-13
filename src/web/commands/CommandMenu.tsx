@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
-import { Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import type { SlashCommand } from "../../shared/protocol.js";
+import { Badge, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
+import type { MenuItem } from "./command-menu.js";
 
 interface CommandMenuProps {
-  commands: SlashCommand[];
+  commands: MenuItem[];
   activeIndex: number;
   onHover: (index: number) => void;
-  onSelect: (command: SlashCommand) => void;
+  onSelect: (command: MenuItem) => void;
 }
 
 export function CommandMenu({ commands, activeIndex, onHover, onSelect }: CommandMenuProps) {
@@ -37,7 +37,10 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
                 background: index === activeIndex ? "var(--mantine-color-default-hover)" : undefined,
               }}
             >
-              <Text size="sm" fw={600}>/{command.name}</Text>
+              <Group gap={6} wrap="nowrap">
+                <Text size="sm" fw={600}>{command.kind === "action" ? command.name : `/${command.name}`}</Text>
+                {command.kind === "action" ? <Badge size="xs" variant="light">session</Badge> : null}
+              </Group>
               {command.description ? (
                 <Text size="xs" c="dimmed" lineClamp={1}>{command.description}</Text>
               ) : null}

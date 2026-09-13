@@ -74,7 +74,10 @@ export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 | --- | --- |
 | `⌘⇧O` / `Ctrl+Shift+O` | Quick-open palette: type a session or project name |
 | `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
-| `⌘K` / `Ctrl+K` | Open the slash-command menu in the composer |
+| `⌘K` / `Ctrl+K` | Session actions (rename, close tab) plus every Pi slash command |
+
+`⌘K` is context-aware: it does nothing inside the quick-open palette, so it
+never hijacks that search field.
 
 The palette lists the most recent sessions before anything is typed, matches a
 query against both the session title and its project, marks sessions that
