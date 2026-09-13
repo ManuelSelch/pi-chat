@@ -25,3 +25,9 @@ if (typeof window !== "undefined" && !window.ResizeObserver) {
     disconnect() {}
   };
 }
+
+// jsdom has no layout, so scrollIntoView is missing on elements that keep an
+// active row visible (command menu, prompt option list).
+if (typeof window !== "undefined" && !window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+}

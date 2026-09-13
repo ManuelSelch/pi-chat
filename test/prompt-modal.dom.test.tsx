@@ -32,13 +32,36 @@ describe("PromptModal", () => {
     expect(onRespond).toHaveBeenCalledWith("p1", { cancelled: false, value: true });
   });
 
-  it("returns the selected option, defaulting to the first", () => {
+  it("returns the clicked option", () => {
     const onRespond = show({ id: "p2", kind: "select", title: "Pick", options: ["allow", "deny"] });
 
-    fireEvent.click(screen.getByRole("radio", { name: "deny" }));
-    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+    fireEvent.click(screen.getByRole("option", { name: "deny" }));
 
     expect(onRespond).toHaveBeenCalledWith("p2", { cancelled: false, value: "deny" });
+  });
+
+  it("moves through options with the arrow keys and chooses with Enter", () => {
+    const onRespond = show({ id: "p2b", kind: "select", title: "Pick", options: ["allow", "deny", "ask"] });
+    const list = screen.getByRole("listbox");
+
+    expect(screen.getByRole("option", { name: "allow" }).getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(screen.getByRole("option", { name: "ask" }).getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.keyDown(list, { key: "Enter" });
+    expect(onRespond).toHaveBeenCalledWith("p2b", { cancelled: false, value: "ask" });
+  });
+
+  it("wraps around at the ends of the option list", () => {
+    const onRespond = show({ id: "p2c", kind: "select", title: "Pick", options: ["allow", "deny"] });
+    const list = screen.getByRole("listbox");
+
+    fireEvent.keyDown(list, { key: "ArrowUp" });
+    fireEvent.keyDown(list, { key: "Enter" });
+
+    expect(onRespond).toHaveBeenCalledWith("p2c", { cancelled: false, value: "deny" });
   });
 
   it("submits typed input on Enter", () => {
