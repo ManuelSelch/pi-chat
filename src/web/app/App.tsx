@@ -68,7 +68,7 @@ export function App() {
       <AppShell.Main pb={170}>
         <Container size="sm" py="xl">
           <MessageList state={state} />
-          <div ref={bottomRef} aria-hidden="true" />
+          <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
         </Container>
       </AppShell.Main>
 
