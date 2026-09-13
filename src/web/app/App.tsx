@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
@@ -8,6 +8,7 @@ import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
+import { clearInputIntent, escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
 import { QuickOpen } from "../quickopen/QuickOpen.js";
@@ -48,6 +49,30 @@ export function App() {
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
   }
 
+  // Escape is contended. Mantine overlays listen on window in the capture phase
+  // too, and React flushes their onClose synchronously, so a handler that runs
+  // after one of them sees no open dialog and aborts the run behind it. Two
+  // defences: useLayoutEffect registers this listener before any child effect
+  // does, and a closing dialog is still in the DOM during its exit transition.
+  const escapeState = useRef({ overlayOpen: false, menuOpen: false, busy: false, abort });
+  escapeState.current = {
+    overlayOpen: quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0,
+    menuOpen,
+    busy,
+    abort,
+  };
+
+  useLayoutEffect(() => {
+    function onKeyDown(event: globalThis.KeyboardEvent): void {
+      if (event.key !== "Escape") return;
+      const current = escapeState.current;
+      const overlayOpen = current.overlayOpen || document.querySelector("[role='dialog']") !== null;
+      if (escapeIntent({ ...current, overlayOpen }) === "abort") current.abort();
+    }
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
+
   function openCommandMenu(): void {
     // Reuses the composer's own slash menu rather than a second palette.
     changeInput("/");
@@ -68,6 +93,15 @@ export function App() {
       ["mod+O", () => setQuickOpen(true)],
       // Context matters: inside the palette Cmd+K must not hijack the search.
       ["mod+K", () => { if (!quickOpen) openCommandMenu(); }],
+      // preventDefault stays off so Ctrl+C remains Copy when text is selected.
+      [
+        "ctrl+C",
+        () => {
+          const hasSelection = Boolean(window.getSelection()?.toString());
+          if (clearInputIntent({ hasSelection, input }) === "clear") changeInput("");
+        },
+        { preventDefault: false },
+      ],
     ],
     [],
   );
