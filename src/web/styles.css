@@ -1,0 +1,52 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202124;
+  background: #f7f7f5;
+  font-synthesis: none;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, textarea { font: inherit; }
+.shell { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
+header {
+  height: 58px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #e4e4df; background: rgba(247,247,245,.92); backdrop-filter: blur(12px);
+}
+header div { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+header strong { font-size: 15px; }
+header span { color: #777; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+header output { color: #777; font-size: 12px; text-transform: capitalize; }
+header output[data-status="running"] { color: #23784b; }
+.messages { width: min(760px, 100%); margin: 0 auto; padding: 56px 24px 160px; }
+.empty { text-align: center; margin-top: 16vh; color: #777; }
+.empty h1 { color: #30312f; font-size: clamp(24px, 5vw, 36px); font-weight: 520; letter-spacing: -.03em; margin-bottom: 8px; }
+.message { margin: 0 0 36px; }
+.message.user { margin-left: auto; max-width: 82%; border-radius: 18px; padding: 12px 16px; background: #e9e9e4; }
+.role { color: #777; font-size: 11px; font-weight: 650; letter-spacing: .06em; margin-bottom: 8px; text-transform: uppercase; }
+.message.user .role { display: none; }
+.content { line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cursor { display: inline-block; width: 2px; height: 1em; margin-left: 3px; background: currentColor; vertical-align: -.1em; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+footer { position: fixed; inset: auto 0 0; padding: 14px 24px 20px; background: linear-gradient(transparent, #f7f7f5 20%); }
+footer form { width: min(760px, 100%); margin: 0 auto; padding: 10px; display: flex; align-items: flex-end; gap: 8px; border: 1px solid #d9d9d2; border-radius: 18px; background: #fff; box-shadow: 0 10px 35px rgba(30,30,20,.08); }
+textarea { flex: 1; border: 0; outline: 0; resize: none; min-height: 48px; max-height: 180px; padding: 11px 12px; color: inherit; background: transparent; }
+button { border: 0; border-radius: 12px; padding: 10px 16px; color: #fff; background: #30312f; cursor: pointer; }
+button:disabled { cursor: default; opacity: .45; }
+button.stop { background: #a53a35; }
+footer small { display: block; width: min(760px, 100%); margin: 7px auto 0; color: #92928b; padding-left: 12px; font-size: 11px; }
+.error { width: min(760px, 100%); margin: 0 auto 8px; color: #a53a35; font-size: 13px; }
+@media (prefers-color-scheme: dark) {
+  :root { color: #e7e7e4; background: #181917; }
+  header { border-color: #30312f; background: rgba(24,25,23,.92); }
+  header span, header output, .role, .empty { color: #999b95; }
+  .empty h1 { color: #eee; }
+  .message.user { background: #2a2b28; }
+  footer { background: linear-gradient(transparent, #181917 20%); }
+  footer form { border-color: #3a3b37; background: #232421; box-shadow: 0 10px 35px rgba(0,0,0,.25); }
+  button { color: #181917; background: #efefec; }
+}
+@media (max-width: 600px) {
+  header { padding: 0 16px; }
+  .messages { padding: 32px 16px 150px; }
+  footer { padding-inline: 12px; }
+}
