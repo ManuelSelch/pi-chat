@@ -1,7 +1,7 @@
 /**
  * Pi Chat extension
  *
- * Adds /pi-chat-start, /pi-chat-stop, and /pi-chat to run the local web UI
+ * Adds /pi-chat-start, /pi-chat-stop, /pi-chat-restart, and /pi-chat to run the local web UI
  * from a Pi terminal session.
  *
  * The server is spawned detached and its pid is written to a file, so it
@@ -91,6 +91,28 @@ async function waitForHealth(port: number, deadline: number): Promise<boolean> {
   return false;
 }
 
+async function stopRunningServer(running: Running): Promise<boolean> {
+  try {
+    // The npm wrapper spawns the real server, so the whole process group has to
+    // go; killing only the pid would orphan the listener.
+    process.kill(-running.pid, "SIGTERM");
+  } catch {
+    try {
+      process.kill(running.pid, "SIGTERM");
+    } catch {
+      // Already gone.
+    }
+  }
+
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline && (await isHealthy(running.port))) {
+    await new Promise((done) => setTimeout(done, 200));
+  }
+  const stopped = !(await isHealthy(running.port));
+  if (stopped) rmSync(PID_FILE, { force: true });
+  return stopped;
+}
+
 /** Opens the default browser without blocking the command. */
 function openBrowser(url: string): void {
   const [command, args] =
@@ -105,19 +127,25 @@ function openBrowser(url: string): void {
   child.on("error", () => {});
 }
 
-function parseArgs(args: string): { port: number; cwd?: string; open: boolean } {
+function parseArgs(args: string): { port: number; cwd?: string; open: boolean; portExplicit: boolean } {
   const tokens = args.trim().split(/\s+/).filter(Boolean);
   let port = Number(process.env.PI_CHAT_PORT ?? DEFAULT_PORT);
+  let portExplicit = false;
   let cwd: string | undefined;
   let open = true;
   for (let index = 0; index < tokens.length; index++) {
     const token = tokens[index]!;
-    if ((token === "--port" || token === "-p") && tokens[index + 1]) port = Number(tokens[++index]);
-    else if (token === "--cwd" && tokens[index + 1]) cwd = resolve(tokens[++index]!);
+    if ((token === "--port" || token === "-p") && tokens[index + 1]) {
+      port = Number(tokens[++index]);
+      portExplicit = true;
+    } else if (token === "--cwd" && tokens[index + 1]) cwd = resolve(tokens[++index]!);
     else if (token === "--no-open") open = false;
-    else if (/^\d+$/.test(token)) port = Number(token);
+    else if (/^\d+$/.test(token)) {
+      port = Number(token);
+      portExplicit = true;
+    }
   }
-  return { port, open, ...(cwd ? { cwd } : {}) };
+  return { port, open, portExplicit, ...(cwd ? { cwd } : {}) };
 }
 
 export default function piChatExtension(pi: ExtensionAPI): void {
@@ -211,27 +239,84 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         return;
       }
 
-      try {
-        // The npm wrapper spawns the real server, so the whole process group
-        // has to go; killing only the pid would orphan the listener.
-        process.kill(-running.pid, "SIGTERM");
-      } catch {
-        try {
-          process.kill(running.pid, "SIGTERM");
-        } catch {
-          // Already gone.
-        }
-      }
-
-      const deadline = Date.now() + 5_000;
-      while (Date.now() < deadline && (await isHealthy(running.port))) {
-        await new Promise((done) => setTimeout(done, 200));
-      }
-      const stopped = !(await isHealthy(running.port));
-      rmSync(PID_FILE, { force: true });
+      const stopped = await stopRunningServer(running);
       ctx.ui.notify(
         stopped ? `Pi Chat stopped (was pid ${running.pid}).` : `Pi Chat on port ${running.port} did not stop.`,
         stopped ? "info" : "error",
+      );
+    },
+  });
+
+  pi.registerCommand("pi-chat-restart", {
+    description: "Restart the Pi Chat web UI and open it (/pi-chat-restart [--port N] [--cwd PATH] [--no-open])",
+    handler: async (args, ctx) => {
+      const parsed = parseArgs(args);
+      const home = projectHome();
+      const running = readPidFile();
+      const port = parsed.portExplicit ? parsed.port : running?.port ?? parsed.port;
+      const projectCwd = parsed.cwd ?? running?.cwd ?? ctx.cwd;
+
+      if (!existsSync(join(home, "package.json"))) {
+        ctx.ui.notify(
+          `Pi Chat not found at ${home}. Start Pi with PI_CHAT_HOME=/path/to/pi-chat, e.g. export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat".`,
+          "error",
+        );
+        return;
+      }
+
+      if (running && (await isHealthy(running.port))) {
+        ctx.ui.notify(`Restarting Pi Chat on http://127.0.0.1:${port}…`, "info");
+        const stopped = await stopRunningServer(running);
+        if (!stopped) {
+          ctx.ui.notify(`Pi Chat on port ${running.port} did not stop.`, "error");
+          return;
+        }
+      } else if ((await probePort(port)) === "pi-chat") {
+        ctx.ui.notify(
+          `Pi Chat is running on http://127.0.0.1:${port}, but it was started outside these commands. Stop it manually or use another port.`,
+          "error",
+        );
+        return;
+      }
+
+      const state = await probePort(port);
+      if (state !== "free") {
+        ctx.ui.notify(
+          state === "pi-chat"
+            ? `Pi Chat is already running on http://127.0.0.1:${port}, but it is not the server just stopped.`
+            : `Port ${port} is used by another program. Pick another with /pi-chat-restart --port N.`,
+          "error",
+        );
+        return;
+      }
+
+      const build = await pi.exec("npm", ["run", "build"], { cwd: home });
+      if (build.exitCode !== 0) {
+        ctx.ui.notify(`Pi Chat build failed: ${build.stderr.trim().split("\n").at(-1) ?? "unknown error"}`, "error");
+        return;
+      }
+
+      const child = spawn("npm", ["start"], {
+        cwd: home,
+        env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd },
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+
+      if (!child.pid) {
+        ctx.ui.notify("Could not restart the Pi Chat server.", "error");
+        return;
+      }
+      writeFileSync(PID_FILE, JSON.stringify({ pid: child.pid, port, cwd: projectCwd }));
+
+      const ready = await waitForHealth(port, Date.now() + START_TIMEOUT_MS);
+      if (ready && parsed.open) openBrowser(`http://127.0.0.1:${port}`);
+      ctx.ui.notify(
+        ready
+          ? `Pi Chat restarted: http://127.0.0.1:${port} (project ${projectCwd})${parsed.open ? " · opening browser" : ""}`
+          : `Pi Chat did not become healthy within ${START_TIMEOUT_MS / 1000}s. Check it with /pi-chat.`,
+        ready ? "info" : "error",
       );
     },
   });

@@ -51,10 +51,12 @@ ln -sf "$PWD/extension/pi-chat.ts" ~/.pi/agent/extensions/pi-chat.ts
 | --- | --- |
 | `/pi-chat-start [--port N] [--cwd PATH] [--no-open]` | Build if needed, serve the UI for the current Pi project, and open it in the browser |
 | `/pi-chat-stop` | Stop the server |
+| `/pi-chat-restart [--port N] [--cwd PATH] [--no-open]` | Rebuild, stop the owned server, start it again, and open it |
 | `/pi-chat` | Show whether it runs, on which port, for which project |
 
 Running `/pi-chat-start` while it is already up just opens the browser again.
-Use `--no-open` to skip opening it.
+Use `/pi-chat-restart` after code changes that affect the server. Use `--no-open`
+to skip opening it.
 
 The server is spawned detached, so it keeps running when the Pi session ends and
 can still be stopped from a later session. Its pid and port live in
