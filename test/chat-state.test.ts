@@ -140,3 +140,18 @@ describe("chat state", () => {
     expect(next).toBe(state);
   });
 });
+
+describe("directory listings", () => {
+  it("keeps a picker answer even when its sequence is old", () => {
+    const state = { ...initialChatState, sequence: 42 };
+    const next = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION,
+      type: "directoryListing",
+      sequence: 1,
+      listing: { path: "/tmp", entries: [{ name: "a.pdf", path: "/tmp/a.pdf", isDirectory: false }] },
+    });
+
+    expect(next.listing?.path).toBe("/tmp");
+    expect(next.sequence).toBe(42);
+  });
+});

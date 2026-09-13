@@ -96,7 +96,13 @@ export function App() {
           ) : null}
 
           <Paper component="form" onSubmit={submit} withBorder radius="lg" p="xs" shadow="md">
-            <AttachmentBar paths={attachments} onChange={setAttachments} disabled={busy} />
+            <AttachmentBar
+              paths={attachments}
+              onChange={setAttachments}
+              listing={state.listing}
+              browseDirectory={chat.browseDirectory}
+              disabled={busy}
+            />
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <Textarea
                 aria-label="Message Pi"

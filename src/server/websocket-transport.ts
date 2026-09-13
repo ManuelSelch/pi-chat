@@ -60,6 +60,11 @@ export class WebSocketTransport {
         void this.chat.abort().catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "prompt") {
         void this.chat.prompt(result.value.message, result.value.attachments).catch((error: unknown) => this.publishError(error));
+      } else if (result.value.type === "browseDirectory") {
+        void this.chat
+          .browseDirectory(result.value.path)
+          .then((listing) => this.sendTo(socket, { version: PROTOCOL_VERSION, type: "directoryListing", sequence: ++this.sequence, listing }))
+          .catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "runFeature") {
         void this.chat.runFeature(result.value).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "openProject") {

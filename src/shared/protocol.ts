@@ -96,6 +96,21 @@ export const actionRegistrySchema = z.object({ features: z.array(webFeatureSchem
 export type WebFeature = z.infer<typeof webFeatureSchema>;
 export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 
+export const directoryEntrySchema = z.object({
+  name: z.string().min(1),
+  path: z.string().min(1),
+  isDirectory: z.boolean(),
+});
+
+export const directoryListingSchema = z.object({
+  path: z.string().min(1),
+  parent: z.string().min(1).optional(),
+  entries: z.array(directoryEntrySchema),
+});
+
+export type DirectoryEntry = z.infer<typeof directoryEntrySchema>;
+export type DirectoryListing = z.infer<typeof directoryListingSchema>;
+
 const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 
 export const clientMessageSchema = z.union([
@@ -107,6 +122,7 @@ export const clientMessageSchema = z.union([
     attachments: z.array(z.string().trim().min(1)).max(20).optional(),
   }),
   z.object({ ...baseClientMessage, type: z.literal("abort") }),
+  z.object({ ...baseClientMessage, type: z.literal("browseDirectory"), path: z.string().min(1).optional() }),
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
@@ -138,6 +154,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
   z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),
   z.object({ ...sequenced, type: z.literal("runtimeStatus"), status: z.enum(["idle", "running", "aborting"]), error: z.string().optional() }),
+  z.object({ ...sequenced, type: z.literal("directoryListing"), listing: directoryListingSchema }),
   z.object({ ...sequenced, type: z.literal("protocolError"), error: z.string() }),
 ]);
 
