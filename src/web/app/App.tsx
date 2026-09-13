@@ -2,6 +2,7 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Anchor, AppShell, Box, Button, Container, Group, Paper, Text, Textarea } from "@mantine/core";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
+import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 
@@ -12,6 +13,8 @@ export function App() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const busy = state.status === "running" || state.status === "aborting";
+  const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
+  const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
 
   function submit(event?: FormEvent): void {
     event?.preventDefault();
@@ -65,6 +68,7 @@ export function App() {
       <AppShell.Main pb={170}>
         <Container size="sm" py="xl">
           <MessageList state={state} />
+          <div ref={bottomRef} aria-hidden="true" />
         </Container>
       </AppShell.Main>
 
