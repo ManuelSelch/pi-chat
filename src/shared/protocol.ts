@@ -9,12 +9,35 @@ export const PROTOCOL_VERSION = 1 as const;
  */
 export const CONTROLLER_REPLACED_CODE = 4001;
 
-export const chatMessageSchema = z.object({
-  id: z.string().min(1),
-  role: z.enum(["user", "assistant", "system"]),
-  text: z.string(),
-  timestamp: z.number().optional(),
+/**
+ * Compact representation of one Pi tool call, correlated by `toolCallId`.
+ * Ids are deterministic (`tool:<toolCallId>`) so a live event and a snapshot
+ * rebuilt from session history produce the same entry rather than two cards.
+ */
+export const toolCardSchema = z.object({
+  toolCallId: z.string().min(1),
+  name: z.string().min(1),
+  status: z.enum(["running", "success", "error"]),
+  argsText: z.string().optional(),
+  outputText: z.string().optional(),
 });
+
+export type ToolCard = z.infer<typeof toolCardSchema>;
+
+export const chatMessageSchema = z.discriminatedUnion("role", [
+  z.object({
+    id: z.string().min(1),
+    role: z.enum(["user", "assistant", "system"]),
+    text: z.string(),
+    timestamp: z.number().optional(),
+  }),
+  z.object({
+    id: z.string().min(1),
+    role: z.literal("tool"),
+    tool: toolCardSchema,
+    timestamp: z.number().optional(),
+  }),
+]);
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
@@ -44,6 +67,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
+  z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),
   z.object({ ...sequenced, type: z.literal("runtimeStatus"), status: z.enum(["idle", "running", "aborting"]), error: z.string().optional() }),
   z.object({ ...sequenced, type: z.literal("protocolError"), error: z.string() }),
 ]);

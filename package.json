@@ -19,8 +19,14 @@
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.85.1",
     "express": "^5.2.1",
+    "katex": "^0.18.7",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "ws": "^8.21.3",
     "zod": "^4.6.4"
   },

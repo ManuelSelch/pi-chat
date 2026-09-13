@@ -1,8 +1,9 @@
-import type { ChatMessage } from "../shared/protocol.js";
+import type { ChatMessage, ToolCard } from "../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
   | { type: "messageFinal"; runId: string; message: ChatMessage }
+  | { type: "toolEvent"; runId: string; tool: ToolCard }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
 
 export interface RuntimeSnapshot {

@@ -1,4 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { Markdown } from "./Markdown.js";
+import { ToolCard } from "./ToolCard.js";
 import { usePiChat } from "./use-pi-chat.js";
 
 export function App() {
@@ -37,16 +39,23 @@ export function App() {
             <p>A minimal local chat powered by your Pi session.</p>
           </div>
         ) : null}
-        {state.messages.map((message) => (
-          <article className={`message ${message.role}`} key={message.id}>
-            <div className="role">{message.role === "assistant" ? "Pi" : "You"}</div>
-            <div className="content">{message.text}</div>
-          </article>
-        ))}
+        {state.messages.map((message) =>
+          message.role === "tool" ? (
+            <ToolCard key={message.id} tool={message.tool} />
+          ) : (
+            <article className={`message ${message.role}`} key={message.id}>
+              <div className="role">{message.role === "assistant" ? "Pi" : "You"}</div>
+              <div className="content"><Markdown>{message.text}</Markdown></div>
+            </article>
+          ),
+        )}
         {state.draft ? (
           <article className="message assistant streaming">
             <div className="role">Pi</div>
-            <div className="content">{state.draft.text}<span className="cursor" /></div>
+            <div className="content">
+              <Markdown>{state.draft.text}</Markdown>
+              <span className="cursor" />
+            </div>
           </article>
         ) : null}
       </section>

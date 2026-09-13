@@ -78,6 +78,62 @@ describe("chat state", () => {
     expect(settled.error).toBe("Codex error: The usage limit has been reached");
   });
 
+  it("transitions a tool card from running to success exactly once", () => {
+    let state = { ...initialChatState, status: "running" as const, sequence: 0 };
+    const running = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 1, runId: "run",
+      tool: { toolCallId: "call-1", name: "bash", status: "running", argsText: "{ }" },
+    });
+    expect(running.messages).toHaveLength(1);
+    expect(running.messages[0]!.role).toBe("tool");
+    if (running.messages[0]!.role === "tool") expect(running.messages[0]!.tool.status).toBe("running");
+
+    // Streaming updates stay running and accumulate output without a new card.
+    const updated = reduceServerMessage(running, {
+      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 2, runId: "run",
+      tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "partial" },
+    });
+    expect(updated.messages).toHaveLength(1);
+    if (updated.messages[0]!.role === "tool") {
+      expect(updated.messages[0]!.tool.status).toBe("running");
+      expect(updated.messages[0]!.tool.outputText).toBe("partial");
+      expect(updated.messages[0]!.tool.argsText).toBe("{ }");
+    }
+
+    const finished = reduceServerMessage(updated, {
+      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 3, runId: "run",
+      tool: { toolCallId: "call-1", name: "bash", status: "success", outputText: "done" },
+    });
+    expect(finished.messages).toHaveLength(1);
+    if (finished.messages[0]!.role === "tool") {
+      expect(finished.messages[0]!.tool.status).toBe("success");
+      expect(finished.messages[0]!.tool.outputText).toBe("done");
+    }
+
+    // A duplicated final event must not re-run the transition or regress it.
+    const replayed = reduceServerMessage(finished, {
+      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 4, runId: "run",
+      tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "stale" },
+    });
+    expect(replayed.messages).toHaveLength(1);
+    if (replayed.messages[0]!.role === "tool") {
+      expect(replayed.messages[0]!.tool.status).toBe("success");
+      expect(replayed.messages[0]!.tool.outputText).toBe("done");
+    }
+  });
+
+  it("survives a missed tool start by creating the card at its final event", () => {
+    // Happens when the client connected after the tool started: the snapshot
+    // boundary swallowed tool_execution_start, but tool_execution_end is live.
+    const state = { ...initialChatState, status: "running" as const, sequence: 5 };
+    const next = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 6, runId: "run",
+      tool: { toolCallId: "call-9", name: "read", status: "error", outputText: "denied" },
+    });
+    expect(next.messages).toHaveLength(1);
+    if (next.messages[0]!.role === "tool") expect(next.messages[0]!.tool.status).toBe("error");
+  });
+
   it("ignores duplicate and stale sequenced events", () => {
     const state = { ...initialChatState, sequence: 4, status: "idle" as const };
     const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 4, status: "running" });

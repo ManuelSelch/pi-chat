@@ -9,13 +9,64 @@ import {
   type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage } from "../shared/protocol.js";
+import type { ChatMessage, ToolCard } from "../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
+
+const ARGS_TEXT_MAX = 4_000;
+const OUTPUT_TEXT_MAX = 20_000;
+
+function clampText(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}… [truncated]` : text;
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2) ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Deterministic so a live tool event and a rebuilt snapshot never duplicate. */
+export function toolMessageId(toolCallId: string): string {
+  return `tool:${toolCallId}`;
+}
+
+interface ToolCallBlock {
+  id: string;
+  name: string;
+  arguments?: unknown;
+}
+
+function toolCallsFromContent(content: unknown): ToolCallBlock[] {
+  if (!Array.isArray(content)) return [];
+  const calls: ToolCallBlock[] = [];
+  for (const part of content) {
+    if (!part || typeof part !== "object") continue;
+    const value = part as Record<string, unknown>;
+    if (value.type !== "toolCall" || typeof value.id !== "string" || value.id.length === 0) continue;
+    calls.push({
+      id: value.id,
+      name: typeof value.name === "string" && value.name.length > 0 ? value.name : "tool",
+      arguments: value.arguments,
+    });
+  }
+  return calls;
+}
+
+export function toolCardFromCall(call: ToolCallBlock): ToolCard {
+  return {
+    toolCallId: call.id,
+    name: call.name,
+    status: "running",
+    ...(call.arguments === undefined ? {} : { argsText: clampText(safeStringify(call.arguments), ARGS_TEXT_MAX) }),
+  };
+}
 
 function textFromContent(content: unknown): string {
   if (typeof content === "string") return content;
@@ -52,17 +103,56 @@ export class MessageIdentity {
   }
 }
 
-export function toChatMessage(message: unknown, identity: MessageIdentity): ChatMessage | undefined {
-  if (!message || typeof message !== "object") return undefined;
+/**
+ * Maps one Pi session message to zero or more transcript entries.
+ *
+ * - user/system/assistant text becomes one text entry.
+ * - an assistant tool-call block becomes a *running* tool entry; the matching
+ *   toolResult message, which follows in session order, overwrites it as
+ *   success/error, so flattening the whole session in order yields final cards.
+ * - an assistant message with neither text nor tool calls yields nothing, so a
+ *   failed turn never leaves an empty bubble.
+ */
+export function toChatMessages(message: unknown, identity: MessageIdentity): ChatMessage[] {
+  if (!message || typeof message !== "object") return [];
   const value = message as Record<string, unknown>;
-  if (value.role !== "user" && value.role !== "assistant" && value.role !== "system") return undefined;
   const timestamp = typeof value.timestamp === "number" ? value.timestamp : undefined;
-  return {
-    id: identity.idFor(message),
-    role: value.role,
-    text: textFromContent(value.content),
-    ...(timestamp === undefined ? {} : { timestamp }),
-  };
+  const stamp = timestamp === undefined ? {} : { timestamp };
+
+  if (value.role === "toolResult") {
+    if (typeof value.toolCallId !== "string" || value.toolCallId.length === 0) return [];
+    const output = textFromContent(value.content).trim();
+    return [
+      {
+        id: toolMessageId(value.toolCallId),
+        role: "tool",
+        tool: {
+          toolCallId: value.toolCallId,
+          name: typeof value.toolName === "string" && value.toolName.length > 0 ? value.toolName : "tool",
+          status: value.isError === true ? "error" : "success",
+          ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
+        },
+        ...stamp,
+      },
+    ];
+  }
+
+  if (value.role !== "user" && value.role !== "assistant" && value.role !== "system") return [];
+
+  const entries: ChatMessage[] = [];
+  const text = textFromContent(value.content);
+  if (text.length > 0) {
+    entries.push({ id: identity.idFor(message), role: value.role, text, ...stamp });
+  }
+  for (const call of toolCallsFromContent(value.content)) {
+    entries.push({ id: toolMessageId(call.id), role: "tool", tool: toolCardFromCall(call), ...stamp });
+  }
+  return entries;
+}
+
+/** @deprecated single-text-entry view, kept for callers that only want text */
+export function toChatMessage(message: unknown, identity: MessageIdentity): ChatMessage | undefined {
+  return toChatMessages(message, identity).find((entry) => entry.role !== "tool");
 }
 
 export class PiRuntimeAdapter implements RuntimeAdapter {
@@ -70,6 +160,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
   private currentRunId = "";
+  /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
+  private readonly inFlightTools = new Set<string>();
   /**
    * A failed turn ends as an ordinary `message_end` with `stopReason: "error"`,
    * so without this the UI shows an empty assistant bubble and no reason. Held
@@ -128,14 +220,34 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   snapshot(): RuntimeSnapshot {
-    const messages = this.runtime.session.messages
-      .map((message) => toChatMessage(message, this.identity))
-      .filter((message): message is ChatMessage => message !== undefined);
+    const flattened = this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity));
+    // A tool call appears twice in history: once as the assistant's tool-call
+    // block (running) and once as its toolResult (final). Keep the final one.
+    const byId = new Map<string, ChatMessage>();
+    const order: string[] = [];
+    for (const entry of flattened) {
+      if (!byId.has(entry.id)) order.push(entry.id);
+      byId.set(entry.id, entry);
+    }
+    const messages = order.map((id) => byId.get(id)!);
+    const isStreaming = this.runtime.session.isStreaming;
+    // A "running" card is only honest while its tool is actually executing.
+    // After a server restart mid-run (or any missed end event) nothing will
+    // ever finalize it, so report it as interrupted instead of spinning forever.
+    for (const entry of messages) {
+      if (entry.role === "tool" && entry.tool.status === "running" && !this.inFlightTools.has(entry.tool.toolCallId)) {
+        entry.tool = {
+          ...entry.tool,
+          status: "error",
+          ...(entry.tool.outputText === undefined ? { outputText: "Tool run was interrupted before its result was recorded." } : {}),
+        };
+      }
+    }
     return {
       sessionId: this.runtime.session.sessionId,
       projectPath: this.runtime.cwd,
       messages,
-      isStreaming: this.runtime.session.isStreaming,
+      isStreaming,
     };
   }
 
@@ -177,10 +289,51 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         if (failure.stopReason === "error") {
           this.lastError = failure.errorMessage?.trim() || "The model ended the turn with an error.";
         }
+        // Tool entries come from tool_execution events instead, so only text
+        // entries become messageFinal here; a tool-call-only assistant message
+        // therefore does not leave an empty bubble.
         const final = toChatMessage(event.message, this.identity);
         if (final && (final.role === "user" || final.role === "assistant")) {
           this.emit({ type: "messageFinal", runId: this.currentRunId, message: final });
         }
+        return;
+      }
+      if (event.type === "tool_execution_start") {
+        this.inFlightTools.add(event.toolCallId);
+        this.emit({
+          type: "toolEvent",
+          runId: this.currentRunId,
+          tool: toolCardFromCall({ id: event.toolCallId, name: event.toolName, arguments: event.args }),
+        });
+        return;
+      }
+      if (event.type === "tool_execution_update") {
+        const output = textFromContent((event.partialResult as { content?: unknown })?.content).trim();
+        this.emit({
+          type: "toolEvent",
+          runId: this.currentRunId,
+          tool: {
+            toolCallId: event.toolCallId,
+            name: event.toolName,
+            status: "running",
+            ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
+          },
+        });
+        return;
+      }
+      if (event.type === "tool_execution_end") {
+        this.inFlightTools.delete(event.toolCallId);
+        const output = textFromContent((event.result as { content?: unknown })?.content).trim();
+        this.emit({
+          type: "toolEvent",
+          runId: this.currentRunId,
+          tool: {
+            toolCallId: event.toolCallId,
+            name: event.toolName,
+            status: event.isError ? "error" : "success",
+            ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
+          },
+        });
         return;
       }
       if (event.type === "agent_settled") {

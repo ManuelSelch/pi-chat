@@ -52,6 +52,35 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     const previous = state.draft?.runId === message.runId ? state.draft.text : "";
     return { ...state, sequence: message.sequence, draft: { runId: message.runId, text: previous + message.delta } };
   }
+  if (message.type === "toolEvent") {
+    const card = message.tool;
+    const id = `tool:${card.toolCallId}`;
+    const index = state.messages.findIndex((entry) => entry.id === id);
+    if (index === -1) {
+      const entry: ChatMessage = { id, role: "tool", tool: card };
+      return { ...state, sequence: message.sequence, messages: [...state.messages, entry] };
+    }
+    const existing = state.messages[index]!;
+    if (existing.role !== "tool" || existing.tool.status !== "running") {
+      // Once a card reached its final state it stays final: duplicate or
+      // out-of-order events (e.g. replayed after a reconnect) must not
+      // re-run the transition or regress it to running.
+      return { ...state, sequence: message.sequence };
+    }
+    const updated: ChatMessage = {
+      ...existing,
+      tool: {
+        ...existing.tool,
+        name: card.name,
+        status: card.status,
+        ...(card.argsText !== undefined ? { argsText: card.argsText } : {}),
+        ...(card.outputText !== undefined ? { outputText: card.outputText } : {}),
+      },
+    };
+    const messages = [...state.messages];
+    messages[index] = updated;
+    return { ...state, sequence: message.sequence, messages };
+  }
   if (message.type === "messageFinal") {
     const messages = state.messages.some((item) => item.id === message.message.id)
       ? state.messages

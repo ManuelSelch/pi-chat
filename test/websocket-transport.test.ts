@@ -79,7 +79,7 @@ describe("WebSocket transport", () => {
     expect(snapshot.type).toBe("snapshot");
     if (snapshot.type === "snapshot") {
       expect(snapshot.messages.map((message) => message.role)).toEqual(["user", "assistant"]);
-      expect(snapshot.messages.filter((message) => message.text === "Hello from Pi Chat.")).toHaveLength(1);
+      expect(snapshot.messages.filter((message) => message.role !== "tool" && message.text === "Hello from Pi Chat.")).toHaveLength(1);
     }
   });
 });
