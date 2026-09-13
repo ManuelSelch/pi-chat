@@ -59,6 +59,36 @@ function toolCallsFromContent(content: unknown): ToolCallBlock[] {
   return calls;
 }
 
+/**
+ * Merges flattened entries by id. A tool call appears twice in history — the
+ * assistant's tool-call block (running, with arguments) and its toolResult
+ * (final, with output) — so the merge keeps the latest status/output while
+ * preserving argsText from the earlier entry.
+ */
+export function mergeEntriesById(flattened: ChatMessage[]): ChatMessage[] {
+  const byId = new Map<string, ChatMessage>();
+  const order: string[] = [];
+  for (const entry of flattened) {
+    if (!byId.has(entry.id)) order.push(entry.id);
+    const previous = byId.get(entry.id);
+    if (previous?.role === "tool" && entry.role === "tool") {
+      byId.set(entry.id, {
+        ...entry,
+        tool: {
+          ...previous.tool,
+          ...entry.tool,
+          ...(previous.tool.argsText !== undefined && entry.tool.argsText === undefined
+            ? { argsText: previous.tool.argsText }
+            : {}),
+        },
+      });
+    } else {
+      byId.set(entry.id, entry);
+    }
+  }
+  return order.map((id) => byId.get(id)!);
+}
+
 export function toolCardFromCall(call: ToolCallBlock): ToolCard {
   return {
     toolCallId: call.id,
@@ -221,15 +251,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   snapshot(): RuntimeSnapshot {
     const flattened = this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity));
-    // A tool call appears twice in history: once as the assistant's tool-call
-    // block (running) and once as its toolResult (final). Keep the final one.
-    const byId = new Map<string, ChatMessage>();
-    const order: string[] = [];
-    for (const entry of flattened) {
-      if (!byId.has(entry.id)) order.push(entry.id);
-      byId.set(entry.id, entry);
-    }
-    const messages = order.map((id) => byId.get(id)!);
+    const messages = mergeEntriesById(flattened);
     const isStreaming = this.runtime.session.isStreaming;
     // A "running" card is only honest while its tool is actually executing.
     // After a server restart mid-run (or any missed end event) nothing will

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MessageIdentity, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
+import { MessageIdentity, mergeEntriesById, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
 
 describe("Pi message mapping", () => {
   it("gives one message the same id live and in a later snapshot", () => {
@@ -67,11 +67,25 @@ describe("Pi message mapping", () => {
     ];
     const entries = session.flatMap((message) => toChatMessages(message, identity));
     expect(entries.map((entry) => entry.id)).toEqual(["tool:call-1", "tool:call-1"]);
-    // Snapshot dedupe keeps the last (final) entry — mirrored in snapshot().
-    const byId = new Map(entries.map((entry) => [entry.id, entry]));
-    const merged = byId.get("tool:call-1")!;
-    expect(merged.role === "tool" && merged.tool.status).toBe("success");
-    expect(merged.role === "tool" && merged.tool.outputText).toBe("file body");
+    const merged = mergeEntriesById(entries);
+    expect(merged).toHaveLength(1);
+    const card = merged[0]!;
+    expect(card.role === "tool" && card.tool.status).toBe("success");
+    expect(card.role === "tool" && card.tool.outputText).toBe("file body");
+  });
+
+  it("snapshot merge keeps arguments from the call and output from the result", () => {
+    const identity = new MessageIdentity();
+    const session = [
+      { role: "assistant", content: [{ type: "toolCall", id: "call-1", name: "read", arguments: { path: "/tmp/x" } }] },
+      { role: "toolResult", toolCallId: "call-1", toolName: "read", content: [{ type: "text", text: "file body" }] },
+    ];
+    const entries = session.flatMap((message) => toChatMessages(message, identity));
+    const merged = mergeEntriesById(entries).find((entry) => entry.id === "tool:call-1")!;
+    if (merged.role !== "tool") throw new Error("expected tool entry");
+    expect(merged.tool.status).toBe("success");
+    expect(merged.tool.outputText).toBe("file body");
+    expect(merged.tool.argsText).toContain("/tmp/x");
   });
 
   it("drops an assistant message with neither text nor tool calls", () => {
