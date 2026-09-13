@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge, Button, Drawer, Group, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
+import { IconFolder, IconFolderOff, IconHistory, IconMessage, IconPlus } from "@tabler/icons-react";
 import type { ChatState } from "../chat/chat-state.js";
 
 interface ProjectSessionDrawerProps {
@@ -28,6 +29,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, busy, openProject
                 disabled={!project.exists || busy}
                 label={project.name}
                 description={project.path}
+                leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={<Badge size="xs" variant="light">{project.sessionCount}</Badge>}
                 onClick={() => setSelectedProject(project.path)}
               />
@@ -39,11 +41,11 @@ export function ProjectSessionDrawer({ opened, onClose, state, busy, openProject
             <Stack gap="xs">
               <Group justify="space-between" wrap="nowrap">
                 <Text fw={650}>{activeProject.name}</Text>
-                <Button size="compact-sm" disabled={busy || !activeProject.exists} onClick={() => { openProject(activeProject.path); onClose(); }}>
+                <Button size="compact-sm" leftSection={<IconHistory size={14} />} disabled={busy || !activeProject.exists} onClick={() => { openProject(activeProject.path); onClose(); }}>
                   Open latest
                 </Button>
               </Group>
-              <Button variant="light" disabled={busy || !activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
+              <Button variant="light" leftSection={<IconPlus size={14} />} disabled={busy || !activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
                 New session here
               </Button>
               {activeProject.sessions.map((session) => (
@@ -52,6 +54,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, busy, openProject
                   active={session.id === state.sessionId}
                   disabled={busy || !activeProject.exists}
                   label={session.title}
+                  leftSection={<IconMessage size={16} />}
                   rightSection={session.nameSource === "none" ? undefined : (
                     <Badge size="xs" variant={session.nameSource === "manual" ? "filled" : "light"} color={session.nameSource === "manual" ? "blue" : "gray"}>
                       {session.nameSource}

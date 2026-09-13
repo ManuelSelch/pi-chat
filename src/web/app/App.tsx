@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
-import { Anchor, AppShell, Box, Button, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { ActionIcon, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea, Tooltip } from "@mantine/core";
+import { IconArrowUp, IconLayoutSidebar, IconMathPi, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -41,9 +42,17 @@ export function App() {
       <AppShell.Header>
         <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
-            <Text fw={700} size="sm">Pi Chat</Text>
-            <Button size="compact-sm" variant="subtle" onClick={() => setProjectsOpen(true)}>Projects</Button>
-            <Button size="compact-sm" variant="subtle" onClick={() => setSettingsOpen(true)}>Settings</Button>
+            <IconMathPi size={20} aria-label="Pi Chat" />
+            <Tooltip label="Projects and sessions">
+              <ActionIcon variant="subtle" color="gray" aria-label="Projects and sessions" onClick={() => setProjectsOpen(true)}>
+                <IconLayoutSidebar size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Settings">
+              <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
+                <IconSettings size={18} />
+              </ActionIcon>
+            </Tooltip>
             <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
           <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
@@ -113,9 +122,13 @@ export function App() {
                 styles={{ input: { padding: "8px 10px" } }}
               />
               {busy ? (
-                <Button color="red" radius="md" disabled={state.status === "aborting"} onClick={abort} type="button">Stop</Button>
+                <ActionIcon color="red" radius="xl" size="lg" aria-label="Stop" disabled={state.status === "aborting"} onClick={abort} type="button">
+                  <IconPlayerStopFilled size={16} />
+                </ActionIcon>
               ) : (
-                <Button radius="md" disabled={!input.trim() || state.status !== "idle"} type="submit">Send</Button>
+                <ActionIcon radius="xl" size="lg" aria-label="Send" disabled={!input.trim() || state.status !== "idle"} type="submit">
+                  <IconArrowUp size={18} />
+                </ActionIcon>
               )}
             </Group>
           </Paper>

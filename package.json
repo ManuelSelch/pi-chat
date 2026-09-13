@@ -20,6 +20,7 @@
     "@earendil-works/pi-coding-agent": "0.85.1",
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
+    "@tabler/icons-react": "^3.46.0",
     "express": "^5.2.1",
     "katex": "^0.18.7",
     "react": "^19.3.0",

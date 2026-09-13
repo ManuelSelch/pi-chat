@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Drawer, Group, Paper, Select, Stack, Text, TextInput } from "@mantine/core";
+import { IconBrain, IconDeviceFloppy, IconPencil } from "@tabler/icons-react";
 import type { ThinkingLevel } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 
@@ -23,7 +24,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
       <Stack gap="md">
         {renameFeature ? (
           <Paper withBorder radius="md" p="sm">
-            <Text fw={650} size="sm" mb={6}>{renameFeature.title}</Text>
+            <Group gap={6} mb={6}>
+              <IconPencil size={16} />
+              <Text fw={650} size="sm">{renameFeature.title}</Text>
+            </Group>
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <TextInput
                 aria-label="Session name"
@@ -32,7 +36,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
                 onChange={(event) => setSessionNameInput(event.currentTarget.value)}
                 flex={1}
               />
-              <Button disabled={busy || !sessionName.trim()} onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}>
+              <Button leftSection={<IconDeviceFloppy size={14} />} disabled={busy || !sessionName.trim()} onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}>
                 Save
               </Button>
             </Group>
@@ -40,7 +44,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
         ) : null}
         {thinkingFeature ? (
           <Paper withBorder radius="md" p="sm">
-            <Text fw={650} size="sm" mb={6}>{thinkingFeature.title}</Text>
+            <Group gap={6} mb={6}>
+              <IconBrain size={16} />
+              <Text fw={650} size="sm">{thinkingFeature.title}</Text>
+            </Group>
             <Select
               aria-label="Thinking level"
               value={thinkingFeature.state.value}
