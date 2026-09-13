@@ -92,6 +92,9 @@ export function usePiChat() {
     state,
     prompt: (message: string) => send({ version: PROTOCOL_VERSION, type: "prompt", message }),
     abort: () => send({ version: PROTOCOL_VERSION, type: "abort" }),
+    openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
+    openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
+    newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
     takeControl: () => setClaim((value) => value + 1),
   };
 }

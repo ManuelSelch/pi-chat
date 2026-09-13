@@ -2,12 +2,16 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import {
   Anchor,
   AppShell,
+  Badge,
   Box,
   Button,
   Center,
   Container,
+  Drawer,
   Group,
+  NavLink,
   Paper,
+  ScrollArea,
   Stack,
   Text,
   Textarea,
@@ -18,8 +22,10 @@ import { ToolCard } from "./ToolCard.js";
 import { usePiChat } from "./use-pi-chat.js";
 
 export function App() {
-  const { state, prompt, abort, takeControl } = usePiChat();
+  const { state, prompt, abort, openProject, openSession, newSession, takeControl } = usePiChat();
   const [input, setInput] = useState("");
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<string | undefined>();
 
   function submit(event?: FormEvent): void {
     event?.preventDefault();
@@ -37,6 +43,7 @@ export function App() {
   }
 
   const busy = state.status === "running" || state.status === "aborting";
+  const activeProject = state.catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? state.catalogue.projects[0];
 
   return (
     <AppShell header={{ height: 58 }} padding={0}>
@@ -44,6 +51,9 @@ export function App() {
         <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
             <Text fw={700} size="sm">Pi Chat</Text>
+            <Button size="compact-sm" variant="subtle" onClick={() => setProjectsOpen(true)}>
+              Projects
+            </Button>
             <Text c="dimmed" size="xs" truncate>
               {state.projectPath || "Connecting…"}
             </Text>
@@ -53,6 +63,53 @@ export function App() {
           </Text>
         </Group>
       </AppShell.Header>
+
+      <Drawer opened={projectsOpen} onClose={() => setProjectsOpen(false)} title="Projects and sessions" size="lg">
+        <Group align="flex-start" wrap="nowrap">
+          <ScrollArea h="70vh" flex={1}>
+            <Stack gap={4}>
+              {state.catalogue.projects.map((project) => (
+                <NavLink
+                  key={project.path}
+                  active={project.path === state.projectPath}
+                  disabled={!project.exists || busy}
+                  label={project.name}
+                  description={project.path}
+                  rightSection={<Badge size="xs" variant="light">{project.sessionCount}</Badge>}
+                  onClick={() => setSelectedProject(project.path)}
+                />
+              ))}
+            </Stack>
+          </ScrollArea>
+          <ScrollArea h="70vh" flex={1}>
+            {activeProject ? (
+              <Stack gap="xs">
+                <Group justify="space-between" wrap="nowrap">
+                  <Text fw={650}>{activeProject.name}</Text>
+                  <Button size="compact-sm" disabled={busy || !activeProject.exists} onClick={() => { openProject(activeProject.path); setProjectsOpen(false); }}>
+                    Open latest
+                  </Button>
+                </Group>
+                <Button variant="light" disabled={busy || !activeProject.exists} onClick={() => { newSession(activeProject.path); setProjectsOpen(false); }}>
+                  New session here
+                </Button>
+                {activeProject.sessions.map((session) => (
+                  <NavLink
+                    key={session.path}
+                    active={session.id === state.sessionId}
+                    disabled={busy || !activeProject.exists}
+                    label={session.title}
+                    description={`${new Date(session.modified).toLocaleString()} · ${session.messageCount} messages`}
+                    onClick={() => { openSession(session.path); setProjectsOpen(false); }}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Text c="dimmed">No Pi sessions found yet.</Text>
+            )}
+          </ScrollArea>
+        </Group>
+      </Drawer>
 
       <AppShell.Main pb={170}>
         <Container size="sm" py="xl">

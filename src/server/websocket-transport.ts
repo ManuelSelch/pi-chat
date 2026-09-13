@@ -33,14 +33,7 @@ export class WebSocketTransport {
       this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
     this.controller = socket;
-    const snapshot = this.chat.snapshot();
-    this.sendTo(socket, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: this.sequence,
-      throughSequence: this.sequence,
-      ...snapshot,
-    });
+    void this.sendSnapshot(socket);
 
     socket.on("message", (data) => {
       let parsed: unknown;
@@ -65,8 +58,14 @@ export class WebSocketTransport {
 
       if (result.value.type === "abort") {
         void this.chat.abort().catch((error: unknown) => this.publishError(error));
-      } else {
+      } else if (result.value.type === "prompt") {
         void this.chat.prompt(result.value.message).catch((error: unknown) => this.publishError(error));
+      } else if (result.value.type === "openProject") {
+        void this.chat.openProject(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
+      } else if (result.value.type === "openSession") {
+        void this.chat.openSession(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
+      } else {
+        void this.chat.newSession(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
       }
     });
 
@@ -78,6 +77,18 @@ export class WebSocketTransport {
   private publish(event: RuntimeEvent): void {
     const message: ServerMessage = { version: PROTOCOL_VERSION, sequence: ++this.sequence, ...event };
     if (this.controller?.readyState === WebSocket.OPEN) this.sendTo(this.controller, message);
+  }
+
+  private async sendSnapshot(socket = this.controller): Promise<void> {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    const snapshot = await this.chat.snapshot();
+    this.sendTo(socket, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: this.sequence,
+      throughSequence: this.sequence,
+      ...snapshot,
+    });
   }
 
   private publishError(error: unknown): void {

@@ -230,6 +230,19 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   static async create(cwd: string): Promise<PiRuntimeAdapter> {
+    return PiRuntimeAdapter.fromSessionManager(cwd, SessionManager.continueRecent(cwd));
+  }
+
+  static async openSession(path: string): Promise<PiRuntimeAdapter> {
+    const sessionManager = SessionManager.open(path);
+    return PiRuntimeAdapter.fromSessionManager(sessionManager.getCwd(), sessionManager);
+  }
+
+  static async newSession(cwd: string): Promise<PiRuntimeAdapter> {
+    return PiRuntimeAdapter.fromSessionManager(cwd, SessionManager.create(cwd));
+  }
+
+  private static async fromSessionManager(cwd: string, sessionManager: SessionManager): Promise<PiRuntimeAdapter> {
     const agentDir = getAgentDir();
     const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager, sessionStartEvent }) => {
       const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
@@ -241,11 +254,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       };
     };
 
-    const runtime = await createAgentSessionRuntime(createRuntime, {
-      cwd,
-      agentDir,
-      sessionManager: SessionManager.continueRecent(cwd),
-    });
+    const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
     return new PiRuntimeAdapter(runtime);
   }
 
@@ -267,6 +276,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     }
     return {
       sessionId: this.runtime.session.sessionId,
+      ...(this.runtime.session.sessionFile ? { sessionPath: this.runtime.session.sessionFile } : {}),
       projectPath: this.runtime.cwd,
       messages,
       isStreaming,

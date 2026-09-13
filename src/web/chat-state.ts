@@ -1,4 +1,4 @@
-import type { ChatMessage, ServerMessage } from "../shared/protocol.js";
+import type { ChatMessage, ProjectCatalogue, ServerMessage } from "../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -16,6 +16,7 @@ export interface ChatState {
   error?: string;
   sessionId: string;
   projectPath: string;
+  catalogue: ProjectCatalogue;
   sequence: number;
 }
 
@@ -24,6 +25,7 @@ export const initialChatState: ChatState = {
   status: "connecting",
   sessionId: "",
   projectPath: "",
+  catalogue: { projects: [] },
   sequence: -1,
 };
 
@@ -44,6 +46,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       projectPath: message.projectPath,
+      catalogue: message.catalogue ?? state.catalogue,
       sequence: message.throughSequence,
     };
   }

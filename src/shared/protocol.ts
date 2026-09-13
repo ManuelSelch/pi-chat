@@ -41,11 +41,39 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
+export const chatSessionSummarySchema = z.object({
+  path: z.string().min(1),
+  id: z.string().min(1),
+  title: z.string().min(1),
+  name: z.string().optional(),
+  firstMessage: z.string().optional(),
+  modified: z.number(),
+  created: z.number(),
+  messageCount: z.number().int().nonnegative(),
+});
+
+export const chatProjectSummarySchema = z.object({
+  path: z.string().min(1),
+  name: z.string().min(1),
+  exists: z.boolean(),
+  modified: z.number(),
+  sessionCount: z.number().int().nonnegative(),
+  sessions: z.array(chatSessionSummarySchema),
+});
+
+export const projectCatalogueSchema = z.object({ projects: z.array(chatProjectSummarySchema) });
+export type ChatSessionSummary = z.infer<typeof chatSessionSummarySchema>;
+export type ChatProjectSummary = z.infer<typeof chatProjectSummarySchema>;
+export type ProjectCatalogue = z.infer<typeof projectCatalogueSchema>;
+
 const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 
 export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ ...baseClientMessage, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("abort") }),
+  z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
+  z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
+  z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -61,9 +89,11 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("snapshot"),
     throughSequence: z.number().int().nonnegative(),
     sessionId: z.string(),
+    sessionPath: z.string().optional(),
     projectPath: z.string(),
     messages: z.array(chatMessageSchema),
     isStreaming: z.boolean(),
+    catalogue: projectCatalogueSchema.optional(),
   }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),

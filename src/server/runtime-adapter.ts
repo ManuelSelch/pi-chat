@@ -8,6 +8,7 @@ export type RuntimeEvent =
 
 export interface RuntimeSnapshot {
   sessionId: string;
+  sessionPath?: string;
   projectPath: string;
   messages: ChatMessage[];
   isStreaming: boolean;
@@ -30,6 +31,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   snapshot(): RuntimeSnapshot {
     return {
       sessionId: "fake-session",
+      sessionPath: "fake-session.jsonl",
       projectPath: process.cwd(),
       messages: [...this.messages],
       isStreaming: this.streaming,

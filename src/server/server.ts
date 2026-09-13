@@ -1,7 +1,8 @@
 import express from "express";
 import { createServer, type Server } from "node:http";
 import { resolve } from "node:path";
-import { ChatApplicationService } from "./chat-application-service.js";
+import { ChatApplicationService, type RuntimeAdapterFactory } from "./chat-application-service.js";
+import { PiRuntimeAdapter } from "./pi-runtime-adapter.js";
 import type { RuntimeAdapter } from "./runtime-adapter.js";
 import { WebSocketTransport } from "./websocket-transport.js";
 
@@ -11,7 +12,15 @@ export interface PiChatServer {
   close(): Promise<void>;
 }
 
-export function createPiChatServer(runtime: RuntimeAdapter, staticDirectory?: string): PiChatServer {
+export function createPiChatServer(
+  runtime: RuntimeAdapter,
+  staticDirectory?: string,
+  factory: RuntimeAdapterFactory = {
+    continueProject: (path) => PiRuntimeAdapter.create(path),
+    openSession: (path) => PiRuntimeAdapter.openSession(path),
+    newSession: (path) => PiRuntimeAdapter.newSession(path),
+  },
+): PiChatServer {
   const app = express();
   app.get("/health", (_request, response) => response.json({ ok: true }));
   if (staticDirectory) {
@@ -20,7 +29,7 @@ export function createPiChatServer(runtime: RuntimeAdapter, staticDirectory?: st
   }
 
   const httpServer = createServer(app);
-  const chat = new ChatApplicationService(runtime);
+  const chat = new ChatApplicationService(runtime, factory);
   const transport = new WebSocketTransport(httpServer, chat);
   return {
     httpServer,
