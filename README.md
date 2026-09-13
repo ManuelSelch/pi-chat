@@ -57,8 +57,13 @@ The server is spawned detached, so it keeps running when the Pi session ends and
 can still be stopped from a later session. Its pid and port live in
 `$TMPDIR/pi-chat-server.pid`. This mode serves the built client from `dist/web`
 on a single port (default 8788), so there is no Vite dev server and no `5173`.
-Set `PI_CHAT_HOME` if the repository lives somewhere other than the extension's
-own folder.
+The repository is found by following the symlink back to this checkout, so the
+link above is all that is normally needed. Override it only when the extension
+is copied rather than linked:
+
+```bash
+export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
+```
 
 ## Choosing the model
 

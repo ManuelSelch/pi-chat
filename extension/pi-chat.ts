@@ -9,7 +9,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +23,18 @@ const START_TIMEOUT_MS = 60_000;
 function projectHome(): string {
   const configured = process.env.PI_CHAT_HOME?.trim();
   if (configured) return resolve(configured);
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  // Installing this as a symlink in ~/.pi/agent/extensions is the normal case,
+  // and the loader reports the link's path, so the link has to be followed to
+  // find the repository it actually lives in.
+  const self = fileURLToPath(import.meta.url);
+  const real = (() => {
+    try {
+      return realpathSync(self);
+    } catch {
+      return self;
+    }
+  })();
+  return resolve(dirname(real), "..");
 }
 
 interface Running {
@@ -86,7 +97,10 @@ export default function piChatExtension(pi: ExtensionAPI): void {
       const projectCwd = cwd ?? ctx.cwd;
 
       if (!existsSync(join(home, "package.json"))) {
-        ctx.ui.notify(`Pi Chat not found at ${home}. Set PI_CHAT_HOME to its folder.`, "error");
+        ctx.ui.notify(
+          `Pi Chat not found at ${home}. Start Pi with PI_CHAT_HOME=/path/to/pi-chat, e.g. export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat".`,
+          "error",
+        );
         return;
       }
 
