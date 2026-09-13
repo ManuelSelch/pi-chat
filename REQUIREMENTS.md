@@ -339,4 +339,4 @@ The concrete HTTP/WebSocket library and schema validator may be selected during 
 - Whether to extract PDF text/layout independently of Pi tools.
 - Whether to add model/thinking controls and settings management.
 - Whether to support extension UI request/response dialogs.
-- Whether to package the application as an installable Pi package with a `/study` launch command.
+- Whether to package the application as an installable Pi package with a `/chat` launch command.
