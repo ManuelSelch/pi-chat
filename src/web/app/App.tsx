@@ -13,6 +13,11 @@ export function App() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const busy = state.status === "running" || state.status === "aborting";
+  // The rename action already carries the live session name, so the header does
+  // not need its own snapshot field.
+  const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
+  const sessionName = renameFeature?.state.name?.trim();
+  const headerTitle = state.projectPath ? sessionName || "New session" : "Connecting…";
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
   const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
 
@@ -39,7 +44,7 @@ export function App() {
             <Text fw={700} size="sm">Pi Chat</Text>
             <Button size="compact-sm" variant="subtle" onClick={() => setProjectsOpen(true)}>Projects</Button>
             <Button size="compact-sm" variant="subtle" onClick={() => setSettingsOpen(true)}>Settings</Button>
-            <Text c="dimmed" size="xs" truncate>{state.projectPath || "Connecting…"}</Text>
+            <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
           <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
             {state.status}
