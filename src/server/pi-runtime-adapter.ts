@@ -16,6 +16,7 @@ type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
+import { createWebUiContext } from "./web-ui-context.js";
 
 const ARGS_TEXT_MAX = 4_000;
 const OUTPUT_TEXT_MAX = 20_000;
@@ -201,6 +202,19 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   private constructor(private readonly runtime: AgentSessionRuntime) {
     this.bindSession();
+    this.bindUi();
+  }
+
+  /**
+   * Without a UI context Pi falls back to a no-op one, so extension output such
+   * as `/memory-status` is discarded. Bound on the runner rather than through
+   * `session.bindExtensions`, which would re-emit `session_start`.
+   */
+  private bindUi(): void {
+    this.runtime.session.extensionRunner.setUIContext(
+      createWebUiContext({ onNotify: (message, level) => this.emit({ type: "notification", level, message }) }),
+      "print",
+    );
   }
 
   /**

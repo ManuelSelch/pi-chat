@@ -140,3 +140,20 @@ describe("chat state", () => {
     expect(next).toBe(state);
   });
 });
+
+describe("extension notifications", () => {
+  it("appends notify output as a transcript notice", () => {
+    const next = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "notification",
+      sequence: 1,
+      level: "warning",
+      message: "Memory: pi-chat | Repo: Uncommitted changes",
+    });
+
+    expect(next.messages).toEqual([
+      { id: "notice:1", role: "notice", level: "warning", text: "Memory: pi-chat | Repo: Uncommitted changes" },
+    ]);
+    expect(next.sequence).toBe(1);
+  });
+});

@@ -4,6 +4,7 @@ export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
   | { type: "messageFinal"; runId: string; message: ChatMessage }
   | { type: "toolEvent"; runId: string; tool: ToolCard }
+  | { type: "notification"; level: "info" | "warning" | "error"; message: string }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
 
 export interface RuntimeSnapshot {

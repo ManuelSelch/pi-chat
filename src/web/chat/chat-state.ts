@@ -93,6 +93,17 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       : [...state.messages, message.message];
     return { ...state, sequence: message.sequence, messages, draft: message.message.role === "assistant" ? undefined : state.draft };
   }
+  if (message.type === "notification") {
+    // Extension output is transient: it belongs in the transcript next to the
+    // command that produced it, but it is never persisted in the session.
+    const entry: ChatMessage = {
+      id: `notice:${message.sequence}`,
+      role: "notice",
+      level: message.level,
+      text: message.message,
+    };
+    return { ...state, sequence: message.sequence, messages: [...state.messages, entry] };
+  }
   if (message.type === "runtimeStatus") {
     return { ...state, sequence: message.sequence, status: message.status, error: message.error };
   }

@@ -1,4 +1,5 @@
-import { Box, Center, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Box, Center, Paper, Stack, Text, Title } from "@mantine/core";
+import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "./Markdown.js";
 import { ToolCard } from "./ToolCard.js";
 import type { ChatState } from "./chat-state.js";
@@ -19,6 +20,16 @@ export function MessageList({ state }: { state: ChatState }) {
         {state.messages.map((message) =>
           message.role === "tool" ? (
             <ToolCard key={message.id} tool={message.tool} />
+          ) : message.role === "notice" ? (
+            <Alert
+              key={message.id}
+              variant="light"
+              color={message.level === "error" ? "red" : message.level === "warning" ? "yellow" : "blue"}
+              icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
+              p="xs"
+            >
+              <Text size="sm">{message.text}</Text>
+            </Alert>
           ) : (
             <Box key={message.id} component="article">
               {message.role === "assistant" ? (

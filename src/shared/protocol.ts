@@ -37,6 +37,14 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
     tool: toolCardSchema,
     timestamp: z.number().optional(),
   }),
+  /** Extension output from `ctx.ui.notify`, e.g. the result of a slash command. */
+  z.object({
+    id: z.string().min(1),
+    role: z.literal("notice"),
+    level: z.enum(["info", "warning", "error"]),
+    text: z.string(),
+    timestamp: z.number().optional(),
+  }),
 ]);
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
@@ -146,6 +154,12 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
   z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),
   z.object({ ...sequenced, type: z.literal("runtimeStatus"), status: z.enum(["idle", "running", "aborting"]), error: z.string().optional() }),
+  z.object({
+    ...sequenced,
+    type: z.literal("notification"),
+    level: z.enum(["info", "warning", "error"]),
+    message: z.string(),
+  }),
   z.object({ ...sequenced, type: z.literal("protocolError"), error: z.string() }),
 ]);
 
