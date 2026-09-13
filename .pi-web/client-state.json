@@ -1,0 +1,70 @@
+{
+  "0fefb7e6-d109-48b1-8c35-8e430c49e3bd": {
+    "projects": [
+      {
+        "path": "/Users/manuelselch",
+        "lastUsed": 1789308873116
+      },
+      {
+        "path": "/Users/manuelselch/.pi/agent/git/pi-chat",
+        "lastUsed": 1789308854247
+      }
+    ],
+    "lastCwd": "/Users/manuelselch",
+    "locale": "en",
+    "goalPrefs": {
+      "reviewModel": null,
+      "maxRounds": 0,
+      "locked": true
+    }
+  },
+  "__settings__": {
+    "projects": [],
+    "quickPhrasesSeeded": true,
+    "settings": {
+      "promptMode": "append",
+      "customSystemPrompt": "",
+      "promptTemplate": "",
+      "promptOverrides": {},
+      "disabledSkills": [],
+      "disabledExtensions": [],
+      "disabledAgentTools": [
+        "terminal_create",
+        "terminal_list",
+        "terminal_close",
+        "terminal_input",
+        "terminal_key",
+        "terminal_read",
+        "terminal_wait",
+        "edit_soft"
+      ],
+      "terminalToolsEnabled": false,
+      "terminalBash": false,
+      "terminalBashIdleMs": 15000,
+      "editSoftEnabled": false,
+      "questionnaireEnabled": true,
+      "goalModeEnabled": true,
+      "thinkingWrap": false,
+      "toolsWrap": true,
+      "skillsFullText": [],
+      "visionBridgeEnabled": true,
+      "visionBridgeModel": null,
+      "subagentDefaultModel": null,
+      "retryMaxAttempts": 6,
+      "visionBridgePromptMode": "append",
+      "visionBridgePrompt": "",
+      "reviewPrompt": "",
+      "reviewDisabledSkills": [],
+      "disabledPlugins": [],
+      "quickPhrases": [
+        "Continue",
+        "Summarize",
+        "Explain in detail",
+        "Check and fix issues",
+        "Add test coverage",
+        "Publish release"
+      ],
+      "quickPhrasesEnabled": true
+    }
+  }
+}

@@ -44,6 +44,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
           { id: "session.rename", group: "session", kind: "form", title: "Rename session", state: { name: "" } },
           { id: "thinking.level", group: "model", kind: "select", title: "Thinking level", state: { value: "off", options: ["off"] } },
         ],
+        commands: [{ name: "fake", description: "A command for tests" }],
       },
     };
   }

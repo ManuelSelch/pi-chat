@@ -92,7 +92,21 @@ export const webFeatureSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const actionRegistrySchema = z.object({ features: z.array(webFeatureSchema) });
+/**
+ * A slash command Pi can dispatch. Typed UI actions stay the primary surface;
+ * this catalogue is the generic fallback for everything else a session offers.
+ */
+export const slashCommandSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+});
+
+export type SlashCommand = z.infer<typeof slashCommandSchema>;
+
+export const actionRegistrySchema = z.object({
+  features: z.array(webFeatureSchema),
+  commands: z.array(slashCommandSchema).default([]),
+});
 export type WebFeature = z.infer<typeof webFeatureSchema>;
 export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 

@@ -27,7 +27,7 @@ export const initialChatState: ChatState = {
   sessionId: "",
   projectPath: "",
   catalogue: { projects: [] },
-  actions: { features: [] },
+  actions: { features: [], commands: [] },
   sequence: -1,
 };
 

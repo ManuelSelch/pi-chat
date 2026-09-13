@@ -9,7 +9,7 @@ import {
   type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, ThinkingLevel, ToolCard } from "../shared/protocol.js";
+import type { ChatMessage, SlashCommand, ThinkingLevel, ToolCard } from "../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
@@ -303,8 +303,23 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
             },
           },
         ],
+        commands: this.commands(),
       },
     };
+  }
+
+  /**
+   * Extension, prompt, and skill commands the current session can dispatch.
+   * Pi expands them inside `prompt()`, so the web client only needs their names.
+   */
+  private commands(): SlashCommand[] {
+    return this.runtime.session.extensionRunner
+      .getRegisteredCommands()
+      .map((command) => ({
+        name: command.invocationName,
+        ...(command.description ? { description: command.description } : {}),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async prompt(message: string): Promise<void> {

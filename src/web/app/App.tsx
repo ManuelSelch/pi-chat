@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea, Tooltip } from "@mantine/core";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
+import { CommandMenu } from "../commands/CommandMenu.js";
+import { commandQuery, filterCommands } from "../commands/command-menu.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -11,6 +13,8 @@ export function App() {
   const chat = usePiChat();
   const { state, prompt, abort, takeControl } = chat;
   const [input, setInput] = useState("");
+  const [activeCommand, setActiveCommand] = useState(0);
+  const [menuDismissed, setMenuDismissed] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const busy = state.status === "running" || state.status === "aborting";
@@ -19,6 +23,21 @@ export function App() {
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
   const headerTitle = state.projectPath ? sessionName || "New session" : "Connecting…";
+  const query = menuDismissed ? undefined : commandQuery(input);
+  const matches = query === undefined ? [] : filterCommands(state.actions.commands, query);
+  const menuOpen = matches.length > 0;
+
+  function changeInput(value: string): void {
+    setInput(value);
+    setActiveCommand(0);
+    setMenuDismissed(false);
+  }
+
+  function pickCommand(name: string): void {
+    // A trailing space both closes the menu and starts the argument.
+    setInput(`/${name} `);
+    setActiveCommand(0);
+  }
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
   const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
 
@@ -28,9 +47,29 @@ export function App() {
     if (!message || state.status !== "idle") return;
     prompt(message);
     setInput("");
+    setActiveCommand(0);
+    setMenuDismissed(false);
   }
 
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (menuOpen) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        setActiveCommand((index) => (index + step + matches.length) % matches.length);
+        return;
+      }
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        pickCommand(matches[activeCommand]!.name);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMenuDismissed(true);
+        return;
+      }
+    }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       submit();
@@ -107,6 +146,15 @@ export function App() {
             <Text size="sm" c="red" mb="xs" role="alert">{state.error}</Text>
           ) : null}
 
+          {menuOpen ? (
+            <CommandMenu
+              commands={matches}
+              activeIndex={activeCommand}
+              onHover={setActiveCommand}
+              onSelect={(command) => pickCommand(command.name)}
+            />
+          ) : null}
+
           <Paper component="form" onSubmit={submit} withBorder radius="lg" p="xs" shadow="md">
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <Textarea
@@ -114,7 +162,7 @@ export function App() {
                 autosize
                 minRows={2}
                 maxRows={8}
-                onChange={(event) => setInput(event.currentTarget.value)}
+                onChange={(event) => changeInput(event.currentTarget.value)}
                 onKeyDown={keyDown}
                 placeholder="Ask Pi anything…"
                 value={input}
