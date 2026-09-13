@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea, Tooltip } from "@mantine/core";
-import { IconArrowUp, IconLayoutSidebar, IconMathPi, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
+import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -42,22 +42,23 @@ export function App() {
       <AppShell.Header>
         <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap" miw={0}>
-            <IconMathPi size={20} aria-label="Pi Chat" />
             <Tooltip label="Projects and sessions">
               <ActionIcon variant="subtle" color="gray" aria-label="Projects and sessions" onClick={() => setProjectsOpen(true)}>
                 <IconLayoutSidebar size={18} />
               </ActionIcon>
             </Tooltip>
+            <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
+          </Group>
+          <Group gap="sm" wrap="nowrap">
+            <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
+              {state.status}
+            </Text>
             <Tooltip label="Settings">
               <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
                 <IconSettings size={18} />
               </ActionIcon>
             </Tooltip>
-            <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
-          <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
-            {state.status}
-          </Text>
         </Group>
       </AppShell.Header>
 
