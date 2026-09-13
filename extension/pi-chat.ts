@@ -56,15 +56,31 @@ function readPidFile(): Running | undefined {
   }
 }
 
-async function isHealthy(port: number): Promise<boolean> {
+/**
+ * `free` means nothing listens, `other` means the port belongs to a different
+ * program. Telling those apart matters: a Pi Chat started by hand with
+ * `npm run dev` is not an error, it is the thing the command wanted to start.
+ */
+type PortState = "free" | "pi-chat" | "other";
+
+async function probePort(port: number): Promise<PortState> {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/health`, {
-      signal: AbortSignal.timeout(1_000),
+      signal: AbortSignal.timeout(1_500),
     });
-    return response.ok;
-  } catch {
-    return false;
+    if (!response.ok) return "other";
+    const body = (await response.json().catch(() => undefined)) as { ok?: boolean } | undefined;
+    return body?.ok === true ? "pi-chat" : "other";
+  } catch (error) {
+    // Only a refused connection proves the port is unused; a timeout or reset
+    // means something is listening but not answering /health.
+    const code = (error as { cause?: { code?: string } })?.cause?.code;
+    return code === "ECONNREFUSED" ? "free" : "other";
   }
+}
+
+async function isHealthy(port: number): Promise<boolean> {
+  return (await probePort(port)) === "pi-chat";
 }
 
 async function waitForHealth(port: number, deadline: number): Promise<boolean> {
@@ -109,8 +125,17 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         ctx.ui.notify(`Pi Chat already runs on http://127.0.0.1:${running.port} (pid ${running.pid})`, "warning");
         return;
       }
-      if (await isHealthy(port)) {
-        ctx.ui.notify(`Port ${port} is already serving something. Use --port to pick another.`, "error");
+
+      const state = await probePort(port);
+      if (state === "pi-chat") {
+        ctx.ui.notify(
+          `Pi Chat already runs on http://127.0.0.1:${port}. It was started outside these commands (e.g. npm run dev), so /pi-chat-stop cannot stop it.`,
+          "warning",
+        );
+        return;
+      }
+      if (state === "other") {
+        ctx.ui.notify(`Port ${port} is used by another program. Pick another with /pi-chat-start --port N.`, "error");
         return;
       }
 
@@ -195,6 +220,14 @@ export default function piChatExtension(pi: ExtensionAPI): void {
           `Pi Chat: running on http://127.0.0.1:${running.port} · project ${running.cwd} · pid ${running.pid}`,
           "info",
         );
+        return;
+      }
+
+      // A hand-started server is still a running Pi Chat, just not one these
+      // commands own.
+      const port = Number(process.env.PI_CHAT_PORT ?? DEFAULT_PORT);
+      if ((await probePort(port)) === "pi-chat") {
+        ctx.ui.notify(`Pi Chat: running on http://127.0.0.1:${port}, started outside these commands.`, "info");
         return;
       }
       ctx.ui.notify("Pi Chat: stopped. Start it with /pi-chat-start.", "info");
