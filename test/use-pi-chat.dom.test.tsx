@@ -60,10 +60,11 @@ class FakeWebSocket {
 }
 
 function Probe() {
-  const { state, takeControl } = usePiChat();
+  const { app, state, takeControl } = usePiChat();
+  // Mirrors App: connection state wins until a session is on screen.
   return (
     <>
-      <output data-testid="status">{state.status}</output>
+      <output data-testid="status">{app.connection === "open" ? state.status : app.connection}</output>
       <button onClick={takeControl} type="button">Take control here</button>
     </>
   );

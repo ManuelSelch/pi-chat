@@ -7,7 +7,7 @@ import {
   type ThinkingLevel,
   type UiPromptResult,
 } from "../../shared/protocol.js";
-import { initialChatState, reduceServerMessage } from "./chat-state.js";
+import { activeSession, initialAppState, reduceAppMessage } from "./app-state.js";
 
 const FIRST_RETRY_MS = 250;
 const MAX_RETRY_MS = 5_000;
@@ -18,7 +18,7 @@ const MAX_RETRY_MS = 5_000;
  * Reconnecting with backoff is what makes the app usable from a cold start.
  */
 export function usePiChat() {
-  const [state, dispatch] = useReducer(reduceServerMessage, initialChatState);
+  const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
   const socketRef = useRef<WebSocket | undefined>(undefined);
   // Bumping this re-runs the effect, which is how a superseded tab takes the
   // controller slot back on an explicit user action.
@@ -90,19 +90,31 @@ export function usePiChat() {
     socket.send(JSON.stringify(message));
   }, []);
 
+  // Commands act on the tab the user is looking at unless one is named.
+  const session = activeSession(app);
+  const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
+
   return {
-    state,
-    prompt: (message: string) => send({ version: PROTOCOL_VERSION, type: "prompt", message }),
-    abort: () => send({ version: PROTOCOL_VERSION, type: "abort" }),
-    respondToPrompt: (promptId: string, result: UiPromptResult) =>
-      send({ version: PROTOCOL_VERSION, type: "uiPromptResponse", promptId, result }),
+    app,
+    state: session,
+    prompt: (message: string, sessionId?: string) =>
+      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "prompt", message }),
+    abort: (sessionId?: string) => send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "abort" }),
+    respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) =>
+      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "uiPromptResponse", promptId, result }),
     openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
-    renameSession: (name: string) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.rename", input: { name } }),
-    setModel: (model: string) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "model.select", input: { model } }),
-    compactSession: () => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.compact", input: {} }),
-    setThinkingLevel: (level: ThinkingLevel) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "thinking.level", input: { level } }),
+    focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
+    closeTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId }),
+    renameSession: (name: string) =>
+      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.rename", input: { name } }),
+    setModel: (model: string) =>
+      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "model.select", input: { model } }),
+    compactSession: () =>
+      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.compact", input: {} }),
+    setThinkingLevel: (level: ThinkingLevel) =>
+      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "thinking.level", input: { level } }),
     takeControl: () => setClaim((value) => value + 1),
   };
 }

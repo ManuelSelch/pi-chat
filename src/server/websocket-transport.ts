@@ -11,13 +11,14 @@ import type { RuntimeEvent } from "./runtime-adapter.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
-  private sequence = 0;
+  /** Per session: a busy tab must not advance a quiet tab's sequence. */
+  private readonly sequences = new Map<string, number>();
   private controller?: WebSocket;
   private readonly unsubscribe: () => void;
 
   constructor(httpServer: Server, private readonly chat: ChatApplicationService) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
-    this.unsubscribe = chat.subscribe((event) => this.publish(event));
+    this.unsubscribe = chat.subscribe((sessionId, event) => this.publish(sessionId, event));
     this.server.on("connection", (socket) => this.connect(socket));
   }
 
@@ -35,7 +36,7 @@ export class WebSocketTransport {
     this.controller = socket;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
-    void this.sendSnapshot(socket);
+    void this.sendAll(socket);
 
     socket.on("message", (data) => {
       let parsed: unknown;
@@ -58,25 +59,37 @@ export class WebSocketTransport {
         return;
       }
 
-      if (result.value.type === "abort") {
-        void this.chat.abort().catch((error: unknown) => this.publishError(error));
-      } else if (result.value.type === "prompt") {
+      const command = result.value;
+      if (command.type === "abort") {
+        void this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
+      } else if (command.type === "prompt") {
         // A prompt can be a native command such as /model, which changes state
         // the snapshot owns, so refresh once the run settles.
         void this.chat
-          .prompt(result.value.message)
-          .then(() => this.sendSnapshot())
-          .catch((error: unknown) => this.publishError(error));
-      } else if (result.value.type === "uiPromptResponse") {
-        this.chat.respondToPrompt(result.value.promptId, result.value.result);
-      } else if (result.value.type === "runFeature") {
-        void this.chat.runFeature(result.value).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
-      } else if (result.value.type === "openProject") {
-        void this.chat.openProject(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
-      } else if (result.value.type === "openSession") {
-        void this.chat.openSession(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
+          .prompt(command.sessionId, command.message)
+          .then(() => this.sendSnapshot(command.sessionId))
+          .catch((error: unknown) => this.publishError(command.sessionId, error));
+      } else if (command.type === "uiPromptResponse") {
+        this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
+      } else if (command.type === "runFeature") {
+        void this.chat
+          .runFeature(command)
+          .then(() => this.sendSnapshot(command.sessionId))
+          .catch((error: unknown) => this.publishError(command.sessionId, error));
+      } else if (command.type === "focusTab") {
+        this.chat.focusTab(command.sessionId);
+        this.sendTabs();
+      } else if (command.type === "closeTab") {
+        void this.chat
+          .closeTab(command.sessionId)
+          .then(() => this.sendTabs())
+          .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+      } else if (command.type === "openProject") {
+        void this.openTab(() => this.chat.openProject(command.path));
+      } else if (command.type === "openSession") {
+        void this.openTab(() => this.chat.openSession(command.path));
       } else {
-        void this.chat.newSession(result.value.path).then(() => this.sendSnapshot()).catch((error: unknown) => this.publishError(error));
+        void this.openTab(() => this.chat.newSession(command.path));
       }
     });
 
@@ -89,30 +102,70 @@ export class WebSocketTransport {
     });
   }
 
-  private publish(event: RuntimeEvent): void {
-    const message: ServerMessage = { version: PROTOCOL_VERSION, sequence: ++this.sequence, ...event };
-    if (this.controller?.readyState === WebSocket.OPEN) this.sendTo(this.controller, message);
+  private async openTab(open: () => Promise<string>): Promise<void> {
+    try {
+      const sessionId = await open();
+      await this.sendSnapshot(sessionId);
+      this.sendTabs();
+    } catch (error: unknown) {
+      this.publishError(this.chat.activeSessionId(), error);
+    }
   }
 
-  private async sendSnapshot(socket = this.controller): Promise<void> {
+  private publish(sessionId: string, event: RuntimeEvent): void {
+    const message: ServerMessage = {
+      version: PROTOCOL_VERSION,
+      sessionId,
+      sequence: this.nextSequence(sessionId),
+      ...event,
+    };
+    if (this.controller?.readyState === WebSocket.OPEN) this.sendTo(this.controller, message);
+    // Status and prompt changes drive the tab dots.
+    if (event.type === "runtimeStatus" || event.type === "prompts") this.sendTabs();
+  }
+
+  /** A reconnecting browser rebuilds every open tab, not just the active one. */
+  private async sendAll(socket: WebSocket): Promise<void> {
+    for (const sessionId of this.chat.openSessionIds()) await this.sendSnapshot(sessionId, socket);
+    this.sendTabs(socket);
+  }
+
+  private sendTabs(socket = this.controller): void {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    const snapshot = await this.chat.snapshot();
+    this.sendTo(socket, {
+      version: PROTOCOL_VERSION,
+      type: "tabs",
+      tabs: this.chat.tabs(),
+      activeSessionId: this.chat.activeSessionId(),
+    });
+  }
+
+  private async sendSnapshot(sessionId: string, socket = this.controller): Promise<void> {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    const snapshot = await this.chat.snapshot(sessionId);
+    const sequence = this.sequences.get(sessionId) ?? 0;
     this.sendTo(socket, {
       version: PROTOCOL_VERSION,
       type: "snapshot",
-      sequence: this.sequence,
-      throughSequence: this.sequence,
+      sequence,
+      throughSequence: sequence,
       ...snapshot,
     });
   }
 
-  private publishError(error: unknown): void {
+  private publishError(sessionId: string, error: unknown): void {
     const text = error instanceof Error ? error.message : "Unknown runtime error";
-    this.publish({ type: "runtimeStatus", status: "idle", error: text });
+    this.publish(sessionId, { type: "runtimeStatus", status: "idle", error: text });
+  }
+
+  private nextSequence(sessionId: string): number {
+    const next = (this.sequences.get(sessionId) ?? 0) + 1;
+    this.sequences.set(sessionId, next);
+    return next;
   }
 
   private protocolError(error: string): ServerMessage {
-    return { version: PROTOCOL_VERSION, type: "protocolError", sequence: ++this.sequence, error };
+    return { version: PROTOCOL_VERSION, type: "protocolError", error };
   }
 
   private sendTo(socket: WebSocket, message: ServerMessage): void {

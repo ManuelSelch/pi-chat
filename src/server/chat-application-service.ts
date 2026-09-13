@@ -1,6 +1,7 @@
-import type { ClientMessage, UiPromptResult } from "../shared/protocol.js";
+import type { ClientMessage, Tab, UiPromptResult } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
+import { SessionRegistry } from "./session-registry.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
   for (const message of snapshot.messages) {
@@ -16,82 +17,119 @@ export interface RuntimeAdapterFactory {
 }
 
 export class ChatApplicationService {
-  private readonly listeners = new Set<(event: RuntimeEvent) => void>();
-  private unsubscribeRuntime?: () => void;
+  private readonly listeners = new Set<(sessionId: string, event: RuntimeEvent) => void>();
+  private readonly sessions: SessionRegistry;
   private catalogueCache?: ProjectCatalogue;
 
   constructor(
-    private runtime: RuntimeAdapter,
+    initialRuntime: RuntimeAdapter,
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
   ) {
-    this.bindRuntime();
+    this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
+    this.sessions.add(initialRuntime);
   }
 
-  async snapshot(): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
-    const snapshot = this.runtime.snapshot();
-    const catalogue = await this.catalogue(snapshot);
-    return { ...snapshot, catalogue };
+  tabs(): Tab[] {
+    return this.sessions.tabs();
   }
 
-  prompt(message: string): Promise<void> {
-    return this.runtime.prompt(message);
+  activeSessionId(): string {
+    return this.sessions.activeSessionId();
   }
 
-  abort(): Promise<void> {
-    return this.runtime.abort();
+  openSessionIds(): string[] {
+    return this.sessions.list().map((session) => session.sessionId);
   }
 
-  respondToPrompt(promptId: string, result: UiPromptResult): void {
-    this.runtime.respondToPrompt(promptId, result);
+  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
+    const snapshot = this.sessions.get(sessionId).snapshot();
+    return { ...snapshot, catalogue: await this.catalogue(snapshot) };
   }
 
+  prompt(sessionId: string, message: string): Promise<void> {
+    return this.sessions.get(sessionId).prompt(message);
+  }
+
+  abort(sessionId: string): Promise<void> {
+    return this.sessions.get(sessionId).abort();
+  }
+
+  respondToPrompt(sessionId: string, promptId: string, result: UiPromptResult): void {
+    this.sessions.get(sessionId).respondToPrompt(promptId, result);
+  }
+
+  /** No browser is in control: every session's dialogs start their grace period. */
   suspendPrompts(): void {
-    this.runtime.suspendPrompts();
+    for (const session of this.sessions.list()) session.adapter.suspendPrompts();
   }
 
   resumePrompts(): void {
-    this.runtime.resumePrompts();
+    for (const session of this.sessions.list()) session.adapter.resumePrompts();
   }
 
-  async openProject(path: string): Promise<void> {
-    await this.replaceRuntime(() => this.factory.continueProject(path));
+  async openProject(path: string): Promise<string> {
+    return this.openTab(() => this.factory.continueProject(path));
   }
 
-  async openSession(path: string): Promise<void> {
-    await this.replaceRuntime(() => this.factory.openSession(path));
+  /** Opening an already-open session focuses its tab instead of duplicating it. */
+  async openSession(path: string): Promise<string> {
+    const open = this.sessions.findByPath(path);
+    if (open) {
+      this.sessions.focus(open.sessionId);
+      return open.sessionId;
+    }
+    return this.openTab(() => this.factory.openSession(path));
   }
 
-  async newSession(path = this.runtime.snapshot().projectPath): Promise<void> {
-    await this.replaceRuntime(() => this.factory.newSession(path));
+  async newSession(path = this.sessions.get(this.activeSessionId()).snapshot().projectPath): Promise<string> {
+    return this.openTab(() => this.factory.newSession(path));
+  }
+
+  focusTab(sessionId: string): void {
+    this.sessions.focus(sessionId);
+  }
+
+  async closeTab(sessionId: string): Promise<void> {
+    // The last tab stays open: the app has no meaningful empty state.
+    if (this.sessions.list().length <= 1) throw new Error("The last session cannot be closed.");
+    await this.sessions.close(sessionId);
+    this.catalogueCache = undefined;
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" }>): Promise<void> {
-    if (this.runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before changing controls.");
+    const runtime = this.sessions.get(message.sessionId);
     if (message.featureId === "session.rename") {
-      await this.runtime.renameSession(message.input.name);
+      await runtime.renameSession(message.input.name);
       return;
     }
     if (message.featureId === "model.select") {
-      await this.runtime.setModel(message.input.model);
+      await runtime.setModel(message.input.model);
       return;
     }
     if (message.featureId === "session.compact") {
-      await this.runtime.compact();
+      await runtime.compact();
       return;
     }
-    await this.runtime.setThinkingLevel(message.input.level);
+    if (runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before changing controls.");
+    await runtime.setThinkingLevel(message.input.level);
   }
 
-  subscribe(listener: (event: RuntimeEvent) => void): () => void {
+  subscribe(listener: (sessionId: string, event: RuntimeEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
 
   async dispose(): Promise<void> {
-    this.unsubscribeRuntime?.();
     this.listeners.clear();
-    await this.runtime.dispose();
+    await this.sessions.dispose();
+  }
+
+  private async openTab(create: () => Promise<RuntimeAdapter>): Promise<string> {
+    const adapter = await create();
+    const { sessionId } = this.sessions.add(adapter);
+    this.catalogueCache = undefined;
+    return sessionId;
   }
 
   private async catalogue(snapshot: RuntimeSnapshot): Promise<ProjectCatalogue> {
@@ -106,23 +144,7 @@ export class ChatApplicationService {
     return this.catalogueCache;
   }
 
-  private async replaceRuntime(create: () => Promise<RuntimeAdapter>): Promise<void> {
-    if (this.runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before switching sessions.");
-    const next = await create();
-    const previous = this.runtime;
-    this.unsubscribeRuntime?.();
-    this.runtime = next;
-    this.bindRuntime();
-    await previous.dispose();
-    this.catalogueCache = undefined;
-    this.emit({ type: "runtimeStatus", status: "idle" });
-  }
-
-  private bindRuntime(): void {
-    this.unsubscribeRuntime = this.runtime.subscribe((event) => this.emit(event));
-  }
-
-  private emit(event: RuntimeEvent): void {
-    for (const listener of this.listeners) listener(event);
+  private emit(sessionId: string, event: RuntimeEvent): void {
+    for (const listener of this.listeners) listener(sessionId, event);
   }
 }

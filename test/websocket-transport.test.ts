@@ -42,7 +42,7 @@ describe("WebSocket transport", () => {
     socket = connected.socket;
 
     const snapshot = connected.snapshot;
-    expect(snapshot).toMatchObject({ version: PROTOCOL_VERSION, type: "snapshot", throughSequence: 0 });
+    expect(snapshot).toMatchObject({ version: PROTOCOL_VERSION, type: "snapshot", sessionId: "fake-session", throughSequence: 0 });
 
     socket.send("not json");
     expect(await receive(socket)).toMatchObject({ type: "protocolError", error: "Message must be valid JSON." });
@@ -65,7 +65,7 @@ describe("WebSocket transport", () => {
         if (event.type === "runtimeStatus" && event.status === "idle") resolve();
       });
     });
-    socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "prompt", message: "Hello" }));
+    socket.send(JSON.stringify({ version: PROTOCOL_VERSION, sessionId: "fake-session", type: "prompt", message: "Hello" }));
     await completed;
 
     expect(events.filter((event) => event.type === "assistantDelta")).toHaveLength(2);

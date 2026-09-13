@@ -159,13 +159,29 @@ export const actionRegistrySchema = z.object({
 export type WebFeature = z.infer<typeof webFeatureSchema>;
 export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 
+export const tabStatusSchema = z.enum(["idle", "running", "blocked"]);
+export type TabStatus = z.infer<typeof tabStatusSchema>;
+
+/** One open session in the tab bar. Status drives the coloured dot. */
+export const tabSchema = z.object({
+  sessionId: z.string().min(1),
+  title: z.string(),
+  projectPath: z.string(),
+  projectName: z.string(),
+  status: tabStatusSchema,
+});
+
+export type Tab = z.infer<typeof tabSchema>;
+
 const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
+/** Every session-scoped command names its tab: several sessions are live at once. */
+const sessionScoped = { ...baseClientMessage, sessionId: z.string().min(1) };
 
 export const clientMessageSchema = z.union([
-  z.object({ ...baseClientMessage, type: z.literal("prompt"), message: z.string().trim().min(1) }),
-  z.object({ ...baseClientMessage, type: z.literal("abort") }),
+  z.object({ ...sessionScoped, type: z.literal("prompt"), message: z.string().trim().min(1) }),
+  z.object({ ...sessionScoped, type: z.literal("abort") }),
   z.object({
-    ...baseClientMessage,
+    ...sessionScoped,
     type: z.literal("uiPromptResponse"),
     promptId: z.string().min(1),
     result: uiPromptResultSchema,
@@ -173,17 +189,21 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
-  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),
-  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
-  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
-  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
+  z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
+  z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
+  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),
+  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
+  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
+  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 
 const sequenced = {
   version: z.literal(PROTOCOL_VERSION),
+  /** Monotonic per session, so a busy tab cannot suppress a quiet one. */
   sequence: z.number().int().nonnegative(),
+  sessionId: z.string().min(1),
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
@@ -191,7 +211,6 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     ...sequenced,
     type: z.literal("snapshot"),
     throughSequence: z.number().int().nonnegative(),
-    sessionId: z.string(),
     sessionPath: z.string().optional(),
     projectPath: z.string(),
     messages: z.array(chatMessageSchema),
@@ -211,7 +230,8 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     level: z.enum(["info", "warning", "error"]),
     message: z.string(),
   }),
-  z.object({ ...sequenced, type: z.literal("protocolError"), error: z.string() }),
+  z.object({ ...baseClientMessage, type: z.literal("protocolError"), error: z.string() }),
+  z.object({ ...baseClientMessage, type: z.literal("tabs"), tabs: z.array(tabSchema), activeSessionId: z.string() }),
 ]);
 
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

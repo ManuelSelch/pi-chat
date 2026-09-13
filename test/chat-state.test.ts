@@ -24,10 +24,10 @@ describe("chat state", () => {
       version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
       sessionId: "session", projectPath: "/project", messages: [], isStreaming: false,
     });
-    const first = reduceServerMessage(snapshot, { version: PROTOCOL_VERSION, type: "assistantDelta", sequence: 1, runId: "run", delta: "Hello " });
-    const second = reduceServerMessage(first, { version: PROTOCOL_VERSION, type: "assistantDelta", sequence: 2, runId: "run", delta: "world" });
+    const first = reduceServerMessage(snapshot, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 1, runId: "run", delta: "Hello " });
+    const second = reduceServerMessage(first, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 2, runId: "run", delta: "world" });
     const final = reduceServerMessage(second, {
-      version: PROTOCOL_VERSION, type: "messageFinal", sequence: 3, runId: "run",
+      version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "session", sequence: 3, runId: "run",
       message: { id: "answer", role: "assistant", text: "Hello world" },
     });
     expect(second.draft?.text).toBe("Hello world");
@@ -63,7 +63,7 @@ describe("chat state", () => {
     expect(resumed.sequence).toBe(0);
 
     const next = reduceServerMessage(resumed, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 1, status: "running",
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 1, status: "running",
     });
     expect(next.status).toBe("running");
   });
@@ -71,7 +71,7 @@ describe("chat state", () => {
   it("keeps a failed turn's reason visible once the run settles", () => {
     const running = { ...initialChatState, status: "running" as const, sequence: 1 };
     const settled = reduceServerMessage(running, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 2, status: "idle",
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 2, status: "idle",
       error: "Codex error: The usage limit has been reached",
     });
     expect(settled.status).toBe("idle");
@@ -81,7 +81,7 @@ describe("chat state", () => {
   it("transitions a tool card from running to success exactly once", () => {
     let state = { ...initialChatState, status: "running" as const, sequence: 0 };
     const running = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 1, runId: "run",
+      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 1, runId: "run",
       tool: { toolCallId: "call-1", name: "bash", status: "running", argsText: "{ }" },
     });
     expect(running.messages).toHaveLength(1);
@@ -90,7 +90,7 @@ describe("chat state", () => {
 
     // Streaming updates stay running and accumulate output without a new card.
     const updated = reduceServerMessage(running, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 2, runId: "run",
+      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 2, runId: "run",
       tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "partial" },
     });
     expect(updated.messages).toHaveLength(1);
@@ -101,7 +101,7 @@ describe("chat state", () => {
     }
 
     const finished = reduceServerMessage(updated, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 3, runId: "run",
+      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 3, runId: "run",
       tool: { toolCallId: "call-1", name: "bash", status: "success", outputText: "done" },
     });
     expect(finished.messages).toHaveLength(1);
@@ -112,7 +112,7 @@ describe("chat state", () => {
 
     // A duplicated final event must not re-run the transition or regress it.
     const replayed = reduceServerMessage(finished, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 4, runId: "run",
+      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 4, runId: "run",
       tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "stale" },
     });
     expect(replayed.messages).toHaveLength(1);
@@ -127,7 +127,7 @@ describe("chat state", () => {
     // boundary swallowed tool_execution_start, but tool_execution_end is live.
     const state = { ...initialChatState, status: "running" as const, sequence: 5 };
     const next = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sequence: 6, runId: "run",
+      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 6, runId: "run",
       tool: { toolCallId: "call-9", name: "read", status: "error", outputText: "denied" },
     });
     expect(next.messages).toHaveLength(1);
@@ -136,7 +136,7 @@ describe("chat state", () => {
 
   it("ignores duplicate and stale sequenced events", () => {
     const state = { ...initialChatState, sequence: 4, status: "idle" as const };
-    const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 4, status: "running" });
+    const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 4, status: "running" });
     expect(next).toBe(state);
   });
 });
@@ -146,6 +146,7 @@ describe("extension notifications", () => {
     const next = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
       type: "notification",
+      sessionId: "session",
       sequence: 1,
       level: "warning",
       message: "Memory: pi-chat | Repo: Uncommitted changes",
@@ -164,6 +165,7 @@ describe("ui prompts", () => {
     const opened = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
       type: "prompts",
+      sessionId: "session",
       sequence: 1,
       prompts: [prompt],
     });
@@ -185,6 +187,7 @@ describe("ui prompts", () => {
     const answered = reduceServerMessage(opened, {
       version: PROTOCOL_VERSION,
       type: "prompts",
+      sessionId: "session",
       sequence: 2,
       prompts: [],
     });
@@ -197,6 +200,7 @@ describe("notices across snapshots", () => {
     const withNotice = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
       type: "notification",
+      sessionId: "session",
       sequence: 1,
       level: "info",
       message: "Model set to doppelclaude/claude-opus-5",

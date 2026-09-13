@@ -4,8 +4,11 @@ import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage, UiPr
  * Losing the socket is a state change the transcript must reflect, so it is an
  * action rather than something the hook patches in afterwards.
  */
+/** Session-scoped server messages; app-level ones are handled by the app reducer. */
+export type SessionServerMessage = Extract<ServerMessage, { sessionId: string }>;
+
 export type ChatAction =
-  | ServerMessage
+  | SessionServerMessage
   | { type: "connectionLost"; error?: string }
   | { type: "superseded" };
 
@@ -100,9 +103,6 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       : [...state.messages, message.message];
     return { ...state, sequence: message.sequence, messages, draft: message.message.role === "assistant" ? undefined : state.draft };
   }
-  if (message.type === "prompts") {
-    return { ...state, sequence: message.sequence, prompts: message.prompts };
-  }
   if (message.type === "notification") {
     // Extension output is transient: it belongs in the transcript next to the
     // command that produced it, but it is never persisted in the session.
@@ -117,5 +117,8 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
   if (message.type === "runtimeStatus") {
     return { ...state, sequence: message.sequence, status: message.status, error: message.error };
   }
-  return { ...state, sequence: message.sequence, error: message.error };
+  if (message.type === "prompts") {
+    return { ...state, sequence: message.sequence, prompts: message.prompts };
+  }
+  return state;
 }
