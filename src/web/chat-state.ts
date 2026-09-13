@@ -1,5 +1,11 @@
 import type { ChatMessage, ServerMessage } from "../shared/protocol.js";
 
+/**
+ * Losing the socket is a state change the transcript must reflect, so it is an
+ * action rather than something the hook patches in afterwards.
+ */
+export type ChatAction = ServerMessage | { type: "connectionLost"; error?: string };
+
 export interface ChatState {
   messages: ChatMessage[];
   draft?: { runId: string; text: string };
@@ -18,7 +24,12 @@ export const initialChatState: ChatState = {
   sequence: -1,
 };
 
-export function reduceServerMessage(state: ChatState, message: ServerMessage): ChatState {
+export function reduceServerMessage(state: ChatState, message: ChatAction): ChatState {
+  if (message.type === "connectionLost") {
+    // Keep the transcript on screen, but drop the partial stream: only the next
+    // snapshot can say what the server actually recorded.
+    return { ...state, status: "connecting", draft: undefined, error: message.error };
+  }
   if (message.type === "snapshot") {
     return {
       messages: message.messages,

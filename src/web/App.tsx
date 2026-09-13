@@ -52,11 +52,14 @@ export function App() {
       </section>
 
       <footer>
-        {state.error ? <div className="error">{state.error}</div> : null}
+        {state.status === "connecting" ? (
+          <div className="notice">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</div>
+        ) : state.error ? (
+          <div className="error">{state.error}</div>
+        ) : null}
         <form onSubmit={submit}>
           <textarea
             aria-label="Message Pi"
-            disabled={state.status === "connecting"}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={keyDown}
             placeholder="Ask Pi anything…"

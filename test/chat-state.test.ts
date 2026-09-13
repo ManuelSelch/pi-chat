@@ -35,6 +35,39 @@ describe("chat state", () => {
     expect(final.messages).toEqual([{ id: "answer", role: "assistant", text: "Hello world" }]);
   });
 
+  it("keeps the transcript but drops the partial stream when the socket closes", () => {
+    const streaming = {
+      ...initialChatState,
+      status: "running" as const,
+      sequence: 3,
+      messages: [{ id: "saved", role: "user" as const, text: "question" }],
+      draft: { runId: "run", text: "half an ans" },
+    };
+    const lost = reduceServerMessage(streaming, { type: "connectionLost", error: "Waiting…" });
+    expect(lost.status).toBe("connecting");
+    expect(lost.draft).toBeUndefined();
+    expect(lost.messages).toEqual(streaming.messages);
+  });
+
+  it("recovers from a reconnect even when the server restarted with lower sequences", () => {
+    const lost = reduceServerMessage(
+      { ...initialChatState, sequence: 42, status: "running" },
+      { type: "connectionLost" },
+    );
+    const resumed = reduceServerMessage(lost, {
+      version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
+      sessionId: "session", projectPath: "/project",
+      messages: [{ id: "restored", role: "assistant", text: "restored" }], isStreaming: false,
+    });
+    expect(resumed.status).toBe("idle");
+    expect(resumed.sequence).toBe(0);
+
+    const next = reduceServerMessage(resumed, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 1, status: "running",
+    });
+    expect(next.status).toBe("running");
+  });
+
   it("ignores duplicate and stale sequenced events", () => {
     const state = { ...initialChatState, sequence: 4, status: "idle" as const };
     const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sequence: 4, status: "running" });

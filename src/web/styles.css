@@ -35,10 +35,11 @@ button:disabled { cursor: default; opacity: .45; }
 button.stop { background: #a53a35; }
 footer small { display: block; width: min(760px, 100%); margin: 7px auto 0; color: #92928b; padding-left: 12px; font-size: 11px; }
 .error { width: min(760px, 100%); margin: 0 auto 8px; color: #a53a35; font-size: 13px; }
+.notice { width: min(760px, 100%); margin: 0 auto 8px; color: #92928b; font-size: 13px; }
 @media (prefers-color-scheme: dark) {
   :root { color: #e7e7e4; background: #181917; }
   header { border-color: #30312f; background: rgba(24,25,23,.92); }
-  header span, header output, .role, .empty { color: #999b95; }
+  header span, header output, .role, .empty, .notice { color: #999b95; }
   .empty h1 { color: #eee; }
   .message.user { background: #2a2b28; }
   footer { background: linear-gradient(transparent, #181917 20%); }

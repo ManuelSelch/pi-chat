@@ -26,6 +26,12 @@ npm run dev
 
 Open <http://127.0.0.1:5173>. The server listens only on `127.0.0.1:8788`.
 
+Vite is ready in well under a second while the Pi runtime needs a few seconds to
+start, so the first WebSocket attempts are refused and `vite` logs
+`ws proxy error: connect ECONNREFUSED`. That is expected on a cold start: the
+browser retries with backoff, the header shows `connecting`, and the composer
+enables itself as soon as the snapshot arrives. You can type during the wait.
+
 The Pi project defaults to this repository. To use another working directory:
 
 ```bash
@@ -52,6 +58,13 @@ npx tsx scripts/verify-slice1.ts
 It runs a prompt in a throwaway temp project, prints the delta/final counts, then
 reconnects and prints the reloaded transcript. The run creates a normal Pi session
 file under `~/.pi/agent/sessions/` for that temp directory.
+
+To check cold-start recovery through the Vite proxy while `npm run dev` is
+starting (no tokens spent):
+
+```bash
+npx tsx scripts/verify-reconnect.ts
+```
 
 ## Architecture
 
