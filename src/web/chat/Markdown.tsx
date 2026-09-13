@@ -31,8 +31,9 @@ function SafeLink({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorEl
  * Markdown renderer shared by user and assistant text.
  *
  * - GFM: tables, lists, links.
- * - Math: display formulas with `$$ ... $$` only; a lone `$` stays literal
- *   text, which keeps prices and shell variables from being eaten by KaTeX.
+ * - Math: display formulas with `$$ ... $$`, plus Obsidian-style inline
+ *   `$...$` when neither delimiter touches whitespace. This renders `$1+1$`
+ *   while keeping `$1 $2` and common price text literal.
  * - Raw HTML in the source is dropped by react-markdown (no rehype-raw), so
  *   model output can never inject markup or scripts.
  * - Code fences get highlight.js classes via rehype-highlight.

@@ -20,7 +20,21 @@ describe("Markdown rendering", () => {
     expect(display!.textContent).toContain("E");
   });
 
-  it("keeps single-dollar text literal instead of treating it as math", () => {
+  it("renders tight single-dollar inline formulas through KaTeX", () => {
+    const { container } = render(<Markdown>Inline math: $1+1$.</Markdown>);
+    const inline = container.querySelector(".katex");
+    expect(inline).not.toBeNull();
+    expect(container.querySelector(".katex-display")).toBeNull();
+    expect(inline!.textContent).toContain("1+1");
+  });
+
+  it("keeps whitespace-adjacent single-dollar text literal like Obsidian", () => {
+    const { container } = render(<Markdown>$1 $2 should be text.</Markdown>);
+    expect(container.querySelector(".katex")).toBeNull();
+    expect(container.textContent).toContain("$1 $2");
+  });
+
+  it("keeps prices literal instead of treating them as math", () => {
     const { container } = render(<Markdown>The price is $5 and $10.</Markdown>);
     expect(container.querySelector(".katex")).toBeNull();
     expect(container.textContent).toContain("$5");

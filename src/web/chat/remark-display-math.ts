@@ -1,6 +1,6 @@
-import type { BlockContent, DefinitionContent, Parent, PhrasingContent, Root } from "mdast";
+import type { BlockContent, DefinitionContent, Literal, Parent, PhrasingContent, Root } from "mdast";
 
-interface InlineMathNode {
+interface InlineMathNode extends Literal {
   type: "inlineMath";
   value: string;
 }
@@ -60,9 +60,82 @@ function transform(parent: Parent | Root): void {
         } as unknown as DisplayMathNode as never;
         continue;
       }
+      const inline = parseInlineMath(child.children);
+      if (inline) child.children = inline;
     }
     if ("children" in child && Array.isArray(child.children)) {
       transform(child as Parent);
     }
   }
+}
+
+function parseInlineMath(nodes: PhrasingContent[]): PhrasingContent[] | undefined {
+  let changed = false;
+  const next: PhrasingContent[] = [];
+  for (const node of nodes) {
+    if (node.type !== "text") {
+      next.push(node);
+      continue;
+    }
+    const parsed = parseInlineMathText(node.value);
+    changed ||= parsed.length !== 1 || parsed[0]?.type !== "text" || parsed[0].value !== node.value;
+    next.push(...parsed);
+  }
+  return changed ? next : undefined;
+}
+
+function parseInlineMathText(text: string): PhrasingContent[] {
+  const nodes: PhrasingContent[] = [];
+  let cursor = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (!isOpeningDollar(text, index)) continue;
+    const close = findClosingDollar(text, index + 1);
+    if (close === -1) continue;
+    if (cursor < index) nodes.push({ type: "text", value: text.slice(cursor, index) });
+    const value = text.slice(index + 1, close);
+    nodes.push(inlineMathNode(value) as PhrasingContent);
+    cursor = close + 1;
+    index = close;
+  }
+  if (cursor < text.length) nodes.push({ type: "text", value: text.slice(cursor) });
+  return nodes.length === 0 ? [{ type: "text", value: text }] : nodes;
+}
+
+function findClosingDollar(text: string, start: number): number {
+  for (let index = start; index < text.length; index += 1) {
+    if (isClosingDollar(text, index)) return index;
+  }
+  return -1;
+}
+
+function isOpeningDollar(text: string, index: number): boolean {
+  return (
+    text[index] === "$" &&
+    text[index - 1] !== "\\" &&
+    text[index + 1] !== "$" &&
+    text[index + 1] !== undefined &&
+    !/\s/.test(text[index + 1]!)
+  );
+}
+
+function isClosingDollar(text: string, index: number): boolean {
+  return (
+    text[index] === "$" &&
+    text[index - 1] !== "\\" &&
+    text[index - 1] !== "$" &&
+    text[index - 1] !== undefined &&
+    !/\s/.test(text[index - 1]!)
+  );
+}
+
+function inlineMathNode(value: string): InlineMathNode {
+  return {
+    type: "inlineMath",
+    value,
+    data: {
+      hName: "code",
+      hProperties: { className: ["language-math", "math-inline"] },
+      hChildren: [{ type: "text", value }],
+    },
+  } as InlineMathNode;
 }
