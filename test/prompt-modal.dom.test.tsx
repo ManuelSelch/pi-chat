@@ -126,3 +126,32 @@ describe("PromptModal option filter", () => {
     expect(screen.getByRole("button", { name: "OK" }).hasAttribute("disabled")).toBe(true);
   });
 });
+
+describe("PromptModal multi-line titles", () => {
+  const usageTitle = [
+    "Provider usage OpenAI Codex Usage · Current",
+    "Semantics: ChatGPT subscription limits",
+    "5h limit:     [░░░░░░░░░░░░░░░░░░░░] 0% left (resets 20:01)",
+    "Weekly limit: [█████████████████░░░] 84% left",
+  ].join("\n");
+
+  it("uses the first line as the heading and keeps the rest formatted", () => {
+    show({ id: "u1", kind: "select", title: usageTitle, options: ["Close"] });
+
+    expect(screen.getByText("Provider usage OpenAI Codex Usage · Current")).toBeTruthy();
+
+    const body = screen.getByText(/5h limit:/);
+    expect(body.textContent).toContain("Weekly limit:");
+    // Bar charts only line up in a monospace font, on preserved lines.
+    expect(getComputedStyle(body).whiteSpace).toBe("pre-wrap");
+    expect(body.className).toContain("mantine-Text-root");
+  });
+
+  it("uses the short heading as the accessible name, not the whole report", () => {
+    show({ id: "u2", kind: "select", title: usageTitle, options: ["Close"] });
+
+    expect(screen.getByRole("listbox").getAttribute("aria-label")).toBe(
+      "Provider usage OpenAI Codex Usage · Current",
+    );
+  });
+});

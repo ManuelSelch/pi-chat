@@ -15,6 +15,18 @@ interface PromptModalProps {
 /** Below this a filter box is more clutter than help. */
 const SEARCH_THRESHOLD = 8;
 
+/**
+ * Extensions pass whole status reports as the prompt title, including bar
+ * charts drawn with block characters. Those only line up in a monospace font.
+ */
+const PREFORMATTED = /[░▒▓█│├└─┌┐┘]/;
+
+function splitHeading(title: string): { heading: string; body?: string } {
+  const [first = "", ...rest] = title.split("\n");
+  const body = rest.join("\n").trim();
+  return { heading: first.trim(), ...(body ? { body } : {}) };
+}
+
 export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   const [value, setValue] = useState("");
   const [query, setQuery] = useState("");
@@ -74,6 +86,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
     submit(value);
   }
 
+  const { heading, body } = splitHeading(prompt.title);
   const confirmLabel = prompt.kind === "confirm" ? "Confirm" : "OK";
   const canSubmit = prompt.kind !== "input" || value.trim().length > 0;
 
@@ -86,13 +99,21 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
       centered
       size="lg"
       radius="md"
-      title={<Text fw={600} size="sm">{prompt.title}</Text>}
+      title={<Text fw={600} size="sm">{heading}</Text>}
       styles={{ title: { lineHeight: 1.4, paddingRight: "var(--mantine-spacing-md)" } }}
     >
       <Stack gap="md">
-        {prompt.message ? (
-          <Text size="sm" c="dimmed" style={{ whiteSpace: "pre-wrap" }}>{prompt.message}</Text>
-        ) : null}
+        {[body, prompt.message].filter(Boolean).map((text, index) => (
+          <Text
+            key={index}
+            size={PREFORMATTED.test(text!) ? "xs" : "sm"}
+            c="dimmed"
+            ff={PREFORMATTED.test(text!) ? "monospace" : undefined}
+            style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}
+          >
+            {text}
+          </Text>
+        ))}
 
         {prompt.kind === "select" && searchable ? (
           <TextInput
@@ -113,7 +134,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
               tabIndex={0}
               data-autofocus
               role="listbox"
-              aria-label={prompt.title}
+              aria-label={heading}
               onKeyDown={optionKeyDown}
               style={{ outline: "none" }}
             >
@@ -144,7 +165,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
         {prompt.kind === "input" ? (
           <TextInput
-            aria-label={prompt.title}
+            aria-label={heading}
             data-autofocus
             placeholder={prompt.placeholder}
             value={value}
@@ -155,7 +176,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
         {prompt.kind === "editor" ? (
           <Textarea
-            aria-label={prompt.title}
+            aria-label={heading}
             data-autofocus
             rows={8}
             value={value}
