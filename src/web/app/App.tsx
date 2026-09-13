@@ -278,7 +278,12 @@ export function App() {
 
       <AppShell.Main pb={home ? 0 : 170} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (
-          <Home catalogue={app.catalogue} onOpenSession={chat.openSession} onOpenProject={chat.openProject} />
+          <Home
+            catalogue={app.catalogue}
+            onOpenSession={chat.openSession}
+            onOpenProject={chat.openProject}
+            onNewSession={() => chat.newSession()}
+          />
         ) : (
           <Container size="sm" py="xl">
             <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />

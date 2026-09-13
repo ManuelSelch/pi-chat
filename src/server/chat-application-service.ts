@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import type { ClientMessage, Tab, UiPromptResult } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
@@ -84,8 +85,7 @@ export class ChatApplicationService {
 
   async newSession(path?: string): Promise<string> {
     const active = this.activeSessionId();
-    if (!path && !active) throw new Error("Choose a project to start a new session.");
-    const target = path ?? this.sessions.get(active).snapshot().projectPath;
+    const target = path ?? (active ? this.sessions.get(active).snapshot().projectPath : homedir());
     return this.openTab(() => this.factory.newSession(target));
   }
 

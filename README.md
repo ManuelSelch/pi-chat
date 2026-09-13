@@ -85,9 +85,11 @@ field that is already open.
 ## Home screen
 
 Closing the last tab is allowed. With no session open, Pi Chat shows a home
-screen: the quick-open search, always visible, listing recent sessions and
-projects. It survives a reload, because the server holds no open session either.
-The projects drawer still works there, including `New session here`.
+screen with a search box and a `New session` button. It starts quiet — matching
+sessions and projects are shown only after typing. `New session` starts in your
+home directory by default (`os.homedir()`, `/Users/manuelselch` here). It
+survives a reload, because the server holds no open session either. The projects
+drawer still works there, including `New session here`.
 
 The palette lists the most recent sessions before anything is typed, matches a
 query against both the session title and its project, marks sessions that

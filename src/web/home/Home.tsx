@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
-import { Badge, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { IconFolder, IconMessage, IconSearch } from "@tabler/icons-react";
+import { Badge, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../shared/protocol.js";
 import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quickopen/quick-open.js";
 
@@ -8,6 +8,7 @@ interface HomeProps {
   catalogue: ProjectCatalogue;
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
+  onNewSession: () => void;
 }
 
 /**
@@ -15,12 +16,14 @@ interface HomeProps {
  * modal: the same ranking, but always visible, because there is nothing behind
  * it to go back to.
  */
-export function Home({ catalogue, onOpenSession, onOpenProject }: HomeProps) {
+export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: HomeProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
-  // No tab is open, so no session can be marked as already open.
-  const results = rankQuickOpen(buildQuickOpenItems(catalogue, []), query);
+  const hasQuery = query.trim().length > 0;
+  // No tab is open, so no session can be marked as already open. Empty home is
+  // intentionally quiet; results only appear once the user starts typing.
+  const results = hasQuery ? rankQuickOpen(buildQuickOpenItems(catalogue, []), query) : [];
   const clamped = Math.min(active, Math.max(results.length - 1, 0));
 
   function open(index: number): void {
@@ -42,7 +45,8 @@ export function Home({ catalogue, onOpenSession, onOpenProject }: HomeProps) {
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      open(clamped);
+      if (hasQuery) open(clamped);
+      else onNewSession();
     }
   }
 
@@ -54,22 +58,28 @@ export function Home({ catalogue, onOpenSession, onOpenProject }: HomeProps) {
           <Text size="sm" c="dimmed">Open a session to start</Text>
         </Stack>
 
-        <TextInput
-          autoFocus
-          size="md"
-          aria-label="Search sessions and projects"
-          placeholder="Search sessions and projects"
-          leftSection={<IconSearch size={16} />}
-          value={query}
-          onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
-          onKeyDown={onKeyDown}
-        />
+        <Stack gap="sm">
+          <TextInput
+            autoFocus
+            size="md"
+            aria-label="Search sessions and projects"
+            placeholder="Search sessions and projects"
+            leftSection={<IconSearch size={16} />}
+            value={query}
+            onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
+            onKeyDown={onKeyDown}
+          />
+          <Button variant="light" leftSection={<IconPlus size={16} />} onClick={onNewSession}>
+            New session
+          </Button>
+        </Stack>
 
-        <Stack gap={2} role="listbox" aria-label="Sessions">
-          {results.length === 0 ? (
-            <Text size="sm" c="dimmed" ta="center" py="md">No matching sessions</Text>
-          ) : (
-            results.slice(0, 8).map((item, index) => (
+        {hasQuery ? (
+          <Stack gap={2} role="listbox" aria-label="Sessions">
+            {results.length === 0 ? (
+              <Text size="sm" c="dimmed" ta="center" py="md">No matching sessions</Text>
+            ) : (
+              results.slice(0, 8).map((item, index) => (
               <UnstyledButton
                 key={`${item.kind}:${item.path}`}
                 role="option"
@@ -91,9 +101,10 @@ export function Home({ catalogue, onOpenSession, onOpenProject }: HomeProps) {
                   </Text>
                 </Group>
               </UnstyledButton>
-            ))
-          )}
-        </Stack>
+              ))
+            )}
+          </Stack>
+        ) : null}
       </Stack>
     </Center>
   );

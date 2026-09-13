@@ -1,16 +1,18 @@
+import { homedir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../src/server/chat-application-service.js";
 import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
 
 function service(deleteSpy = vi.fn(async () => {})) {
   const runtime = new FakeRuntimeAdapter();
+  const newSessionSpy = vi.fn(async () => new FakeRuntimeAdapter());
   const factory = {
     continueProject: async () => new FakeRuntimeAdapter(),
     openSession: async () => new FakeRuntimeAdapter(),
-    newSession: async () => new FakeRuntimeAdapter(),
+    newSession: newSessionSpy,
   };
   const projectSessions = { catalogue: async () => ({ projects: [] }), delete: deleteSpy } as any;
-  return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, deleteSpy };
+  return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, deleteSpy, newSessionSpy };
 }
 
 describe("deleting sessions", () => {
@@ -49,11 +51,14 @@ describe("closing the last tab", () => {
     await expect(chat.currentCatalogue()).resolves.toEqual({ projects: [] });
   });
 
-  it("explains that a new session needs a project when none is open", async () => {
-    const { chat } = service();
+  it("opens a default home-directory session when none is open", async () => {
+    const { chat, newSessionSpy } = service();
     await chat.closeTab(chat.activeSessionId());
 
-    await expect(chat.newSession()).rejects.toThrow(/Choose a project/);
+    await chat.newSession();
+
+    expect(newSessionSpy).toHaveBeenCalledWith(homedir());
+    expect(chat.tabs()).toHaveLength(1);
   });
 
   it("opens a session from the home screen", async () => {
