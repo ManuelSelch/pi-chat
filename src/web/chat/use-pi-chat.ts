@@ -103,6 +103,7 @@ export function usePiChat() {
     abort: (sessionId?: string) => send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "abort" }),
     respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "uiPromptResponse", promptId, result }),
+    openProject: (path: string) => send({ version: PROTOCOL_VERSION, type: "openProject", path }),
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),

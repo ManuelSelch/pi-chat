@@ -10,6 +10,7 @@ import { visibleError } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
+import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import type { Tab } from "../../shared/protocol.js";
@@ -25,6 +26,7 @@ export function App() {
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
@@ -52,13 +54,13 @@ export function App() {
   // exactly when the composer has focus.
   //
   // Safari owns plain Cmd+O (Open File…) at the menu level and never delivers
-  // it to the page, so the sessions drawer is bound to Cmd+Shift+O as well;
+  // it to the page, so the palette is bound to Cmd+Shift+O as well;
   // Cmd+O is kept for browsers that do hand it over. Cmd+K is safe everywhere
   // because no browser claims it.
   useHotkeys(
     [
-      ["mod+shift+O", () => setProjectsOpen(true)],
-      ["mod+O", () => setProjectsOpen(true)],
+      ["mod+shift+O", () => setQuickOpen(true)],
+      ["mod+O", () => setQuickOpen(true)],
       ["mod+K", openCommandMenu],
     ],
     [],
@@ -162,6 +164,15 @@ export function App() {
           </Group>
         </Stack>
       </Modal>
+
+      <QuickOpen
+        opened={quickOpen}
+        onClose={() => setQuickOpen(false)}
+        catalogue={app.catalogue}
+        tabs={app.tabs}
+        onOpenSession={chat.openSession}
+        onOpenProject={chat.openProject}
+      />
 
       <ProjectSessionDrawer
         opened={projectsOpen}

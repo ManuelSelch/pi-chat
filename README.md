@@ -72,9 +72,14 @@ export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 
 | Shortcut | Effect |
 | --- | --- |
-| `⌘⇧O` / `Ctrl+Shift+O` | Open the projects and sessions drawer |
+| `⌘⇧O` / `Ctrl+Shift+O` | Quick-open palette: type a session or project name |
 | `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
 | `⌘K` / `Ctrl+K` | Open the slash-command menu in the composer |
+
+The palette lists the most recent sessions before anything is typed, matches a
+query against both the session title and its project, marks sessions that
+already have a tab, and opens a project's latest session from a project row.
+The drawer behind the sidebar icon remains for managing sessions (delete, new).
 
 All work while the composer has focus: `useHotkeys` ignores `INPUT`/`TEXTAREA`
 by default, so it is called with an empty ignore list.
