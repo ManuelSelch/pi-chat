@@ -50,8 +50,14 @@ export function App() {
   // `mod` is Cmd on macOS and Ctrl elsewhere. The empty tag list matters:
   // useHotkeys ignores INPUT/TEXTAREA by default, which would disable these
   // exactly when the composer has focus.
+  //
+  // Safari owns plain Cmd+O (Open File…) at the menu level and never delivers
+  // it to the page, so the sessions drawer is bound to Cmd+Shift+O as well;
+  // Cmd+O is kept for browsers that do hand it over. Cmd+K is safe everywhere
+  // because no browser claims it.
   useHotkeys(
     [
+      ["mod+shift+O", () => setProjectsOpen(true)],
       ["mod+O", () => setProjectsOpen(true)],
       ["mod+K", openCommandMenu],
     ],

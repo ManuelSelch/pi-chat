@@ -72,12 +72,18 @@ export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 
 | Shortcut | Effect |
 | --- | --- |
-| `⌘O` / `Ctrl+O` | Open the projects and sessions drawer |
+| `⌘⇧O` / `Ctrl+Shift+O` | Open the projects and sessions drawer |
+| `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
 | `⌘K` / `Ctrl+K` | Open the slash-command menu in the composer |
 
-Both work while the composer has focus: `useHotkeys` ignores `INPUT`/`TEXTAREA`
-by default, so it is called with an empty ignore list. `⌘K` is preferred over
-`⌘P` for commands because it has no browser default to suppress.
+All work while the composer has focus: `useHotkeys` ignores `INPUT`/`TEXTAREA`
+by default, so it is called with an empty ignore list.
+
+**Browser-reserved keys cannot be overridden from a page.** Safari handles its
+menu shortcuts (`⌘O` = Open File…, `⌘P` = Print, `⌘L`, `⌘T`, `⌘W`, …) before the
+event reaches JavaScript, so `preventDefault()` never runs. Chromium is more
+permissive and does pass `⌘O` through. That is why the drawer also answers to
+`⌘⇧O`, and why commands use `⌘K`, which no browser claims.
 
 ## Choosing the model
 
