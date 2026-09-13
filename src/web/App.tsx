@@ -2,7 +2,7 @@ import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { usePiChat } from "./use-pi-chat.js";
 
 export function App() {
-  const { state, prompt, abort } = usePiChat();
+  const { state, prompt, abort, takeControl } = usePiChat();
   const [input, setInput] = useState("");
 
   function submit(event?: FormEvent): void {
@@ -52,7 +52,12 @@ export function App() {
       </section>
 
       <footer>
-        {state.status === "connecting" ? (
+        {state.status === "superseded" ? (
+          <div className="notice">
+            Another browser tab is using this Pi session.{" "}
+            <button className="link" onClick={takeControl} type="button">Take control here</button>
+          </div>
+        ) : state.status === "connecting" ? (
           <div className="notice">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</div>
         ) : state.error ? (
           <div className="error">{state.error}</div>

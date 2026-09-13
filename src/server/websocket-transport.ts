@@ -1,6 +1,11 @@
 import type { Server } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
-import { PROTOCOL_VERSION, parseClientMessage, type ServerMessage } from "../shared/protocol.js";
+import {
+  CONTROLLER_REPLACED_CODE,
+  PROTOCOL_VERSION,
+  parseClientMessage,
+  type ServerMessage,
+} from "../shared/protocol.js";
 import { ChatApplicationService } from "./chat-application-service.js";
 import type { RuntimeEvent } from "./runtime-adapter.js";
 
@@ -25,7 +30,7 @@ export class WebSocketTransport {
   private connect(socket: WebSocket): void {
     if (this.controller?.readyState === WebSocket.OPEN) {
       this.sendTo(this.controller, this.protocolError("Another browser took control of this Pi Chat session."));
-      this.controller.close(4001, "Controller replaced");
+      this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
     this.controller = socket;
     const snapshot = this.chat.snapshot();

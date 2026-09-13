@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PROTOCOL_VERSION } from "../src/shared/protocol.js";
+import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../src/shared/protocol.js";
 import { usePiChat } from "../src/web/use-pi-chat.js";
 
 /** Minimal stand-in for the browser WebSocket, recording every instance. */
@@ -26,11 +26,16 @@ class FakeWebSocket {
     this.listeners.set(type, existing);
   }
 
-  close(): void {
+  close(code = 1000): void {
     if (this.readyState === FakeWebSocket.CONNECTING) this.closedWhileConnecting = true;
     if (this.readyState === FakeWebSocket.CLOSED) return;
     this.readyState = FakeWebSocket.CLOSED;
-    this.emit("close", {});
+    this.emit("close", { code });
+  }
+
+  /** The server kicked this tab because another browser took the controller slot. */
+  replaceByNewController(): void {
+    this.close(CONTROLLER_REPLACED_CODE);
   }
 
   send(): void {}
@@ -55,8 +60,13 @@ class FakeWebSocket {
 }
 
 function Probe() {
-  const { state } = usePiChat();
-  return <output data-testid="status">{state.status}</output>;
+  const { state, takeControl } = usePiChat();
+  return (
+    <>
+      <output data-testid="status">{state.status}</output>
+      <button onClick={takeControl} type="button">Take control here</button>
+    </>
+  );
 }
 
 describe("usePiChat connection lifecycle", () => {
@@ -111,6 +121,33 @@ describe("usePiChat connection lifecycle", () => {
     );
 
     expect(screen.getByTestId("status").textContent).toBe("idle");
+  });
+
+  it("stops reconnecting when another tab takes the controller slot", () => {
+    render(<Probe />);
+    act(() => void vi.advanceTimersByTime(0));
+    const first = FakeWebSocket.instances[0]!;
+    act(() => first.acceptConnection());
+
+    act(() => first.replaceByNewController());
+    expect(screen.getByTestId("status").textContent).toBe("superseded");
+
+    // The displaced tab must stay quiet; otherwise both tabs kick each other
+    // forever and neither can prompt.
+    act(() => void vi.advanceTimersByTime(30_000));
+    expect(FakeWebSocket.instances).toHaveLength(1);
+  });
+
+  it("reconnects only when the user explicitly takes control back", () => {
+    render(<Probe />);
+    act(() => void vi.advanceTimersByTime(0));
+    act(() => FakeWebSocket.instances[0]!.acceptConnection());
+    act(() => FakeWebSocket.instances[0]!.replaceByNewController());
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    act(() => screen.getByRole("button", { name: "Take control here" }).click());
+    act(() => void vi.advanceTimersByTime(0));
+    expect(FakeWebSocket.instances).toHaveLength(2);
   });
 
   it("returns to connecting and reconnects when an established socket drops", () => {

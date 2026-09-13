@@ -4,12 +4,15 @@ import type { ChatMessage, ServerMessage } from "../shared/protocol.js";
  * Losing the socket is a state change the transcript must reflect, so it is an
  * action rather than something the hook patches in afterwards.
  */
-export type ChatAction = ServerMessage | { type: "connectionLost"; error?: string };
+export type ChatAction =
+  | ServerMessage
+  | { type: "connectionLost"; error?: string }
+  | { type: "superseded" };
 
 export interface ChatState {
   messages: ChatMessage[];
   draft?: { runId: string; text: string };
-  status: "connecting" | "idle" | "running" | "aborting";
+  status: "connecting" | "idle" | "running" | "aborting" | "superseded";
   error?: string;
   sessionId: string;
   projectPath: string;
@@ -25,6 +28,11 @@ export const initialChatState: ChatState = {
 };
 
 export function reduceServerMessage(state: ChatState, message: ChatAction): ChatState {
+  if (message.type === "superseded") {
+    // Another tab owns the runtime now. Stay quiet until the user asks for it
+    // back, otherwise both tabs reconnect in a loop and neither can prompt.
+    return { ...state, status: "superseded", draft: undefined, error: undefined };
+  }
   if (message.type === "connectionLost") {
     // Keep the transcript on screen, but drop the partial stream: only the next
     // snapshot can say what the server actually recorded.

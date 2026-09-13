@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
-import { PROTOCOL_VERSION, serverMessageSchema, type ClientMessage } from "../shared/protocol.js";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+  CONTROLLER_REPLACED_CODE,
+  PROTOCOL_VERSION,
+  serverMessageSchema,
+  type ClientMessage,
+} from "../shared/protocol.js";
 import { initialChatState, reduceServerMessage } from "./chat-state.js";
 
 const FIRST_RETRY_MS = 250;
@@ -13,6 +18,9 @@ const MAX_RETRY_MS = 5_000;
 export function usePiChat() {
   const [state, dispatch] = useReducer(reduceServerMessage, initialChatState);
   const socketRef = useRef<WebSocket | undefined>(undefined);
+  // Bumping this re-runs the effect, which is how a superseded tab takes the
+  // controller slot back on an explicit user action.
+  const [claim, setClaim] = useState(0);
 
   useEffect(() => {
     let disposed = false;
@@ -44,9 +52,13 @@ export function usePiChat() {
       // the single place that schedules a retry. Calling close() from the error
       // handler would only abort a still-connecting socket and log
       // "closed before the connection is established".
-      socket.addEventListener("close", () => {
+      socket.addEventListener("close", (event) => {
         if (socketRef.current === socket) socketRef.current = undefined;
         if (disposed) return;
+        if (event.code === CONTROLLER_REPLACED_CODE) {
+          dispatch({ type: "superseded" });
+          return;
+        }
         dispatch({ type: "connectionLost", error: "Waiting for the Pi Chat server…" });
         retryTimer = setTimeout(connect, retryMs);
         retryMs = Math.min(retryMs * 2, MAX_RETRY_MS);
@@ -65,7 +77,7 @@ export function usePiChat() {
       socketRef.current?.close();
       socketRef.current = undefined;
     };
-  }, []);
+  }, [claim]);
 
   const send = useCallback((message: ClientMessage) => {
     const socket = socketRef.current;
@@ -80,5 +92,6 @@ export function usePiChat() {
     state,
     prompt: (message: string) => send({ version: PROTOCOL_VERSION, type: "prompt", message }),
     abort: () => send({ version: PROTOCOL_VERSION, type: "abort" }),
+    takeControl: () => setClaim((value) => value + 1),
   };
 }

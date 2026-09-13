@@ -36,6 +36,7 @@ button.stop { background: #a53a35; }
 footer small { display: block; width: min(760px, 100%); margin: 7px auto 0; color: #92928b; padding-left: 12px; font-size: 11px; }
 .error { width: min(760px, 100%); margin: 0 auto 8px; color: #a53a35; font-size: 13px; }
 .notice { width: min(760px, 100%); margin: 0 auto 8px; color: #92928b; font-size: 13px; }
+button.link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 @media (prefers-color-scheme: dark) {
   :root { color: #e7e7e4; background: #181917; }
   header { border-color: #30312f; background: rgba(24,25,23,.92); }

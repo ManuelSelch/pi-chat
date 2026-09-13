@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const PROTOCOL_VERSION = 1 as const;
 
+/**
+ * Close code the server uses when a newer browser takes the single controller
+ * slot. The displaced client must not reconnect automatically: both tabs would
+ * keep kicking each other in a loop.
+ */
+export const CONTROLLER_REPLACED_CODE = 4001;
+
 export const chatMessageSchema = z.object({
   id: z.string().min(1),
   role: z.enum(["user", "assistant", "system"]),
