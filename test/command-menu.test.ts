@@ -84,3 +84,26 @@ describe("ordering between actions and commands", () => {
     expect(filterCommands(commands, "pdf").map((item) => item.name)).toEqual(["pdf", "preview-pdf"]);
   });
 });
+
+describe("new session action", () => {
+  const actions = [
+    { name: "New session", description: "Open a new session in this project", run: () => {} },
+    { name: "Rename session", description: "Set the display name", run: () => {} },
+  ];
+
+  it("is reachable by typing /new", () => {
+    const items = menuItems(actions, commands);
+
+    expect(filterCommands(items, "new").map((item) => item.name)).toEqual(["New session"]);
+  });
+
+  it("runs its callback rather than inserting a slash command", () => {
+    let opened = 0;
+    const items = menuItems([{ name: "New session", description: "", run: () => { opened += 1; } }], commands);
+    const [item] = filterCommands(items, "new");
+
+    expect(item).toMatchObject({ kind: "action" });
+    if (item!.kind === "action") item!.run();
+    expect(opened).toBe(1);
+  });
+});

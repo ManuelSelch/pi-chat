@@ -38,6 +38,7 @@ export function App() {
   const sessionName = renameFeature?.state.name?.trim();
   const headerTitle = state.projectPath ? sessionName || "New session" : "Connecting…";
   const sessionActions: LocalAction[] = [
+    { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
     { name: "Rename session", description: "Set the display name for this session", run: () => setRenaming(sessionName ?? "") },
     { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
   ];
