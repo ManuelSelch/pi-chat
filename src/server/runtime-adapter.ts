@@ -29,6 +29,8 @@ export interface RuntimeAdapter {
   resumePrompts(): void;
   renameSession(name: string): Promise<void> | void;
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
+  setModel(model: string): Promise<void>;
+  compact(): Promise<void>;
   subscribe(listener: (event: RuntimeEvent) => void): () => void;
   dispose(): Promise<void> | void;
 }
@@ -71,6 +73,10 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
     this.streaming = false;
     this.emit({ type: "runtimeStatus", status: "idle" });
   }
+
+  async setModel(): Promise<void> {}
+
+  async compact(): Promise<void> {}
 
   respondToPrompt(): void {}
 

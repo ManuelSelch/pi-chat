@@ -72,6 +72,14 @@ export class ChatApplicationService {
       await this.runtime.renameSession(message.input.name);
       return;
     }
+    if (message.featureId === "model.select") {
+      await this.runtime.setModel(message.input.model);
+      return;
+    }
+    if (message.featureId === "session.compact") {
+      await this.runtime.compact();
+      return;
+    }
     await this.runtime.setThinkingLevel(message.input.level);
   }
 

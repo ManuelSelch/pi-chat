@@ -100,6 +100,8 @@ export function usePiChat() {
     openSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "openSession", path }),
     newSession: (path?: string) => send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) }),
     renameSession: (name: string) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.rename", input: { name } }),
+    setModel: (model: string) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "model.select", input: { model } }),
+    compactSession: () => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "session.compact", input: {} }),
     setThinkingLevel: (level: ThinkingLevel) => send({ version: PROTOCOL_VERSION, type: "runFeature", featureId: "thinking.level", input: { level } }),
     takeControl: () => setClaim((value) => value + 1),
   };

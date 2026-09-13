@@ -191,3 +191,28 @@ describe("ui prompts", () => {
     expect(answered.prompts).toEqual([]);
   });
 });
+
+describe("notices across snapshots", () => {
+  it("keeps extension output when an authoritative snapshot arrives", () => {
+    const withNotice = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "notification",
+      sequence: 1,
+      level: "info",
+      message: "Model set to doppelclaude/claude-opus-5",
+    });
+
+    const next = reduceServerMessage(withNotice, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 2,
+      throughSequence: 2,
+      sessionId: "s1",
+      projectPath: "/tmp",
+      messages: [{ id: "m1", role: "user", text: "hi" }],
+      isStreaming: false,
+    });
+
+    expect(next.messages.map((entry) => entry.role)).toEqual(["user", "notice"]);
+  });
+});

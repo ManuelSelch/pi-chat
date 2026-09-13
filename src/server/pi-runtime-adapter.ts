@@ -34,6 +34,22 @@ function safeStringify(value: unknown): string {
   }
 }
 
+/** Built-ins this host implements, surfaced in the web command menu. */
+const NATIVE_COMMANDS: SlashCommand[] = [
+  { name: "model", description: "Switch the model for this session" },
+  { name: "compact", description: "Summarise the conversation to free up context" },
+];
+
+/**
+ * Pi's built-in slash commands. They are implemented by the terminal app, so a
+ * web host must either provide its own version or say plainly that it cannot.
+ */
+const PI_BUILTIN_COMMANDS = new Set([
+  "settings", "model", "tree", "thinking", "scoped-models", "export", "import", "share", "copy",
+  "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
+  "compact", "resume", "reload", "quit",
+]);
+
 /** Deterministic so a live tool event and a rebuilt snapshot never duplicate. */
 export function toolMessageId(toolCallId: string): string {
   return `tool:${toolCallId}`;
@@ -202,7 +218,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private lastError?: string;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
 
-  private constructor(private readonly runtime: AgentSessionRuntime) {
+  private constructor(
+    private readonly runtime: AgentSessionRuntime,
+    private readonly models: string[] = [],
+  ) {
     this.bindSession();
     this.bindUi();
   }
@@ -275,7 +294,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     };
 
     const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
-    return new PiRuntimeAdapter(runtime);
+    // Snapshots are synchronous, so the model catalogue is resolved once here.
+    const models = (await runtime.session.modelRuntime.getAvailable()).map((model) => `${model.provider}/${model.id}`);
+    return new PiRuntimeAdapter(runtime, models.sort());
   }
 
   snapshot(): RuntimeSnapshot {
@@ -322,6 +343,22 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
               options: this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[],
             },
           },
+          {
+            id: "model.select",
+            group: "model",
+            kind: "select",
+            title: "Model",
+            description: "Switch the model for this session only.",
+            state: { value: this.currentModel(), options: this.models },
+          },
+          {
+            id: "session.compact",
+            group: "session",
+            kind: "action",
+            title: "Compact session",
+            description: "Summarise the conversation so far to free up context.",
+            state: { label: "Compact now" },
+          },
         ],
         commands: this.commands(),
       },
@@ -329,22 +366,78 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     };
   }
 
+  private currentModel(): string {
+    const model = this.runtime.session.model;
+    return model ? `${model.provider}/${model.id}` : "";
+  }
+
   /**
-   * Extension, prompt, and skill commands the current session can dispatch.
-   * Pi expands them inside `prompt()`, so the web client only needs their names.
+   * Extension, prompt, and skill commands the current session can dispatch,
+   * plus the built-ins this host implements itself. Pi's own built-ins (`/model`,
+   * `/compact`, ...) belong to the terminal app rather than the session, so
+   * `getRegisteredCommands()` never returns them.
    */
   private commands(): SlashCommand[] {
-    return this.runtime.session.extensionRunner
-      .getRegisteredCommands()
-      .map((command) => ({
-        name: command.invocationName,
-        ...(command.description ? { description: command.description } : {}),
-      }))
-      .sort((left, right) => left.name.localeCompare(right.name));
+    const registered = this.runtime.session.extensionRunner.getRegisteredCommands().map((command) => ({
+      name: command.invocationName,
+      ...(command.description ? { description: command.description } : {}),
+    }));
+    return [...registered, ...NATIVE_COMMANDS].sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  async setModel(model: string): Promise<void> {
+    const available = await this.runtime.session.modelRuntime.getAvailable();
+    const match = available.find((candidate) => `${candidate.provider}/${candidate.id}` === model);
+    if (!match) throw new Error(`Unknown model: ${model}`);
+    await this.runtime.session.setModel(match);
+    this.emit({ type: "notification", level: "info", message: `Model set to ${model}` });
+  }
+
+  async compact(): Promise<void> {
+    const result = await this.runtime.session.compact();
+    const after = result.estimatedTokensAfter;
+    this.emit({
+      type: "notification",
+      level: "info",
+      message:
+        after === undefined
+          ? `Session compacted from ${result.tokensBefore} tokens.`
+          : `Session compacted: ${result.tokensBefore} → ~${after} tokens.`,
+    });
+  }
+
+  /**
+   * Built-ins never reach `getCommand()`, so without this they would be sent to
+   * the model as literal text like "/compact".
+   */
+  private async handleNativeCommand(message: string): Promise<boolean> {
+    if (!message.startsWith("/")) return false;
+    const name = message.slice(1).split(/\s+/)[0] ?? "";
+    if (this.runtime.session.extensionRunner.getCommand(name)) return false;
+
+    if (name === "compact") {
+      await this.compact();
+      return true;
+    }
+    if (name === "model") {
+      const result = await this.prompts.ask({ kind: "select", title: "Select a model", options: this.models });
+      if (!result.cancelled) await this.setModel(String(result.value));
+      return true;
+    }
+    if (PI_BUILTIN_COMMANDS.has(name)) {
+      this.emit({
+        type: "notification",
+        level: "warning",
+        message: `/${name} is a Pi terminal command and is not available in Pi Chat.`,
+      });
+      return true;
+    }
+    return false;
   }
 
   async prompt(message: string): Promise<void> {
     this.lastError = undefined;
+    if (await this.handleNativeCommand(message.trim())) return;
     await this.runtime.session.prompt(message);
   }
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ActionIcon, Drawer, Group, Paper, Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
-import { IconBrain, IconDeviceFloppy, IconPencil } from "@tabler/icons-react";
+import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
+import { IconArchive, IconBrain, IconCpu, IconDeviceFloppy, IconPencil } from "@tabler/icons-react";
 import type { ThinkingLevel } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 
@@ -11,12 +11,16 @@ interface SettingsDrawerProps {
   busy: boolean;
   renameSession: (name: string) => void;
   setThinkingLevel: (level: ThinkingLevel) => void;
+  setModel: (model: string) => void;
+  compactSession: () => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession }: SettingsDrawerProps) {
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
+  const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
+  const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
   const currentName = renameFeature?.state.name ?? "";
   const sessionName = sessionNameInput ?? currentName;
   // Renaming to the name it already has is a no-op, so the control stays inert
@@ -68,6 +72,36 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
               disabled={busy || thinkingFeature.state.options.length <= 1}
               onChange={(value) => { if (value) setThinkingLevel(value as ThinkingLevel); }}
             />
+          </Paper>
+        ) : null}
+        {modelFeature ? (
+          <Paper withBorder radius="md" p="sm">
+            <Group gap={6} mb={6}>
+              <IconCpu size={16} />
+              <Text fw={650} size="sm">{modelFeature.title}</Text>
+            </Group>
+            <Select
+              aria-label="Model"
+              searchable
+              value={modelFeature.state.value || null}
+              data={modelFeature.state.options}
+              disabled={busy || modelFeature.state.options.length === 0}
+              onChange={(value) => { if (value) setModel(value); }}
+            />
+          </Paper>
+        ) : null}
+        {compactFeature ? (
+          <Paper withBorder radius="md" p="sm">
+            <Group gap={6} mb={6}>
+              <IconArchive size={16} />
+              <Text fw={650} size="sm">{compactFeature.title}</Text>
+            </Group>
+            {compactFeature.description ? (
+              <Text size="xs" c="dimmed" mb="xs">{compactFeature.description}</Text>
+            ) : null}
+            <Button variant="light" disabled={busy} onClick={compactSession}>
+              {compactFeature.state.label}
+            </Button>
           </Paper>
         ) : null}
       </Stack>

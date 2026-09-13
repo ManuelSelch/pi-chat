@@ -27,3 +27,30 @@ describe("client protocol", () => {
     });
   });
 });
+
+describe("native built-in features", () => {
+  it("accepts a model switch and a compact request", () => {
+    expect(parseClientMessage({
+      version: PROTOCOL_VERSION,
+      type: "runFeature",
+      featureId: "model.select",
+      input: { model: "doppelclaude/claude-opus-5" },
+    })).toMatchObject({ featureId: "model.select" });
+
+    expect(parseClientMessage({
+      version: PROTOCOL_VERSION,
+      type: "runFeature",
+      featureId: "session.compact",
+      input: {},
+    })).toMatchObject({ featureId: "session.compact" });
+  });
+
+  it("rejects an empty model id", () => {
+    expect(() => parseClientMessage({
+      version: PROTOCOL_VERSION,
+      type: "runFeature",
+      featureId: "model.select",
+      input: { model: "" },
+    })).toThrow();
+  });
+});

@@ -121,6 +121,8 @@ export function App() {
         busy={busy}
         renameSession={chat.renameSession}
         setThinkingLevel={chat.setThinkingLevel}
+        setModel={chat.setModel}
+        compactSession={chat.compactSession}
       />
 
       <AppShell.Main pb={170}>

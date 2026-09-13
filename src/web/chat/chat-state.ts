@@ -46,8 +46,11 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     return { ...state, status: "connecting", draft: undefined, error: message.error };
   }
   if (message.type === "snapshot") {
+    // Notices are client-only and never persisted, so an authoritative snapshot
+    // would otherwise erase the output of the command that triggered it.
+    const notices = state.messages.filter((entry) => entry.role === "notice");
     return {
-      messages: message.messages,
+      messages: [...message.messages, ...notices],
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       projectPath: message.projectPath,

@@ -61,7 +61,12 @@ export class WebSocketTransport {
       if (result.value.type === "abort") {
         void this.chat.abort().catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "prompt") {
-        void this.chat.prompt(result.value.message).catch((error: unknown) => this.publishError(error));
+        // A prompt can be a native command such as /model, which changes state
+        // the snapshot owns, so refresh once the run settles.
+        void this.chat
+          .prompt(result.value.message)
+          .then(() => this.sendSnapshot())
+          .catch((error: unknown) => this.publishError(error));
       } else if (result.value.type === "uiPromptResponse") {
         this.chat.respondToPrompt(result.value.promptId, result.value.result);
       } else if (result.value.type === "runFeature") {

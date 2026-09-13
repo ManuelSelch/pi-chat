@@ -81,7 +81,8 @@ export type ProjectCatalogue = z.infer<typeof projectCatalogueSchema>;
 export const thinkingLevelSchema = z.enum(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
 
-export const webFeatureSchema = z.discriminatedUnion("kind", [
+// Discriminated by id, not kind: several features share the "select" shape.
+export const webFeatureSchema = z.discriminatedUnion("id", [
   z.object({
     id: z.literal("session.rename"),
     group: z.literal("session"),
@@ -97,6 +98,22 @@ export const webFeatureSchema = z.discriminatedUnion("kind", [
     title: z.string(),
     description: z.string().optional(),
     state: z.object({ value: thinkingLevelSchema, options: z.array(thinkingLevelSchema) }),
+  }),
+  z.object({
+    id: z.literal("model.select"),
+    group: z.literal("model"),
+    kind: z.literal("select"),
+    title: z.string(),
+    description: z.string().optional(),
+    state: z.object({ value: z.string(), options: z.array(z.string()) }),
+  }),
+  z.object({
+    id: z.literal("session.compact"),
+    group: z.literal("session"),
+    kind: z.literal("action"),
+    title: z.string(),
+    description: z.string().optional(),
+    state: z.object({ label: z.string() }),
   }),
 ]);
 
@@ -158,6 +175,8 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
   z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),
   z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
+  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
+  z.object({ ...baseClientMessage, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
