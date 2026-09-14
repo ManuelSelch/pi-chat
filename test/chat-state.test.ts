@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ServerMessage } from "../src/shared/protocol.js";
-import { initialChatState, reduceServerMessage } from "../src/web/chat/chat-state.js";
+import { initialChatState, reduceServerMessage, type ChatState } from "../src/web/chat/chat-state.js";
 
 describe("chat state", () => {
   it("replaces projected state with an authoritative snapshot", () => {
@@ -326,5 +326,54 @@ describe("notices keep their place in the transcript", () => {
     state = reduceServerMessage(state, snapshotOf(2, ["sum"]));
 
     expect(state.messages.map((entry) => entry.id)).toEqual(["sum", "notice:1"]);
+  });
+});
+
+// A notice created before `anchor` existed, or before the session's first
+// snapshot, used to fall back to the end of the list on every snapshot, so it
+// kept resurfacing under each new answer. Its place is read from the transcript
+// instead, and the resolved anchor is written back so it stays put.
+describe("notices without a recorded anchor", () => {
+  const snapshotOf = (sequence: number, ids: string[]): Extract<ServerMessage, { type: "snapshot" }> => ({
+    version: PROTOCOL_VERSION,
+    type: "snapshot",
+    sequence,
+    throughSequence: sequence,
+    sessionId: "s1",
+    projectPath: "/tmp",
+    messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })),
+    isStreaming: false,
+  });
+
+  it("keeps an anchorless notice where it sits instead of at the bottom", () => {
+    const stale: ChatState = {
+      ...initialChatState,
+      sessionId: "s1",
+      sequence: 1,
+      messages: [
+        { id: "u1", role: "user", text: "hi" },
+        { id: "a1", role: "assistant", text: "hello" },
+        { id: "notice:1", role: "notice", level: "info", text: "session stats" },
+      ],
+    };
+
+    const next = reduceServerMessage(stale, snapshotOf(2, ["u1", "a1", "u2", "a2"]));
+    expect(next.messages.map((entry) => entry.id)).toEqual(["u1", "a1", "notice:1", "u2", "a2"]);
+  });
+
+  it("resolves the anchor once so later snapshots cannot move it", () => {
+    const stale: ChatState = {
+      ...initialChatState,
+      sessionId: "s1",
+      sequence: 1,
+      messages: [
+        { id: "u1", role: "user", text: "hi" },
+        { id: "notice:1", role: "notice", level: "info", text: "session stats" },
+      ],
+    };
+
+    const once = reduceServerMessage(stale, snapshotOf(2, ["u1", "a1"]));
+    const twice = reduceServerMessage(once, snapshotOf(3, ["u1", "a1", "u2"]));
+    expect(twice.messages.map((entry) => entry.id)).toEqual(["u1", "notice:1", "a1", "u2"]);
   });
 });

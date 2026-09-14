@@ -45,25 +45,53 @@ export const initialChatState: ChatState = {
  * the result of an earlier `/session` reappear underneath a later answer, as if
  * it had just been emitted again.
  */
-export function mergeNotices(messages: ChatMessage[], notices: ChatMessage[]): ChatMessage[] {
-  if (notices.length === 0) return messages;
-  const pending = notices.map((notice) => ({ notice, anchor: noticeAnchor(notice, messages.length) }));
+export function mergeNotices(next: ChatMessage[], previous: ChatMessage[]): ChatMessage[] {
+  const pending = anchoredNotices(previous, next.length);
+  if (pending.length === 0) return next;
   const merged: ChatMessage[] = [];
-  let next = 0;
-  messages.forEach((entry, index) => {
-    for (; next < pending.length && pending[next]!.anchor <= index; next++) merged.push(pending[next]!.notice);
+  let pointer = 0;
+  // The resolved anchor is written back, so a notice is placed once and then
+  // stays put no matter how many snapshots follow.
+  const place = (entry: AnchoredNotice): ChatMessage =>
+    entry.notice.anchor === entry.anchor ? entry.notice : { ...entry.notice, anchor: entry.anchor };
+  next.forEach((entry, index) => {
+    for (; pointer < pending.length && pending[pointer]!.anchor <= index; pointer++) merged.push(place(pending[pointer]!));
     merged.push(entry);
   });
   // Anything anchored past the end of a shorter transcript, e.g. after a
   // compaction, still belongs at the bottom rather than being dropped.
-  for (; next < pending.length; next++) merged.push(pending[next]!.notice);
+  for (; pointer < pending.length; pointer++) merged.push(place(pending[pointer]!));
   return merged;
 }
 
-/** An older notice has no anchor, so it keeps the previous end-of-list behaviour. */
-function noticeAnchor(notice: ChatMessage, length: number): number {
-  const anchor = notice.role === "notice" ? notice.anchor : undefined;
-  return anchor === undefined ? length : Math.min(anchor, length);
+/**
+ * A notice records where it was emitted, but that anchor can be missing: it was
+ * added later, and a notice that arrives before the session's first snapshot
+ * has no transcript to count against. Rather than fall back to the end of the
+ * list, which is what made an old notice resurface under a new answer, its
+ * position is then read from where it currently sits.
+ */
+type NoticeMessage = Extract<ChatMessage, { role: "notice" }>;
+interface AnchoredNotice {
+  notice: NoticeMessage;
+  anchor: number;
+}
+
+function anchoredNotices(previous: ChatMessage[], length: number): AnchoredNotice[] {
+  // With no real message on either side there is nothing to anchor against, so
+  // such a notice belongs at the end of whatever the snapshot turns out to be.
+  const blind = !previous.some((entry) => entry.role !== "notice");
+  const anchored: AnchoredNotice[] = [];
+  let seen = 0;
+  for (const entry of previous) {
+    if (entry.role !== "notice") {
+      seen++;
+      continue;
+    }
+    const fallback = blind ? length : seen;
+    anchored.push({ notice: entry, anchor: Math.min(entry.anchor ?? fallback, length) });
+  }
+  return anchored;
 }
 
 export function reduceServerMessage(state: ChatState, message: ChatAction): ChatState {
@@ -80,9 +108,8 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
   if (message.type === "snapshot") {
     // Notices are client-only and never persisted, so an authoritative snapshot
     // would otherwise erase the output of the command that triggered it.
-    const notices = state.messages.filter((entry) => entry.role === "notice");
     return {
-      messages: mergeNotices(message.messages, notices),
+      messages: mergeNotices(message.messages, state.messages),
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       projectPath: message.projectPath,
