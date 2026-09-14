@@ -83,6 +83,17 @@ describe("which models the browser offers", () => {
     expect(warn.mock.calls.flat().join(" ")).toContain("enabledModels");
   });
 
+  // The shortlist actually in use. OpenRouter ids contain a slash of their
+  // own, so the reference has two and must not be read as a glob.
+  it("resolves a reference whose model id contains a slash", async () => {
+    const withOpenRouter = fakeSession([
+      "anthropic/claude-opus-5",
+      "openrouter/meta/llama-3",
+    ]);
+
+    expect(await offeredModels(withOpenRouter)).toEqual(["anthropic/claude-opus-5", "openrouter/meta/llama-3"]);
+  });
+
   it("keeps the models that do match when only some patterns are wrong", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
