@@ -9,6 +9,7 @@ import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
+import { useChimes } from "./use-chimes.js";
 import { clearInputIntent, escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { PromptModal } from "../prompts/PromptModal.js";
@@ -172,6 +173,7 @@ export function App() {
     setInput(`/${item.name} `);
     setActiveCommand(0);
   }
+  const chimes = useChimes(app.tabs);
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
   const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
 
@@ -320,6 +322,9 @@ export function App() {
         setModel={chat.setModel}
         compactSession={chat.compactSession}
         appFeatures={app.appFeatures}
+        chimesEnabled={chimes.enabled}
+        setChimesEnabled={chimes.setEnabled}
+        chimesAvailable={chimes.available}
         restartServer={() => setConfirming({
           title: "Restart server?",
           body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",

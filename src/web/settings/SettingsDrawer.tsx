@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
-import { IconArchive, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconRefresh } from "@tabler/icons-react";
+import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 
@@ -15,9 +15,12 @@ interface SettingsDrawerProps {
   compactSession: () => void;
   restartServer: () => void;
   appFeatures: WebFeature[];
+  chimesEnabled: boolean;
+  setChimesEnabled: (value: boolean) => void;
+  chimesAvailable: boolean;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable }: SettingsDrawerProps) {
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
@@ -34,6 +37,23 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
   return (
     <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
+        <Paper withBorder radius="md" p="sm">
+          <Group gap={6} mb={6}>
+            <IconBell size={16} />
+            <Text fw={650} size="sm">Sounds</Text>
+          </Group>
+          <Switch
+            checked={chimesEnabled}
+            onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
+            disabled={!chimesAvailable}
+            label="Chime when a run finishes or needs an answer"
+          />
+          <Text size="xs" c="dimmed" mt={6}>
+            {chimesAvailable
+              ? "Plays for any tab, so a session finishing in the background is heard."
+              : "This browser exposes no audio output."}
+          </Text>
+        </Paper>
         {renameFeature ? (
           <Paper withBorder radius="md" p="sm">
             <Group gap={6} mb={6}>
