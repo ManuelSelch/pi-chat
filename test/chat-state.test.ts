@@ -220,3 +220,60 @@ describe("notices across snapshots", () => {
     expect(next.messages.map((entry) => entry.role)).toEqual(["user", "notice"]);
   });
 });
+
+describe("failed turns stay on screen", () => {
+  const failed = reduceServerMessage(
+    { ...initialChatState, sessionId: "s1", sequence: 0 },
+    { version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 1, status: "idle", error: "context limit reached" },
+  );
+
+  it("reports the failure when the turn settles", () => {
+    expect(failed.error).toBe("context limit reached");
+  });
+
+  // The regression: `prompt` triggers a snapshot refresh, and a snapshot that
+  // could not carry the failure replaced it with a clean state milliseconds
+  // after the error appeared.
+  it("survives the snapshot refresh that follows the run", () => {
+    const refreshed = reduceServerMessage(failed, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 2,
+      throughSequence: 2,
+      sessionId: "s1",
+      projectPath: "/tmp",
+      messages: [{ id: "m1", role: "user", text: "hi" }],
+      isStreaming: false,
+      lastError: "context limit reached",
+    });
+    expect(refreshed.error).toBe("context limit reached");
+  });
+
+  it("survives an unrelated status change", () => {
+    const aborting = reduceServerMessage(failed, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 2, status: "aborting",
+    });
+    expect(aborting.error).toBe("context limit reached");
+  });
+
+  it("clears once a new run starts", () => {
+    const running = reduceServerMessage(failed, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 2, status: "running",
+    });
+    expect(running.error).toBeUndefined();
+  });
+
+  it("clears when the server reports a clean settle", () => {
+    const recovered = reduceServerMessage(failed, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 2,
+      throughSequence: 2,
+      sessionId: "s1",
+      projectPath: "/tmp",
+      messages: [],
+      isStreaming: false,
+    });
+    expect(recovered.error).toBeUndefined();
+  });
+});

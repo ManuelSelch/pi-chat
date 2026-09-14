@@ -227,6 +227,8 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     projectPath: z.string(),
     messages: z.array(chatMessageSchema),
     isStreaming: z.boolean(),
+    /** How the last turn failed; absent once a new run starts. */
+    lastError: z.string().optional(),
     catalogue: projectCatalogueSchema.optional(),
     actions: actionRegistrySchema.optional(),
     prompts: z.array(uiPromptSchema).optional(),

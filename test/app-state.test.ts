@@ -227,3 +227,27 @@ describe("recovering from a server restart", () => {
     expect(back.error).toBeUndefined();
   });
 });
+
+describe("dismissing a failed turn", () => {
+  it("clears the session error the banner is showing, not just the app one", () => {
+    let state = reduceAppMessage(initialAppState, snapshot("s1", "hi"));
+    state = reduceAppMessage(state, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 5, status: "idle", error: "context limit reached",
+    });
+    expect(visibleError(state, activeSession(state))).toBe("context limit reached");
+
+    state = reduceAppMessage(state, { type: "clearError", sessionId: "s1" });
+    expect(visibleError(state, activeSession(state))).toBeUndefined();
+  });
+
+  it("leaves other sessions alone", () => {
+    let state = reduceAppMessage(initialAppState, snapshot("s1", "hi"));
+    state = reduceAppMessage(state, snapshot("s2", "hi"));
+    state = reduceAppMessage(state, {
+      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s2", sequence: 5, status: "idle", error: "context limit reached",
+    });
+
+    state = reduceAppMessage(state, { type: "clearError", sessionId: "s1" });
+    expect(state.sessions.s2?.error).toBe("context limit reached");
+  });
+});

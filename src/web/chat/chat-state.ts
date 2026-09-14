@@ -64,6 +64,9 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       actions: message.actions ?? state.actions,
       prompts: message.prompts ?? [],
       sequence: message.throughSequence,
+      // The server owns the failure now, so a refresh after a failed turn
+      // reports it again instead of quietly dropping it.
+      error: message.lastError,
     };
   }
   if (message.sequence <= state.sequence) return state;
@@ -118,7 +121,11 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     return { ...state, sequence: message.sequence, messages: [...state.messages, entry] };
   }
   if (message.type === "runtimeStatus") {
-    return { ...state, sequence: message.sequence, status: message.status, error: message.error };
+    // Only a new run clears a reported failure. Status changes are frequent and
+    // mostly unrelated, so overwriting with an absent error used to hide the
+    // message within milliseconds of showing it.
+    const error = message.error ?? (message.status === "running" ? undefined : state.error);
+    return { ...state, sequence: message.sequence, status: message.status, error };
   }
   if (message.type === "prompts") {
     return { ...state, sequence: message.sequence, prompts: message.prompts };

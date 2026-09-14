@@ -17,6 +17,12 @@ export interface RuntimeSnapshot {
   isStreaming: boolean;
   actions: ActionRegistry;
   prompts: UiPrompt[];
+  /**
+   * How the last turn failed, kept until the next one starts. A snapshot that
+   * omitted it erased the message the browser had just shown, which is why a
+   * context-limit error used to flash and disappear.
+   */
+  lastError?: string;
 }
 
 export interface RuntimeAdapter {

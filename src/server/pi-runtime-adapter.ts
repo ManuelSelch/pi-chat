@@ -270,8 +270,11 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly inFlightTools = new Set<string>();
   /**
    * A failed turn ends as an ordinary `message_end` with `stopReason: "error"`,
-   * so without this the UI shows an empty assistant bubble and no reason. Held
-   * until the run settles, because `agent_settled` publishes the final status.
+   * so without this the UI shows an empty assistant bubble and no reason.
+   *
+   * It is kept until the next run starts rather than cleared when published: a
+   * snapshot refresh follows every prompt, and a snapshot that could not report
+   * the failure silently replaced it with a clean state.
    */
   private lastError?: string;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
@@ -380,6 +383,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       projectPath: this.runtime.cwd,
       messages,
       isStreaming,
+      ...(this.lastError ? { lastError: this.lastError } : {}),
       actions: {
         features: [
           {
@@ -633,9 +637,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         return;
       }
       if (event.type === "agent_settled") {
-        const error = this.lastError;
-        this.lastError = undefined;
-        this.emit({ type: "runtimeStatus", status: "idle", ...(error ? { error } : {}) });
+        // Deliberately not cleared here; `prompt()` drops it when the next run
+        // begins, so a late snapshot still reports why this one failed.
+        this.emit({ type: "runtimeStatus", status: "idle", ...(this.lastError ? { error: this.lastError } : {}) });
       }
     });
   }

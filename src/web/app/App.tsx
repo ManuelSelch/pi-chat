@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
@@ -20,7 +20,7 @@ import type { Tab } from "../../shared/protocol.js";
 
 export function App() {
   const chat = usePiChat();
-  const { app, state, prompt, abort, takeControl } = chat;
+  const { app, state, prompt, abort, takeControl, dismissError } = chat;
   // Drafts are per tab: switching away must not discard a half-typed message.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [closing, setClosing] = useState<Tab | undefined>();
@@ -361,8 +361,23 @@ export function App() {
             </Text>
           ) : connecting ? (
             <Text size="sm" c="dimmed" mb="xs">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</Text>
-          ) : visibleError(app, state) ? (
-            <Text size="sm" c="red" mb="xs" role="alert">{visibleError(app, state)}</Text>
+          ) : null}
+
+          {/* Shown next to the reconnect notice rather than instead of it: a
+              failed turn stays relevant while the socket is coming back. */}
+          {visibleError(app, state) ? (
+            <Alert
+              color="red"
+              variant="light"
+              mb="xs"
+              role="alert"
+              withCloseButton
+              closeButtonLabel="Dismiss error"
+              onClose={() => dismissError()}
+              styles={{ message: { whiteSpace: "pre-wrap", wordBreak: "break-word" } }}
+            >
+              {visibleError(app, state)}
+            </Alert>
           ) : null}
 
           {menuOpen ? (

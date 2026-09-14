@@ -5,7 +5,7 @@ export type AppAction =
   | ServerMessage
   | { type: "connectionLost"; error?: string }
   | { type: "superseded" }
-  | { type: "clearError" }
+  | { type: "clearError"; sessionId?: string }
   | { type: "openPending" }
   | { type: "closePending"; sessionId: string };
 
@@ -77,7 +77,16 @@ export function reduceAppMessage(state: AppState, message: AppAction): AppState 
       : { ...state, closingSessionIds: [...state.closingSessionIds, message.sessionId] };
   }
   if (message.type === "clearError") {
-    return state.error === undefined ? state : { ...state, error: undefined };
+    // The banner can show either an app-level rejection or the active session's
+    // failed turn, so dismissing has to reach both or it would reappear.
+    const sessionId = message.sessionId ?? state.activeSessionId;
+    const session = state.sessions[sessionId];
+    const sessions =
+      session?.error === undefined
+        ? state.sessions
+        : { ...state.sessions, [sessionId]: { ...session, error: undefined } };
+    if (state.error === undefined && sessions === state.sessions) return state;
+    return { ...state, error: undefined, sessions };
   }
 
   if (message.type === "superseded" || message.type === "connectionLost") {

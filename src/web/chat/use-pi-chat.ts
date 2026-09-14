@@ -87,7 +87,10 @@ export function usePiChat() {
       dispatch({ type: "connectionLost", error: "Not connected to the Pi Chat server yet." });
       return;
     }
-    dispatch({ type: "clearError" });
+    // Only asking for new work dismisses a reported failure. Clearing on every
+    // message meant background traffic such as focusing a tab or answering a
+    // dialog wiped an error the user had not read yet.
+    if (message.type === "prompt" || message.type === "abort") dispatch({ type: "clearError" });
     socket.send(JSON.stringify(message));
   }, []);
 
@@ -133,6 +136,7 @@ export function usePiChat() {
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId || "app", type: "runFeature", featureId: "app.restart", input: {} }),
     setThinkingLevel: (level: ThinkingLevel) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "thinking.level", input: { level } }),
+    dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
     takeControl: () => setClaim((value) => value + 1),
   };
 }
