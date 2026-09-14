@@ -26,6 +26,10 @@ html::-webkit-scrollbar {
   overflow-wrap: anywhere;
   color: var(--mantine-color-text);
 }
+/* Notices sit inside a compact alert, so their blocks stay tight. */
+.markdown-notice { font-size: 14px; line-height: 1.5; }
+.markdown-notice p, .markdown-notice ul { margin: 4px 0; }
+.markdown-notice ul { padding-left: 18px; }
 .markdown > :first-child { margin-top: 0; }
 .markdown > :last-child { margin-bottom: 0; }
 .markdown a { color: var(--mantine-color-anchor); }

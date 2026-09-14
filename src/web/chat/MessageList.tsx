@@ -22,7 +22,9 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
         p="xs"
       >
-        <Text size="sm">{message.text}</Text>
+        {/* Command output such as /session is markdown, and a one-line notice
+            renders the same either way. */}
+        <div className="markdown markdown-notice"><Markdown>{message.text}</Markdown></div>
       </Alert>
     );
   }

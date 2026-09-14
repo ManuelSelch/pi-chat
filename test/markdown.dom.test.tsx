@@ -123,23 +123,33 @@ describe("tool path in the collapsed bar", () => {
       <ToolCard tool={{ toolCallId: "p1", name: "edit", status: "success", argsText: '{"path":"src/web/chat/ToolCard.tsx","edits":[]}' }} />,
     ));
 
-    expect(screen.getByTestId("tool-path").textContent).toBe("src/web/chat/ToolCard.tsx");
+    expect(screen.getByTestId("tool-subject").textContent).toBe("src/web/chat/ToolCard.tsx");
   });
 
-  it("leaves other tools alone", async () => {
+  it("shows the command a bash call is running", async () => {
     const { ToolCard } = await import("../src/web/chat/ToolCard.js");
     render(withMantine(
-      <ToolCard tool={{ toolCallId: "p2", name: "bash", status: "success", argsText: '{"command":"ls"}' }} />,
+      <ToolCard tool={{ toolCallId: "p2", name: "bash", status: "success", argsText: '{"command":"npm test","timeout":10}' }} />,
     ));
 
-    expect(screen.queryByTestId("tool-path")).toBeNull();
+    expect(screen.getByTestId("tool-subject").textContent).toBe("npm test");
   });
 
-  it("shows nothing while the arguments are still a half-streamed fragment", async () => {
-    const { toolPath } = await import("../src/web/chat/ToolCard.js");
+  it("reads a subject out of a half-streamed fragment and keeps it to one line", async () => {
+    const { toolSubject } = await import("../src/web/chat/ToolCard.js");
 
-    expect(toolPath({ toolCallId: "p3", name: "write", status: "running", argsText: '{"path":"src/we' })).toBeUndefined();
-    expect(toolPath({ toolCallId: "p4", name: "write", status: "running" })).toBeUndefined();
-    expect(toolPath({ toolCallId: "p5", name: "write", status: "success", argsText: '{"path":"a.ts"}' })).toBe("a.ts");
+    expect(toolSubject({ toolCallId: "p3", name: "bash", status: "running", argsText: '{"command":"git log --one' }))
+      .toBe("git log --one");
+    expect(toolSubject({ toolCallId: "p4", name: "write", status: "running" })).toBeUndefined();
+    expect(toolSubject({ toolCallId: "p5", name: "write", status: "success", argsText: '{"path":"a.ts"}' })).toBe("a.ts");
+    expect(toolSubject({ toolCallId: "p6", name: "bash", status: "success", argsText: '{"command":"a\\nb"}' })).toBe("a b");
+  });
+
+  it("falls back to the first string argument for an unknown tool", async () => {
+    const { toolSubject } = await import("../src/web/chat/ToolCard.js");
+
+    expect(toolSubject({ toolCallId: "p7", name: "fetch", status: "success", argsText: '{"url":"https://example.com"}' }))
+      .toBe("https://example.com");
+    expect(toolSubject({ toolCallId: "p8", name: "noop", status: "success", argsText: '{"count":3}' })).toBeUndefined();
   });
 });

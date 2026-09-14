@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
@@ -74,6 +74,12 @@ export function App() {
         }]
       : []),
   ];
+  // The composer footer shows what the next message will run with instead of
+  // keyboard hints; a feature the server does not advertise is simply omitted.
+  const modelName = state.actions.features.find((feature) => feature.id === "model.select")?.state.value;
+  const thinkingLevel = state.actions.features.find((feature) => feature.id === "thinking.level")?.state.value;
+  const composerStatus = [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined].filter(Boolean).join(" · ");
+  const overlayOpen = quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
   const query = menuDismissed ? undefined : commandQuery(input);
   const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
   const menuOpen = matches.length > 0;
@@ -89,7 +95,7 @@ export function App() {
   // does, and a closing dialog is still in the DOM during its exit transition.
   const escapeState = useRef({ overlayOpen: false, menuOpen: false, busy: false, abort });
   escapeState.current = {
-    overlayOpen: quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0,
+    overlayOpen,
     menuOpen,
     busy,
     abort,
@@ -105,6 +111,13 @@ export function App() {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
+
+  // Opening or switching to a session should leave the caret ready to type.
+  // An overlay on top owns focus, so the composer waits for it to close.
+  useEffect(() => {
+    if (home || overlayOpen) return;
+    composerRef.current?.focus();
+  }, [app.activeSessionId, home, overlayOpen]);
 
   function openCommandMenu(): void {
     // Reuses the composer's own slash menu rather than a second palette.
@@ -388,7 +401,7 @@ export function App() {
               )}
             </Group>
           </Paper>
-          <Text size="xs" c="dimmed" mt={6} pl={12}>Enter to send · Shift+Enter for a new line</Text>
+          {composerStatus ? <Text size="xs" c="dimmed" mt={6} pl={12}>{composerStatus}</Text> : null}
         </Container>
       </Box>
       )}

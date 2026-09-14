@@ -37,6 +37,8 @@ function safeStringify(value: unknown): string {
 /** Built-ins this host implements, surfaced in the web command menu. */
 const NATIVE_COMMANDS: SlashCommand[] = [
   { name: "model", description: "Switch the model for this session" },
+  { name: "session", description: "Show session stats, token use, and context window" },
+  { name: "thinking", description: "Set the reasoning effort for this session" },
   { name: "compact", description: "Summarise the conversation to free up context" },
 ];
 
@@ -49,6 +51,62 @@ const PI_BUILTIN_COMMANDS = new Set([
   "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
   "compact", "resume", "reload", "quit",
 ]);
+
+/** The parts of Pi's `SessionStats` this host reports, kept structural for tests. */
+export interface SessionStatsView {
+  sessionId: string;
+  sessionFile?: string | undefined;
+  totalMessages: number;
+  userMessages: number;
+  assistantMessages: number;
+  toolCalls: number;
+  toolResults: number;
+  tokens: { input: number; output: number; cacheRead: number; cacheWrite: number; total: number };
+  cost: number;
+  contextUsage?: { tokens: number | null; contextWindow: number; percent: number | null } | undefined;
+}
+
+/**
+ * The terminal prints this with box drawing and colour; the web transcript
+ * renders markdown, so the same numbers are laid out as a definition list.
+ * Context usage is absent until the model reports it (right after compaction,
+ * for instance), and the line is dropped rather than shown as unknown.
+ */
+export function sessionStatsMarkdown(stats: SessionStatsView, sessionName?: string, model?: string): string {
+  const count = (value: number) => value.toLocaleString("en-US");
+  const { input, output, cacheRead, cacheWrite, total } = stats.tokens;
+  const prompt = input + cacheRead + cacheWrite;
+  const lines = [
+    "**Session**",
+    ...(sessionName ? [`- Name: ${sessionName}`] : []),
+    ...(model ? [`- Model: ${model}`] : []),
+    `- File: ${stats.sessionFile ?? "in memory"}`,
+    `- ID: ${stats.sessionId}`,
+    "",
+    "**Messages**",
+    `- Total: ${count(stats.totalMessages)} (${count(stats.userMessages)} user, ${count(stats.assistantMessages)} assistant)`,
+    `- Tools: ${count(stats.toolCalls)} calls, ${count(stats.toolResults)} results`,
+    "",
+    "**Tokens**",
+    `- Input: ${count(prompt)}`,
+    // Only meaningful once the provider actually reports cache activity.
+    ...(prompt > 0 && (cacheRead > 0 || cacheWrite > 0)
+      ? [
+          `  - Cached: ${count(cacheRead)} (${((cacheRead / prompt) * 100).toFixed(1)}%)`,
+          `  - Uncached: ${count(input + cacheWrite)}`,
+        ]
+      : []),
+    `- Output: ${count(output)}`,
+    `- Total: ${count(total)}`,
+  ];
+  const usage = stats.contextUsage;
+  if (usage && usage.tokens !== null) {
+    const percent = usage.percent ?? (usage.contextWindow > 0 ? (usage.tokens / usage.contextWindow) * 100 : 0);
+    lines.push("", "**Context**", `- Used: ${count(usage.tokens)} of ${count(usage.contextWindow)} (${percent.toFixed(1)}%)`);
+  }
+  if (stats.cost > 0) lines.push("", "**Cost**", `- Total: $${stats.cost.toFixed(3)}`);
+  return lines.join("\n");
+}
 
 /** Deterministic so a live tool event and a rebuilt snapshot never duplicate. */
 export function toolMessageId(toolCallId: string): string {
@@ -435,6 +493,21 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       if (!result.cancelled) await this.setModel(String(result.value));
       return true;
     }
+    if (name === "session") {
+      const stats = this.runtime.session.getSessionStats() as SessionStatsView;
+      this.emit({
+        type: "notification",
+        level: "info",
+        message: sessionStatsMarkdown(stats, this.runtime.session.sessionName, this.currentModel()),
+      });
+      return true;
+    }
+    if (name === "thinking") {
+      const options = this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[];
+      const result = await this.prompts.ask({ kind: "select", title: "Select a thinking level", options });
+      if (!result.cancelled) await this.setThinkingLevel(String(result.value) as ThinkingLevel);
+      return true;
+    }
     if (PI_BUILTIN_COMMANDS.has(name)) {
       this.emit({
         type: "notification",
@@ -478,6 +551,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   setThinkingLevel(level: ThinkingLevel): void {
     this.runtime.session.setThinkingLevel(level);
+    this.emit({ type: "notification", level: "info", message: `Thinking level set to ${level}` });
   }
 
   subscribe(listener: (event: RuntimeEvent) => void): () => void {

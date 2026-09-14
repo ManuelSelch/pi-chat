@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MessageIdentity, mergeEntriesById, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
+import { MessageIdentity, mergeEntriesById, sessionStatsMarkdown, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
 
 describe("Pi message mapping", () => {
   it("gives one message the same id live and in a later snapshot", () => {
@@ -93,5 +93,45 @@ describe("Pi message mapping", () => {
     expect(toChatMessages({ role: "assistant", content: [] }, identity)).toEqual([]);
     expect(toChatMessages({ role: "toolResult", content: [] }, identity)).toEqual([]);
     expect(toChatMessages(undefined, identity)).toEqual([]);
+  });
+});
+
+describe("session stats", () => {
+  const base = {
+    sessionId: "abc",
+    sessionFile: "/tmp/s.jsonl",
+    totalMessages: 10,
+    userMessages: 4,
+    assistantMessages: 6,
+    toolCalls: 3,
+    toolResults: 3,
+    tokens: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0, total: 1200 },
+    cost: 0,
+  };
+
+  it("reports context window use when the model has reported it", () => {
+    const text = sessionStatsMarkdown({ ...base, contextUsage: { tokens: 25_000, contextWindow: 200_000, percent: 12.5 } });
+    expect(text).toContain("Used: 25,000 of 200,000 (12.5%)");
+  });
+
+  it("omits context, cache, and cost sections that have nothing to say", () => {
+    const text = sessionStatsMarkdown(base);
+    expect(text).not.toContain("**Context**");
+    expect(text).not.toContain("Cached:");
+    expect(text).not.toContain("**Cost**");
+  });
+
+  it("splits cached from uncached input and names the session and model", () => {
+    const text = sessionStatsMarkdown(
+      { ...base, tokens: { input: 1000, output: 200, cacheRead: 3000, cacheWrite: 1000, total: 5200 }, cost: 0.1234 },
+      "My session",
+      "anthropic/claude-opus-5",
+    );
+    expect(text).toContain("Input: 5,000");
+    expect(text).toContain("Cached: 3,000 (60.0%)");
+    expect(text).toContain("Uncached: 2,000");
+    expect(text).toContain("Name: My session");
+    expect(text).toContain("Model: anthropic/claude-opus-5");
+    expect(text).toContain("Total: $0.123");
   });
 });
