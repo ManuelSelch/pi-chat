@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL_VERSION } from "../src/shared/protocol.js";
+import { PROTOCOL_VERSION, type ServerMessage } from "../src/shared/protocol.js";
 import { initialChatState, reduceServerMessage } from "../src/web/chat/chat-state.js";
 
 describe("chat state", () => {
@@ -275,5 +275,56 @@ describe("failed turns stay on screen", () => {
       isStreaming: false,
     });
     expect(recovered.error).toBeUndefined();
+  });
+});
+
+describe("notices keep their place in the transcript", () => {
+  const snapshotOf = (sequence: number, ids: string[]): Extract<ServerMessage, { type: "snapshot" }> => ({
+    version: PROTOCOL_VERSION,
+    type: "snapshot",
+    sequence,
+    throughSequence: sequence,
+    sessionId: "s1",
+    projectPath: "/tmp",
+    messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })),
+    isStreaming: false,
+  });
+
+  // The reported bug: /session printed its notice, and after the next answer
+  // the same notice reappeared at the bottom as if it had just been emitted.
+  it("does not drag an earlier notice below a later answer", () => {
+    let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1", "a1"]));
+    state = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "session stats",
+    });
+    expect(state.messages.map((entry) => entry.id)).toEqual(["u1", "a1", "notice:1"]);
+
+    state = reduceServerMessage(state, snapshotOf(2, ["u1", "a1", "u2", "a2"]));
+
+    expect(state.messages.map((entry) => entry.id)).toEqual(["u1", "a1", "notice:1", "u2", "a2"]);
+  });
+
+  it("keeps several notices in order at their own anchors", () => {
+    let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1"]));
+    state = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "first",
+    });
+    state = reduceServerMessage(state, snapshotOf(2, ["u1", "a1"]));
+    state = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 3, level: "warning", message: "second",
+    });
+    state = reduceServerMessage(state, snapshotOf(4, ["u1", "a1", "u2"]));
+
+    expect(state.messages.map((entry) => entry.id)).toEqual(["u1", "notice:1", "a1", "notice:3", "u2"]);
+  });
+
+  it("keeps a notice anchored past a shortened transcript at the end", () => {
+    let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1", "a1"]));
+    state = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "compacted",
+    });
+    state = reduceServerMessage(state, snapshotOf(2, ["sum"]));
+
+    expect(state.messages.map((entry) => entry.id)).toEqual(["sum", "notice:1"]);
   });
 });

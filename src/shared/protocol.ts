@@ -43,6 +43,12 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
     role: z.literal("notice"),
     level: z.enum(["info", "warning", "error"]),
     text: z.string(),
+    /**
+     * How many real messages preceded this notice. A notice is client-only, so
+     * an authoritative snapshot has to put it back where it was said rather
+     * than at the end, which made old output look like a new notification.
+     */
+    anchor: z.number().int().nonnegative().optional(),
     timestamp: z.number().optional(),
   }),
 ]);

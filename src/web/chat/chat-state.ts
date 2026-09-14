@@ -39,6 +39,33 @@ export const initialChatState: ChatState = {
   sequence: -1,
 };
 
+/**
+ * Notices live only in the browser, so every snapshot has to weave them back
+ * into the authoritative transcript. Re-appending them at the end was what made
+ * the result of an earlier `/session` reappear underneath a later answer, as if
+ * it had just been emitted again.
+ */
+export function mergeNotices(messages: ChatMessage[], notices: ChatMessage[]): ChatMessage[] {
+  if (notices.length === 0) return messages;
+  const pending = notices.map((notice) => ({ notice, anchor: noticeAnchor(notice, messages.length) }));
+  const merged: ChatMessage[] = [];
+  let next = 0;
+  messages.forEach((entry, index) => {
+    for (; next < pending.length && pending[next]!.anchor <= index; next++) merged.push(pending[next]!.notice);
+    merged.push(entry);
+  });
+  // Anything anchored past the end of a shorter transcript, e.g. after a
+  // compaction, still belongs at the bottom rather than being dropped.
+  for (; next < pending.length; next++) merged.push(pending[next]!.notice);
+  return merged;
+}
+
+/** An older notice has no anchor, so it keeps the previous end-of-list behaviour. */
+function noticeAnchor(notice: ChatMessage, length: number): number {
+  const anchor = notice.role === "notice" ? notice.anchor : undefined;
+  return anchor === undefined ? length : Math.min(anchor, length);
+}
+
 export function reduceServerMessage(state: ChatState, message: ChatAction): ChatState {
   if (message.type === "superseded") {
     // Another tab owns the runtime now. Stay quiet until the user asks for it
@@ -55,7 +82,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     // would otherwise erase the output of the command that triggered it.
     const notices = state.messages.filter((entry) => entry.role === "notice");
     return {
-      messages: [...message.messages, ...notices],
+      messages: mergeNotices(message.messages, notices),
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       projectPath: message.projectPath,
@@ -117,6 +144,11 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       role: "notice",
       level: message.level,
       text: message.message,
+      // Recorded now, because after the next snapshot there is no other way to
+      // tell which part of the conversation this notice answered. Before the
+      // first snapshot the transcript is still unknown, so no position is
+      // claimed and the notice keeps the old end-of-list behaviour.
+      ...(state.sequence < 0 ? {} : { anchor: state.messages.filter((item) => item.role !== "notice").length }),
     };
     return { ...state, sequence: message.sequence, messages: [...state.messages, entry] };
   }
