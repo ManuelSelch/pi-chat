@@ -4,6 +4,7 @@ import {
   createAgentSessionServices,
   getAgentDir,
   resolveCliModel,
+  resolveModelScopeWithDiagnostics,
   SessionManager,
   type AgentSessionRuntime,
   type AgentSessionServices,
@@ -169,13 +170,16 @@ export function mergeEntriesById(flattened: ChatMessage[]): ChatMessage[] {
   return order.map((id) => byId.get(id)!);
 }
 
-export function appendCustomEntries(messages: ChatMessage[], branch: Iterable<unknown>): ChatMessage[] {
-  // `runtime.session.messages` may contain the in-memory custom message with a
-  // WeakMap id, but the session branch contains the durable entry id. Snapshots
-  // use the durable form so a reconnect or refresh never duplicates it.
-  const nonCustomMessages = messages.filter((entry) => entry.role !== "custom");
-  const custom = Array.from(branch, customMessageFromEntry).filter((entry) => entry !== undefined);
-  return mergeEntriesById([...nonCustomMessages, ...custom]);
+function messageFromEntry(entry: unknown, identity: MessageIdentity): ChatMessage[] {
+  if (!entry || typeof entry !== "object") return [];
+  const value = entry as Record<string, unknown>;
+  if (value.type === "message") return toChatMessages(value.message, identity);
+  const custom = customMessageFromEntry(value);
+  return custom ? [custom] : [];
+}
+
+export function messagesFromBranch(branch: Iterable<unknown>, identity: MessageIdentity): ChatMessage[] {
+  return mergeEntriesById(Array.from(branch).flatMap((entry) => messageFromEntry(entry, identity)));
 }
 
 export function toolCardFromCall(call: ToolCallBlock): ToolCard {
@@ -298,6 +302,34 @@ export function toChatMessage(message: unknown, identity: MessageIdentity): Chat
   return toChatMessages(message, identity).find((entry) => entry.role !== "tool");
 }
 
+const modelReference = (model: { provider: string; id: string }): string => `${model.provider}/${model.id}`;
+
+/**
+ * The models this host offers, narrowed by Pi's own `enabledModels` setting.
+ *
+ * That setting is where a shortlist belongs: it is Pi's, not this host's, so
+ * the terminal and the browser agree and it survives independently of Pi Chat.
+ * Only the terminal resolved it though, so without this the browser kept
+ * listing every model from every provider.
+ *
+ * Patterns are globs (`anthropic/*`, `*sonnet*`) as well as exact references.
+ */
+export async function offeredModels(session: AgentSessionRuntime["session"]): Promise<string[]> {
+  const available = (await session.modelRuntime.getAvailable()).map(modelReference).sort();
+  const patterns = session.settingsManager.getEnabledModels();
+  if (!patterns?.length) return available;
+
+  const { scopedModels, diagnostics } = await resolveModelScopeWithDiagnostics(patterns, session.modelRuntime);
+  for (const diagnostic of diagnostics) console.warn(`enabledModels: ${diagnostic.message}`);
+  // A shortlist that matches nothing would otherwise leave no model to pick,
+  // which is worse than ignoring a setting the user mistyped.
+  if (scopedModels.length === 0) {
+    console.warn("enabledModels matched no available model, so every model is offered instead.");
+    return available;
+  }
+  return scopedModels.map((scoped) => modelReference(scoped.model)).sort();
+}
+
 export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
   private readonly identity = new MessageIdentity();
@@ -395,14 +427,14 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
     const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
     // Snapshots are synchronous, so the model catalogue is resolved once here.
-    const models = (await runtime.session.modelRuntime.getAvailable()).map((model) => `${model.provider}/${model.id}`);
-    return new PiRuntimeAdapter(runtime, models.sort());
+    return new PiRuntimeAdapter(runtime, await offeredModels(runtime.session));
   }
 
   snapshot(): RuntimeSnapshot {
-    const flattened = this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity));
-    const branch = (this.runtime.session as { sessionManager?: { getBranch(): Iterable<unknown> } }).sessionManager?.getBranch() ?? [];
-    const messages = appendCustomEntries(mergeEntriesById(flattened), branch);
+    const branch = (this.runtime.session as { sessionManager?: { getBranch(): Iterable<unknown> } }).sessionManager?.getBranch();
+    const messages = branch
+      ? messagesFromBranch(branch, this.identity)
+      : mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
     // Compaction is a long model call that the session does not count as
     // streaming, so asking `isStreaming` alone reports a busy session as idle
     // and re-enables the composer mid-compaction.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendCustomEntries, customMessageFromEntry, MessageIdentity, mergeEntriesById, sessionStatsMarkdown, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
+import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, sessionStatsMarkdown, toChatMessage, toChatMessages } from "../src/server/pi-runtime-adapter.js";
 
 describe("Pi message mapping", () => {
   it("gives one message the same id live and in a later snapshot", () => {
@@ -109,26 +109,23 @@ describe("Pi message mapping", () => {
     ]);
   });
 
-  it("adds displayable custom_message branch entries to a snapshot transcript", () => {
-    const messages = appendCustomEntries([], [{
-      type: "custom_message",
-      id: "entry-1",
-      timestamp: "2026-09-14T20:50:00.000Z",
-      customType: "pi-memory-md-context-preview",
-      content: "# Memory Context Preview",
-      display: true,
-    }]);
+  it("keeps custom_message entries in branch order during snapshot rebuild", () => {
+    const identity = new MessageIdentity();
+    const messages = messagesFromBranch([
+      { type: "message", message: { role: "user", content: "before" } },
+      {
+        type: "custom_message",
+        id: "entry-1",
+        timestamp: "2026-09-14T20:50:00.000Z",
+        customType: "pi-memory-md-context-preview",
+        content: "# Memory Context Preview",
+        display: true,
+      },
+      { type: "message", message: { role: "assistant", content: "after" } },
+    ], identity);
 
-    expect(messages).toEqual([{ id: "entry-1", role: "custom", customType: "pi-memory-md-context-preview", text: "# Memory Context Preview", timestamp: Date.parse("2026-09-14T20:50:00.000Z") }]);
-  });
-
-  it("prefers durable branch custom messages over transient in-memory ones", () => {
-    const messages = appendCustomEntries(
-      [{ id: "msg-1", role: "custom", customType: "preview", text: "same" }],
-      [{ type: "custom_message", id: "entry-1", customType: "preview", content: "same", display: true }],
-    );
-
-    expect(messages).toEqual([{ id: "entry-1", role: "custom", customType: "preview", text: "same" }]);
+    expect(messages.map((message) => message.role)).toEqual(["user", "custom", "assistant"]);
+    expect(messages[1]).toEqual({ id: "entry-1", role: "custom", customType: "pi-memory-md-context-preview", text: "# Memory Context Preview", timestamp: Date.parse("2026-09-14T20:50:00.000Z") });
   });
 
   it("maps persisted custom_message entries, which pi.sendMessage records in the branch", () => {

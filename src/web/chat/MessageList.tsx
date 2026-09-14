@@ -29,13 +29,31 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
     );
   }
 
+  // An extension message is a real part of the transcript, not a notification,
+  // so it keeps the ordinary surface and is marked by an accent rather than a
+  // filled block: a coloured panel here competes with the answer next to it.
+  // Every colour comes from the primary-colour variables, so it follows the
+  // theme instead of pinning one hue of its own.
+  if (message.role === "custom") {
+    return (
+      <Box
+        component="article"
+        data-testid="custom-message"
+        pl="sm"
+        style={{ borderLeft: "3px solid var(--mantine-primary-color-filled)" }}
+      >
+        <Text size="xs" fw={650} tt="uppercase" lts={1} mb={4} c="var(--mantine-primary-color-filled)">
+          {message.customType}
+        </Text>
+        <div className="markdown"><Markdown>{message.text}</Markdown></div>
+      </Box>
+    );
+  }
+
   return (
     <Box component="article">
       {message.role === "assistant" ? (
         <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
-      ) : null}
-      {message.role === "custom" ? (
-        <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>{message.customType}</Text>
       ) : null}
       {message.role === "user" ? (
         <Paper bg="var(--mantine-color-default-hover)" radius="lg" p="sm" px="md" ml="auto" maw="82%">
