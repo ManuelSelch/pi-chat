@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Widget } from "../src/shared/protocol.js";
-import { WidgetPanel } from "../src/web/chat/WidgetPanel.js";
+import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_TOP } from "../src/web/chat/WidgetPanel.js";
 
 afterEach(cleanup);
 
@@ -58,5 +58,88 @@ describe("WidgetPanel", () => {
 
     expect(document.querySelectorAll("pre")).toHaveLength(2);
     expect(screen.getByText("build")).toBeTruthy();
+  });
+});
+
+describe("WidgetDock", () => {
+  const below: Widget = { key: "usage", lines: ["42k tokens"], placement: "belowEditor" };
+
+  function dock(widgets: Widget[]) {
+    return render(
+      <MantineProvider>
+        <WidgetDock widgets={widgets} />
+      </MantineProvider>,
+    );
+  }
+
+  it("shows nothing when no extension pushed a panel", () => {
+    const { container } = dock([]);
+    expect(container.querySelector("pre")).toBeNull();
+  });
+
+  it("pins the panels clear of the header rather than letting them scroll", () => {
+    dock([todo]);
+
+    const panel = screen.getByLabelText("Extension panels");
+    expect(panel.style.position).toBe("fixed");
+    // Mantine turns the numbers into scaled rem, so the offset is checked in
+    // the unit it actually emits. Sits below the 96px header, not under it.
+    expect(panel.style.top).toContain(`${WIDGET_DOCK_TOP / 16}rem`);
+    expect(panel.style.right).toContain("1rem");
+  });
+
+  it("takes its width from the gutter beside the transcript", () => {
+    dock([todo]);
+
+    const width = screen.getByLabelText("Extension panels").style.width;
+    // Never wider than the space the centred column leaves over, and never so
+    // narrow that the terminal rows are unreadable.
+    expect(width).toContain("clamp(200px");
+    expect(width).toContain("45rem");
+    expect(width).toContain("320px");
+  });
+
+  it("scrolls instead of running off the bottom of the window", () => {
+    dock([todo]);
+
+    const panel = screen.getByLabelText("Extension panels");
+    expect(panel.style.overflowY).toBe("auto");
+    expect(panel.style.maxHeight).toContain("100vh");
+  });
+
+  it("renders the lines the same way the composer panel does", () => {
+    dock([todo, below]);
+
+    const blocks = [...document.querySelectorAll("pre")].map((block) => block.textContent);
+    expect(blocks).toEqual(["── Todos ──\n○ #1 Write tests\n✓ #2 Read the docs", "42k tokens"]);
+  });
+});
+
+describe("choosing where the panels go", () => {
+  const above: Widget = { key: "todo", lines: ["a"], placement: "aboveEditor" };
+  const under: Widget = { key: "usage", lines: ["b"], placement: "belowEditor" };
+
+  it("keeps the terminal's arrangement when the window is too narrow to dock", () => {
+    const placed = placeWidgets([above, under], false);
+
+    expect(placed.above.map((widget) => widget.key)).toEqual(["todo"]);
+    expect(placed.below.map((widget) => widget.key)).toEqual(["usage"]);
+    expect(placed.docked).toEqual([]);
+  });
+
+  it("moves every panel to the dock when there is room beside the transcript", () => {
+    const placed = placeWidgets([under, above], true);
+
+    // Nothing is left by the composer, or the panels would show twice.
+    expect(placed.above).toEqual([]);
+    expect(placed.below).toEqual([]);
+    expect(placed.docked.map((widget) => widget.key)).toEqual(["todo", "usage"]);
+  });
+
+  it("does not reorder panels that share a placement", () => {
+    const first: Widget = { key: "first", lines: ["1"], placement: "aboveEditor" };
+    const second: Widget = { key: "second", lines: ["2"], placement: "aboveEditor" };
+
+    expect(placeWidgets([first, second], true).docked.map((widget) => widget.key)).toEqual(["first", "second"]);
   });
 });

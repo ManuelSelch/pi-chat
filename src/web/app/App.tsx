@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Alert, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
-import { WidgetPanel } from "../chat/WidgetPanel.js";
+import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -91,8 +91,13 @@ export function App() {
   const modelName = state.actions.features.find((feature) => feature.id === "model.select")?.state.value;
   const thinkingLevel = state.actions.features.find((feature) => feature.id === "thinking.level")?.state.value;
   const composerStatus = [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined].filter(Boolean).join(" · ");
-  const widgetsAbove = state.widgets.filter((widget) => widget.placement === "aboveEditor");
-  const widgetsBelow = state.widgets.filter((widget) => widget.placement === "belowEditor");
+  // Wide enough for the panels to sit in the empty gutter beside the
+  // transcript. Narrower windows have no room, so they keep the terminal's own
+  // arrangement around the composer.
+  const { above: widgetsAbove, below: widgetsBelow, docked: widgetsDocked } = placeWidgets(
+    state.widgets,
+    useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
+  );
   const overlayOpen = quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
   const query = menuDismissed ? undefined : commandQuery(input);
   const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
@@ -275,6 +280,8 @@ export function App() {
           onNew={() => chat.newSession(state.projectPath || undefined)}
         />
       </AppShell.Header>
+
+      {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
       {/* Nested prompts stack, so the newest question is the one answered.
           Only the focused tab shows its modal; background tabs go red instead. */}

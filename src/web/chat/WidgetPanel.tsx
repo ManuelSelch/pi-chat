@@ -65,3 +65,71 @@ export function WidgetPanel({ widgets }: { widgets: Widget[] }) {
     </Box>
   );
 }
+
+/** Clears the header, and is pinned so a long transcript scrolls underneath. */
+export const WIDGET_DOCK_TOP = 96 + 12;
+
+/**
+ * The transcript column, `Container size="sm"`. Mantine scopes
+ * `--container-size-sm` to the container itself, so the dock outside it has to
+ * be told the width to reason about the gutter.
+ */
+const TRANSCRIPT_COLUMN = "45rem";
+
+/**
+ * Below this the gutter cannot hold the narrowest useful panel clear of the
+ * transcript, so the caller leaves the panels by the composer instead.
+ */
+export const WIDGET_DOCK_QUERY = "(min-width: 1200px)";
+
+/**
+ * Where each panel goes. Docked, the terminal's above/below split has no
+ * meaning left, so the panels are simply kept in that order; otherwise they
+ * stay around the composer exactly as the terminal arranges them.
+ */
+export function placeWidgets(widgets: Widget[], docked: boolean): {
+  above: Widget[];
+  below: Widget[];
+  docked: Widget[];
+} {
+  if (!docked) {
+    return {
+      above: widgets.filter((widget) => widget.placement === "aboveEditor"),
+      below: widgets.filter((widget) => widget.placement === "belowEditor"),
+      docked: [],
+    };
+  }
+  const rank = (widget: Widget) => (widget.placement === "belowEditor" ? 1 : 0);
+  return { above: [], below: [], docked: [...widgets].sort((left, right) => rank(left) - rank(right)) };
+}
+
+/**
+ * The transcript is a centred column, so on a wide screen the space beside it
+ * is empty while the panels crowd the composer. Docked here they keep still
+ * instead of moving as the conversation grows.
+ *
+ * The width is taken from whatever gutter that column leaves over, capped so a
+ * very wide window does not stretch the panels, and the caller only mounts this
+ * when the gutter is big enough to hold it without covering the transcript.
+ */
+export function WidgetDock({ widgets }: { widgets: Widget[] }) {
+  if (widgets.length === 0) return null;
+  return (
+    <Box
+      aria-label="Extension panels"
+      pos="fixed"
+      top={WIDGET_DOCK_TOP}
+      right={16}
+      style={{
+        width: `clamp(200px, calc((100vw - ${TRANSCRIPT_COLUMN}) / 2 - 32px), 320px)`,
+        maxHeight: `calc(100vh - ${WIDGET_DOCK_TOP + 16}px)`,
+        overflowY: "auto",
+        zIndex: 100,
+      }}
+    >
+      {widgets.map((widget) => (
+        <WidgetBlock key={widget.key} widget={widget} />
+      ))}
+    </Box>
+  );
+}
