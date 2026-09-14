@@ -16,12 +16,26 @@ function service(deleteSpy = vi.fn(async () => {})) {
 }
 
 describe("deleting sessions", () => {
-  it("refuses to delete a session that is still open in a tab", async () => {
+  it("closes the tab of an idle session before deleting it", async () => {
     const { chat, runtime, deleteSpy } = service();
     const openPath = runtime.snapshot().sessionPath!;
 
-    await expect(chat.deleteSession(openPath)).rejects.toThrow(/Close its tab/);
+    await chat.deleteSession(openPath);
+
+    expect(deleteSpy).toHaveBeenCalledWith(openPath);
+    // The tab must be gone: it would otherwise point at a deleted file.
+    expect(chat.tabs()).toHaveLength(0);
+  });
+
+  it("refuses to delete a session that is still running", async () => {
+    const { chat, runtime, deleteSpy } = service();
+    const openPath = runtime.snapshot().sessionPath!;
+    // The fake finishes a prompt synchronously, so streaming is staged directly.
+    vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
+
+    await expect(chat.deleteSession(openPath)).rejects.toThrow(/still running/);
     expect(deleteSpy).not.toHaveBeenCalled();
+    expect(chat.tabs()).toHaveLength(1);
   });
 
   it("deletes a session that no tab holds", async () => {

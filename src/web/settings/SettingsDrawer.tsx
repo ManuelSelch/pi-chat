@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
-import { IconArchive, IconBrain, IconCpu, IconDeviceFloppy, IconPencil } from "@tabler/icons-react";
-import type { ThinkingLevel } from "../../shared/protocol.js";
+import { IconArchive, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconRefresh } from "@tabler/icons-react";
+import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 
 interface SettingsDrawerProps {
@@ -13,14 +13,18 @@ interface SettingsDrawerProps {
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
+  restartServer: () => void;
+  appFeatures: WebFeature[];
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures }: SettingsDrawerProps) {
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
+  // At home there is no session snapshot, so app-level features arrive separately.
+  const restartFeature = [...state.actions.features, ...appFeatures].find((feature) => feature.id === "app.restart");
   const currentName = renameFeature?.state.name ?? "";
   const sessionName = sessionNameInput ?? currentName;
   // Renaming to the name it already has is a no-op, so the control stays inert
@@ -101,6 +105,21 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             ) : null}
             <Button variant="light" disabled={busy} onClick={compactSession}>
               {compactFeature.state.label}
+            </Button>
+          </Paper>
+        ) : null}
+
+        {restartFeature ? (
+          <Paper withBorder radius="md" p="sm">
+            <Group gap={6} mb={6}>
+              <IconRefresh size={16} />
+              <Text fw={650} size="sm">{restartFeature.title}</Text>
+            </Group>
+            {restartFeature.description ? (
+              <Text size="xs" c="dimmed" mb="xs">{restartFeature.description}</Text>
+            ) : null}
+            <Button variant="light" color="red" onClick={restartServer}>
+              {restartFeature.state.label}
             </Button>
           </Paper>
         ) : null}

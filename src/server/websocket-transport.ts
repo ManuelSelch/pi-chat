@@ -144,7 +144,8 @@ export class WebSocketTransport {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     try {
       const catalogue = await this.chat.currentCatalogue();
-      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue });
+      const features = this.chat.appFeatures();
+      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
     } catch (error: unknown) {
       this.publishError(this.chat.activeSessionId(), error);
     }

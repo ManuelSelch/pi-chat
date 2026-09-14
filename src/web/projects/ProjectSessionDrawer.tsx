@@ -32,7 +32,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
       >
         <Stack gap="md">
           <Text size="sm">
-            “{pendingDelete?.title}” moves to the trash. Open sessions must be closed first.
+            “{pendingDelete?.title}” moves to the trash. An open session closes its tab first.
           </Text>
           <Group justify="flex-end" gap="xs">
             <Button variant="default" onClick={() => setPendingDelete(undefined)}>Keep</Button>

@@ -115,6 +115,16 @@ export const webFeatureSchema = z.discriminatedUnion("id", [
     description: z.string().optional(),
     state: z.object({ label: z.string() }),
   }),
+  // Only advertised by a server that can actually replace itself, so the UI
+  // never offers a restart that would leave nothing running.
+  z.object({
+    id: z.literal("app.restart"),
+    group: z.literal("app"),
+    kind: z.literal("action"),
+    title: z.string(),
+    description: z.string().optional(),
+    state: z.object({ label: z.string() }),
+  }),
 ]);
 
 /**
@@ -196,6 +206,7 @@ export const clientMessageSchema = z.union([
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
+  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("app.restart"), input: z.object({}) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -234,7 +245,14 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   z.object({ ...baseClientMessage, type: z.literal("protocolError"), error: z.string() }),
   z.object({ ...baseClientMessage, type: z.literal("tabs"), tabs: z.array(tabSchema), activeSessionId: z.string() }),
   // Sent on its own because the home screen needs projects with no session open.
-  z.object({ ...baseClientMessage, type: z.literal("catalogue"), catalogue: projectCatalogueSchema }),
+  // Also carries the app-level features, which the home screen cannot get from
+  // a session snapshot because no session is open there.
+  z.object({
+    ...baseClientMessage,
+    type: z.literal("catalogue"),
+    catalogue: projectCatalogueSchema,
+    features: z.array(webFeatureSchema).optional(),
+  }),
 ]);
 
 export type ServerMessage = z.infer<typeof serverMessageSchema>;

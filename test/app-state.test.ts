@@ -200,3 +200,30 @@ describe("home screen", () => {
     expect(next.catalogue).toEqual(catalogue);
   });
 });
+
+describe("recovering from a server restart", () => {
+  it("clears the connection error once state arrives again", () => {
+    // A restart closes the socket, then the reconnect must take the banner down;
+    // otherwise the UI claims to be waiting over a working connection.
+    const lost = reduceAppMessage(initialAppState, { type: "connectionLost", error: "Waiting for the Pi Chat server…" });
+    expect(lost.error).toBeDefined();
+
+    const back = reduceAppMessage(lost, {
+      version: PROTOCOL_VERSION,
+      type: "tabs",
+      tabs: [{ sessionId: "s1", title: "One", projectPath: "/p", projectName: "p", status: "idle" }],
+      activeSessionId: "s1",
+    });
+
+    expect(back.error).toBeUndefined();
+    expect(back.connection).toBe("open");
+  });
+
+  it("clears the connection error when only a catalogue arrives", () => {
+    const lost = reduceAppMessage(initialAppState, { type: "connectionLost", error: "Waiting for the Pi Chat server…" });
+
+    const back = reduceAppMessage(lost, { version: PROTOCOL_VERSION, type: "catalogue", catalogue: { projects: [] } });
+
+    expect(back.error).toBeUndefined();
+  });
+});

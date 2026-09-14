@@ -19,6 +19,8 @@ export interface ChatState {
   error?: string;
   sessionId: string;
   projectPath: string;
+  /** The session's file on disk. Absent until Pi has written it. */
+  sessionPath?: string;
   catalogue: ProjectCatalogue;
   actions: ActionRegistry;
   /** Blocking `ctx.ui` questions; the newest is the one on screen. */
@@ -57,6 +59,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       projectPath: message.projectPath,
+      sessionPath: message.sessionPath,
       catalogue: message.catalogue ?? state.catalogue,
       actions: message.actions ?? state.actions,
       prompts: message.prompts ?? [],

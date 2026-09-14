@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { ChatApplicationService, type RuntimeAdapterFactory } from "./chat-application-service.js";
 import { PiRuntimeAdapter } from "./pi-runtime-adapter.js";
 import type { RuntimeAdapter } from "./runtime-adapter.js";
+import type { RestartService } from "./restart-service.js";
 import { WebSocketTransport } from "./websocket-transport.js";
 
 export interface PiChatServer {
@@ -20,6 +21,7 @@ export function createPiChatServer(
     openSession: (path) => PiRuntimeAdapter.openSession(path),
     newSession: (path) => PiRuntimeAdapter.newSession(path),
   },
+  restart?: RestartService,
 ): PiChatServer {
   const app = express();
   app.get("/health", (_request, response) => response.json({ ok: true }));
@@ -29,7 +31,7 @@ export function createPiChatServer(
   }
 
   const httpServer = createServer(app);
-  const chat = new ChatApplicationService(runtime, factory);
+  const chat = new ChatApplicationService(runtime, factory, undefined, restart);
   const transport = new WebSocketTransport(httpServer, chat);
   return {
     httpServer,

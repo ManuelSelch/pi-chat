@@ -1,4 +1,4 @@
-import type { ProjectCatalogue, ServerMessage, Tab } from "../../shared/protocol.js";
+import type { ProjectCatalogue, ServerMessage, Tab, WebFeature } from "../../shared/protocol.js";
 import { initialChatState, reduceServerMessage, type ChatState } from "./chat-state.js";
 
 export type AppAction =
@@ -16,6 +16,8 @@ export interface AppState {
   sessions: Record<string, ChatState>;
   /** The project list is global, so it is kept outside the per-session state. */
   catalogue: ProjectCatalogue;
+  /** Server capabilities that outlive any session, such as restarting. */
+  appFeatures: WebFeature[];
   /**
    * Opening a session takes a server round trip. The tab bar shows a placeholder
    * straight away so the click feels instant, and a closing tab disappears
@@ -34,6 +36,7 @@ export const initialAppState: AppState = {
   activeSessionId: "",
   sessions: {},
   catalogue: { projects: [] },
+  appFeatures: [],
   openingTabs: 0,
   closingSessionIds: [],
   tabsKnown: false,
@@ -105,11 +108,21 @@ export function reduceAppMessage(state: AppState, message: AppAction): AppState 
       closingSessionIds: [],
       tabsKnown: true,
       connection: "open",
+      // A reconnect answers the outage the error described. Leaving it set keeps
+      // "Waiting for the Pi Chat server…" on screen over a working connection,
+      // which is exactly what a restart looks like from the browser.
+      error: undefined,
     };
   }
 
   if (message.type === "catalogue") {
-    return { ...state, catalogue: message.catalogue, connection: "open" };
+    return {
+      ...state,
+      catalogue: message.catalogue,
+      appFeatures: message.features ?? state.appFeatures,
+      connection: "open",
+      error: undefined,
+    };
   }
 
   if (message.type === "protocolError") {

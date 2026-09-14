@@ -52,11 +52,19 @@ ln -sf "$PWD/extension/pi-chat.ts" ~/.pi/agent/extensions/pi-chat.ts
 | `/pi-chat-start [--port N] [--cwd PATH] [--no-open]` | Build if needed, serve the UI for the current Pi project, and open it in the browser |
 | `/pi-chat-stop` | Stop the server |
 | `/pi-chat-restart [--port N] [--cwd PATH] [--no-open]` | Rebuild, stop the owned server, start it again, and open it |
+
+Restarting is also available inside the UI, under the settings gear and as the
+`Restart server` action in `Cmd+K`. It rebuilds the client first and only
+replaces the server if that build succeeds, so a broken build leaves the running
+UI alone. The page reconnects on its own once the new server is listening. The
+action is hidden under `npm run dev`, whose watcher would start a competing
+server.
 | `/pi-chat` | Show whether it runs, on which port, for which project |
 
 Running `/pi-chat-start` while it is already up just opens the browser again.
 Use `/pi-chat-restart` after code changes that affect the server. Use `--no-open`
-to skip opening it.
+to skip opening it. The listening server keeps `$TMPDIR/pi-chat-server.pid` up to
+date, so `/pi-chat-stop` still finds it after a restart from the browser.
 
 The server is spawned detached, so it keeps running when the Pi session ends and
 can still be stopped from a later session. Its pid and port live in
@@ -97,6 +105,12 @@ The palette lists the most recent sessions before anything is typed, matches a
 query against both the session title and its project, marks sessions that
 already have a tab, and opens a project's latest session from a project row.
 The drawer behind the sidebar icon remains for managing sessions (delete, new).
+
+`Cmd+K` also deletes the session on screen. Deleting an open session closes its
+tab first, so no tab points at a file that is gone; with the last tab closed the
+home screen takes over. A session that is still streaming is refused, because
+the run is still writing to that file, and the action is hidden while it is
+busy. Deletion moves the file to the trash, so it is recoverable.
 
 All work while the composer has focus: `useHotkeys` ignores `INPUT`/`TEXTAREA`
 by default, so it is called with an empty ignore list.

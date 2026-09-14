@@ -127,6 +127,10 @@ export function usePiChat() {
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "model.select", input: { model } }),
     compactSession: () =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.compact", input: {} }),
+    // The server goes down before it can answer, so the socket simply closes and
+    // the usual reconnect loop waits for the successor.
+    restartServer: () =>
+      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId || "app", type: "runFeature", featureId: "app.restart", input: {} }),
     setThinkingLevel: (level: ThinkingLevel) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "thinking.level", input: { level } }),
     takeControl: () => setClaim((value) => value + 1),

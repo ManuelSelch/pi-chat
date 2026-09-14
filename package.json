@@ -6,7 +6,7 @@
   "description": "A minimal local web chat for Pi",
   "scripts": {
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
-    "dev:server": "tsx watch src/server/index.ts",
+    "dev:server": "PI_CHAT_DEV=1 tsx watch src/server/index.ts",
     "dev:web": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",

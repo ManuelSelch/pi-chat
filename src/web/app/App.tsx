@@ -4,6 +4,7 @@ import { useHotkeys } from "@mantine/hooks";
 import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
+import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
@@ -30,6 +31,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [renaming, setRenaming] = useState<string | undefined>();
+  const [confirming, setConfirming] = useState<Confirmation | undefined>();
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
@@ -39,10 +41,38 @@ export function App() {
   const sessionName = renameFeature?.state.name?.trim();
   const home = atHome(app);
   const headerTitle = home ? "No session open" : state.projectPath ? sessionName || "New session" : "Connecting…";
+  const sessionPath = state.sessionPath;
+  const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
   const sessionActions: LocalAction[] = [
     { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
     { name: "Rename session", description: "Set the display name for this session", run: () => setRenaming(sessionName ?? "") },
     { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
+    // A session with no file on disk yet has nothing to delete, and a running
+    // one is still writing to it.
+    ...(sessionPath && !busy
+      ? [{
+          name: "Delete session",
+          description: "Move this session to the trash and close its tab",
+          run: () => setConfirming({
+            title: "Delete session?",
+            body: `“${sessionName || "This session"}” moves to the trash and its tab closes.`,
+            confirmLabel: "Delete",
+            run: () => chat.deleteSession(sessionPath),
+          }),
+        }]
+      : []),
+    ...(restartFeature
+      ? [{
+          name: "Restart server",
+          description: restartFeature.description ?? "Restart the Pi Chat server",
+          run: () => setConfirming({
+            title: "Restart server?",
+            body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
+            confirmLabel: "Restart",
+            run: () => chat.restartServer(),
+          }),
+        }]
+      : []),
   ];
   const query = menuDismissed ? undefined : commandQuery(input);
   const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
@@ -220,6 +250,8 @@ export function App() {
         </Stack>
       </Modal>
 
+      <ConfirmModal confirmation={confirming} onClose={() => setConfirming(undefined)} />
+
       <Modal opened={renaming !== undefined} onClose={() => setRenaming(undefined)} title="Rename session" centered size="sm">
         <Stack gap="md">
           <TextInput
@@ -274,6 +306,13 @@ export function App() {
         setThinkingLevel={chat.setThinkingLevel}
         setModel={chat.setModel}
         compactSession={chat.compactSession}
+        appFeatures={app.appFeatures}
+        restartServer={() => setConfirming({
+          title: "Restart server?",
+          body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
+          confirmLabel: "Restart",
+          run: () => chat.restartServer(),
+        })}
       />
 
       <AppShell.Main pb={home ? 0 : 170} h={home ? "calc(100dvh - 96px)" : undefined}>

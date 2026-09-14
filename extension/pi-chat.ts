@@ -220,7 +220,7 @@ export default function piChatExtension(pi: ExtensionAPI): void {
 
       const child = spawn("npm", ["start"], {
         cwd: home,
-        env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd },
+        env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd, PI_CHAT_PID_FILE: PID_FILE },
         // Detached so the UI outlives this Pi session; output is dropped
         // because there is no terminal to show it in.
         detached: true,
@@ -318,7 +318,7 @@ export default function piChatExtension(pi: ExtensionAPI): void {
 
       const child = spawn("npm", ["start"], {
         cwd: home,
-        env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd },
+        env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd, PI_CHAT_PID_FILE: PID_FILE },
         detached: true,
         stdio: "ignore",
       });

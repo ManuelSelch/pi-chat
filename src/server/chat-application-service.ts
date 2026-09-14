@@ -1,7 +1,8 @@
 import { homedir } from "node:os";
-import type { ClientMessage, Tab, UiPromptResult } from "../shared/protocol.js";
+import type { ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
+import type { RestartService } from "./restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
@@ -26,6 +27,7 @@ export class ChatApplicationService {
     initialRuntime: RuntimeAdapter,
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
+    private readonly restartService?: RestartService,
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
     this.sessions.add(initialRuntime);
@@ -45,7 +47,31 @@ export class ChatApplicationService {
 
   async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
-    return { ...snapshot, catalogue: await this.catalogue(snapshot) };
+    return { ...snapshot, actions: this.withAppFeatures(snapshot.actions), catalogue: await this.catalogue(snapshot) };
+  }
+
+  /**
+   * App-level capabilities ride along with the session features the UI already
+   * renders. Restart only appears when a server can genuinely replace itself,
+   * so the button is never offered by a server that would stay down.
+   */
+  private withAppFeatures(actions: RuntimeSnapshot["actions"]): RuntimeSnapshot["actions"] {
+    return { ...actions, features: [...actions.features, ...this.appFeatures()] };
+  }
+
+  /** Capabilities of the server itself, valid with or without an open session. */
+  appFeatures(): WebFeature[] {
+    if (!this.restartService) return [];
+    return [
+      {
+        id: "app.restart",
+        group: "app",
+        kind: "action",
+        title: "Restart server",
+        description: "Rebuild the client and restart the Pi Chat server. Open sessions are closed.",
+        state: { label: "Restart" },
+      },
+    ];
   }
 
   prompt(sessionId: string, message: string): Promise<void> {
@@ -105,11 +131,16 @@ export class ChatApplicationService {
 
   /**
    * Deleting a session whose runtime is still live would leave a tab pointing at
-   * a file that no longer exists, so the tab has to go first.
+   * a file that no longer exists, so the tab is closed first. A streaming run is
+   * still writing to that file, so it has to finish or be stopped.
    */
   async deleteSession(path: string): Promise<void> {
-    if (this.sessions.findByPath(path)) {
-      throw new Error("That session is open. Close its tab before deleting it.");
+    const open = this.sessions.findByPath(path);
+    if (open) {
+      if (this.sessions.get(open.sessionId).snapshot().isStreaming) {
+        throw new Error("That session is still running. Stop it before deleting it.");
+      }
+      await this.closeTab(open.sessionId);
     }
     await this.projectSessions.delete(path);
     this.catalogueCache = undefined;
@@ -122,6 +153,14 @@ export class ChatApplicationService {
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" }>): Promise<void> {
+    // Restart is app-level: it must work from the home screen too, where there
+    // is no session to look up.
+    if (message.featureId === "app.restart") {
+      if (!this.restartService) throw new Error("This server cannot restart itself.");
+      const failure = await this.restartService.restart();
+      if (failure) throw new Error(`Restart cancelled, the server is still running: ${failure}`);
+      return;
+    }
     const runtime = this.sessions.get(message.sessionId);
     if (message.featureId === "session.rename") {
       await runtime.renameSession(message.input.name);
