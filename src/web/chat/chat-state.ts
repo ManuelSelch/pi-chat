@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage, UiPrompt } from "../../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ProjectCatalogue, ServerMessage, UiPrompt, Widget } from "../../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -25,6 +25,8 @@ export interface ChatState {
   actions: ActionRegistry;
   /** Blocking `ctx.ui` questions; the newest is the one on screen. */
   prompts: UiPrompt[];
+  /** Extension panels from `ctx.ui.setWidget`, shown around the composer. */
+  widgets: Widget[];
   sequence: number;
 }
 
@@ -36,6 +38,7 @@ export const initialChatState: ChatState = {
   catalogue: { projects: [] },
   actions: { features: [], commands: [] },
   prompts: [],
+  widgets: [],
   sequence: -1,
 };
 
@@ -117,6 +120,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       catalogue: message.catalogue ?? state.catalogue,
       actions: message.actions ?? state.actions,
       prompts: message.prompts ?? [],
+      widgets: message.widgets ?? [],
       sequence: message.throughSequence,
       // The server owns the failure now, so a refresh after a failed turn
       // reports it again instead of quietly dropping it.
@@ -188,6 +192,9 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
   }
   if (message.type === "prompts") {
     return { ...state, sequence: message.sequence, prompts: message.prompts };
+  }
+  if (message.type === "widgets") {
+    return { ...state, sequence: message.sequence, widgets: message.widgets };
   }
   return state;
 }

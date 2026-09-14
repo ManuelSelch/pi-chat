@@ -73,3 +73,33 @@ describe("SessionRegistry", () => {
     expect(events).not.toContain("a");
   });
 });
+
+describe("replacing a live session", () => {
+  it("keeps the tab in place and routes events to the replacement", async () => {
+    const events: string[] = [];
+    const registry = new SessionRegistry((sessionId, event) => events.push(`${sessionId}:${event.type}`));
+    const first = adapterWith({ sessionId: "a" });
+    registry.add(first);
+    registry.add(adapterWith({ sessionId: "b" }));
+    const replacement = adapterWith({ sessionId: "a" });
+    const disposed = vi.spyOn(first, "dispose");
+
+    await registry.replace("a", replacement);
+
+    expect(registry.list().map((session) => session.sessionId)).toEqual(["a", "b"]);
+    expect(registry.get("a")).toBe(replacement);
+    expect(disposed).toHaveBeenCalled();
+
+    void replacement.prompt("hi");
+    expect(events.filter((entry) => entry.startsWith("a:")).length).toBeGreaterThan(0);
+  });
+
+  it("refuses a replacement carrying a different session id", async () => {
+    const registry = new SessionRegistry(() => {});
+    registry.add(adapterWith({ sessionId: "a" }));
+    const other = adapterWith({ sessionId: "other" });
+
+    await expect(registry.replace("a", other)).rejects.toThrow(/expected a/);
+    expect(registry.get("a")).not.toBe(other);
+  });
+});

@@ -158,6 +158,24 @@ export const uiPromptResultSchema = z.union([
 export type UiPromptResult = z.infer<typeof uiPromptResultSchema>;
 
 /**
+ * A panel an extension pushed with `ctx.ui.setWidget`, e.g. a todo overlay.
+ *
+ * Pi's RPC protocol defines widgets as plain lines of text, so an extension
+ * written against that surface renders here without the web UI knowing anything
+ * about it. Placement mirrors the terminal's, where the editor is the composer.
+ */
+export const widgetPlacementSchema = z.enum(["aboveEditor", "belowEditor"]);
+export type WidgetPlacement = z.infer<typeof widgetPlacementSchema>;
+
+export const widgetSchema = z.object({
+  key: z.string().min(1),
+  lines: z.array(z.string()),
+  placement: widgetPlacementSchema,
+});
+
+export type Widget = z.infer<typeof widgetSchema>;
+
+/**
  * A slash command Pi can dispatch. Typed UI actions stay the primary surface;
  * this catalogue is the generic fallback for everything else a session offers.
  */
@@ -238,8 +256,10 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     catalogue: projectCatalogueSchema.optional(),
     actions: actionRegistrySchema.optional(),
     prompts: z.array(uiPromptSchema).optional(),
+    widgets: z.array(widgetSchema).optional(),
   }),
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
+  z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
   z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),

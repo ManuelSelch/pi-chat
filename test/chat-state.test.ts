@@ -377,3 +377,58 @@ describe("notices without a recorded anchor", () => {
     expect(twice.messages.map((entry) => entry.id)).toEqual(["u1", "notice:1", "a1", "u2"]);
   });
 });
+
+describe("extension widgets", () => {
+  const todo = { key: "todo", lines: ["── Todos ──", "○ #1 Write tests"], placement: "aboveEditor" as const };
+
+  it("tracks pushed widgets and restores them from a snapshot", () => {
+    const pushed = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "widgets",
+      sessionId: "session",
+      sequence: 1,
+      widgets: [todo],
+    });
+    expect(pushed.widgets).toEqual([todo]);
+
+    // A reconnecting browser rebuilds the panel from the snapshot alone.
+    const reconnected = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 5,
+      throughSequence: 5,
+      sessionId: "session",
+      projectPath: "/tmp",
+      messages: [],
+      isStreaming: false,
+      widgets: [todo],
+    });
+    expect(reconnected.widgets).toEqual([todo]);
+
+    const cleared = reduceServerMessage(pushed, {
+      version: PROTOCOL_VERSION,
+      type: "widgets",
+      sessionId: "session",
+      sequence: 2,
+      widgets: [],
+    });
+    expect(cleared.widgets).toEqual([]);
+  });
+
+  /**
+   * A snapshot is authoritative: an extension that stopped pushing a panel
+   * must not leave it on screen forever.
+   */
+  it("drops widgets a snapshot no longer reports", () => {
+    const pushed = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION, type: "widgets", sessionId: "session", sequence: 1, widgets: [todo],
+    });
+
+    const next = reduceServerMessage(pushed, {
+      version: PROTOCOL_VERSION, type: "snapshot", sequence: 9, throughSequence: 9,
+      sessionId: "session", projectPath: "/tmp", messages: [], isStreaming: false,
+    });
+
+    expect(next.widgets).toEqual([]);
+  });
+});

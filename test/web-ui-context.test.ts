@@ -54,4 +54,61 @@ describe("createWebUiContext", () => {
     expect(() => ui.setTitle("x")).not.toThrow();
     expect(ui.getEditorText()).toBe("");
   });
+
+  /**
+   * Throwing here used to abort the extension mid-flight: a `tool_call` hook
+   * that asks for confirmation this way failed the tool call outright instead
+   * of falling back to its own default, which blocked `rm -rf` entirely.
+   */
+  it("returns undefined from custom(), as Pi's own RPC mode does", async () => {
+    const { ui } = contextAnswering({ cancelled: true });
+
+    await expect(ui.custom(() => ({ render: () => [] }) as never)).resolves.toBeUndefined();
+  });
+
+  describe("widgets", () => {
+    function contextWithWidgets() {
+      const onWidget = vi.fn();
+      const ui = createWebUiContext({
+        onNotify: vi.fn(),
+        onPrompt: vi.fn(async () => ({ cancelled: true as const })),
+        onWidget,
+      });
+      return { ui, onWidget };
+    }
+
+    it("forwards lines and defaults to the placement the terminal uses", () => {
+      const { ui, onWidget } = contextWithWidgets();
+
+      ui.setWidget("todo", ["○ #1 Write tests"]);
+      ui.setWidget("build", ["running…"], { placement: "belowEditor" });
+
+      expect(onWidget.mock.calls).toEqual([
+        ["todo", ["○ #1 Write tests"], "aboveEditor"],
+        ["build", ["running…"], "belowEditor"],
+      ]);
+    });
+
+    it("forwards a clear", () => {
+      const { ui, onWidget } = contextWithWidgets();
+
+      ui.setWidget("todo", undefined);
+
+      expect(onWidget).toHaveBeenCalledWith("todo", undefined, "aboveEditor");
+    });
+
+    it("ignores component factories, which have no serialized form", () => {
+      const { ui, onWidget } = contextWithWidgets();
+
+      ui.setWidget("todo", () => ({ render: () => ["○ #1"] }) as never);
+
+      expect(onWidget).not.toHaveBeenCalled();
+    });
+
+    it("stays inert when the host wires no widget handler", () => {
+      const { ui } = contextAnswering({ cancelled: true });
+
+      expect(() => ui.setWidget("todo", ["○ #1"])).not.toThrow();
+    });
+  });
 });

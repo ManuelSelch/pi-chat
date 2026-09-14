@@ -18,6 +18,12 @@ export interface RuntimeAdapterFactory {
   newSession(path: string): Promise<RuntimeAdapter>;
 }
 
+/** The one command this service implements itself, added to every session's catalogue. */
+const RELOAD_COMMAND = {
+  name: "reload",
+  description: "Reload this session's Pi runtime to pick up changed extensions",
+};
+
 export class ChatApplicationService {
   private readonly listeners = new Set<(sessionId: string, event: RuntimeEvent) => void>();
   private readonly sessions: SessionRegistry;
@@ -47,16 +53,23 @@ export class ChatApplicationService {
 
   async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
-    return { ...snapshot, actions: this.withAppFeatures(snapshot.actions), catalogue: await this.catalogue(snapshot) };
+    return { ...snapshot, actions: this.withAppActions(snapshot.actions), catalogue: await this.catalogue(snapshot) };
   }
 
   /**
    * App-level capabilities ride along with the session features the UI already
    * renders. Restart only appears when a server can genuinely replace itself,
    * so the button is never offered by a server that would stay down.
+   *
+   * /reload is added the same way: the session cannot list a command that
+   * replaces the very runtime it belongs to. An extension of the same name wins,
+   * because that one is what the session would actually dispatch.
    */
-  private withAppFeatures(actions: RuntimeSnapshot["actions"]): RuntimeSnapshot["actions"] {
-    return { ...actions, features: [...actions.features, ...this.appFeatures()] };
+  private withAppActions(actions: RuntimeSnapshot["actions"]): RuntimeSnapshot["actions"] {
+    const commands = actions.commands.some((command) => command.name === RELOAD_COMMAND.name)
+      ? actions.commands
+      : [...actions.commands, RELOAD_COMMAND].sort((left, right) => left.name.localeCompare(right.name));
+    return { ...actions, features: [...actions.features, ...this.appFeatures()], commands };
   }
 
   /** Capabilities of the server itself, valid with or without an open session. */
@@ -75,7 +88,44 @@ export class ChatApplicationService {
   }
 
   prompt(sessionId: string, message: string): Promise<void> {
+    // /reload rebuilds the runtime itself, which only the registry can do, so it
+    // is caught here instead of inside the adapter it replaces.
+    if (this.isReloadCommand(sessionId, message)) return this.reloadSession(sessionId);
     return this.sessions.get(sessionId).prompt(message);
+  }
+
+  /** An extension that registers its own /reload keeps it; ours is the fallback. */
+  private isReloadCommand(sessionId: string, message: string): boolean {
+    const trimmed = message.trim();
+    if (trimmed !== "/reload") return false;
+    const registered = this.sessions.get(sessionId).snapshot().actions.commands;
+    return !registered.some((command) => command.name === RELOAD_COMMAND.name);
+  }
+
+  /**
+   * Rebuilds one session's Pi runtime from its session file, leaving the server
+   * and every other tab alone.
+   *
+   * This is what picks up a changed extension: extensions are loaded when the
+   * runtime is created, so a new one is the only way to see them short of
+   * restarting the whole server. The transcript survives because it lives in the
+   * session file, which the replacement reopens.
+   */
+  async reloadSession(sessionId: string): Promise<void> {
+    const snapshot = this.sessions.get(sessionId).snapshot();
+    if (snapshot.isStreaming) throw new Error("Wait for the current run to finish before reloading.");
+    // Without a file on disk there is nothing to reopen: the replacement would
+    // start empty and the transcript would be lost.
+    if (!snapshot.sessionPath) throw new Error("This session has no file on disk yet, so it cannot be reloaded.");
+
+    const replacement = await this.factory.openSession(snapshot.sessionPath);
+    await this.sessions.replace(sessionId, replacement);
+    this.catalogueCache = undefined;
+    this.emit(sessionId, {
+      type: "notification",
+      level: "info",
+      message: "Session reloaded: extensions, commands, and settings were read again.",
+    });
   }
 
   abort(sessionId: string): Promise<void> {

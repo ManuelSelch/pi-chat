@@ -84,3 +84,78 @@ describe("closing the last tab", () => {
     expect(chat.tabs()).toHaveLength(1);
   });
 });
+
+describe("/reload", () => {
+  function reloadable() {
+    const runtime = new FakeRuntimeAdapter();
+    const replacement = new FakeRuntimeAdapter();
+    const openSession = vi.fn(async () => replacement);
+    const factory = {
+      continueProject: async () => new FakeRuntimeAdapter(),
+      openSession,
+      newSession: async () => new FakeRuntimeAdapter(),
+    };
+    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
+    return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, replacement, openSession };
+  }
+
+  it("is offered as a command on every session", async () => {
+    const { chat } = reloadable();
+
+    const snapshot = await chat.snapshot();
+
+    expect(snapshot.actions.commands.map((command) => command.name)).toContain("reload");
+  });
+
+  it("rebuilds the session's runtime from its file and keeps the tab", async () => {
+    const { chat, runtime, replacement, openSession } = reloadable();
+    const sessionId = chat.activeSessionId();
+    const disposed = vi.spyOn(runtime, "dispose");
+    const notices: string[] = [];
+    chat.subscribe((_sessionId, event) => { if (event.type === "notification") notices.push(event.message); });
+
+    await chat.prompt(sessionId, "/reload");
+
+    expect(openSession).toHaveBeenCalledWith(runtime.snapshot().sessionPath);
+    expect(disposed).toHaveBeenCalled();
+    expect(chat.tabs()).toHaveLength(1);
+    expect(chat.activeSessionId()).toBe(sessionId);
+    expect(notices.some((message) => /reloaded/i.test(message))).toBe(true);
+
+    // Later prompts must reach the replacement, not the runtime it replaced.
+    await chat.prompt(sessionId, "hello");
+    expect(replacement.snapshot().messages.some((message) => message.role === "user")).toBe(true);
+    expect(runtime.snapshot().messages).toHaveLength(0);
+  });
+
+  it("refuses while the session is still running", async () => {
+    const { chat, runtime, openSession } = reloadable();
+    vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
+
+    await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow(/finish/);
+    expect(openSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses a session that has no file to reopen", async () => {
+    const { chat, runtime } = reloadable();
+    const { sessionPath: _dropped, ...withoutFile } = runtime.snapshot();
+    vi.spyOn(runtime, "snapshot").mockReturnValue(withoutFile as any);
+
+    await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow(/no file on disk/);
+  });
+
+  it("leaves an extension's own /reload to the session", async () => {
+    const { chat, runtime, openSession } = reloadable();
+    const base = runtime.snapshot();
+    vi.spyOn(runtime, "snapshot").mockReturnValue({
+      ...base,
+      actions: { ...base.actions, commands: [{ name: "reload", description: "An extension's own" }] },
+    });
+    const prompted = vi.spyOn(runtime, "prompt");
+
+    await chat.prompt(chat.activeSessionId(), "/reload");
+
+    expect(prompted).toHaveBeenCalledWith("/reload");
+    expect(openSession).not.toHaveBeenCalled();
+  });
+});

@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -6,6 +6,7 @@ export type RuntimeEvent =
   | { type: "toolEvent"; runId: string; tool: ToolCard }
   | { type: "notification"; level: "info" | "warning" | "error"; message: string }
   | { type: "prompts"; prompts: UiPrompt[] }
+  | { type: "widgets"; widgets: Widget[] }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
 
 export interface RuntimeSnapshot {
@@ -17,6 +18,8 @@ export interface RuntimeSnapshot {
   isStreaming: boolean;
   actions: ActionRegistry;
   prompts: UiPrompt[];
+  /** Extension panels from `ctx.ui.setWidget`, rendered around the composer. */
+  widgets: Widget[];
   /**
    * How the last turn failed, kept until the next one starts. A snapshot that
    * omitted it erased the message the browser had just shown, which is why a
@@ -62,6 +65,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
         commands: [{ name: "fake", description: "A command for tests" }],
       },
       prompts: [],
+      widgets: [],
     };
   }
 

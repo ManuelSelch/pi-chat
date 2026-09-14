@@ -59,6 +59,14 @@ that build succeeds, so a broken build leaves the running UI alone. The page
 reconnects on its own once the new server is listening. The action is hidden
 under `npm run dev`, whose watcher would start a competing server.
 
+For a changed extension a whole restart is more than the job needs: `/reload`
+in the chat rebuilds only that tab's Pi runtime from its session file, so
+extensions, their commands, and settings are read again while the server and
+every other tab keep running. The transcript survives because it lives in the
+session file. It is refused while the tab is streaming, and a session that has
+not been written to disk yet has nothing to reopen. An extension that registers
+its own `/reload` keeps it.
+
 Running `/pi-chat-start` while it is already up just opens the browser again. Use
 `--no-open` to skip opening it. The listening server keeps
 `$TMPDIR/pi-chat-server.pid` up to date, so `/pi-chat-stop` still finds it after
@@ -89,6 +97,38 @@ export PI_CHAT_HOME="$HOME/.pi/agent/git/pi-chat"   # before starting pi
 Shortcuts are context-aware: `⌘K` does nothing inside the quick-open palette, and
 neither palette shortcut fires on the home screen, so neither hijacks a search
 field that is already open.
+
+## Extension UI
+
+Pi's RPC extension-UI protocol is what an extension talks to here, so an
+extension written against it works without any support code in this repo.
+`ctx.ui.notify` becomes a notice in the transcript, the blocking dialogs
+(`select`, `confirm`, `input`, `editor`) become modals, and `ctx.ui.setWidget`
+becomes a collapsible panel around the composer — above it or below it,
+matching the terminal's `aboveEditor`/`belowEditor`. A todo overlay therefore
+shows up on its own, with nothing in Pi Chat knowing what a todo is.
+
+Your personal `~/.pi/agent/extensions/todo.ts` extension is the worked example,
+and the one this was built against: it gives the model a `todo` tool, you a
+`/todos` command, and both a widget above the composer listing what is still
+open. Nothing in it is written for Pi Chat: the state lives in the tool result's
+`details`, so Pi replays it from the session branch (surviving `/reload` and
+compaction, branching with `/tree`), and the only UI calls are `notify` and
+`setWidget` with plain string lines. The same file renders in the terminal.
+
+Widgets are keyed, the whole block is re-sent on every change, and `undefined`
+clears one. Terminal colour is stripped, trailing spacer rows are dropped, and
+unchanged content is not republished, because a widget backed by a component
+repaints far more often than it changes. Snapshots carry the current panels, so
+a reconnecting browser rebuilds them.
+
+What stays inert is the genuinely terminal-shaped surface: footers, headers,
+editor components, raw terminal input, and the component-factory form of
+`setWidget`, none of which have a serialized form to forward. `ctx.ui.custom()`
+returns `undefined` rather than throwing, which is what Pi's own RPC mode does —
+throwing aborted the extension mid-call, so a `tool_call` hook that asks for
+confirmation that way failed the tool call outright instead of falling back to
+its own default.
 
 ## Home screen
 

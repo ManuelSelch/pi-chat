@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseClientMessage, PROTOCOL_VERSION } from "../src/shared/protocol.js";
+import { parseClientMessage, PROTOCOL_VERSION, serverMessageSchema } from "../src/shared/protocol.js";
 
 describe("client protocol", () => {
   it("accepts a non-empty prompt", () => {
@@ -63,5 +63,36 @@ describe("session deletion", () => {
     expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "/sessions/a.jsonl" }))
       .toMatchObject({ type: "deleteSession" });
     expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "" })).toThrow();
+  });
+});
+
+describe("extension widgets", () => {
+  const widget = { key: "todo", lines: ["○ #1"], placement: "aboveEditor" };
+
+  it("accepts a widgets message and a snapshot carrying widgets", () => {
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION, type: "widgets", sessionId: "s1", sequence: 3, widgets: [widget],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION, type: "snapshot", sessionId: "s1", sequence: 3, throughSequence: 3,
+        projectPath: "/tmp", messages: [], isStreaming: false, widgets: [widget],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an unplaced widget and an unkeyed one", () => {
+    const unplaced = { ...widget, placement: "floating" };
+    const unkeyed = { ...widget, key: "" };
+    for (const broken of [unplaced, unkeyed]) {
+      expect(
+        serverMessageSchema.safeParse({
+          version: PROTOCOL_VERSION, type: "widgets", sessionId: "s1", sequence: 1, widgets: [broken],
+        }).success,
+      ).toBe(false);
+    }
   });
 });

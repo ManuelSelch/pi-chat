@@ -18,6 +18,7 @@ type ModelOverride = Partial<
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { UiPromptRegistry } from "./ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
+import { WidgetRegistry } from "./widget-registry.js";
 
 const ARGS_TEXT_MAX = 4_000;
 const OUTPUT_TEXT_MAX = 20_000;
@@ -45,11 +46,14 @@ const NATIVE_COMMANDS: SlashCommand[] = [
 /**
  * Pi's built-in slash commands. They are implemented by the terminal app, so a
  * web host must either provide its own version or say plainly that it cannot.
+ *
+ * `reload` is absent on purpose: the chat service implements it by rebuilding
+ * this runtime, which an adapter cannot do to itself.
  */
 const PI_BUILTIN_COMMANDS = new Set([
   "settings", "model", "tree", "thinking", "scoped-models", "export", "import", "share", "copy",
   "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
-  "compact", "resume", "reload", "quit",
+  "compact", "resume", "quit",
 ]);
 
 /** The parts of Pi's `SessionStats` this host reports, kept structural for tests. */
@@ -278,6 +282,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    */
   private lastError?: string;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
+  private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
@@ -297,6 +302,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       createWebUiContext({
         onNotify: (message, level) => this.emit({ type: "notification", level, message }),
         onPrompt: (request) => this.prompts.ask(request),
+        onWidget: (key, lines, placement) => this.widgets.set(key, lines, placement),
       }),
       // "rpc" rather than "print": this host can answer blocking questions.
       "rpc",
@@ -425,6 +431,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         commands: this.commands(),
       },
       prompts: this.prompts.list(),
+      widgets: this.widgets.list(),
     };
   }
 
@@ -568,6 +575,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     // Cancel before clearing listeners: a switched-away session must not leave
     // an extension waiting on a dialog nobody can answer.
     this.prompts.dispose();
+    // Panels belong to the runtime that pushed them; a disposed adapter must
+    // not keep reporting them in a snapshot.
+    this.widgets.clear();
     this.listeners.clear();
     await this.runtime.dispose();
   }

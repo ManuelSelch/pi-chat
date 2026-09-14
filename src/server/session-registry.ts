@@ -40,6 +40,35 @@ export class SessionRegistry {
     return entry;
   }
 
+  /**
+   * Swaps in a freshly built runtime for a session that stays open.
+   *
+   * The tab keeps its place and its id, so the browser sees a new snapshot
+   * rather than a closed and reopened tab. The replacement must therefore carry
+   * the same session id; anything else would leave the client holding a tab
+   * nothing answers for.
+   */
+  async replace(sessionId: string, adapter: RuntimeAdapter): Promise<OpenSession> {
+    const index = this.entries.findIndex((entry) => entry.sessionId === sessionId);
+    if (index === -1) throw new Error(`Unknown session: ${sessionId}`);
+    const replacementId = adapter.snapshot().sessionId;
+    if (replacementId !== sessionId) {
+      await adapter.dispose();
+      throw new Error(`Reloaded session has id ${replacementId}, expected ${sessionId}.`);
+    }
+
+    const previous = this.entries[index]!;
+    const entry: Entry = {
+      sessionId,
+      adapter,
+      unsubscribe: adapter.subscribe((event) => this.onEvent(sessionId, event)),
+    };
+    this.entries[index] = entry;
+    previous.unsubscribe();
+    await previous.adapter.dispose();
+    return entry;
+  }
+
   get(sessionId: string): RuntimeAdapter {
     const entry = this.entries.find((item) => item.sessionId === sessionId);
     if (!entry) throw new Error(`Unknown session: ${sessionId}`);

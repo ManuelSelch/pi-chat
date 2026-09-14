@@ -6,6 +6,7 @@ import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
+import { WidgetPanel } from "../chat/WidgetPanel.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -18,6 +19,11 @@ import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import type { Tab } from "../../shared/protocol.js";
+
+/** Height of a composer with nothing above it; replaced once measured. */
+const DEFAULT_FOOTER_HEIGHT = 170;
+/** Breathing room between the last message and the composer. */
+const FOOTER_GAP = 24;
 
 export function App() {
   const chat = usePiChat();
@@ -34,6 +40,11 @@ export function App() {
   const [renaming, setRenaming] = useState<string | undefined>();
   const [confirming, setConfirming] = useState<Confirmation | undefined>();
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  // The composer is fixed to the bottom, so the transcript reserves its height.
+  // Widgets, the command menu and error alerts all change it, and a static
+  // reservation would let a tall extension panel cover the last messages.
+  const [footerHeight, setFooterHeight] = useState(DEFAULT_FOOTER_HEIGHT);
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
   // The rename action already carries the live session name, so the header does
@@ -80,6 +91,8 @@ export function App() {
   const modelName = state.actions.features.find((feature) => feature.id === "model.select")?.state.value;
   const thinkingLevel = state.actions.features.find((feature) => feature.id === "thinking.level")?.state.value;
   const composerStatus = [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined].filter(Boolean).join(" · ");
+  const widgetsAbove = state.widgets.filter((widget) => widget.placement === "aboveEditor");
+  const widgetsBelow = state.widgets.filter((widget) => widget.placement === "belowEditor");
   const overlayOpen = quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
   const query = menuDismissed ? undefined : commandQuery(input);
   const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
@@ -119,6 +132,22 @@ export function App() {
     if (home || overlayOpen) return;
     composerRef.current?.focus();
   }, [app.activeSessionId, home, overlayOpen]);
+
+  // The footer grows and shrinks on its own: an extension can push a widget at
+  // any moment, with no render of this component to hang a measurement on. So
+  // its height is observed rather than derived from what is on screen.
+  useLayoutEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) {
+      setFooterHeight(DEFAULT_FOOTER_HEIGHT);
+      return;
+    }
+    const measure = () => setFooterHeight(footer.getBoundingClientRect().height || DEFAULT_FOOTER_HEIGHT);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, [home]);
 
   function openCommandMenu(): void {
     // Reuses the composer's own slash menu rather than a second palette.
@@ -333,7 +362,7 @@ export function App() {
         })}
       />
 
-      <AppShell.Main pb={home ? 0 : 170} h={home ? "calc(100dvh - 96px)" : undefined}>
+      <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (
           <Home
             catalogue={app.catalogue}
@@ -344,7 +373,7 @@ export function App() {
         ) : (
           <Container size="sm" py="xl">
             <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />
-            <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: 190 }} />
+            <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: footerHeight + FOOTER_GAP }} />
           </Container>
         )}
       </AppShell.Main>
@@ -352,6 +381,7 @@ export function App() {
       {home ? null : (
       <Box
         component="footer"
+        ref={footerRef}
         pos="fixed"
         bottom={0}
         left={0}
@@ -384,6 +414,10 @@ export function App() {
               {visibleError(app, state)}
             </Alert>
           ) : null}
+
+          {/* Extension panels sit where the terminal puts them: around the
+              editor, which here is the composer. */}
+          <WidgetPanel widgets={widgetsAbove} />
 
           {menuOpen ? (
             <CommandMenu
@@ -421,6 +455,12 @@ export function App() {
               )}
             </Group>
           </Paper>
+          {widgetsBelow.length > 0 ? (
+            <Box mt="xs">
+              <WidgetPanel widgets={widgetsBelow} />
+            </Box>
+          ) : null}
+
           {composerStatus ? <Text size="xs" c="dimmed" mt={6} pl={12}>{composerStatus}</Text> : null}
         </Container>
       </Box>

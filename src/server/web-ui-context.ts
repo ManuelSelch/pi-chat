@@ -1,5 +1,5 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { UiPromptResult } from "../shared/protocol.js";
+import type { UiPromptResult, WidgetPlacement } from "../shared/protocol.js";
 import type { UiPromptRequest } from "./ui-prompt-registry.js";
 
 export type NotificationLevel = "info" | "warning" | "error";
@@ -7,6 +7,7 @@ export type NotificationLevel = "info" | "warning" | "error";
 export interface WebUiContextHandlers {
   onNotify: (message: string, level: NotificationLevel) => void;
   onPrompt: (request: UiPromptRequest) => Promise<UiPromptResult>;
+  onWidget?: (key: string, lines: string[] | undefined, placement: WidgetPlacement) => void;
 }
 
 /**
@@ -14,11 +15,12 @@ export interface WebUiContextHandlers {
  * when a host binds none, which is why `ctx.ui.notify(...)` from a command such
  * as `/memory-status` produced no visible output in the browser.
  *
- * This is the browser's stand-in. Output and blocking questions are forwarded
- * to the browser; the TUI surface (widgets, footers, overlays, custom editors)
- * stays inert.
+ * This is the browser's stand-in for the methods Pi's RPC extension-UI protocol
+ * defines: output, blocking questions, and widgets. What is left inert is the
+ * genuinely terminal-shaped surface — footers, headers, editor components, and
+ * raw terminal input — which has no serialized form to forward.
  */
-export function createWebUiContext({ onNotify, onPrompt }: WebUiContextHandlers): ExtensionUIContext {
+export function createWebUiContext({ onNotify, onPrompt, onWidget }: WebUiContextHandlers): ExtensionUIContext {
   const noop = (): void => {};
 
   const context = {
@@ -42,9 +44,24 @@ export function createWebUiContext({ onNotify, onPrompt }: WebUiContextHandlers)
       const result = await onPrompt({ kind: "editor", title, ...(prefill ? { prefill } : {}) });
       return result.cancelled ? undefined : String(result.value);
     },
-    // Needs a terminal component factory, so it has no web equivalent.
-    custom: async () => {
-      throw new Error("Custom terminal components are not available in Pi Chat.");
+    /**
+     * A focus-stealing terminal component has no web equivalent. Returning
+     * `undefined` is what Pi's own RPC mode does, and it matters: throwing here
+     * aborted the extension mid-flight, so a `tool_call` hook that asks for
+     * confirmation this way failed the tool call outright instead of falling
+     * back to its own default.
+     */
+    custom: async () => undefined,
+
+    /**
+     * Widgets are the one piece of terminal chrome with a serialized form: Pi's
+     * RPC protocol carries them as plain lines, and `undefined` clears them.
+     * Component factories are a terminal construct and are ignored, exactly as
+     * RPC mode ignores them.
+     */
+    setWidget: (key: string, content: unknown, options?: { placement?: WidgetPlacement }) => {
+      if (content !== undefined && !Array.isArray(content)) return;
+      onWidget?.(key, content as string[] | undefined, options?.placement ?? "aboveEditor");
     },
 
     // Terminal-only chrome.
@@ -54,7 +71,6 @@ export function createWebUiContext({ onNotify, onPrompt }: WebUiContextHandlers)
     setWorkingVisible: noop,
     setWorkingIndicator: noop,
     setHiddenThinkingLabel: noop,
-    setWidget: noop,
     setFooter: noop,
     setHeader: noop,
     setTitle: noop,
