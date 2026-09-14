@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useLocalStorage } from "@mantine/hooks";
 import type { Tab } from "../../shared/protocol.js";
 import { ChimePlayer, chimesFor, statusMap } from "./chime.js";
@@ -26,5 +26,16 @@ export function useChimes(tabs: Tab[]): { enabled: boolean; setEnabled: (value: 
 
   useEffect(() => () => player.current?.close(), []);
 
-  return { enabled, setEnabled, available: player.current.available };
+  /**
+   * Switching on is the only user gesture this feature gets, so the audio
+   * context is opened here. The preview doubles as proof that sound works,
+   * rather than leaving the user to wonder until the next run ends.
+   */
+  const toggle = useCallback((value: boolean) => {
+    setEnabled(value);
+    if (!value) return;
+    void player.current?.unlock().then(() => player.current?.play("finished"));
+  }, [setEnabled]);
+
+  return { enabled, setEnabled: toggle, available: player.current.available };
 }

@@ -23,22 +23,46 @@ const NOTE_SECONDS = 0.14;
 
 type ContextFactory = () => AudioContext;
 
+/** Safari needed the prefix until 14.1, and still exposes it. */
+function defaultContextFactory(): ContextFactory | undefined {
+  const candidate =
+    typeof globalThis.AudioContext === "function"
+      ? globalThis.AudioContext
+      : (globalThis as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  return typeof candidate === "function" ? () => new candidate() : undefined;
+}
+
 /**
  * Browsers refuse to start audio before the page has been interacted with, and
- * a context created too early is left suspended. It is therefore built on the
- * first chime and resumed each time, which is a no-op once it is running.
+ * a context created too early is left suspended.
+ *
+ * Safari is the strict case: it only lets a context start from inside a user
+ * gesture, and resuming one later has no effect. A chime therefore announces
+ * something that happens on its own, which is never a gesture, so the context
+ * has to be opened by `unlock()` while the user is switching the setting on.
  */
 export class ChimePlayer {
   private context?: AudioContext;
 
-  constructor(
-    private readonly createContext: ContextFactory | undefined = typeof globalThis.AudioContext === "function"
-      ? () => new globalThis.AudioContext()
-      : undefined,
-  ) {}
+  constructor(private readonly createContext: ContextFactory | undefined = defaultContextFactory()) {}
 
   get available(): boolean {
     return this.createContext !== undefined;
+  }
+
+  /**
+   * Call from a click handler. Opening the context here is what makes the very
+   * first chime audible; without it Safari drops it and only later ones, after
+   * some unrelated click, come through.
+   */
+  async unlock(): Promise<void> {
+    if (!this.createContext) return;
+    try {
+      this.context ??= this.createContext();
+      if (this.context.state === "suspended") await this.context.resume();
+    } catch {
+      // Nothing to do: the next chime simply stays silent.
+    }
   }
 
   async play(chime: Chime): Promise<void> {

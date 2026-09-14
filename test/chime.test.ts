@@ -91,6 +91,44 @@ describe("chime player", () => {
     expect(stops).toHaveLength(2);
   });
 
+  // Safari only starts a context from inside a gesture, so switching the
+  // setting on has to open it; otherwise the first chime is lost.
+  it("opens and resumes the context when unlocked", async () => {
+    let resumed = false;
+    const { context } = fakeContext("suspended", async () => {
+      resumed = true;
+      context.state = "running";
+    });
+    const player = new ChimePlayer(() => context as unknown as AudioContext);
+
+    await player.unlock();
+
+    expect(resumed).toBe(true);
+    expect(context.state).toBe("running");
+  });
+
+  it("reuses the unlocked context for the next chime", async () => {
+    let created = 0;
+    const { context, stops } = fakeContext("suspended", async () => {});
+    const player = new ChimePlayer(() => {
+      created++;
+      return context as unknown as AudioContext;
+    });
+
+    await player.unlock();
+    await player.play("finished");
+
+    expect(created).toBe(1);
+    expect(stops).toHaveLength(2);
+  });
+
+  it("survives a browser that refuses to unlock", async () => {
+    const player = new ChimePlayer(() => {
+      throw new Error("not allowed");
+    });
+    await expect(player.unlock()).resolves.toBeUndefined();
+  });
+
   it("resumes a suspended context and schedules both notes", async () => {
     let resumed = false;
     const { context, stops } = fakeContext("suspended", async () => {
