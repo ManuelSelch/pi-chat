@@ -169,6 +169,15 @@ export function mergeEntriesById(flattened: ChatMessage[]): ChatMessage[] {
   return order.map((id) => byId.get(id)!);
 }
 
+export function appendCustomEntries(messages: ChatMessage[], branch: Iterable<unknown>): ChatMessage[] {
+  // `runtime.session.messages` may contain the in-memory custom message with a
+  // WeakMap id, but the session branch contains the durable entry id. Snapshots
+  // use the durable form so a reconnect or refresh never duplicates it.
+  const nonCustomMessages = messages.filter((entry) => entry.role !== "custom");
+  const custom = Array.from(branch, customMessageFromEntry).filter((entry) => entry !== undefined);
+  return mergeEntriesById([...nonCustomMessages, ...custom]);
+}
+
 export function toolCardFromCall(call: ToolCallBlock): ToolCard {
   return {
     toolCallId: call.id,
@@ -392,7 +401,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   snapshot(): RuntimeSnapshot {
     const flattened = this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity));
-    const messages = mergeEntriesById(flattened);
+    const branch = (this.runtime.session as { sessionManager?: { getBranch(): Iterable<unknown> } }).sessionManager?.getBranch() ?? [];
+    const messages = appendCustomEntries(mergeEntriesById(flattened), branch);
     // Compaction is a long model call that the session does not count as
     // streaming, so asking `isStreaming` alone reports a busy session as idle
     // and re-enables the composer mid-compaction.
