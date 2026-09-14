@@ -178,6 +178,23 @@ export function toolCardFromCall(call: ToolCallBlock): ToolCard {
   };
 }
 
+function timestampFromEntry(value: Record<string, unknown>): { timestamp?: number } {
+  if (typeof value.timestamp !== "string") return {};
+  const timestamp = Date.parse(value.timestamp);
+  return Number.isFinite(timestamp) ? { timestamp } : {};
+}
+
+export function customMessageFromEntry(entry: unknown): ChatMessage | undefined {
+  if (!entry || typeof entry !== "object") return undefined;
+  const value = entry as Record<string, unknown>;
+  if (value.type !== "custom_message") return undefined;
+  if (value.display !== true || typeof value.customType !== "string" || value.customType.length === 0) return undefined;
+  if (typeof value.id !== "string" || value.id.length === 0) return undefined;
+  const text = textFromContent(value.content);
+  if (text.length === 0) return undefined;
+  return { id: value.id, role: "custom", customType: value.customType, text, ...timestampFromEntry(value) };
+}
+
 function textFromContent(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
@@ -245,6 +262,13 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
         ...stamp,
       },
     ];
+  }
+
+  if (value.role === "custom") {
+    if (value.display !== true || typeof value.customType !== "string" || value.customType.length === 0) return [];
+    const text = textFromContent(value.content);
+    if (text.length === 0) return [];
+    return [{ id: identity.idFor(message), role: "custom", customType: value.customType, text, ...stamp }];
   }
 
   if (value.role !== "user" && value.role !== "assistant" && value.role !== "system") return [];
@@ -369,7 +393,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   snapshot(): RuntimeSnapshot {
     const flattened = this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity));
     const messages = mergeEntriesById(flattened);
-    const isStreaming = this.runtime.session.isStreaming;
+    // Compaction is a long model call that the session does not count as
+    // streaming, so asking `isStreaming` alone reports a busy session as idle
+    // and re-enables the composer mid-compaction.
+    const isStreaming = !this.runtime.session.isIdle;
     // A "running" card is only honest while its tool is actually executing.
     // After a server restart mid-run (or any missed end event) nothing will
     // ever finalize it, so report it as interrupted instead of spinning forever.
@@ -603,9 +630,14 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         // entries become messageFinal here; a tool-call-only assistant message
         // therefore does not leave an empty bubble.
         const final = toChatMessage(event.message, this.identity);
-        if (final && (final.role === "user" || final.role === "assistant")) {
+        if (final && (final.role === "user" || final.role === "assistant" || final.role === "custom")) {
           this.emit({ type: "messageFinal", runId: this.currentRunId, message: final });
         }
+        return;
+      }
+      if (event.type === "entry_appended") {
+        const message = customMessageFromEntry(event.entry);
+        if (message) this.emit({ type: "messageFinal", runId: this.currentRunId, message });
         return;
       }
       if (event.type === "tool_execution_start") {
@@ -644,6 +676,41 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
             ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
           },
         });
+        return;
+      }
+      // Auto-compaction runs before the turn the user just asked for and can
+      // take several seconds. The session does not report it as streaming, so
+      // without these the browser shows nothing at all and still believes it is
+      // idle, which is how a prompt slips through to the agent underneath and
+      // comes back as "Agent is already processing a prompt".
+      if (event.type === "compaction_start") {
+        this.emit({ type: "runtimeStatus", status: "running" });
+        // `compact()` announces the manual case itself.
+        if (event.reason !== "manual") {
+          this.emit({
+            type: "notification",
+            level: "info",
+            message:
+              event.reason === "overflow"
+                ? "Context limit reached, compacting the session…"
+                : "Context is nearly full, compacting the session…",
+          });
+        }
+        return;
+      }
+      if (event.type === "compaction_end") {
+        if (event.errorMessage) {
+          this.emit({ type: "notification", level: "error", message: `Compaction failed: ${event.errorMessage}` });
+        } else if (event.aborted) {
+          this.emit({ type: "notification", level: "warning", message: "Compaction was cancelled." });
+        }
+        // More work follows a retry, and a compaction inside a run is followed
+        // by the rest of that run, so `agent_settled` reports idle instead.
+        // The compaction flag itself is still set here, cleared only after this
+        // event, so it cannot be used to make this decision.
+        if (!event.willRetry && !this.runtime.session.isStreaming) {
+          this.emit({ type: "runtimeStatus", status: "idle" });
+        }
         return;
       }
       if (event.type === "agent_settled") {

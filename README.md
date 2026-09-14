@@ -102,11 +102,12 @@ field that is already open.
 
 Pi's RPC extension-UI protocol is what an extension talks to here, so an
 extension written against it works without any support code in this repo.
-`ctx.ui.notify` becomes a notice in the transcript, the blocking dialogs
-(`select`, `confirm`, `input`, `editor`) become modals, and `ctx.ui.setWidget`
-becomes a collapsible panel around the composer — above it or below it,
-matching the terminal's `aboveEditor`/`belowEditor`. A todo overlay therefore
-shows up on its own, with nothing in Pi Chat knowing what a todo is.
+`ctx.ui.notify` becomes a notice in the transcript, displayable
+`pi.sendMessage()` custom messages become labelled transcript entries, the
+blocking dialogs (`select`, `confirm`, `input`, `editor`) become modals, and
+`ctx.ui.setWidget` becomes a collapsible panel around the composer — above it or
+below it, matching the terminal's `aboveEditor`/`belowEditor`. A todo overlay
+therefore shows up on its own, with nothing in Pi Chat knowing what a todo is.
 
 Your personal `~/.pi/agent/extensions/todo.ts` extension is the worked example,
 and the one this was built against: it gives the model a `todo` tool, you a

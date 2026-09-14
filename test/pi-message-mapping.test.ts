@@ -88,6 +88,34 @@ describe("Pi message mapping", () => {
     expect(merged.tool.argsText).toContain("/tmp/x");
   });
 
+  it("maps displayable custom messages from pi.sendMessage", () => {
+    const identity = new MessageIdentity();
+    const message = {
+      role: "custom",
+      customType: "file-trigger",
+      content: [{ type: "text", text: "File changed: src/app.ts" }],
+      display: true,
+      timestamp: 123,
+    };
+
+    expect(toChatMessages(message, identity)).toEqual([
+      {
+        id: "msg-1",
+        role: "custom",
+        customType: "file-trigger",
+        text: "File changed: src/app.ts",
+        timestamp: 123,
+      },
+    ]);
+  });
+
+  it("keeps hidden custom messages out of the transcript", () => {
+    const identity = new MessageIdentity();
+
+    expect(toChatMessages({ role: "custom", customType: "state", content: "context only", display: false }, identity)).toEqual([]);
+    expect(toChatMessages({ role: "custom", customType: "state", content: "context only" }, identity)).toEqual([]);
+  });
+
   it("drops an assistant message with neither text nor tool calls", () => {
     const identity = new MessageIdentity();
     expect(toChatMessages({ role: "assistant", content: [] }, identity)).toEqual([]);

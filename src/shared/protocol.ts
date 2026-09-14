@@ -37,6 +37,14 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
     tool: toolCardSchema,
     timestamp: z.number().optional(),
   }),
+  /** Displayable extension-injected message from `pi.sendMessage()`. */
+  z.object({
+    id: z.string().min(1),
+    role: z.literal("custom"),
+    customType: z.string().min(1),
+    text: z.string(),
+    timestamp: z.number().optional(),
+  }),
   /** Extension output from `ctx.ui.notify`, e.g. the result of a slash command. */
   z.object({
     id: z.string().min(1),

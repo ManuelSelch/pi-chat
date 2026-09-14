@@ -34,6 +34,9 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
       {message.role === "assistant" ? (
         <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
       ) : null}
+      {message.role === "custom" ? (
+        <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>{message.customType}</Text>
+      ) : null}
       {message.role === "user" ? (
         <Paper bg="var(--mantine-color-default-hover)" radius="lg" p="sm" px="md" ml="auto" maw="82%">
           <div className="markdown"><Markdown>{message.text}</Markdown></div>

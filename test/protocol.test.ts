@@ -66,6 +66,23 @@ describe("session deletion", () => {
   });
 });
 
+describe("extension custom messages", () => {
+  it("accepts displayable pi.sendMessage output in a snapshot", () => {
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION,
+        type: "snapshot",
+        sessionId: "s1",
+        sequence: 1,
+        throughSequence: 1,
+        projectPath: "/tmp",
+        messages: [{ id: "m1", role: "custom", customType: "file-trigger", text: "File changed", timestamp: 123 }],
+        isStreaming: false,
+      }).success,
+    ).toBe(true);
+  });
+});
+
 describe("extension widgets", () => {
   const widget = { key: "todo", lines: ["○ #1"], placement: "aboveEditor" };
 
