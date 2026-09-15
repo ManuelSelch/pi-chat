@@ -1,9 +1,16 @@
 {
   "name": "pi-chat",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "A minimal local web chat for Pi",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./extension/pi-chat.ts"
+    ]
+  },
   "scripts": {
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
     "dev:server": "PI_CHAT_DEV=1 tsx watch src/server/index.ts",
