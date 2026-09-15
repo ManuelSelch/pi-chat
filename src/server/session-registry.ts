@@ -1,5 +1,6 @@
 import { basename } from "node:path";
 import type { Tab, TabStatus } from "../shared/protocol.js";
+import { firstUserMessage, sessionTitle } from "../shared/session-title.js";
 import type { RuntimeAdapter, RuntimeEvent } from "./runtime-adapter.js";
 
 export interface OpenSession {
@@ -119,7 +120,7 @@ export class SessionRegistry {
           : "idle";
       return {
         sessionId,
-        title: snapshot.sessionName?.trim() || "New session",
+        title: sessionTitle(snapshot.sessionName, firstUserMessage(snapshot.messages)),
         projectPath: snapshot.projectPath,
         projectName: basename(snapshot.projectPath) || snapshot.projectPath,
         status,
