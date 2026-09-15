@@ -41,14 +41,27 @@ type HookPayload<Name extends PiChatHookName> = Extract<PiChatHookEvent, { name:
 
 type HookHandler<Name extends PiChatHookName> = (payload: HookPayload<Name>) => Promise<void> | void;
 
-export type PiChatAuthorizationName = "connection.authorize" | "prompt.authorize" | "action.authorize" | "abort.authorize" | "snapshot.authorize";
+export type PiChatAuthorizationName =
+  | "connection.authorize"
+  | "prompt.authorize"
+  | "action.authorize"
+  | "abort.authorize"
+  | "snapshot.authorize"
+  /** Commands that change the shared set of open sessions, such as closing or deleting one. */
+  | "session.authorize"
+  /** Answering a blocking `ctx.ui` question, e.g. a permission gate for a tool call. */
+  | "dialog.authorize";
 export type PiChatAuthorizationResult = { allow: true } | { allow: false; reason: string };
 export interface PiChatAuthorizationContext {
   connectionId: string;
   sessionId?: string;
   actionId?: string;
+  /** Which session command is being attempted, for `session.authorize`. */
+  operation?: PiChatSessionOperation;
   request?: PiChatConnectionRequest;
 }
+
+export type PiChatSessionOperation = "openProject" | "openSession" | "newSession" | "closeTab" | "deleteSession";
 export type PiChatAuthorizationHandler = (ctx: PiChatAuthorizationContext) => Promise<PiChatAuthorizationResult | void> | PiChatAuthorizationResult | void;
 
 export interface PiChatExtensionSnapshotContext {

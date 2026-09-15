@@ -134,12 +134,58 @@ describe("WebSocket transport", () => {
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
     const port = (server.httpServer.address() as AddressInfo).port;
 
+    const owner = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
     const guest = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws?invite=demo`);
     socket = guest.socket;
-    const refused = receiveOfType(guest.socket, "runtimeStatus");
+    const refused = receiveOfType(guest.socket, "protocolError");
     guest.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, sessionId: "fake-session", type: "prompt", message: "Hello" }));
 
-    expect(await refused).toMatchObject({ type: "runtimeStatus", error: "Read-only guest." });
+    expect(await refused).toMatchObject({ type: "protocolError", error: "Read-only guest." });
+    // The refusal belongs to the guest alone; the owner's screen must stay clean.
+    const ownerSaw: string[] = [];
+    owner.socket.on("message", (data: Buffer) => ownerSaw.push(String(JSON.parse(data.toString()).type)));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(ownerSaw).not.toContain("protocolError");
+    owner.socket.close();
+  });
+
+  it("lets a policy extension refuse session commands and dialog answers", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    const guests = new Set<string>();
+    const operations: string[] = [];
+    extensions.use("connection.authorize", ({ connectionId, request }) => {
+      if (request?.query.invite) guests.add(connectionId);
+    });
+    extensions.use("session.authorize", ({ connectionId, operation }) => {
+      operations.push(operation ?? "");
+      return guests.has(connectionId) ? { allow: false, reason: "Read-only guest." } : { allow: true };
+    });
+    extensions.use("dialog.authorize", ({ connectionId }) =>
+      guests.has(connectionId) ? { allow: false, reason: "Guests cannot answer dialogs." } : { allow: true },
+    );
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+
+    const guest = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws?invite=demo`);
+    socket = guest.socket;
+
+    const refusedClose = receiveOfType(guest.socket, "protocolError");
+    guest.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "closeTab", sessionId: "fake-session" }));
+    expect(await refusedClose).toMatchObject({ error: "Read-only guest." });
+    expect(operations).toContain("closeTab");
+    // The destructive command must not have run behind the refusal.
+    const tabs = receiveOfType(guest.socket, "tabs");
+    guest.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "focusTab", sessionId: "fake-session" }));
+    expect((await tabs as { tabs: unknown[] }).tabs).toHaveLength(1);
+
+    const refusedDialog = receiveOfType(guest.socket, "protocolError");
+    guest.socket.send(JSON.stringify({
+      version: PROTOCOL_VERSION, sessionId: "fake-session", type: "uiPromptResponse",
+      promptId: "p1", result: { cancelled: false, value: "yes" },
+    }));
+    expect(await refusedDialog).toMatchObject({ error: "Guests cannot answer dialogs." });
   });
 
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {

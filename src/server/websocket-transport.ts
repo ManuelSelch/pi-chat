@@ -8,6 +8,7 @@ import {
 } from "../shared/protocol.js";
 import { ChatApplicationService } from "./chat-application-service.js";
 import { connectionRequestFrom, createConnection, type PiChatConnection } from "./connection.js";
+import type { PiChatAuthorizationContext, PiChatAuthorizationName } from "./extension-registry.js";
 import type { RuntimeEvent } from "./runtime-adapter.js";
 
 export class WebSocketTransport {
@@ -88,48 +89,80 @@ export class WebSocketTransport {
 
     const command = result.value;
     if (command.type === "abort") {
-      void this.chat.authorizeConnectionAction("abort.authorize", { connectionId: connection.id, sessionId: command.sessionId })
-        .then(() => this.chat.abort(command.sessionId))
-        .catch((error: unknown) => this.publishError(command.sessionId, error));
+      void this.guard(connection, "abort.authorize", { sessionId: command.sessionId }, () =>
+        this.chat.abort(command.sessionId),
+      ).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "prompt") {
       // A prompt can be a native command such as /model, which changes state
       // the snapshot owns, so refresh once the run settles.
-      void this.chat
-        .authorizeConnectionAction("prompt.authorize", { connectionId: connection.id, sessionId: command.sessionId })
-        .then(() => this.chat.prompt(command.sessionId, command.message))
-        .then(() => this.sendSnapshot(command.sessionId))
-        .catch((error: unknown) => this.publishError(command.sessionId, error));
+      void this.guard(connection, "prompt.authorize", { sessionId: command.sessionId }, async () => {
+        await this.chat.prompt(command.sessionId, command.message);
+        await this.sendSnapshot(command.sessionId);
+      }).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "uiPromptResponse") {
-      this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
+      // A blocking question can be a permission gate for a tool call, so who may
+      // answer it is a policy decision rather than "whoever is connected".
+      void this.guard(connection, "dialog.authorize", { sessionId: command.sessionId }, () => {
+        this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
+      }).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
       const actionId = command.type === "runExtensionAction" ? command.actionId : command.featureId;
-      void this.chat
-        .authorizeConnectionAction("action.authorize", { connectionId: connection.id, sessionId: command.sessionId, actionId })
-        .then(() => this.chat.runFeature(command, connection.id))
+      void this.guard(connection, "action.authorize", { sessionId: command.sessionId, actionId }, async () => {
+        await this.chat.runFeature(command, connection.id);
         // Renaming changes the tab label too, so the tab list must follow.
-        .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
-        .catch((error: unknown) => this.publishError(command.sessionId, error));
+        await this.sendSnapshot(command.sessionId);
+        this.sendTabs();
+      }).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "focusTab") {
       this.chat.focusTab(command.sessionId);
       this.sendTabs();
     } else if (command.type === "deleteSession") {
-      void this.chat
-        .deleteSession(command.path)
-        .then(() => this.sendCatalogue())
-        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+      void this.guard(connection, "session.authorize", { operation: "deleteSession" }, async () => {
+        await this.chat.deleteSession(command.path);
+        await this.sendCatalogue();
+      }).catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
     } else if (command.type === "closeTab") {
-      void this.chat
-        .closeTab(command.sessionId)
+      void this.guard(connection, "session.authorize", { sessionId: command.sessionId, operation: "closeTab" }, async () => {
+        await this.chat.closeTab(command.sessionId);
         // Closing the last tab lands on the home screen, which searches the catalogue.
-        .then(() => { this.sendTabs(); return this.sendCatalogue(); })
-        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+        this.sendTabs();
+        await this.sendCatalogue();
+      }).catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
     } else if (command.type === "openProject") {
-      void this.openTab(() => this.chat.openProject(command.path));
+      void this.guard(connection, "session.authorize", { operation: "openProject" }, () =>
+        this.openTab(() => this.chat.openProject(command.path)),
+      );
     } else if (command.type === "openSession") {
-      void this.openTab(() => this.chat.openSession(command.path));
+      void this.guard(connection, "session.authorize", { operation: "openSession" }, () =>
+        this.openTab(() => this.chat.openSession(command.path)),
+      );
     } else {
-      void this.openTab(() => this.chat.newSession(command.path));
+      void this.guard(connection, "session.authorize", { operation: "newSession" }, () =>
+        this.openTab(() => this.chat.newSession(command.path)),
+      );
     }
+  }
+
+  /**
+   * Runs `command` only when policy allows it for this connection.
+   *
+   * A refusal goes back to the browser that asked and nowhere else: publishing it
+   * as a run error would show one user's rejected command on everybody's screen.
+   */
+  private async guard(
+    connection: PiChatConnection,
+    name: PiChatAuthorizationName,
+    ctx: Omit<PiChatAuthorizationContext, "connectionId">,
+    command: () => Promise<void> | void,
+  ): Promise<void> {
+    try {
+      await this.chat.authorizeConnectionAction(name, { connectionId: connection.id, ...ctx });
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : "That is not allowed here.";
+      if (connection.socket.readyState === WebSocket.OPEN) this.sendTo(connection.socket, this.protocolError(reason));
+      return;
+    }
+    await command();
   }
 
   private async openTab(open: () => Promise<string>): Promise<void> {
