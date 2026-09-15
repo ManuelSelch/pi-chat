@@ -120,6 +120,28 @@ describe("WebSocket transport", () => {
     second.socket.close();
   });
 
+  it("lets a policy extension refuse prompts from an invited guest", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    const guests = new Set<string>();
+    extensions.use("connection.authorize", ({ connectionId, request }) => {
+      if (request?.query.invite) guests.add(connectionId);
+    });
+    extensions.use("prompt.authorize", ({ connectionId }) =>
+      guests.has(connectionId) ? { allow: false, reason: "Read-only guest." } : { allow: true },
+    );
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+
+    const guest = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws?invite=demo`);
+    socket = guest.socket;
+    const refused = receiveOfType(guest.socket, "runtimeStatus");
+    guest.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, sessionId: "fake-session", type: "prompt", message: "Hello" }));
+
+    expect(await refused).toMatchObject({ type: "runtimeStatus", error: "Read-only guest." });
+  });
+
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {
     server = createPiChatServer(new FakeRuntimeAdapter());
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));

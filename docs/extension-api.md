@@ -70,8 +70,10 @@ Supported slots:
 
 | Slot | Meaning |
 | --- | --- |
+| `session.status` | Status area of the session header, before the run status |
 | `session.header.right` | Right side of the active session header, near status/settings |
 | `composer.right` | Right side of the message input area, near Send/Stop |
+| `composer.below` | Under the message input, for notices such as read-only mode |
 | `settings.section` | Reserved for future settings UI; not rendered yet |
 
 `composer` means the bottom message input area where the user writes the next prompt.
@@ -120,6 +122,22 @@ interface PiChatActionContext {
 }
 ```
 
+### Badge
+
+Badges are read-only status text. They can be registered as a function so each
+viewer sees its own value, for example its own role in a shared session.
+
+```ts
+chat.registerBadge(({ connectionId }) => ({
+  id: "multiuser.role",
+  slot: "session.status",
+  label: isGuest(connectionId) ? "Guest (read-only)" : "Owner",
+  tone: isGuest(connectionId) ? "red" : "green",
+}));
+```
+
+`tone` is one of `neutral` (default), `green`, `yellow`, or `red`.
+
 ## Extension state
 
 Extensions can publish JSON-serializable state into authoritative snapshots.
@@ -134,6 +152,15 @@ chat.setExtensionState("multiuser", {
 });
 
 chat.clearExtensionState("multiuser");
+```
+
+State can also be a function, which is how a shared session tells each browser
+about itself rather than about everyone:
+
+```ts
+chat.setExtensionState("multiuser", ({ connectionId }) => ({
+  role: roleOf(connectionId),
+}));
 ```
 
 Snapshot shape:
@@ -169,6 +196,28 @@ interface PiChatConnectionRequest {
   remoteAddress?: string;
 }
 ```
+
+The browser forwards the page's query string to `/ws`, so `?invite=demo` on the
+page reaches `connection.authorize` unchanged.
+
+## Read-only guests
+
+Authorization middleware is what makes a connection read-only. Deny the write
+paths and leave the rest alone:
+
+```ts
+chat.use("prompt.authorize", ({ connectionId }) =>
+  isGuest(connectionId) ? { allow: false, reason: "Read-only guest." } : { allow: true },
+);
+chat.use("abort.authorize", ...);
+chat.use("action.authorize", ...);
+```
+
+A denied command is reported to that browser as a run error; snapshots and
+events keep flowing, so the guest still watches the session live.
+
+See `examples/pi-chat-multiuser-demo-extension.ts` for a working policy with an
+owner-only toggle that grants or revokes guest prompts at runtime.
 
 The browser sends a `runExtensionAction` message. Pi Chat dispatches it to the registered server action and then refreshes the session snapshot.
 
