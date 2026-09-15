@@ -50,7 +50,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
               <NavLink
                 key={project.path}
                 active={project.path === state.projectPath}
-                disabled={!project.exists || busy}
+                disabled={!project.exists}
                 label={project.name}
                 description={project.path}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
