@@ -18,6 +18,7 @@ import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
+import { Slot } from "../extensions/Slot.js";
 import type { Tab } from "../../shared/protocol.js";
 
 /** Height of a composer with nothing above it; replaced once measured. */
@@ -259,6 +260,7 @@ export function App() {
             <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
           <Group gap="sm" wrap="nowrap">
+            {home ? null : <Slot name="session.header.right" buttons={state.extensions.buttons} onAction={chat.runExtensionAction} />}
             {home ? null : (
               <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
                 {state.status}
@@ -451,6 +453,7 @@ export function App() {
                 flex={1}
                 styles={{ input: { padding: "8px 10px" } }}
               />
+              <Slot name="composer.right" buttons={state.extensions.buttons} onAction={chat.runExtensionAction} />
               {busy ? (
                 <ActionIcon color="red" radius="xl" size="lg" aria-label="Stop" disabled={state.status === "aborting"} onClick={() => abort()} type="button">
                   <IconPlayerStopFilled size={16} />

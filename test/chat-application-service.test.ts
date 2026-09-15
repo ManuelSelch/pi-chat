@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../src/server/chat-application-service.js";
+import { createPiChatExtensionRegistry } from "../src/server/extension-registry.js";
 import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
 
 function service(deleteSpy = vi.fn(async () => {})) {
@@ -82,6 +83,28 @@ describe("closing the last tab", () => {
     await chat.openSession("/sessions/project/other.jsonl");
 
     expect(chat.tabs()).toHaveLength(1);
+  });
+});
+
+describe("Pi Chat extension registry integration", () => {
+  it("adds extension buttons to snapshots and runs extension actions", async () => {
+    const runtime = new FakeRuntimeAdapter();
+    const extensions = createPiChatExtensionRegistry();
+    extensions.registerButton({ id: "demo", slot: "composer.right", label: "Demo", actionId: "demo.sayHello" });
+    extensions.registerAction({ id: "demo.sayHello", title: "Say hello", run: (ctx) => ctx.notify("Demo action clicked") });
+    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
+    const chat = new ChatApplicationService(runtime, {
+      continueProject: async () => new FakeRuntimeAdapter(),
+      openSession: async () => new FakeRuntimeAdapter(),
+      newSession: async () => new FakeRuntimeAdapter(),
+    }, projectSessions, undefined, extensions);
+    const notifications: string[] = [];
+    chat.subscribe((_sessionId, event) => { if (event.type === "notification") notifications.push(event.message); });
+
+    await expect(chat.snapshot()).resolves.toMatchObject({ extensions: { buttons: [{ id: "demo" }] } });
+    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: chat.activeSessionId(), actionId: "demo.sayHello" });
+
+    expect(notifications).toEqual(["Demo action clicked"]);
   });
 });
 

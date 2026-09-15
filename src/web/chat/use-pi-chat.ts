@@ -136,6 +136,8 @@ export function usePiChat() {
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId || "app", type: "runFeature", featureId: "app.restart", input: {} }),
     setThinkingLevel: (level: ThinkingLevel) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "thinking.level", input: { level } }),
+    runExtensionAction: (actionId: string, sessionId?: string) =>
+      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "runExtensionAction", actionId }),
     dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
     takeControl: () => setClaim((value) => value + 1),
   };

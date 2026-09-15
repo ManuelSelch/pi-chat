@@ -71,7 +71,7 @@ export class WebSocketTransport {
           .catch((error: unknown) => this.publishError(command.sessionId, error));
       } else if (command.type === "uiPromptResponse") {
         this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
-      } else if (command.type === "runFeature") {
+      } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
         void this.chat
           .runFeature(command)
           // Renaming changes the tab label too, so the tab list must follow.

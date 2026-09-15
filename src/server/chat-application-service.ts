@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
-import type { ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
+import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
+import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extension-registry.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
 import type { RestartService } from "./restart-service.js";
@@ -34,6 +35,7 @@ export class ChatApplicationService {
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
     private readonly restartService?: RestartService,
+    private readonly extensions: PiChatExtensionRegistry = getPiChatExtensionRegistry(),
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
     this.sessions.add(initialRuntime);
@@ -53,7 +55,13 @@ export class ChatApplicationService {
 
   async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
-    return { ...snapshot, actions: this.withAppActions(snapshot.actions), catalogue: await this.catalogue(snapshot) };
+    await this.extensions.emit("session.snapshot", { sessionId });
+    return {
+      ...snapshot,
+      actions: this.withAppActions(snapshot.actions),
+      catalogue: await this.catalogue(snapshot),
+      extensions: this.extensions.snapshot(),
+    };
   }
 
   /**
@@ -202,9 +210,16 @@ export class ChatApplicationService {
     this.catalogueCache = undefined;
   }
 
-  async runFeature(message: Extract<ClientMessage, { type: "runFeature" }>): Promise<void> {
+  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
     // Restart is app-level: it must work from the home screen too, where there
     // is no session to look up.
+    if (message.type === "runExtensionAction") {
+      await this.extensions.runAction(message.actionId, {
+        sessionId: message.sessionId,
+        notify: (text, level = "info") => this.emit(message.sessionId, { type: "notification", level, message: text }),
+      });
+      return;
+    }
     if (message.featureId === "app.restart") {
       if (!this.restartService) throw new Error("This server cannot restart itself.");
       const failure = await this.restartService.restart();
@@ -258,6 +273,9 @@ export class ChatApplicationService {
   }
 
   private emit(sessionId: string, event: RuntimeEvent): void {
+    if (event.type === "messageFinal") {
+      void this.extensions.emit("message.final", { sessionId, message: event.message as ChatMessage });
+    }
     for (const listener of this.listeners) listener(sessionId, event);
   }
 }

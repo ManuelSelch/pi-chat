@@ -8,7 +8,7 @@
 - streaming assistant text, tool cards, Markdown + KaTeX
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - slash commands, a command palette, and quick-open
-- extension UI support: `notify`, dialogs, and `setWidget` panels
+- extension UI support: `notify`, dialogs, `setWidget` panels, and experimental web extension slots/actions/hooks
 
 ## Install
 
@@ -22,6 +22,15 @@ which adds three commands to any Pi session:
 - `/pi-chat-stop`: stop pi-chat server
 - `/pi-chat`: show status
 
+
+## Extension API
+
+Pi Chat has an experimental modular web-extension API for local trusted extensions.
+External extensions can currently add declarative buttons to stable UI slots,
+handle those clicks with server-side actions, and observe a small set of
+lifecycle hooks.
+
+See [docs/extension-api.md](docs/extension-api.md).
 
 ## Keyboard shortcuts
 

@@ -201,6 +201,23 @@ export const actionRegistrySchema = z.object({
 export type WebFeature = z.infer<typeof webFeatureSchema>;
 export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 
+export const piChatSlotSchema = z.enum(["session.header.right", "composer.right", "settings.section"]);
+export type PiChatSlot = z.infer<typeof piChatSlotSchema>;
+
+export const piChatButtonSchema = z.object({
+  id: z.string().min(1),
+  slot: piChatSlotSchema,
+  label: z.string().min(1),
+  icon: z.string().optional(),
+  actionId: z.string().min(1),
+});
+export type PiChatButton = z.infer<typeof piChatButtonSchema>;
+
+export const piChatExtensionsSchema = z.object({
+  buttons: z.array(piChatButtonSchema).default([]),
+});
+export type PiChatExtensions = z.infer<typeof piChatExtensionsSchema>;
+
 export const tabStatusSchema = z.enum(["idle", "running", "blocked"]);
 export type TabStatus = z.infer<typeof tabStatusSchema>;
 
@@ -239,6 +256,7 @@ export const clientMessageSchema = z.union([
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("app.restart"), input: z.object({}) }),
+  z.object({ ...sessionScoped, type: z.literal("runExtensionAction"), actionId: z.string().min(1) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -265,6 +283,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     actions: actionRegistrySchema.optional(),
     prompts: z.array(uiPromptSchema).optional(),
     widgets: z.array(widgetSchema).optional(),
+    extensions: piChatExtensionsSchema.optional(),
   }),
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),

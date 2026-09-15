@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -20,6 +20,8 @@ export interface RuntimeSnapshot {
   prompts: UiPrompt[];
   /** Extension panels from `ctx.ui.setWidget`, rendered around the composer. */
   widgets: Widget[];
+  /** Declarative Pi Chat web extension contributions such as slot buttons. */
+  extensions?: PiChatExtensions;
   /**
    * How the last turn failed, kept until the next one starts. A snapshot that
    * omitted it erased the message the browser had just shown, which is why a
