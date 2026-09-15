@@ -110,3 +110,40 @@ html::-webkit-scrollbar {
 
 /* Tool card running pulse. */
 .tool-running-pulse { animation: stream-cursor-blink 1.2s infinite; }
+
+/* Composer "working" indicator: the border itself carries the animation, so a
+   run needs no stop button taking up room next to the send button. Escape
+   still aborts. The ring lives on a pseudo-element because the Paper's own
+   border cannot hold a moving gradient. */
+.composer-working { position: relative; }
+.composer-working::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  /* A highlight sweeping left to right reads as progress; animating
+     background-position keeps it off the compositor's slow path and needs no
+     registered custom property. */
+  background: linear-gradient(
+      90deg,
+      transparent 35%,
+      var(--mantine-primary-color-filled) 50%,
+      transparent 65%
+    )
+    0 0 / 150% 100% no-repeat;
+  /* Keeps only the 1px ring: the padding box is masked away. */
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  animation: composer-sweep 1.8s linear infinite;
+}
+@keyframes composer-sweep {
+  from { background-position: -120% 0; }
+  to { background-position: 220% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-working::after { animation: none; background: var(--mantine-primary-color-filled); opacity: 0.6; }
+}

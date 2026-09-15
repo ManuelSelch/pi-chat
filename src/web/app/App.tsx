@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ActionIcon, Alert, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
-import { IconArrowUp, IconLayoutSidebar, IconPlayerStopFilled, IconSettings } from "@tabler/icons-react";
+import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
@@ -87,11 +87,16 @@ export function App() {
         }]
       : []),
   ];
-  // The composer footer shows what the next message will run with instead of
-  // keyboard hints; a feature the server does not advertise is simply omitted.
+  // The composer footer shows what the next message will run with; a feature
+  // the server does not advertise is simply omitted. During a run it names the
+  // only way left to stop, since the animated border replaced the stop button.
   const modelName = state.actions.features.find((feature) => feature.id === "model.select")?.state.value;
   const thinkingLevel = state.actions.features.find((feature) => feature.id === "thinking.level")?.state.value;
-  const composerStatus = [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined].filter(Boolean).join(" · ");
+  const composerStatus = state.status === "aborting"
+    ? "stopping…"
+    : [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined, busy ? "esc to stop" : undefined]
+      .filter(Boolean)
+      .join(" · ");
   // Wide enough for the panels to sit in the empty gutter beside the
   // transcript. Narrower windows have no room, so they keep the terminal's own
   // arrangement around the composer.
@@ -439,7 +444,16 @@ export function App() {
             />
           ) : null}
 
-          <Paper component="form" onSubmit={submit} withBorder radius="lg" p="xs" shadow="md">
+          <Paper
+            component="form"
+            onSubmit={submit}
+            withBorder
+            radius="lg"
+            p="xs"
+            shadow="md"
+            className={busy ? "composer-working" : undefined}
+            aria-busy={busy || undefined}
+          >
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <Textarea
                 ref={composerRef}
@@ -456,15 +470,6 @@ export function App() {
                 styles={{ input: { padding: "8px 10px" } }}
               />
               <Slot name="composer.right" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
-              {busy ? (
-                <ActionIcon color="red" radius="xl" size="lg" aria-label="Stop" disabled={state.status === "aborting"} onClick={() => abort()} type="button">
-                  <IconPlayerStopFilled size={16} />
-                </ActionIcon>
-              ) : (
-                <ActionIcon radius="xl" size="lg" aria-label="Send" disabled={!input.trim() || state.status !== "idle"} type="submit">
-                  <IconArrowUp size={18} />
-                </ActionIcon>
-              )}
             </Group>
           </Paper>
           {widgetsBelow.length > 0 ? (
