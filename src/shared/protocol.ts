@@ -190,6 +190,22 @@ export const widgetSchema = z.object({
 export type Widget = z.infer<typeof widgetSchema>;
 
 /**
+ * A short label an extension pinned with `ctx.ui.setStatus`, e.g. the
+ * `READONLY` marker of a read-only mode.
+ *
+ * The terminal keeps these in the bottom-left of its footer, so the web UI puts
+ * them where its own footer is: under the composer. Keyed and long-lived like
+ * widgets — an extension re-sends the label on every change and clears it by
+ * passing `undefined`.
+ */
+export const extensionStatusSchema = z.object({
+  key: z.string().min(1),
+  text: z.string().min(1),
+});
+
+export type ExtensionStatus = z.infer<typeof extensionStatusSchema>;
+
+/**
  * A slash command Pi can dispatch. Typed UI actions stay the primary surface;
  * this catalogue is the generic fallback for everything else a session offers.
  */
@@ -300,10 +316,12 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     actions: actionRegistrySchema.optional(),
     prompts: z.array(uiPromptSchema).optional(),
     widgets: z.array(widgetSchema).optional(),
+    statuses: z.array(extensionStatusSchema).optional(),
     extensions: piChatExtensionsSchema.optional(),
   }),
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
+  z.object({ ...sequenced, type: z.literal("statuses"), statuses: z.array(extensionStatusSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("thinkingDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),

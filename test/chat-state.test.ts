@@ -459,3 +459,56 @@ describe("extension widgets", () => {
     expect(next.widgets).toEqual([]);
   });
 });
+
+describe("extension statuses", () => {
+  const readonly = { key: "readonly", text: "READONLY" };
+
+  it("tracks pinned statuses and restores them from a snapshot", () => {
+    const pinned = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "statuses",
+      sessionId: "session",
+      sequence: 1,
+      statuses: [readonly],
+    });
+    expect(pinned.statuses).toEqual([readonly]);
+
+    // A reconnecting browser rebuilds the footer label from the snapshot alone.
+    const reconnected = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 5,
+      throughSequence: 5,
+      sessionId: "session",
+      projectPath: "/tmp",
+      messages: [],
+      isStreaming: false,
+      statuses: [readonly],
+    });
+    expect(reconnected.statuses).toEqual([readonly]);
+  });
+
+  /** A snapshot is authoritative: a cleared label must not linger on screen. */
+  it("drops statuses a snapshot no longer reports", () => {
+    const pinned = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION,
+      type: "statuses",
+      sessionId: "session",
+      sequence: 1,
+      statuses: [readonly],
+    });
+
+    const refreshed = reduceServerMessage(pinned, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence: 2,
+      throughSequence: 2,
+      sessionId: "session",
+      projectPath: "/tmp",
+      messages: [],
+      isStreaming: false,
+    });
+
+    expect(refreshed.statuses).toEqual([]);
+  });
+});

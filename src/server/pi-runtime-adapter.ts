@@ -20,6 +20,7 @@ type ModelOverride = Partial<
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { UiPromptRegistry } from "./ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
+import { StatusRegistry } from "./status-registry.js";
 import { WidgetRegistry } from "./widget-registry.js";
 
 const ARGS_TEXT_MAX = 4_000;
@@ -396,6 +397,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
   private ui!: ExtensionUIContext;
   private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
+  private readonly statuses = new StatusRegistry((statuses) => this.emit({ type: "statuses", statuses }));
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
@@ -430,6 +432,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       onNotify: (message, level) => this.emit({ type: "notification", level, message }),
       onPrompt: (request) => this.prompts.ask(request),
       onWidget: (key, lines, placement) => this.widgets.set(key, lines, placement),
+      onStatus: (key, text) => this.statuses.set(key, text),
     });
     // "rpc" rather than "print": this host can answer blocking questions.
     this.runtime.session.extensionRunner.setUIContext(this.ui, "rpc");
@@ -573,6 +576,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       },
       prompts: this.prompts.list(),
       widgets: this.widgets.list(),
+      statuses: this.statuses.list(),
     };
   }
 
@@ -764,6 +768,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     // Panels belong to the runtime that pushed them; a disposed adapter must
     // not keep reporting them in a snapshot.
     this.widgets.clear();
+    this.statuses.clear();
     this.listeners.clear();
     await this.runtime.dispose();
   }

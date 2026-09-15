@@ -1,4 +1,4 @@
-import type { ActionRegistry, ChatMessage, PiChatExtensions, ProjectCatalogue, ServerMessage, UiPrompt, Widget } from "../../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, ExtensionStatus, PiChatExtensions, ProjectCatalogue, ServerMessage, UiPrompt, Widget } from "../../shared/protocol.js";
 
 /**
  * Losing the socket is a state change the transcript must reflect, so it is an
@@ -28,6 +28,8 @@ export interface ChatState {
   prompts: UiPrompt[];
   /** Extension panels from `ctx.ui.setWidget`, shown around the composer. */
   widgets: Widget[];
+  /** Extension labels from `ctx.ui.setStatus`, shown in the composer footer. */
+  statuses: ExtensionStatus[];
   /** Declarative Pi Chat web extension contributions such as slot buttons. */
   extensions: PiChatExtensions;
   sequence: number;
@@ -42,6 +44,7 @@ export const initialChatState: ChatState = {
   actions: { features: [], commands: [] },
   prompts: [],
   widgets: [],
+  statuses: [],
   extensions: { buttons: [], badges: [], state: {} },
   sequence: -1,
 };
@@ -125,6 +128,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       actions: message.actions ?? state.actions,
       prompts: message.prompts ?? [],
       widgets: message.widgets ?? [],
+      statuses: message.statuses ?? [],
       extensions: message.extensions ?? { buttons: [], badges: [], state: {} },
       sequence: message.throughSequence,
       // The server owns the failure now, so a refresh after a failed turn
@@ -205,6 +209,9 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
   }
   if (message.type === "widgets") {
     return { ...state, sequence: message.sequence, widgets: message.widgets };
+  }
+  if (message.type === "statuses") {
+    return { ...state, sequence: message.sequence, statuses: message.statuses };
   }
   return state;
 }

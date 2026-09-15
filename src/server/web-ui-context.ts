@@ -8,7 +8,33 @@ export interface WebUiContextHandlers {
   onNotify: (message: string, level: NotificationLevel) => void;
   onPrompt: (request: UiPromptRequest) => Promise<UiPromptResult>;
   onWidget?: (key: string, lines: string[] | undefined, placement: WidgetPlacement) => void;
+  onStatus?: (key: string, text: string | undefined) => void;
 }
+
+/**
+ * `ctx.ui.theme` is how an extension colours the text it hands to `setStatus`
+ * and friends. The browser renders that text as text, so every colour here is
+ * the identity function: the label survives, the escape sequences never exist.
+ *
+ * It has to exist at all because the alternative was a crash. Pi's own RPC mode
+ * hands out the real terminal theme, so `ctx.ui.theme.fg("warning", "READONLY")`
+ * is the documented way to write a status — and against an absent theme it threw
+ * a TypeError that took the whole command down with it.
+ */
+const plainTheme = {
+  fg: (_color: string, text: string) => text,
+  bg: (_color: string, text: string) => text,
+  bold: (text: string) => text,
+  italic: (text: string) => text,
+  underline: (text: string) => text,
+  inverse: (text: string) => text,
+  strikethrough: (text: string) => text,
+  getFgAnsi: () => "",
+  getBgAnsi: () => "",
+  getColorMode: () => "truecolor" as const,
+  getThinkingBorderColor: () => (text: string) => text,
+  getBashModeBorderColor: () => (text: string) => text,
+};
 
 /**
  * Extensions talk to the host through `ctx.ui`. Pi installs a no-op context
@@ -20,7 +46,7 @@ export interface WebUiContextHandlers {
  * genuinely terminal-shaped surface — footers, headers, editor components, and
  * raw terminal input — which has no serialized form to forward.
  */
-export function createWebUiContext({ onNotify, onPrompt, onWidget }: WebUiContextHandlers): ExtensionUIContext {
+export function createWebUiContext({ onNotify, onPrompt, onWidget, onStatus }: WebUiContextHandlers): ExtensionUIContext {
   const noop = (): void => {};
 
   const context = {
@@ -64,9 +90,14 @@ export function createWebUiContext({ onNotify, onPrompt, onWidget }: WebUiContex
       onWidget?.(key, content as string[] | undefined, options?.placement ?? "aboveEditor");
     },
 
+    /**
+     * Status labels are the terminal's bottom-left footer text, and a browser
+     * has a footer too. `undefined` clears, per Pi's contract.
+     */
+    setStatus: (key: string, text: string | undefined) => onStatus?.(key, text),
+
     // Terminal-only chrome.
     onTerminalInput: () => noop,
-    setStatus: noop,
     setWorkingMessage: noop,
     setWorkingVisible: noop,
     setWorkingIndicator: noop,
@@ -80,7 +111,7 @@ export function createWebUiContext({ onNotify, onPrompt, onWidget }: WebUiContex
     addAutocompleteProvider: noop,
     setEditorComponent: noop,
     getEditorComponent: () => undefined,
-    theme: undefined,
+    theme: plainTheme,
   };
 
   // The TUI-shaped members above are intentionally inert, so the object cannot

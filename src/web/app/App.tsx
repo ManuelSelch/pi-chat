@@ -7,6 +7,7 @@ import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuIte
 import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
+import { StatusBar } from "../chat/StatusBar.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -485,7 +486,9 @@ export function App() {
             <Slot name="composer.below" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
           </Box>
 
-          {composerStatus ? <Text size="xs" c="dimmed" mt={6} pl={12}>{composerStatus}</Text> : null}
+          {/* Extension status labels share this line: it is this UI's footer,
+              which is where the terminal puts them too. */}
+          <StatusBar statuses={state.statuses} status={composerStatus} />
         </Container>
       </Box>
       )}

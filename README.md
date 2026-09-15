@@ -8,7 +8,7 @@
 - streaming assistant text, tool cards, Markdown + KaTeX
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - slash commands, a command palette, and quick-open
-- extension UI support: `notify`, dialogs, `setWidget` panels, and experimental web extension slots/actions/hooks
+- extension UI support: `notify`, dialogs, `setWidget` panels, `setStatus` footer labels, and experimental web extension slots/actions/hooks
 
 ## Install
 
