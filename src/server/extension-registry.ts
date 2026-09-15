@@ -1,5 +1,5 @@
 import type { ChatMessage } from "../shared/protocol.js";
-import type { PiChatConnectionMode } from "./connection.js";
+import type { PiChatConnectionMode, PiChatConnectionRequest } from "./connection.js";
 
 export type PiChatSlot = "session.header.right" | "composer.right" | "settings.section";
 
@@ -39,6 +39,7 @@ export interface PiChatAuthorizationContext {
   connectionId: string;
   sessionId?: string;
   actionId?: string;
+  request?: PiChatConnectionRequest;
 }
 export type PiChatAuthorizationHandler = (ctx: PiChatAuthorizationContext) => Promise<PiChatAuthorizationResult | void> | PiChatAuthorizationResult | void;
 

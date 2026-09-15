@@ -7,7 +7,7 @@ import {
   type ServerMessage,
 } from "../shared/protocol.js";
 import { ChatApplicationService } from "./chat-application-service.js";
-import { createConnection, type PiChatConnection } from "./connection.js";
+import { connectionRequestFrom, createConnection, type PiChatConnection } from "./connection.js";
 import type { RuntimeEvent } from "./runtime-adapter.js";
 
 export class WebSocketTransport {
@@ -21,7 +21,7 @@ export class WebSocketTransport {
   constructor(httpServer: Server, private readonly chat: ChatApplicationService) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publish(sessionId, event));
-    this.server.on("connection", (socket) => this.connect(socket));
+    this.server.on("connection", (socket, request) => this.connect(socket, request));
   }
 
   async close(): Promise<void> {
@@ -30,9 +30,9 @@ export class WebSocketTransport {
     await new Promise<void>((resolve) => this.server.close(() => resolve()));
   }
 
-  private connect(socket: WebSocket): void {
+  private connect(socket: WebSocket, request: import("node:http").IncomingMessage): void {
     const mode = this.chat.connectionMode();
-    const connection = createConnection(socket, mode);
+    const connection = createConnection(socket, mode, connectionRequestFrom(request));
     const previous = this.controller();
     if (mode === "single-controller" && previous?.socket.readyState === WebSocket.OPEN) {
       this.sendTo(previous.socket, this.protocolError("Another browser took control of this Pi Chat session."));
@@ -43,7 +43,7 @@ export class WebSocketTransport {
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
     void this.chat
-      .authorizeConnectionAction("connection.authorize", { connectionId: connection.id })
+      .authorizeConnectionAction("connection.authorize", { connectionId: connection.id, request: connection.request })
       .then(() => this.chat.connectionOpened(connection.id))
       .then(() => this.sendAll(connection.socket))
       .catch((error: unknown) => {
