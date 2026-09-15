@@ -50,16 +50,24 @@ export class ChimePlayer {
     return this.createContext !== undefined;
   }
 
+  /** Whether a chime would be heard right now, rather than queued or dropped. */
+  get running(): boolean {
+    return this.context?.state === "running";
+  }
+
   /**
    * Call from a click handler. Opening the context here is what makes the very
    * first chime audible; without it Safari drops it and only later ones, after
    * some unrelated click, come through.
+   *
+   * Safe to call on every gesture: once the context runs this costs nothing, so
+   * the caller can keep it armed instead of guessing which gesture counts.
    */
   async unlock(): Promise<void> {
-    if (!this.createContext) return;
+    if (!this.createContext || this.running) return;
     try {
       this.context ??= this.createContext();
-      if (this.context.state === "suspended") await this.context.resume();
+      if (this.context.state !== "running") await this.context.resume();
     } catch {
       // Nothing to do: the next chime simply stays silent.
     }
@@ -115,9 +123,13 @@ export function chimesFor(previous: Map<string, TabStatus>, tabs: Tab[]): Chime[
     // a finished session is not an event.
     if (before === undefined || before === tab.status) continue;
     if (tab.status === "blocked") chimes.push("waiting");
-    // Only work that was actually running can finish. Leaving a prompt behind
-    // is the user's own doing and needs no sound.
-    else if (tab.status === "idle" && before === "running") chimes.push("finished");
+    // Any settled session counts as finished, including one that goes straight
+    // from a dialog to idle. Requiring the predecessor to be "running" dropped
+    // the chime whenever the browser never saw a status between the two, which
+    // is easy: the tab list is republished per event, and two of them arriving
+    // together are one render. Missing the end of a run is worse than the odd
+    // sound after a dialog is dismissed.
+    else if (tab.status === "idle") chimes.push("finished");
   }
   return chimes;
 }

@@ -151,6 +151,39 @@ describe("switching chimes on", () => {
     expect(audio.notes.length).toBe(afterPreview + 2);
   });
 
+  it("opens the context on the first interaction after a reload", async () => {
+    // The setting is remembered, but the browser's autoplay permission is not:
+    // a reload leaves the page locked again with nothing to unlock it, because
+    // a run finishing is not a gesture. Every chime was then dropped until the
+    // user happened to touch the settings toggle again.
+    window.localStorage.setItem(CHIME_STORAGE_KEY, JSON.stringify(true));
+    const audio = installAudio("suspended");
+
+    const view = render(<Harness tabs={[tab("a", "running")]} />);
+    expect(audio.resumes).toBe(0);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "h" }));
+    });
+    expect(audio.resumes).toBeGreaterThan(0);
+
+    await act(async () => {
+      view.rerender(<Harness tabs={[tab("a", "idle")]} />);
+    });
+    expect(audio.notes).toHaveLength(2);
+  });
+
+  it("leaves audio alone while chimes are switched off", async () => {
+    const audio = installAudio("suspended");
+
+    render(<Harness tabs={[tab("a", "running")]} />);
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "h" }));
+    });
+
+    expect(audio.resumes).toBe(0);
+  });
+
   it("does not chime when switching off", async () => {
     window.localStorage.setItem(CHIME_STORAGE_KEY, JSON.stringify(true));
     const audio = installAudio();

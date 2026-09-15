@@ -27,9 +27,40 @@ export function useChimes(tabs: Tab[]): { enabled: boolean; setEnabled: (value: 
   useEffect(() => () => player.current?.close(), []);
 
   /**
-   * Switching on is the only user gesture this feature gets, so the audio
-   * context is opened here. The preview doubles as proof that sound works,
-   * rather than leaving the user to wonder until the next run ends.
+   * Keeps the audio context openable across a reload.
+   *
+   * The setting is remembered but the browser's permission to make noise is
+   * not: every load starts locked again, and the thing a chime announces — a
+   * run ending — is never a gesture, so nothing would ever unlock it. Chimes
+   * were then dropped for the whole visit unless the user happened to open the
+   * settings and toggle them again, which is why they seemed to work only
+   * sometimes.
+   *
+   * Listening on the window covers any interaction, and `unlock()` costs
+   * nothing once the context runs. `visibilitychange` is here for Safari and
+   * iOS, which suspend audio in a hidden tab — precisely the tab a background
+   * run is finishing in.
+   */
+  useEffect(() => {
+    if (!enabled) return;
+    const unlock = () => void player.current?.unlock();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") unlock();
+    };
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [enabled]);
+
+  /**
+   * Switching on is a gesture of its own, so the context is opened here too
+   * rather than waiting for the next click. The preview doubles as proof that
+   * sound works, rather than leaving the user to wonder until a run ends.
    */
   const toggle = useCallback((value: boolean) => {
     setEnabled(value);

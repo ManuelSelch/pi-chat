@@ -30,8 +30,12 @@ describe("which tab changes deserve a sound", () => {
     expect(chimesFor(before, [tab("a", "idle")])).toEqual([]);
   });
 
-  it("stays quiet when a prompt is answered rather than a run finishing", () => {
-    expect(chimesFor(statusMap([tab("a", "blocked")]), [tab("a", "idle")])).toEqual([]);
+  // Deliberately changed: this used to stay quiet, on the grounds that
+  // answering a dialog is the user's own doing. It also silenced a run that
+  // genuinely ended while the browser's last sighting was the dialog, which is
+  // the case worth hearing.
+  it("chimes when a session settles straight out of a dialog", () => {
+    expect(chimesFor(statusMap([tab("a", "blocked")]), [tab("a", "idle")])).toEqual(["finished"]);
   });
 
   it("reports one chime per tab that changed", () => {
@@ -120,6 +124,28 @@ describe("chime player", () => {
 
     expect(created).toBe(1);
     expect(stops).toHaveLength(2);
+  });
+
+  // The unlock listener fires on every click and keystroke, so repeating it
+  // must not cost a resume call or reopen anything.
+  it("does nothing once the context already runs", async () => {
+    let resumes = 0;
+    const { context } = fakeContext("suspended", async () => {
+      resumes++;
+      context.state = "running";
+    });
+    const player = new ChimePlayer(() => context as unknown as AudioContext);
+
+    await player.unlock();
+    expect(player.running).toBe(true);
+    await player.unlock();
+    await player.unlock();
+
+    expect(resumes).toBe(1);
+  });
+
+  it("reports itself as not running before anything opened a context", () => {
+    expect(new ChimePlayer(() => fakeContext("running", async () => {}).context as unknown as AudioContext).running).toBe(false);
   });
 
   it("survives a browser that refuses to unlock", async () => {
