@@ -32,7 +32,7 @@ export function usePiChat() {
     function connect(): void {
       if (disposed) return;
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+      const socket = new WebSocket(`${protocol}://${window.location.host}/ws${window.location.search}`);
       socketRef.current = socket;
 
       socket.addEventListener("open", () => {

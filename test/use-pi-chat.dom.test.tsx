@@ -124,6 +124,15 @@ describe("usePiChat connection lifecycle", () => {
     expect(screen.getByTestId("status").textContent).toBe("idle");
   });
 
+  it("forwards the page query string to the WebSocket", () => {
+    window.history.replaceState(null, "", "/?invite=demo");
+
+    render(<Probe />);
+    act(() => void vi.advanceTimersByTime(0));
+
+    expect(FakeWebSocket.instances[0]!.url).toBe("ws://localhost:3000/ws?invite=demo");
+  });
+
   it("stops reconnecting when another tab takes the controller slot", () => {
     render(<Probe />);
     act(() => void vi.advanceTimersByTime(0));
