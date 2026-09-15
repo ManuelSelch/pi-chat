@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
-import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extension-registry.js";
+import { getPiChatExtensionRegistry, type PiChatAuthorizationName, type PiChatExtensionRegistry } from "./extension-registry.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
 import type { RestartService } from "./restart-service.js";
@@ -254,6 +254,11 @@ export class ChatApplicationService {
 
   async connectionClosed(connectionId: string): Promise<void> {
     await this.extensions.emit("connection.close", { connectionId });
+  }
+
+  async authorizeConnectionAction(name: PiChatAuthorizationName, ctx: { connectionId: string; sessionId?: string; actionId?: string }): Promise<void> {
+    const result = await this.extensions.authorize(name, ctx);
+    if (!result.allow) throw new Error(result.reason);
   }
 
   async dispose(): Promise<void> {

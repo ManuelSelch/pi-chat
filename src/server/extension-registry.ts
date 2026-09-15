@@ -32,6 +32,15 @@ type HookPayload<Name extends PiChatHookName> = Extract<PiChatHookEvent, { name:
 
 type HookHandler<Name extends PiChatHookName> = (payload: HookPayload<Name>) => Promise<void> | void;
 
+export type PiChatAuthorizationName = "connection.authorize" | "prompt.authorize" | "action.authorize" | "abort.authorize" | "snapshot.authorize";
+export type PiChatAuthorizationResult = { allow: true } | { allow: false; reason: string };
+export interface PiChatAuthorizationContext {
+  connectionId: string;
+  sessionId?: string;
+  actionId?: string;
+}
+export type PiChatAuthorizationHandler = (ctx: PiChatAuthorizationContext) => Promise<PiChatAuthorizationResult | void> | PiChatAuthorizationResult | void;
+
 export interface PiChatExtensionSnapshot {
   buttons: PiChatButton[];
 }
@@ -40,6 +49,8 @@ export interface PiChatExtensionRegistry {
   registerButton(button: PiChatButton): void;
   registerAction(action: PiChatAction): void;
   on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>): void;
+  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void;
+  authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult>;
   snapshot(): PiChatExtensionSnapshot;
   runAction(actionId: string, ctx: PiChatActionContext): Promise<void>;
   emit<Name extends PiChatHookName>(name: Name, payload: HookPayload<Name>): Promise<void>;
@@ -49,6 +60,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   private readonly buttons = new Map<string, PiChatButton>();
   private readonly actions = new Map<string, PiChatAction>();
   private readonly hooks = new Map<PiChatHookName, Array<(payload: unknown) => Promise<void> | void>>();
+  private readonly authorizers = new Map<PiChatAuthorizationName, PiChatAuthorizationHandler[]>();
 
   registerButton(button: PiChatButton): void {
     this.buttons.set(button.id, button);
@@ -62,6 +74,20 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
     const handlers = this.hooks.get(name) ?? [];
     handlers.push(handler as (payload: unknown) => Promise<void> | void);
     this.hooks.set(name, handlers);
+  }
+
+  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void {
+    const handlers = this.authorizers.get(name) ?? [];
+    handlers.push(handler);
+    this.authorizers.set(name, handlers);
+  }
+
+  async authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult> {
+    for (const handler of this.authorizers.get(name) ?? []) {
+      const result = await handler(ctx);
+      if (result?.allow === false) return result;
+    }
+    return { allow: true };
   }
 
   snapshot(): PiChatExtensionSnapshot {

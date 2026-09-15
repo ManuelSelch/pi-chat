@@ -31,6 +31,16 @@ describe("Pi Chat extension registry", () => {
     expect(handler).toHaveBeenCalledWith({ sessionId: "s1", message: { id: "m1", role: "assistant", text: "Hi" } });
   });
 
+  it("authorizes by default and stops on first denial", async () => {
+    const registry = createPiChatExtensionRegistry();
+    registry.use("prompt.authorize", () => ({ allow: true }));
+    registry.use("prompt.authorize", () => ({ allow: false, reason: "Read only" }));
+    registry.use("prompt.authorize", () => { throw new Error("should not run"); });
+
+    await expect(registry.authorize("prompt.authorize", { connectionId: "c1", sessionId: "s1" })).resolves.toEqual({ allow: false, reason: "Read only" });
+    await expect(registry.authorize("action.authorize", { connectionId: "c1" })).resolves.toEqual({ allow: true });
+  });
+
   it("emits connection lifecycle hooks", async () => {
     const registry = createPiChatExtensionRegistry();
     const opened = vi.fn();

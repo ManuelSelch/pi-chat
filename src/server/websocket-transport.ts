@@ -41,8 +41,14 @@ export class WebSocketTransport {
     this.controllerId = connection.id;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
-    void this.chat.connectionOpened(connection.id);
-    void this.sendAll(connection.socket);
+    void this.chat
+      .authorizeConnectionAction("connection.authorize", { connectionId: connection.id })
+      .then(() => this.chat.connectionOpened(connection.id))
+      .then(() => this.sendAll(connection.socket))
+      .catch((error: unknown) => {
+        this.sendTo(connection.socket, this.protocolError(error instanceof Error ? error.message : "Connection rejected."));
+        connection.socket.close();
+      });
 
     socket.on("message", (data) => this.handleMessage(connection, data));
 
@@ -81,19 +87,24 @@ export class WebSocketTransport {
 
     const command = result.value;
     if (command.type === "abort") {
-      void this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
+      void this.chat.authorizeConnectionAction("abort.authorize", { connectionId: connection.id, sessionId: command.sessionId })
+        .then(() => this.chat.abort(command.sessionId))
+        .catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "prompt") {
       // A prompt can be a native command such as /model, which changes state
       // the snapshot owns, so refresh once the run settles.
       void this.chat
-        .prompt(command.sessionId, command.message)
+        .authorizeConnectionAction("prompt.authorize", { connectionId: connection.id, sessionId: command.sessionId })
+        .then(() => this.chat.prompt(command.sessionId, command.message))
         .then(() => this.sendSnapshot(command.sessionId))
         .catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "uiPromptResponse") {
       this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
     } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
+      const actionId = command.type === "runExtensionAction" ? command.actionId : command.featureId;
       void this.chat
-        .runFeature(command)
+        .authorizeConnectionAction("action.authorize", { connectionId: connection.id, sessionId: command.sessionId, actionId })
+        .then(() => this.chat.runFeature(command))
         // Renaming changes the tab label too, so the tab list must follow.
         .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
         .catch((error: unknown) => this.publishError(command.sessionId, error));
