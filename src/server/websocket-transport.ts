@@ -7,13 +7,15 @@ import {
   type ServerMessage,
 } from "../shared/protocol.js";
 import { ChatApplicationService } from "./chat-application-service.js";
+import { createConnection, type PiChatConnection } from "./connection.js";
 import type { RuntimeEvent } from "./runtime-adapter.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
   /** Per session: a busy tab must not advance a quiet tab's sequence. */
   private readonly sequences = new Map<string, number>();
-  private controller?: WebSocket;
+  private readonly connections = new Map<string, PiChatConnection>();
+  private controllerId?: string;
   private readonly unsubscribe: () => void;
 
   constructor(httpServer: Server, private readonly chat: ChatApplicationService) {
@@ -24,89 +26,96 @@ export class WebSocketTransport {
 
   async close(): Promise<void> {
     this.unsubscribe();
-    this.controller?.close();
+    for (const connection of this.connections.values()) connection.socket.close();
     await new Promise<void>((resolve) => this.server.close(() => resolve()));
   }
 
   private connect(socket: WebSocket): void {
-    if (this.controller?.readyState === WebSocket.OPEN) {
-      this.sendTo(this.controller, this.protocolError("Another browser took control of this Pi Chat session."));
-      this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
+    const connection = createConnection(socket, "single-controller");
+    const previous = this.controller();
+    if (previous?.socket.readyState === WebSocket.OPEN) {
+      this.sendTo(previous.socket, this.protocolError("Another browser took control of this Pi Chat session."));
+      previous.socket.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
-    this.controller = socket;
+    this.connections.set(connection.id, connection);
+    this.controllerId = connection.id;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
-    void this.sendAll(socket);
+    void this.sendAll(connection.socket);
 
-    socket.on("message", (data) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(data.toString());
-      } catch {
-        this.sendTo(socket, this.protocolError("Message must be valid JSON."));
-        return;
-      }
-
-      const result = (() => {
-        try {
-          return { ok: true as const, value: parseClientMessage(parsed) };
-        } catch {
-          return { ok: false as const };
-        }
-      })();
-      if (!result.ok) {
-        this.sendTo(socket, this.protocolError("Message does not match protocol version 1."));
-        return;
-      }
-
-      const command = result.value;
-      if (command.type === "abort") {
-        void this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
-      } else if (command.type === "prompt") {
-        // A prompt can be a native command such as /model, which changes state
-        // the snapshot owns, so refresh once the run settles.
-        void this.chat
-          .prompt(command.sessionId, command.message)
-          .then(() => this.sendSnapshot(command.sessionId))
-          .catch((error: unknown) => this.publishError(command.sessionId, error));
-      } else if (command.type === "uiPromptResponse") {
-        this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
-      } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
-        void this.chat
-          .runFeature(command)
-          // Renaming changes the tab label too, so the tab list must follow.
-          .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
-          .catch((error: unknown) => this.publishError(command.sessionId, error));
-      } else if (command.type === "focusTab") {
-        this.chat.focusTab(command.sessionId);
-        this.sendTabs();
-      } else if (command.type === "deleteSession") {
-        void this.chat
-          .deleteSession(command.path)
-          .then(() => this.sendCatalogue())
-          .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
-      } else if (command.type === "closeTab") {
-        void this.chat
-          .closeTab(command.sessionId)
-          // Closing the last tab lands on the home screen, which searches the catalogue.
-          .then(() => { this.sendTabs(); return this.sendCatalogue(); })
-          .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
-      } else if (command.type === "openProject") {
-        void this.openTab(() => this.chat.openProject(command.path));
-      } else if (command.type === "openSession") {
-        void this.openTab(() => this.chat.openSession(command.path));
-      } else {
-        void this.openTab(() => this.chat.newSession(command.path));
-      }
-    });
+    socket.on("message", (data) => this.handleMessage(connection, data));
 
     socket.on("close", () => {
-      if (this.controller !== socket) return;
-      this.controller = undefined;
+      this.connections.delete(connection.id);
+      if (this.controllerId !== connection.id) return;
+      this.controllerId = undefined;
       // A reload must not cancel a permission gate, so pending dialogs only
       // expire after the registry's grace period without a controller.
       this.chat.suspendPrompts();
     });
+  }
+
+  private handleMessage(connection: PiChatConnection, data: WebSocket.RawData): void {
+    const socket = connection.socket;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(data.toString());
+    } catch {
+      this.sendTo(socket, this.protocolError("Message must be valid JSON."));
+      return;
+    }
+
+    const result = (() => {
+      try {
+        return { ok: true as const, value: parseClientMessage(parsed) };
+      } catch {
+        return { ok: false as const };
+      }
+    })();
+    if (!result.ok) {
+      this.sendTo(socket, this.protocolError("Message does not match protocol version 1."));
+      return;
+    }
+
+    const command = result.value;
+    if (command.type === "abort") {
+      void this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
+    } else if (command.type === "prompt") {
+      // A prompt can be a native command such as /model, which changes state
+      // the snapshot owns, so refresh once the run settles.
+      void this.chat
+        .prompt(command.sessionId, command.message)
+        .then(() => this.sendSnapshot(command.sessionId))
+        .catch((error: unknown) => this.publishError(command.sessionId, error));
+    } else if (command.type === "uiPromptResponse") {
+      this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
+    } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
+      void this.chat
+        .runFeature(command)
+        // Renaming changes the tab label too, so the tab list must follow.
+        .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
+        .catch((error: unknown) => this.publishError(command.sessionId, error));
+    } else if (command.type === "focusTab") {
+      this.chat.focusTab(command.sessionId);
+      this.sendTabs();
+    } else if (command.type === "deleteSession") {
+      void this.chat
+        .deleteSession(command.path)
+        .then(() => this.sendCatalogue())
+        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+    } else if (command.type === "closeTab") {
+      void this.chat
+        .closeTab(command.sessionId)
+        // Closing the last tab lands on the home screen, which searches the catalogue.
+        .then(() => { this.sendTabs(); return this.sendCatalogue(); })
+        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+    } else if (command.type === "openProject") {
+      void this.openTab(() => this.chat.openProject(command.path));
+    } else if (command.type === "openSession") {
+      void this.openTab(() => this.chat.openSession(command.path));
+    } else {
+      void this.openTab(() => this.chat.newSession(command.path));
+    }
   }
 
   private async openTab(open: () => Promise<string>): Promise<void> {
@@ -127,7 +136,8 @@ export class WebSocketTransport {
       sequence: this.nextSequence(sessionId),
       ...event,
     };
-    if (this.controller?.readyState === WebSocket.OPEN) this.sendTo(this.controller, message);
+    const controller = this.controller();
+    if (controller?.socket.readyState === WebSocket.OPEN) this.sendTo(controller.socket, message);
     // Status and prompt changes drive the tab dots.
     if (event.type === "runtimeStatus" || event.type === "prompts") this.sendTabs();
   }
@@ -140,7 +150,7 @@ export class WebSocketTransport {
   }
 
   /** The home screen has no snapshot to read the catalogue from. */
-  private async sendCatalogue(socket = this.controller): Promise<void> {
+  private async sendCatalogue(socket = this.controller()?.socket): Promise<void> {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     try {
       const catalogue = await this.chat.currentCatalogue();
@@ -151,7 +161,7 @@ export class WebSocketTransport {
     }
   }
 
-  private sendTabs(socket = this.controller): void {
+  private sendTabs(socket = this.controller()?.socket): void {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     this.sendTo(socket, {
       version: PROTOCOL_VERSION,
@@ -161,7 +171,7 @@ export class WebSocketTransport {
     });
   }
 
-  private async sendSnapshot(sessionId: string, socket = this.controller): Promise<void> {
+  private async sendSnapshot(sessionId: string, socket = this.controller()?.socket): Promise<void> {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     const snapshot = await this.chat.snapshot(sessionId);
     const sequence = this.sequences.get(sessionId) ?? 0;
@@ -183,6 +193,10 @@ export class WebSocketTransport {
     const next = (this.sequences.get(sessionId) ?? 0) + 1;
     this.sequences.set(sessionId, next);
     return next;
+  }
+
+  private controller(): PiChatConnection | undefined {
+    return this.controllerId ? this.connections.get(this.controllerId) : undefined;
   }
 
   private protocolError(error: string): ServerMessage {
