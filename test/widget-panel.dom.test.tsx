@@ -3,7 +3,13 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Widget } from "../src/shared/protocol.js";
-import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_TOP } from "../src/web/chat/WidgetPanel.js";
+import {
+  placeWidgets,
+  WidgetDock,
+  WidgetPanel,
+  WIDGET_DOCK_MAX_WIDTH,
+  WIDGET_DOCK_TOP,
+} from "../src/web/chat/WidgetPanel.js";
 
 afterEach(cleanup);
 
@@ -38,6 +44,16 @@ describe("WidgetPanel", () => {
     expect(block?.textContent).toBe("── Todos ──\n○ #1 Write tests\n✓ #2 Read the docs");
     // The extension's own key is the only label the browser has for it.
     expect(screen.getByText("todo")).toBeTruthy();
+  });
+
+  it("wraps a long row instead of running it off the side", () => {
+    show([{ ...todo, lines: [`○ #1 ${"a very long task ".repeat(8)}`] }]);
+
+    const block = document.querySelector("pre");
+    // The alignment spaces a widget draws with still have to survive: it is the
+    // overflow that wraps, not every space that collapses.
+    expect(block?.style.whiteSpace).toBe("pre-wrap");
+    expect(block?.style.overflowWrap).toBe("anywhere");
   });
 
   it("collapses and expands a panel", () => {
@@ -96,7 +112,7 @@ describe("WidgetDock", () => {
     // narrow that the terminal rows are unreadable.
     expect(width).toContain("clamp(200px");
     expect(width).toContain("45rem");
-    expect(width).toContain("320px");
+    expect(width).toContain(WIDGET_DOCK_MAX_WIDTH);
   });
 
   it("scrolls instead of running off the bottom of the window", () => {

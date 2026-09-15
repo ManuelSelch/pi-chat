@@ -41,9 +41,14 @@ function WidgetBlock({ widget }: { widget: Widget }) {
             font: "var(--mantine-font-family-monospace)",
             fontSize: "var(--mantine-font-size-xs)",
             lineHeight: 1.45,
-            // Terminal rows are already wrapped to a width, so they are kept as
-            // written and scrolled rather than re-wrapped into a different shape.
-            whiteSpace: "pre",
+            // Terminal rows are wrapped for a width this panel does not have:
+            // the dock is a gutter, not a terminal. Kept as written they scroll
+            // sideways, which hides the end of every long row, so the runs of
+            // spaces that align a row are preserved while an over-long row is
+            // allowed to wrap. `overflowX` stays as the escape hatch for what
+            // cannot be broken, e.g. an unspaced path or a rule of box glyphs.
+            whiteSpace: "pre-wrap",
+            overflowWrap: "anywhere",
             overflowX: "auto",
             margin: 0,
           }}
@@ -81,6 +86,16 @@ const TRANSCRIPT_COLUMN = "45rem";
  * transcript, so the caller leaves the panels by the composer instead.
  */
 export const WIDGET_DOCK_QUERY = "(min-width: 1200px)";
+
+/**
+ * How wide a docked panel may get on a large screen.
+ *
+ * Lines are shown as written rather than re-wrapped, so this is what decides
+ * how much of a long row is readable without scrolling sideways. The gutter is
+ * usually the binding constraint anyway; this only stops a very wide window
+ * from stretching the panels out of proportion with the transcript.
+ */
+export const WIDGET_DOCK_MAX_WIDTH = "420px";
 
 /**
  * Where each panel goes. Docked, the terminal's above/below split has no
@@ -121,7 +136,7 @@ export function WidgetDock({ widgets }: { widgets: Widget[] }) {
       top={WIDGET_DOCK_TOP}
       right={16}
       style={{
-        width: `clamp(200px, calc((100vw - ${TRANSCRIPT_COLUMN}) / 2 - 32px), 320px)`,
+        width: `clamp(200px, calc((100vw - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
         maxHeight: `calc(100vh - ${WIDGET_DOCK_TOP + 16}px)`,
         overflowY: "auto",
         zIndex: 100,
