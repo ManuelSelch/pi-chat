@@ -40,6 +40,10 @@ export class WebSocketTransport {
       previous.socket.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
     this.connections.set(connection.id, connection);
+    // Pinned now rather than resolved lazily: a connection that never picked a
+    // tab would otherwise keep inheriting the shared default and get dragged
+    // along every time somebody else opened a session.
+    connection.focusedSessionId = this.chat.activeSessionId() || undefined;
     if (mode === "single-controller" || !this.controllerId) this.controllerId = connection.id;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
@@ -114,8 +118,12 @@ export class WebSocketTransport {
         this.sendTabs();
       }).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "focusTab") {
+      // Private to this browser, so it needs no policy and no broadcast. The
+      // shared default follows too, which is what a reconnecting tab falls back
+      // to once its own choice is gone.
+      connection.focusedSessionId = command.sessionId;
       this.chat.focusTab(command.sessionId);
-      this.sendTabs();
+      this.sendTabs(connection.socket);
     } else if (command.type === "deleteSession") {
       void this.guard(connection, "session.authorize", { operation: "deleteSession" }, async () => {
         await this.chat.deleteSession(command.path);
@@ -130,15 +138,15 @@ export class WebSocketTransport {
       }).catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
     } else if (command.type === "openProject") {
       void this.guard(connection, "session.authorize", { operation: "openProject" }, () =>
-        this.openTab(() => this.chat.openProject(command.path)),
+        this.openTab(connection, () => this.chat.openProject(command.path)),
       );
     } else if (command.type === "openSession") {
       void this.guard(connection, "session.authorize", { operation: "openSession" }, () =>
-        this.openTab(() => this.chat.openSession(command.path)),
+        this.openTab(connection, () => this.chat.openSession(command.path)),
       );
     } else {
       void this.guard(connection, "session.authorize", { operation: "newSession" }, () =>
-        this.openTab(() => this.chat.newSession(command.path)),
+        this.openTab(connection, () => this.chat.newSession(command.path)),
       );
     }
   }
@@ -165,9 +173,11 @@ export class WebSocketTransport {
     await command();
   }
 
-  private async openTab(open: () => Promise<string>): Promise<void> {
+  /** The browser that opened a tab follows it; everyone else only learns it exists. */
+  private async openTab(connection: PiChatConnection, open: () => Promise<string>): Promise<void> {
     try {
       const sessionId = await open();
+      connection.focusedSessionId = sessionId;
       await this.sendSnapshot(sessionId);
       this.sendTabs();
       await this.sendCatalogue();
@@ -207,15 +217,30 @@ export class WebSocketTransport {
     }
   }
 
+  /** The tab list is shared; the highlighted tab in it is not. */
   private sendTabs(socket?: WebSocket): void {
-    for (const target of socket ? [socket] : this.targetSockets()) {
+    const targets = socket ? [this.connectionFor(socket)] : this.snapshotCandidates();
+    const tabs = this.chat.tabs();
+    for (const connection of targets) {
+      const target = connection?.socket ?? socket;
+      if (!target || target.readyState !== WebSocket.OPEN) continue;
       this.sendTo(target, {
         version: PROTOCOL_VERSION,
         type: "tabs",
-        tabs: this.chat.tabs(),
-        activeSessionId: this.chat.activeSessionId(),
+        tabs,
+        activeSessionId: connection ? this.focusOf(connection) : this.chat.activeSessionId(),
       });
     }
+  }
+
+  /**
+   * A connection's own tab, falling back to the shared default. The fallback also
+   * covers a tab someone else closed, so no explicit cleanup is needed.
+   */
+  private focusOf(connection: PiChatConnection): string {
+    const focused = connection.focusedSessionId;
+    if (focused && this.chat.openSessionIds().includes(focused)) return focused;
+    return this.chat.activeSessionId();
   }
 
   /**

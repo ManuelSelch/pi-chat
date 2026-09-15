@@ -44,6 +44,17 @@ async function connectWithSnapshot(url: string): Promise<{ socket: WebSocket; sn
   return { socket, snapshot: await snapshot };
 }
 
+/** The fake always reports one session id, so a second tab needs its own. */
+class NamedFakeRuntimeAdapter extends FakeRuntimeAdapter {
+  constructor(private readonly id: string) {
+    super();
+  }
+
+  override snapshot() {
+    return { ...super.snapshot(), sessionId: this.id, sessionPath: `${this.id}.jsonl` };
+  }
+}
+
 describe("WebSocket transport", () => {
   let server: PiChatServer | undefined;
   let socket: WebSocket | undefined;
@@ -186,6 +197,40 @@ describe("WebSocket transport", () => {
       promptId: "p1", result: { cancelled: false, value: "yes" },
     }));
     expect(await refusedDialog).toMatchObject({ error: "Guests cannot answer dialogs." });
+  });
+
+  it("gives every connection its own focused tab while sharing the open sessions", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    const factory = {
+      continueProject: async () => new NamedFakeRuntimeAdapter("second"),
+      openSession: async () => new NamedFakeRuntimeAdapter("second"),
+      newSession: async () => new NamedFakeRuntimeAdapter("second"),
+    };
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, factory, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+
+    const first = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = first.socket;
+    const second = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+
+    const firstTabs = receiveOfType(first.socket, "tabs");
+    const secondTabs = receiveOfType(second.socket, "tabs");
+    first.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "newSession" }));
+
+    // Both browsers learn about the new tab, but only the one that opened it
+    // follows it; the other keeps looking at what it was reading.
+    expect(await firstTabs).toMatchObject({ activeSessionId: "second" });
+    expect(await secondTabs).toMatchObject({ activeSessionId: "fake-session" });
+    expect((await firstTabs as { tabs: unknown[] }).tabs).toHaveLength(2);
+    expect((await secondTabs as { tabs: unknown[] }).tabs).toHaveLength(2);
+
+    // Focusing is a private view change: it must not move the other browser.
+    const refocused = receiveOfType(second.socket, "tabs");
+    second.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "focusTab", sessionId: "second" }));
+    expect(await refocused).toMatchObject({ activeSessionId: "second" });
+    second.socket.close();
   });
 
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {

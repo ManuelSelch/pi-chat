@@ -15,6 +15,12 @@ export interface PiChatConnection {
   socket: WebSocket;
   mode: PiChatConnectionMode;
   request: PiChatConnectionRequest;
+  /**
+   * Which tab this browser is looking at. The set of open sessions is shared,
+   * but the choice of which one is on screen belongs to each viewer: moving one
+   * user's tab because another switched is not collaboration, it is a fight.
+   */
+  focusedSessionId?: string;
   metadata: Record<string, unknown>;
 }
 
