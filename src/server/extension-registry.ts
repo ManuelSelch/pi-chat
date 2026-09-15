@@ -12,6 +12,18 @@ export interface PiChatButton {
   actionId: string;
 }
 
+/**
+ * A button as registered rather than as sent.
+ *
+ * `visibleTo` decides per viewer whether the button reaches that browser at
+ * all, so a control only one participant may use is absent from everyone
+ * else's screen instead of being offered and then refused on click. The
+ * predicate stays server side: it is stripped before the snapshot goes out.
+ */
+export type PiChatButtonRegistration = PiChatButton & {
+  visibleTo?: (ctx: PiChatExtensionSnapshotContext) => boolean;
+};
+
 export interface PiChatBadge {
   id: string;
   slot: PiChatSlot;
@@ -109,7 +121,7 @@ export interface PiChatRegistrationOptions {
 }
 
 export interface PiChatExtensionRegistry {
-  registerButton(button: PiChatButton): void;
+  registerButton(button: PiChatButtonRegistration): void;
   /** Removes a button again, e.g. when an extension is switched off at runtime. */
   unregisterButton(buttonId: string): void;
   /**
@@ -140,7 +152,7 @@ export interface PiChatExtensionRegistry {
 type Badge = PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined);
 
 class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
-  private readonly buttons = new Map<string, PiChatButton>();
+  private readonly buttons = new Map<string, PiChatButtonRegistration>();
   /** Keyed like the others so a re-registration replaces rather than duplicates. */
   private readonly badges = new Map<string, Badge>();
   private readonly actions = new Map<string, PiChatAction>();
@@ -156,7 +168,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
     return options?.owner ? `owner:${options.owner}` : `anonymous:${++this.anonymous}`;
   }
 
-  registerButton(button: PiChatButton): void {
+  registerButton(button: PiChatButtonRegistration): void {
     this.buttons.set(button.id, button);
   }
 
@@ -220,7 +232,9 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
 
   snapshot(ctx: PiChatExtensionSnapshotContext = {}): PiChatExtensionSnapshot {
     return {
-      buttons: [...this.buttons.values()],
+      buttons: [...this.buttons.values()]
+        .filter((button) => button.visibleTo?.(ctx) ?? true)
+        .map(({ visibleTo: _visibleTo, ...button }) => button),
       badges: [...this.badges.values()]
         .map((badge) => (typeof badge === "function" ? badge(ctx) : badge))
         .filter((badge): badge is PiChatBadge => badge !== undefined)

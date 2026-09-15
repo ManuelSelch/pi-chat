@@ -111,39 +111,30 @@ html::-webkit-scrollbar {
 /* Tool card running pulse. */
 .tool-running-pulse { animation: stream-cursor-blink 1.2s infinite; }
 
-/* Composer "working" indicator: the border itself carries the animation, so a
-   run needs no stop button taking up room next to the send button. Escape
-   still aborts. The ring lives on a pseudo-element because the Paper's own
-   border cannot hold a moving gradient. */
+/* Composer "working" indicator: a hairline along the bottom edge, so a run
+   needs no stop button taking up room next to the send button. Escape still
+   aborts. Keeping the motion on one edge leaves the typing area quiet; the
+   side insets clear the rounded corners. */
 .composer-working { position: relative; }
 .composer-working::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  /* A highlight sweeping left to right reads as progress; animating
-     background-position keeps it off the compositor's slow path and needs no
-     registered custom property. */
-  background: linear-gradient(
-      90deg,
-      transparent 35%,
-      var(--mantine-primary-color-filled) 50%,
-      transparent 65%
-    )
-    0 0 / 150% 100% no-repeat;
-  /* Keeps only the 1px ring: the padding box is masked away. */
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
+  inset: auto 12px 0 12px;
+  height: 1px;
+  border-radius: 1px;
+  /* A short highlight sliding left to right reads as progress; animating
+     background-position keeps it off the compositor's slow path. */
+  background: linear-gradient(90deg, transparent, var(--mantine-primary-color-filled), transparent)
+    0 0 / 40% 100% no-repeat;
+  opacity: 0.55;
   pointer-events: none;
-  animation: composer-sweep 1.8s linear infinite;
+  animation: composer-sweep 2.4s ease-in-out infinite;
 }
 @keyframes composer-sweep {
-  from { background-position: -120% 0; }
-  to { background-position: 220% 0; }
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .composer-working::after { animation: none; background: var(--mantine-primary-color-filled); opacity: 0.6; }
+  .composer-working::after { animation: none; background: var(--mantine-primary-color-filled); opacity: 0.35; }
 }

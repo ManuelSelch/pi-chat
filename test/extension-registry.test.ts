@@ -13,6 +13,23 @@ describe("Pi Chat extension registry", () => {
     });
   });
 
+  it("keeps a button the viewer may not use out of that viewer's snapshot", () => {
+    const registry = createPiChatExtensionRegistry();
+    registry.registerButton({
+      id: "multiuser.permission",
+      slot: "session.header.right",
+      label: "Block guest prompts",
+      actionId: "multiuser.toggleGuestWrite",
+      visibleTo: ({ connectionId }) => connectionId !== "guest",
+    });
+
+    expect(registry.snapshot({ connectionId: "guest" }).buttons).toEqual([]);
+    // The owner still gets it, and without the server-side predicate riding along.
+    expect(registry.snapshot({ connectionId: "owner" }).buttons).toEqual([
+      { id: "multiuser.permission", slot: "session.header.right", label: "Block guest prompts", actionId: "multiuser.toggleGuestWrite" },
+    ]);
+  });
+
   it("stores extension state for snapshots", () => {
     const registry = createPiChatExtensionRegistry();
     registry.setExtensionState("multiuser", { participants: 2 });

@@ -98,6 +98,26 @@ Fields:
 | `label` | yes | Visible button text. |
 | `icon` | no | Reserved for future icon support. |
 | `actionId` | yes | Server action to run when clicked. |
+| `visibleTo` | no | `(ctx) => boolean`, resolved per viewer. A button that returns `false` is left out of that connection's snapshot. |
+
+`visibleTo` is for controls only some participants may use. `action.authorize`
+still has to refuse the action — the browser can send `runExtensionAction` for
+any id — but hiding the button means a read-only guest is not offered a control
+that answers with an error:
+
+```ts
+chat.registerButton({
+  id: "multiuser.permission",
+  slot: "session.header.right",
+  label: guestsMayWrite ? "Block guest prompts" : "Allow guest prompts",
+  actionId: "multiuser.toggleGuestWrite",
+  visibleTo: ({ connectionId }) => roleOf(connectionId) === "owner",
+});
+```
+
+The predicate runs on the server and is stripped from the snapshot, so it never
+reaches the browser. Labels are not resolved per viewer: re-register the same
+id to change one.
 
 ## Actions
 
