@@ -53,14 +53,14 @@ export class ChatApplicationService {
     return this.sessions.list().map((session) => session.sessionId);
   }
 
-  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
+  async snapshot(sessionId = this.activeSessionId(), connectionId?: string): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
     await this.extensions.emit("session.snapshot", { sessionId });
     return {
       ...snapshot,
       actions: this.withAppActions(snapshot.actions),
       catalogue: await this.catalogue(snapshot),
-      extensions: this.extensions.snapshot(),
+      extensions: this.extensions.snapshot({ sessionId, connectionId }),
     };
   }
 
@@ -210,11 +210,12 @@ export class ChatApplicationService {
     this.catalogueCache = undefined;
   }
 
-  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
+  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>, connectionId?: string): Promise<void> {
     // Restart is app-level: it must work from the home screen too, where there
     // is no session to look up.
     if (message.type === "runExtensionAction") {
       await this.extensions.runAction(message.actionId, {
+        connectionId,
         sessionId: message.sessionId,
         notify: (text, level = "info") => this.emit(message.sessionId, { type: "notification", level, message: text }),
       });

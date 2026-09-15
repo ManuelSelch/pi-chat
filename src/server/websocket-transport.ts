@@ -105,7 +105,7 @@ export class WebSocketTransport {
       const actionId = command.type === "runExtensionAction" ? command.actionId : command.featureId;
       void this.chat
         .authorizeConnectionAction("action.authorize", { connectionId: connection.id, sessionId: command.sessionId, actionId })
-        .then(() => this.chat.runFeature(command))
+        .then(() => this.chat.runFeature(command, connection.id))
         // Renaming changes the tab label too, so the tab list must follow.
         .then(() => this.sendSnapshot(command.sessionId).then(() => this.sendTabs()))
         .catch((error: unknown) => this.publishError(command.sessionId, error));
@@ -185,21 +185,41 @@ export class WebSocketTransport {
     }
   }
 
+  /**
+   * Snapshots are built per connection: extension state such as the viewer's own
+   * role differs between the owner and an invited guest, so one shared payload
+   * would tell every browser the same thing.
+   */
   private async sendSnapshot(sessionId: string, socket?: WebSocket): Promise<void> {
-    const snapshot = await this.chat.snapshot(sessionId);
+    const targets = socket ? [this.connectionFor(socket)] : this.snapshotCandidates();
     const sequence = this.sequences.get(sessionId) ?? 0;
-    const message: ServerMessage = {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence,
-      throughSequence: sequence,
-      ...snapshot,
-    };
-    if (socket) {
-      if (socket.readyState === WebSocket.OPEN) this.sendTo(socket, message);
-      return;
+    for (const connection of targets) {
+      const target = connection?.socket ?? socket;
+      if (!target || target.readyState !== WebSocket.OPEN) continue;
+      if (connection && !socket) {
+        const allowed = await this.chat
+          .authorizeConnectionAction("snapshot.authorize", { connectionId: connection.id, sessionId })
+          .then(() => true)
+          .catch(() => false);
+        if (!allowed) continue;
+      }
+      const snapshot = await this.chat.snapshot(sessionId, connection?.id);
+      this.sendTo(target, {
+        version: PROTOCOL_VERSION,
+        type: "snapshot",
+        sequence,
+        throughSequence: sequence,
+        ...snapshot,
+      });
     }
-    await this.publishToAuthorized(sessionId, message);
+  }
+
+  private snapshotCandidates(): PiChatConnection[] {
+    if (this.chat.connectionMode() === "single-controller") {
+      const controller = this.controller();
+      return controller ? [controller] : [];
+    }
+    return [...this.connections.values()];
   }
 
   private publishError(sessionId: string, error: unknown): void {
@@ -215,6 +235,10 @@ export class WebSocketTransport {
 
   private controller(): PiChatConnection | undefined {
     return this.controllerId ? this.connections.get(this.controllerId) : undefined;
+  }
+
+  private connectionFor(socket: WebSocket): PiChatConnection | undefined {
+    return [...this.connections.values()].find((connection) => connection.socket === socket);
   }
 
   private targetSockets(): WebSocket[] {

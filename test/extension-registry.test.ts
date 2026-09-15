@@ -22,6 +22,14 @@ describe("Pi Chat extension registry", () => {
     expect(registry.snapshot().state).toEqual({});
   });
 
+  it("resolves per-connection state for each snapshot", () => {
+    const registry = createPiChatExtensionRegistry();
+    registry.setExtensionState("multiuser", ({ connectionId }) => ({ role: connectionId === "guest" ? "guest" : "owner" }));
+
+    expect(registry.snapshot({ connectionId: "guest" }).state).toEqual({ multiuser: { role: "guest" } });
+    expect(registry.snapshot({ connectionId: "owner" }).state).toEqual({ multiuser: { role: "owner" } });
+  });
+
   it("runs a registered action", async () => {
     const registry = createPiChatExtensionRegistry();
     const run = vi.fn();
