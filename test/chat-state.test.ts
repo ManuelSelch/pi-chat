@@ -460,20 +460,21 @@ describe("extension widgets", () => {
   });
 });
 
-describe("extension statuses", () => {
-  const readonly = { key: "readonly", text: "READONLY" };
+describe("composer footer", () => {
+  const readonly = { key: "status.readonly", text: "READONLY", align: "left" as const, variant: "badge" as const };
+  const model = { key: "model", text: "doppelclaude/claude-opus-5", align: "right" as const, variant: "plain" as const };
 
-  it("tracks pinned statuses and restores them from a snapshot", () => {
-    const pinned = reduceServerMessage(initialChatState, {
+  it("tracks a pushed footer and restores it from a snapshot", () => {
+    const pushed = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
-      type: "statuses",
+      type: "footer",
       sessionId: "session",
       sequence: 1,
-      statuses: [readonly],
+      footer: [readonly, model],
     });
-    expect(pinned.statuses).toEqual([readonly]);
+    expect(pushed.footer).toEqual([readonly, model]);
 
-    // A reconnecting browser rebuilds the footer label from the snapshot alone.
+    // A reconnecting browser rebuilds the footer from the snapshot alone.
     const reconnected = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
       type: "snapshot",
@@ -483,22 +484,22 @@ describe("extension statuses", () => {
       projectPath: "/tmp",
       messages: [],
       isStreaming: false,
-      statuses: [readonly],
+      footer: [readonly, model],
     });
-    expect(reconnected.statuses).toEqual([readonly]);
+    expect(reconnected.footer).toEqual([readonly, model]);
   });
 
   /** A snapshot is authoritative: a cleared label must not linger on screen. */
-  it("drops statuses a snapshot no longer reports", () => {
-    const pinned = reduceServerMessage(initialChatState, {
+  it("drops footer entries a snapshot no longer reports", () => {
+    const pushed = reduceServerMessage(initialChatState, {
       version: PROTOCOL_VERSION,
-      type: "statuses",
+      type: "footer",
       sessionId: "session",
       sequence: 1,
-      statuses: [readonly],
+      footer: [readonly, model],
     });
 
-    const refreshed = reduceServerMessage(pinned, {
+    const refreshed = reduceServerMessage(pushed, {
       version: PROTOCOL_VERSION,
       type: "snapshot",
       sequence: 2,
@@ -509,6 +510,6 @@ describe("extension statuses", () => {
       isStreaming: false,
     });
 
-    expect(refreshed.statuses).toEqual([]);
+    expect(refreshed.footer).toEqual([]);
   });
 });

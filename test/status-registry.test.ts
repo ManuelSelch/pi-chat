@@ -8,7 +8,8 @@ function registry() {
 }
 
 describe("StatusRegistry", () => {
-  it("keeps statuses apart by key, in the order they first appeared", () => {
+  /** Sorted by key, as the terminal footer sorts them. */
+  it("keeps statuses apart by key, in a stable order", () => {
     const { statuses } = registry();
 
     statuses.set("readonly", "READONLY");
@@ -16,8 +17,8 @@ describe("StatusRegistry", () => {
     statuses.set("readonly", "READONLY (strict)");
 
     expect(statuses.list()).toEqual([
-      { key: "readonly", text: "READONLY (strict)" },
       { key: "branch", text: "main" },
+      { key: "readonly", text: "READONLY (strict)" },
     ]);
   });
 

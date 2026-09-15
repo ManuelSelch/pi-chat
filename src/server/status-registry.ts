@@ -1,5 +1,10 @@
-import type { ExtensionStatus } from "../shared/protocol.js";
 import { stripAnsi } from "./widget-registry.js";
+
+/** A label an extension pinned, before the footer decides where to put it. */
+export interface ExtensionStatus {
+  key: string;
+  text: string;
+}
 
 /**
  * Holds the `ctx.ui.setStatus` labels of one session.
@@ -35,9 +40,14 @@ export class StatusRegistry {
     this.onChange(this.list());
   }
 
-  /** Insertion-ordered, so a session's labels keep a stable position. */
+  /**
+   * Sorted by key, as the terminal footer sorts them: a label must not jump
+   * around because an unrelated extension happened to set one first.
+   */
   list(): ExtensionStatus[] {
-    return [...this.statuses].map(([key, text]) => ({ key, text }));
+    return [...this.statuses]
+      .map(([key, text]) => ({ key, text }))
+      .sort((left, right) => left.key.localeCompare(right.key));
   }
 
   /** A disposed session's labels must not outlive it on screen. */

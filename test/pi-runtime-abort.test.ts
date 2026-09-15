@@ -28,6 +28,7 @@ function fakeRuntime() {
     model: { provider: "p", id: "m" },
     thinkingLevel: "off",
     getAvailableThinkingLevels: () => ["off"],
+    supportsThinking: () => false,
     promptTemplates: [] as unknown[],
     resourceLoader: { getSkills: () => ({ skills: [] }) },
     extensionRunner: {

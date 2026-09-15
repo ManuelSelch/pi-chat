@@ -1,5 +1,5 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { ActionRegistry, ChatMessage, ExtensionStatus, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
+import type { ActionRegistry, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
 import { UiPromptRegistry } from "./ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
 
@@ -11,7 +11,7 @@ export type RuntimeEvent =
   | { type: "notification"; level: "info" | "warning" | "error"; message: string }
   | { type: "prompts"; prompts: UiPrompt[] }
   | { type: "widgets"; widgets: Widget[] }
-  | { type: "statuses"; statuses: ExtensionStatus[] }
+  | { type: "footer"; footer: FooterItem[] }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
 
 export interface RuntimeSnapshot {
@@ -25,8 +25,11 @@ export interface RuntimeSnapshot {
   prompts: UiPrompt[];
   /** Extension panels from `ctx.ui.setWidget`, rendered around the composer. */
   widgets: Widget[];
-  /** Extension labels from `ctx.ui.setStatus`, rendered in the composer footer. */
-  statuses: ExtensionStatus[];
+  /**
+   * The composer footer: what the session runs with, plus the labels extensions
+   * pinned with `ctx.ui.setStatus`.
+   */
+  footer: FooterItem[];
   /** Declarative Pi Chat web extension contributions such as slot buttons. */
   extensions?: PiChatExtensions;
   /**
@@ -92,7 +95,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
       },
       prompts: this.promptRegistry.list(),
       widgets: [],
-      statuses: [],
+      footer: [],
     };
   }
 

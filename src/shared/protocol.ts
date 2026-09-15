@@ -190,20 +190,25 @@ export const widgetSchema = z.object({
 export type Widget = z.infer<typeof widgetSchema>;
 
 /**
- * A short label an extension pinned with `ctx.ui.setStatus`, e.g. the
- * `READONLY` marker of a read-only mode.
+ * One entry of the composer footer, the browser's counterpart to the terminal's
+ * footer lines.
  *
- * The terminal keeps these in the bottom-left of its footer, so the web UI puts
- * them where its own footer is: under the composer. Keyed and long-lived like
- * widgets — an extension re-sends the label on every change and clears it by
- * passing `undefined`.
+ * The terminal arranges that footer the same way: what the session is running
+ * with sits on the right, and the labels extensions pinned with
+ * `ctx.ui.setStatus` — `READONLY` among them — stand on their own on the left.
+ * Every entry is keyed and carries its own placement, so nothing downstream has
+ * to know what a particular entry means: the server decides what the footer
+ * says, and the browser only lays it out.
  */
-export const extensionStatusSchema = z.object({
+export const footerItemSchema = z.object({
   key: z.string().min(1),
   text: z.string().min(1),
+  align: z.enum(["left", "right"]).default("left"),
+  /** `badge` is for pinned state such as a mode marker; `plain` is quiet background detail. */
+  variant: z.enum(["badge", "plain"]).default("plain"),
 });
 
-export type ExtensionStatus = z.infer<typeof extensionStatusSchema>;
+export type FooterItem = z.infer<typeof footerItemSchema>;
 
 /**
  * A slash command Pi can dispatch. Typed UI actions stay the primary surface;
@@ -316,12 +321,12 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     actions: actionRegistrySchema.optional(),
     prompts: z.array(uiPromptSchema).optional(),
     widgets: z.array(widgetSchema).optional(),
-    statuses: z.array(extensionStatusSchema).optional(),
+    footer: z.array(footerItemSchema).optional(),
     extensions: piChatExtensionsSchema.optional(),
   }),
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
-  z.object({ ...sequenced, type: z.literal("statuses"), statuses: z.array(extensionStatusSchema) }),
+  z.object({ ...sequenced, type: z.literal("footer"), footer: z.array(footerItemSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("thinkingDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),

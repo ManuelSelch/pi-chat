@@ -7,7 +7,7 @@ import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuIte
 import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
-import { StatusBar } from "../chat/StatusBar.js";
+import { Footer } from "../chat/Footer.js";
 import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -20,7 +20,7 @@ import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import { Slot } from "../extensions/Slot.js";
-import type { Tab } from "../../shared/protocol.js";
+import type { FooterItem, Tab } from "../../shared/protocol.js";
 
 /** Height of a composer with nothing above it; replaced once measured. */
 const DEFAULT_FOOTER_HEIGHT = 170;
@@ -88,16 +88,14 @@ export function App() {
         }]
       : []),
   ];
-  // The composer footer shows what the next message will run with; a feature
-  // the server does not advertise is simply omitted. During a run it names the
-  // only way left to stop, since the animated border replaced the stop button.
-  const modelName = state.actions.features.find((feature) => feature.id === "model.select")?.state.value;
-  const thinkingLevel = state.actions.features.find((feature) => feature.id === "thinking.level")?.state.value;
-  const composerStatus = state.status === "aborting"
-    ? "stopping…"
-    : [modelName, thinkingLevel ? `thinking: ${thinkingLevel}` : undefined, busy ? "esc to stop" : undefined]
-      .filter(Boolean)
-      .join(" · ");
+  // What the next message will run with is the session's own statement, sent as
+  // footer entries; the browser only adds what it alone knows — how to stop the
+  // run in front of it, since the animated border replaced the stop button.
+  const runHint = state.status === "aborting" ? "stopping…" : busy ? "esc to stop" : undefined;
+  const footerItems: FooterItem[] = [
+    ...state.footer,
+    ...(runHint ? [{ key: "run", text: runHint, align: "right" as const, variant: "plain" as const }] : []),
+  ];
   // Wide enough for the panels to sit in the empty gutter beside the
   // transcript. Narrower windows have no room, so they keep the terminal's own
   // arrangement around the composer.
@@ -486,9 +484,7 @@ export function App() {
             <Slot name="composer.below" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
           </Box>
 
-          {/* Extension status labels share this line: it is this UI's footer,
-              which is where the terminal puts them too. */}
-          <StatusBar statuses={state.statuses} status={composerStatus} />
+          <Footer items={footerItems} />
         </Container>
       </Box>
       )}

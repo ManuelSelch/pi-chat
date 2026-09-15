@@ -11,7 +11,7 @@ import {
   type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../shared/protocol.js";
+import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
@@ -397,7 +397,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
   private ui!: ExtensionUIContext;
   private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
-  private readonly statuses = new StatusRegistry((statuses) => this.emit({ type: "statuses", statuses }));
+  private readonly statuses = new StatusRegistry(() => this.emit({ type: "footer", footer: this.footer() }));
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
@@ -576,8 +576,43 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       },
       prompts: this.prompts.list(),
       widgets: this.widgets.list(),
-      statuses: this.statuses.list(),
+      footer: this.footer(),
     };
+  }
+
+  /**
+   * The composer footer, laid out as the terminal lays its own out: what the
+   * session runs with on the right, and extension labels on the left.
+   *
+   * The browser used to assemble the model line itself out of the settings
+   * features, which meant the footer could only ever say what that one piece of
+   * UI code had been taught to say. Building it here makes it the session's
+   * statement about itself, and an extension's `setStatus` label joins it
+   * through the same list.
+   *
+   * Thinking is reported only when the model reasons at all, which is the same
+   * condition the terminal uses — "thinking: off" against a model that has no
+   * thinking to switch on is noise.
+   */
+  private footer(): FooterItem[] {
+    const model = this.currentModel();
+    return [
+      ...this.statuses.list().map((status) => ({
+        key: `status.${status.key}`,
+        text: status.text,
+        align: "left" as const,
+        variant: "badge" as const,
+      })),
+      ...(model ? [{ key: "model", text: model, align: "right" as const, variant: "plain" as const }] : []),
+      ...(this.runtime.session.supportsThinking()
+        ? [{
+            key: "thinking",
+            text: `thinking: ${this.runtime.session.thinkingLevel}`,
+            align: "right" as const,
+            variant: "plain" as const,
+          }]
+        : []),
+    ];
   }
 
   private currentModel(): string {
