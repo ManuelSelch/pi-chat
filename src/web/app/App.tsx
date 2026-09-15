@@ -89,12 +89,14 @@ export function App() {
       : []),
   ];
   // What the next message will run with is the session's own statement, sent as
-  // footer entries; the browser only adds what it alone knows — how to stop the
-  // run in front of it, since the animated border replaced the stop button.
-  const runHint = state.status === "aborting" ? "stopping…" : busy ? "esc to stop" : undefined;
+  // footer entries; the browser only adds what it alone knows — that a stop it
+  // asked for has not landed yet. A running turn says so through the animated
+  // border, so the footer stays quiet about it.
   const footerItems: FooterItem[] = [
     ...state.footer,
-    ...(runHint ? [{ key: "run", text: runHint, align: "right" as const, variant: "plain" as const }] : []),
+    ...(state.status === "aborting"
+      ? [{ key: "run", text: "stopping…", align: "right" as const, variant: "plain" as const }]
+      : []),
   ];
   // Wide enough for the panels to sit in the empty gutter beside the
   // transcript. Narrower windows have no room, so they keep the terminal's own
