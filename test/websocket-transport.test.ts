@@ -67,6 +67,23 @@ describe("WebSocket transport", () => {
     expect(socket.readyState).toBe(WebSocket.OPEN);
   });
 
+  it("replaces an existing controller by default", async () => {
+    server = createPiChatServer(new FakeRuntimeAdapter());
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+    const first = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = first.socket;
+
+    const closed = new Promise<{ code: number; reason: string }>((resolve) => {
+      first.socket.once("close", (code, reason) => resolve({ code, reason: reason.toString() }));
+    });
+    const second = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = second.socket;
+
+    await expect(closed).resolves.toMatchObject({ code: 4001, reason: "Controller replaced" });
+    expect(second.socket.readyState).toBe(WebSocket.OPEN);
+  });
+
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {
     server = createPiChatServer(new FakeRuntimeAdapter());
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
