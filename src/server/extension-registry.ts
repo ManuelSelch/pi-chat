@@ -1,3 +1,4 @@
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage } from "../shared/protocol.js";
 import type { PiChatConnectionMode, PiChatConnectionRequest } from "./connection.js";
 
@@ -22,6 +23,15 @@ export interface PiChatActionContext {
   connectionId?: string;
   sessionId: string;
   notify(message: string, level?: "info" | "warning" | "error"): void;
+  /**
+   * The dialog surface of the session this action was invoked from, so a button
+   * can ask a question without holding on to a `ctx.ui` from elsewhere. Each
+   * session has its own, and a held one outlives the session it belongs to.
+   *
+   * Absent when there is no session to open a modal in, which is the home
+   * screen: app-level actions such as a restart run from there.
+   */
+  ui?: ExtensionUIContext;
 }
 
 export interface PiChatAction {
@@ -84,15 +94,39 @@ export interface PiChatExtensionSnapshot {
   state: Record<string, unknown>;
 }
 
+/**
+ * Which extension a registration belongs to.
+ *
+ * Pi loads extensions once per open session, so a second session runs the same
+ * extension factory again against this one global registry. Keyed registrations
+ * such as buttons survive that by being overwritten; lists did not, and a stale
+ * authorization handler from an earlier load kept vetoing on state its own
+ * closure had already been replaced for. An owner makes a re-registration
+ * replace its predecessor instead of stacking on top of it.
+ */
+export interface PiChatRegistrationOptions {
+  owner?: string;
+}
+
 export interface PiChatExtensionRegistry {
   registerButton(button: PiChatButton): void;
   /** Removes a button again, e.g. when an extension is switched off at runtime. */
   unregisterButton(buttonId: string): void;
-  /** A badge may depend on the viewer, so it can be a function of the snapshot context. */
-  registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void;
+  /**
+   * A badge may depend on the viewer, so it can be a function of the snapshot
+   * context. Registering the same id again replaces it rather than adding a
+   * second badge saying the same thing.
+   */
+  registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined), options?: PiChatRegistrationOptions): void;
   registerAction(action: PiChatAction): void;
-  on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>): void;
-  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void;
+  on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>, options?: PiChatRegistrationOptions): void;
+  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler, options?: PiChatRegistrationOptions): void;
+  /**
+   * State that belongs to the extension rather than to one session. The same
+   * object comes back for a given id, so an extension re-loaded by a second
+   * session keeps the roles, invites, and policy the first one established.
+   */
+  store<T extends object>(extensionId: string, initial: () => T): T;
   authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult>;
   setConnectionMode(mode: PiChatConnectionMode): void;
   connectionMode(): PiChatConnectionMode;
@@ -103,14 +137,24 @@ export interface PiChatExtensionRegistry {
   emit<Name extends PiChatHookName>(name: Name, payload: HookPayload<Name>): Promise<void>;
 }
 
+type Badge = PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined);
+
 class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   private readonly buttons = new Map<string, PiChatButton>();
-  private readonly badges: Array<PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)> = [];
+  /** Keyed like the others so a re-registration replaces rather than duplicates. */
+  private readonly badges = new Map<string, Badge>();
   private readonly actions = new Map<string, PiChatAction>();
-  private readonly hooks = new Map<PiChatHookName, Array<(payload: unknown) => Promise<void> | void>>();
-  private readonly authorizers = new Map<PiChatAuthorizationName, PiChatAuthorizationHandler[]>();
+  private readonly hooks = new Map<PiChatHookName, Map<string, (payload: unknown) => Promise<void> | void>>();
+  private readonly authorizers = new Map<PiChatAuthorizationName, Map<string, PiChatAuthorizationHandler>>();
   private readonly states = new Map<string, PiChatExtensionState>();
+  private readonly stores = new Map<string, object>();
+  /** Distinguishes registrations that named no owner, which stay additive. */
+  private anonymous = 0;
   private mode: PiChatConnectionMode = "single-controller";
+
+  private keyFor(options?: PiChatRegistrationOptions): string {
+    return options?.owner ? `owner:${options.owner}` : `anonymous:${++this.anonymous}`;
+  }
 
   registerButton(button: PiChatButton): void {
     this.buttons.set(button.id, button);
@@ -120,28 +164,38 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
     this.buttons.delete(buttonId);
   }
 
-  registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void {
-    this.badges.push(badge);
+  registerBadge(badge: Badge, options?: PiChatRegistrationOptions): void {
+    // A badge resolved per viewer is a function with no readable id, so an
+    // owner is the only key it can have.
+    this.badges.set(options?.owner ? `owner:${options.owner}` : typeof badge === "function" ? this.keyFor() : `id:${badge.id}`, badge);
   }
 
   registerAction(action: PiChatAction): void {
     this.actions.set(action.id, action);
   }
 
-  on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>): void {
-    const handlers = this.hooks.get(name) ?? [];
-    handlers.push(handler as (payload: unknown) => Promise<void> | void);
+  on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>, options?: PiChatRegistrationOptions): void {
+    const handlers = this.hooks.get(name) ?? new Map();
+    handlers.set(this.keyFor(options), handler as (payload: unknown) => Promise<void> | void);
     this.hooks.set(name, handlers);
   }
 
-  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void {
-    const handlers = this.authorizers.get(name) ?? [];
-    handlers.push(handler);
+  use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler, options?: PiChatRegistrationOptions): void {
+    const handlers = this.authorizers.get(name) ?? new Map();
+    handlers.set(this.keyFor(options), handler);
     this.authorizers.set(name, handlers);
   }
 
+  store<T extends object>(extensionId: string, initial: () => T): T {
+    const existing = this.stores.get(extensionId);
+    if (existing) return existing as T;
+    const created = initial();
+    this.stores.set(extensionId, created);
+    return created;
+  }
+
   async authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult> {
-    for (const handler of this.authorizers.get(name) ?? []) {
+    for (const handler of this.authorizers.get(name)?.values() ?? []) {
       const result = await handler(ctx);
       if (result?.allow === false) return result;
     }
@@ -167,7 +221,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   snapshot(ctx: PiChatExtensionSnapshotContext = {}): PiChatExtensionSnapshot {
     return {
       buttons: [...this.buttons.values()],
-      badges: this.badges
+      badges: [...this.badges.values()]
         .map((badge) => (typeof badge === "function" ? badge(ctx) : badge))
         .filter((badge): badge is PiChatBadge => badge !== undefined)
         .map((badge) => ({ ...badge, tone: badge.tone ?? "neutral" })),
@@ -182,7 +236,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   }
 
   async emit<Name extends PiChatHookName>(name: Name, payload: HookPayload<Name>): Promise<void> {
-    for (const handler of this.hooks.get(name) ?? []) await handler(payload);
+    for (const handler of this.hooks.get(name)?.values() ?? []) await handler(payload);
   }
 }
 

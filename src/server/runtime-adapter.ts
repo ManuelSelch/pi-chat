@@ -1,4 +1,7 @@
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type { ActionRegistry, ChatMessage, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
+import { UiPromptRegistry } from "./ui-prompt-registry.js";
+import { createWebUiContext } from "./web-ui-context.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -32,6 +35,13 @@ export interface RuntimeSnapshot {
 
 export interface RuntimeAdapter {
   snapshot(): RuntimeSnapshot;
+  /**
+   * This session's dialog surface, so an extension action can ask a question in
+   * the session whose button was pressed. Each adapter has its own: a context
+   * held from elsewhere posts its modal into another session's prompt list, or
+   * into a disposed one once that session is closed.
+   */
+  uiContext(): ExtensionUIContext;
   prompt(message: string): Promise<void>;
   abort(): Promise<void>;
   respondToPrompt(promptId: string, result: UiPromptResult): void;
@@ -51,11 +61,21 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   private messages: ChatMessage[] = [];
   private streaming = false;
   private run = 0;
+  private ui?: ExtensionUIContext;
+  /**
+   * A real dialog stack, so a question an extension asks reaches a browser and
+   * is answered by it. Auto-cancelling here instead would make every test of a
+   * modal-driven flow pass without the modal ever existing.
+   */
+  private readonly promptRegistry = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
+
+  /** Named when a test needs two tabs: the registry keys them by session id. */
+  constructor(private readonly id: string = "fake-session") {}
 
   snapshot(): RuntimeSnapshot {
     return {
-      sessionId: "fake-session",
-      sessionPath: "fake-session.jsonl",
+      sessionId: this.id,
+      sessionPath: `${this.id}.jsonl`,
       projectPath: process.cwd(),
       messages: [...this.messages],
       isStreaming: this.streaming,
@@ -66,7 +86,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
         ],
         commands: [{ name: "fake", description: "A command for tests" }],
       },
-      prompts: [],
+      prompts: this.promptRegistry.list(),
       widgets: [],
     };
   }
@@ -90,11 +110,29 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
 
   async compact(): Promise<void> {}
 
-  respondToPrompt(): void {}
+  /**
+   * Built once: a caller may compare the surface it was handed against the
+   * session's own.
+   */
+  uiContext(): ExtensionUIContext {
+    this.ui ??= createWebUiContext({
+      onNotify: (message, level) => this.emit({ type: "notification", level, message }),
+      onPrompt: (request) => this.promptRegistry.ask(request),
+    });
+    return this.ui;
+  }
 
-  suspendPrompts(): void {}
+  respondToPrompt(promptId: string, result: UiPromptResult): void {
+    this.promptRegistry.respond(promptId, result);
+  }
 
-  resumePrompts(): void {}
+  suspendPrompts(): void {
+    this.promptRegistry.suspend();
+  }
+
+  resumePrompts(): void {
+    this.promptRegistry.resume();
+  }
 
   async abort(): Promise<void> {
     this.streaming = false;
@@ -111,6 +149,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   }
 
   dispose(): void {
+    this.promptRegistry.cancelAll();
     this.listeners.clear();
   }
 

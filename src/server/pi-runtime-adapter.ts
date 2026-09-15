@@ -9,6 +9,7 @@ import {
   type AgentSessionRuntime,
   type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
+  type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../shared/protocol.js";
 
@@ -347,6 +348,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    */
   private lastError?: string;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
+  /** Assigned by `bindUi` from the constructor, before anything can reach it. */
+  private ui!: ExtensionUIContext;
   private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
 
   private constructor(
@@ -378,15 +381,22 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * `session.bindExtensions`, which would bind the terminal's own mode.
    */
   private bindUi(): void {
-    this.runtime.session.extensionRunner.setUIContext(
-      createWebUiContext({
-        onNotify: (message, level) => this.emit({ type: "notification", level, message }),
-        onPrompt: (request) => this.prompts.ask(request),
-        onWidget: (key, lines, placement) => this.widgets.set(key, lines, placement),
-      }),
-      // "rpc" rather than "print": this host can answer blocking questions.
-      "rpc",
-    );
+    this.ui = createWebUiContext({
+      onNotify: (message, level) => this.emit({ type: "notification", level, message }),
+      onPrompt: (request) => this.prompts.ask(request),
+      onWidget: (key, lines, placement) => this.widgets.set(key, lines, placement),
+    });
+    // "rpc" rather than "print": this host can answer blocking questions.
+    this.runtime.session.extensionRunner.setUIContext(this.ui, "rpc");
+  }
+
+  /**
+   * Also handed to extension actions, so a button opens its dialog in the
+   * session it was pressed in rather than in whichever session happened to
+   * start last.
+   */
+  uiContext(): ExtensionUIContext {
+    return this.ui;
   }
 
   /**

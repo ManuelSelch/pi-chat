@@ -74,6 +74,52 @@ describe("Pi Chat extension registry", () => {
     await expect(registry.authorize("action.authorize", { connectionId: "c1" })).resolves.toEqual({ allow: true });
   });
 
+  it("replaces an owned registration instead of stacking a second one", async () => {
+    // Pi loads extensions once per open session, so opening a second session
+    // runs the same factory again. The first load's handler used to stay, and
+    // since authorization stops at the first denial it kept vetoing on state
+    // its own closure had already been replaced for.
+    const registry = createPiChatExtensionRegistry();
+    registry.use("prompt.authorize", () => ({ allow: false, reason: "stale" }), { owner: "multiuser" });
+    registry.use("prompt.authorize", () => ({ allow: true }), { owner: "multiuser" });
+
+    await expect(registry.authorize("prompt.authorize", { connectionId: "c1" })).resolves.toEqual({ allow: true });
+  });
+
+  it("keeps one badge per owner across reloads", () => {
+    const registry = createPiChatExtensionRegistry();
+    const badge = { id: "multiuser.role", slot: "session.status" as const, label: "Owner" };
+    registry.registerBadge(() => badge, { owner: "multiuser" });
+    registry.registerBadge(() => badge, { owner: "multiuser" });
+
+    expect(registry.snapshot().badges).toHaveLength(1);
+  });
+
+  // An unowned registration is still additive: two extensions that each add a
+  // hook must both keep it.
+  it("keeps unowned registrations additive", async () => {
+    const registry = createPiChatExtensionRegistry();
+    const first = vi.fn();
+    const second = vi.fn();
+    registry.on("connection.open", first);
+    registry.on("connection.open", second);
+
+    await registry.emit("connection.open", { connectionId: "c1" });
+
+    expect(first).toHaveBeenCalled();
+    expect(second).toHaveBeenCalled();
+  });
+
+  it("hands the same store back to every load of an extension", () => {
+    const registry = createPiChatExtensionRegistry();
+    const first = registry.store("multiuser", () => ({ enabled: false }));
+    first.enabled = true;
+
+    // What a second session's load of the same extension would see.
+    expect(registry.store("multiuser", () => ({ enabled: false }))).toBe(first);
+    expect(registry.store("multiuser", () => ({ enabled: false })).enabled).toBe(true);
+  });
+
   it("emits connection lifecycle hooks", async () => {
     const registry = createPiChatExtensionRegistry();
     const opened = vi.fn();

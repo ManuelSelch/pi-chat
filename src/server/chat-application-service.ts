@@ -214,10 +214,14 @@ export class ChatApplicationService {
     // Restart is app-level: it must work from the home screen too, where there
     // is no session to look up.
     if (message.type === "runExtensionAction") {
+      // The session is looked up rather than required: an action can be pressed
+      // from the home screen, where there is none and so no modal to open.
+      const ui = this.sessions.has(message.sessionId) ? this.sessions.get(message.sessionId).uiContext() : undefined;
       await this.extensions.runAction(message.actionId, {
         connectionId,
         sessionId: message.sessionId,
         notify: (text, level = "info") => this.emit(message.sessionId, { type: "notification", level, message: text }),
+        ...(ui ? { ui } : {}),
       });
       return;
     }

@@ -106,6 +106,33 @@ describe("Pi Chat extension registry integration", () => {
 
     expect(notifications).toEqual(["Demo action clicked"]);
   });
+
+  // Without this an extension had to capture `ctx.ui` from `session_start` and
+  // keep it, which with several sessions open meant asking in whichever session
+  // started last — or in a closed one.
+  it("gives an action the dialog surface of the session it was run from", async () => {
+    const runtime = new FakeRuntimeAdapter();
+    const second = new FakeRuntimeAdapter("second-session");
+    const extensions = createPiChatExtensionRegistry();
+    const surfaces: unknown[] = [];
+    extensions.registerAction({ id: "demo.ask", title: "Ask", run: (ctx) => void surfaces.push(ctx.ui) });
+    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
+    const chat = new ChatApplicationService(runtime, {
+      continueProject: async () => new FakeRuntimeAdapter(),
+      openSession: async () => second,
+      newSession: async () => second,
+    }, projectSessions, undefined, extensions);
+
+    const openedId = await chat.openSession("second-session.jsonl");
+    expect(openedId).not.toBe(runtime.snapshot().sessionId);
+
+    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: openedId, actionId: "demo.ask" });
+    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: "no-such-session", actionId: "demo.ask" });
+
+    expect(surfaces[0]).toBe(second.uiContext());
+    // The home screen has no session to open a modal in.
+    expect(surfaces[1]).toBeUndefined();
+  });
 });
 
 describe("/reload", () => {

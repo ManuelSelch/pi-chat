@@ -44,17 +44,6 @@ async function connectWithSnapshot(url: string): Promise<{ socket: WebSocket; sn
   return { socket, snapshot: await snapshot };
 }
 
-/** The fake always reports one session id, so a second tab needs its own. */
-class NamedFakeRuntimeAdapter extends FakeRuntimeAdapter {
-  constructor(private readonly id: string) {
-    super();
-  }
-
-  override snapshot() {
-    return { ...super.snapshot(), sessionId: this.id, sessionPath: `${this.id}.jsonl` };
-  }
-}
-
 describe("WebSocket transport", () => {
   let server: PiChatServer | undefined;
   let socket: WebSocket | undefined;
@@ -203,9 +192,9 @@ describe("WebSocket transport", () => {
     const extensions = createPiChatExtensionRegistry();
     extensions.setConnectionMode("multi-connection");
     const factory = {
-      continueProject: async () => new NamedFakeRuntimeAdapter("second"),
-      openSession: async () => new NamedFakeRuntimeAdapter("second"),
-      newSession: async () => new NamedFakeRuntimeAdapter("second"),
+      continueProject: async () => new FakeRuntimeAdapter("second"),
+      openSession: async () => new FakeRuntimeAdapter("second"),
+      newSession: async () => new FakeRuntimeAdapter("second"),
     };
     server = createPiChatServer(new FakeRuntimeAdapter(), undefined, factory, undefined, extensions);
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));

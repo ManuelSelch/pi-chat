@@ -117,10 +117,17 @@ Current action context:
 
 ```ts
 interface PiChatActionContext {
+  connectionId?: string;
   sessionId: string;
   notify(message: string, level?: "info" | "warning" | "error"): void;
+  /** Dialog surface of the session this action ran from; absent on the home screen. */
+  ui?: ExtensionUIContext;
 }
 ```
+
+`ctx.ui` is the surface of the session whose button was pressed. Ask through it
+rather than through a context captured elsewhere: every session has its own, and
+a held one posts into another session's modal list, or into a closed session's.
 
 ### Badge
 
@@ -206,21 +213,8 @@ this is also where an unrecognised token is turned away.
 ## Named invite links
 
 `ctx.ui.input` is a browser modal in Pi Chat, so an extension can ask the owner
-a question and mint a link from the answer. `ctx.ui` is only handed to event
-handlers, not to the extension factory, so capture it once:
-
-```ts
-let ui: ExtensionUIContext | undefined;
-pi.on("session_start", (_event, ctx) => {
-  ui = ctx.ui;
-});
-```
-
-Pi Chat emits `session_start` once per session, after it has bound the browser
-dialog surface, so the captured `ctx.ui` is the modal one rather than the no-op
-context Pi falls back to.
-
-Keep the name server-side and let the link carry only the token:
+a question and mint a link from the answer. Keep the name server-side and let
+the link carry only the token:
 
 ```ts
 const invites = new Map<string, { name: string }>();
@@ -229,7 +223,7 @@ chat.registerAction({
   id: "demo.invite",
   title: "Create an invite link",
   run: async (ctx) => {
-    const name = (await ui?.input("Name for this guest", "e.g. Anna"))?.trim();
+    const name = (await ctx.ui?.input("Name for this guest", "e.g. Anna"))?.trim();
     if (!name) return;                     // cancelled dialog, not an error
     const token = randomUUID();
     invites.set(token, { name });
@@ -316,6 +310,37 @@ chat.on("message.final", (event) => {
 });
 ```
 
+## Sessions and extension lifetime
+
+Pi loads extensions once **per open session**, so opening a second tab runs the
+same extension factory again against the one global Pi Chat registry. Anything
+kept in the factory's closure is therefore per session and starts over, while
+the registry it publishes into is shared.
+
+Sharing itself is server-wide, not per session: an invite link authorizes a
+WebSocket connection in `connection.authorize` before any session is in play,
+the tab list is shared, and every open session's snapshot is sent to every
+authorized connection. A guest is a guest of the server, and a role means the
+same thing in every tab.
+
+Two consequences for an extension that owns state such as roles or invites:
+
+```ts
+// State that must survive the next session's load of this extension.
+const state = chat.store("multiuser", () => ({ enabled: false, guests: new Map() }));
+
+// An owner makes a re-registration replace its predecessor. Without it the
+// first load's handler stays, and since authorization stops at the first
+// denial, that stale handler keeps vetoing.
+chat.use("prompt.authorize", handler, { owner: "multiuser" });
+chat.on("connection.close", handler, { owner: "multiuser" });
+chat.registerBadge(badge, { owner: "multiuser" });
+```
+
+Buttons, actions, and extension state are already keyed by their own id, so they
+are overwritten rather than duplicated. Registrations without an `owner` stay
+additive, which is what two different extensions adding the same hook need.
+
 ## Design rules
 
 1. **Keep core generic.** Feature-specific code belongs in extensions.
@@ -323,6 +348,7 @@ chat.on("message.final", (event) => {
 3. **Run behavior server-side.** The browser renders metadata and sends action ids.
 4. **Snapshot owns UI state.** Anything that must survive reload/reconnect should be included in the authoritative snapshot or have an explicit merge rule.
 5. **Prefix ids.** Use ids like `multiplayer.invite` or `memory.context` to avoid collisions.
+6. **Own your registrations.** Pass `{ owner }` and keep state in `chat.store`, so a second session's load of the extension replaces rather than fights its predecessor.
 
 ## What to add next
 
