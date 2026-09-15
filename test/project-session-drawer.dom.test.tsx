@@ -31,6 +31,8 @@ const catalogue: ProjectCatalogue = {
   ],
 };
 
+const openSession = vi.fn();
+
 function show(busy: boolean) {
   render(
     <MantineProvider>
@@ -40,7 +42,7 @@ function show(busy: boolean) {
         state={{ ...initialChatState, status: busy ? "running" : "idle", sessionId: "current", projectPath: "/work/current" }}
         catalogue={catalogue}
         busy={busy}
-        openSession={vi.fn()}
+        openSession={openSession}
         newSession={vi.fn()}
         deleteSession={vi.fn()}
       />
@@ -48,7 +50,10 @@ function show(busy: boolean) {
   );
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  openSession.mockClear();
+});
 
 describe("ProjectSessionDrawer", () => {
   it("allows selecting projects while the active session is busy", () => {
@@ -57,6 +62,25 @@ describe("ProjectSessionDrawer", () => {
     fireEvent.click(screen.getByText("other"));
 
     expect(screen.getByText("Other chat")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "New session here" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "New session here" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("opens another session while the active one is busy", () => {
+    show(true);
+
+    fireEvent.click(screen.getByText("other"));
+    fireEvent.click(screen.getByText("Other chat"));
+
+    expect(openSession).toHaveBeenCalledWith("/sessions/other.jsonl");
+  });
+
+  it("only blocks deleting the session the run is writing to", () => {
+    show(true);
+
+    expect(screen.getByRole("button", { name: "Delete Current chat" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByText("other"));
+
+    expect(screen.getByRole("button", { name: "Delete Other chat" }).hasAttribute("disabled")).toBe(false);
   });
 });

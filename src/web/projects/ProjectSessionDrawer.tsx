@@ -9,6 +9,8 @@ interface ProjectSessionDrawerProps {
   onClose: () => void;
   state: ChatState;
   catalogue: ProjectCatalogue;
+  /** A run only blocks deleting the session it is writing to; every other
+   *  action opens its own tab and is safe to use meanwhile. */
   busy: boolean;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
@@ -64,14 +66,14 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
           {activeProject ? (
             <Stack gap="xs">
               <Text fw={650}>{activeProject.name}</Text>
-              <Button variant="light" leftSection={<IconPlus size={14} />} disabled={busy || !activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
+              <Button variant="light" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
                 New session here
               </Button>
               {activeProject.sessions.map((session) => (
                 <NavLink
                   key={session.path}
                   active={session.id === state.sessionId}
-                  disabled={busy || !activeProject.exists}
+                  disabled={!activeProject.exists}
                   label={session.title}
                   leftSection={<IconMessage size={16} />}
                   rightSection={
@@ -88,6 +90,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                           size="sm"
                           variant="subtle"
                           color="gray"
+                          disabled={busy && session.id === state.sessionId}
                           aria-label={`Delete ${session.title}`}
                           onClick={(event) => { event.stopPropagation(); setPendingDelete(session); }}
                         >
