@@ -210,8 +210,10 @@ export class WebSocketTransport {
     const targets = socket ? [socket] : this.targetSockets();
     try {
       const catalogue = await this.chat.currentCatalogue();
-      const features = this.chat.appFeatures();
-      for (const target of targets) this.sendTo(target, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
+      for (const target of targets) {
+        const features = await this.chat.appFeaturesFor(this.connectionFor(target)?.id);
+        this.sendTo(target, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
+      }
     } catch (error: unknown) {
       this.publishError(this.chat.activeSessionId(), error);
     }

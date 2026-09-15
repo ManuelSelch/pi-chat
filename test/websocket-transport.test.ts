@@ -120,6 +120,31 @@ describe("WebSocket transport", () => {
     second.socket.close();
   });
 
+  it("leaves settings a guest may not change out of that guest's snapshot", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    const guests = new Set<string>();
+    extensions.use("connection.authorize", ({ connectionId, request }) => {
+      if (request?.query.invite) guests.add(connectionId);
+    });
+    extensions.use("action.authorize", ({ connectionId }) =>
+      guests.has(connectionId) ? { allow: false, reason: "Read-only guest." } : { allow: true },
+    );
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+
+    const owner = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = owner.socket;
+    const guest = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws?invite=demo`);
+
+    const ownerFeatures = owner.snapshot.type === "snapshot" ? owner.snapshot.actions?.features ?? [] : [];
+    const guestFeatures = guest.snapshot.type === "snapshot" ? guest.snapshot.actions?.features ?? [] : [];
+    expect(ownerFeatures.map((feature) => feature.id)).toContain("thinking.level");
+    expect(guestFeatures).toEqual([]);
+    guest.socket.close();
+  });
+
   it("lets a policy extension refuse prompts from an invited guest", async () => {
     const extensions = createPiChatExtensionRegistry();
     extensions.setConnectionMode("multi-connection");

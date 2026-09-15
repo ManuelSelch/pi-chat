@@ -56,9 +56,10 @@ export class ChatApplicationService {
   async snapshot(sessionId = this.activeSessionId(), connectionId?: string): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
     await this.extensions.emit("session.snapshot", { sessionId });
+    const actions = this.withAppActions(snapshot.actions);
     return {
       ...snapshot,
-      actions: this.withAppActions(snapshot.actions),
+      actions: { ...actions, features: await this.visibleFeatures(actions.features, connectionId, sessionId) },
       catalogue: await this.catalogue(snapshot),
       extensions: this.extensions.snapshot({ sessionId, connectionId }),
     };
@@ -80,6 +81,24 @@ export class ChatApplicationService {
     return { ...actions, features: [...actions.features, ...this.appFeatures()], commands };
   }
 
+  /**
+   * The settings a viewer may actually change.
+   *
+   * Feature controls run through `action.authorize` on click, so a viewer whose
+   * policy refuses them was still offered a settings drawer full of switches
+   * that only produced refusals. The same check decides whether the control is
+   * sent at all, which is how extension buttons already behave.
+   */
+  private async visibleFeatures(features: WebFeature[], connectionId?: string, sessionId?: string): Promise<WebFeature[]> {
+    if (!connectionId) return features;
+    const visible: WebFeature[] = [];
+    for (const feature of features) {
+      const result = await this.extensions.authorize("action.authorize", { connectionId, sessionId, actionId: feature.id });
+      if (result.allow) visible.push(feature);
+    }
+    return visible;
+  }
+
   /** Capabilities of the server itself, valid with or without an open session. */
   appFeatures(): WebFeature[] {
     if (!this.restartService) return [];
@@ -93,6 +112,11 @@ export class ChatApplicationService {
         state: { label: "Restart" },
       },
     ];
+  }
+
+  /** App-level features as one viewer may use them, for the home screen. */
+  appFeaturesFor(connectionId?: string): Promise<WebFeature[]> {
+    return this.visibleFeatures(this.appFeatures(), connectionId);
   }
 
   prompt(sessionId: string, message: string): Promise<void> {

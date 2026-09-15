@@ -24,7 +24,18 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
   const activeProject = catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? catalogue.projects[0];
 
   return (
-    <Drawer opened={opened} onClose={onClose} title="Projects and sessions" size="lg">
+    <Drawer
+      opened={opened}
+      onClose={onClose}
+      title="Projects and sessions"
+      size="lg"
+      // The lists scroll inside the drawer, so the body has to claim the height
+      // left over by the header instead of guessing a viewport fraction.
+      styles={{
+        content: { display: "flex", flexDirection: "column" },
+        body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
+      }}
+    >
       <Modal
         opened={Boolean(pendingDelete)}
         onClose={() => setPendingDelete(undefined)}
@@ -45,8 +56,8 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
         </Stack>
       </Modal>
 
-      <Group align="flex-start" wrap="nowrap">
-        <ScrollArea h="70vh" flex={1}>
+      <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
+        <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
             {catalogue.projects.map((project) => (
               <NavLink
@@ -62,7 +73,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
             ))}
           </Stack>
         </ScrollArea>
-        <ScrollArea h="70vh" flex={1}>
+        <ScrollArea h="100%" flex={1}>
           {activeProject ? (
             <Stack gap="xs">
               <Text fw={650}>{activeProject.name}</Text>

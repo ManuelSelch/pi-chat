@@ -301,6 +301,12 @@ chat.use("action.authorize", ...);
 A denied command is reported to that browser as a run error; snapshots and
 events keep flowing, so the guest still watches the session live.
 
+`action.authorize` also decides which built-in feature controls — the model and
+thinking selectors, rename, compact, restart — reach a viewer at all: each one
+is checked with its feature id as `actionId` while the snapshot is built, so a
+refused control is absent from that browser's settings drawer instead of being
+offered and then rejected on click.
+
 See [pi-chat-multiuser](https://github.com/ManuelSelch/pi-chat-multiuser) for a
 working policy with named invite links and an owner-only toggle that grants or
 revokes guest prompts at runtime. That extension is
