@@ -31,6 +31,9 @@ const OUTPUT_TEXT_MAX = 20_000;
  * the beginning rather than the end.
  */
 const THINKING_TEXT_MAX = 8_000;
+/** How often, and for how long, an abort is checked against the session. */
+const ABORT_WATCH_INTERVAL_MS = 250;
+const ABORT_WATCH_TIMEOUT_MS = 15_000;
 
 function clampThinking(text: string): string {
   return text.length > THINKING_TEXT_MAX ? `[truncated] …${text.slice(-THINKING_TEXT_MAX)}` : text;
@@ -388,6 +391,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * the failure silently replaced it with a clean state.
    */
   private lastError?: string;
+  private abortWatchdog?: ReturnType<typeof setInterval>;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
   private ui!: ExtensionUIContext;
@@ -669,6 +673,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   async prompt(message: string): Promise<void> {
     this.lastError = undefined;
+    // A new run owns the status from here; a watchdog left from the previous
+    // abort would report idle in the middle of it.
+    clearInterval(this.abortWatchdog);
+    this.abortWatchdog = undefined;
     if (await this.handleNativeCommand(message.trim())) return;
     await this.runtime.session.prompt(message);
   }
@@ -677,8 +685,47 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     // A pending dialog would otherwise keep a blocked tool call waiting after
     // the user already asked the run to stop.
     this.prompts.cancelAll();
+    // Only a turn that reached the agent loop ends in `agent_settled`, and that
+    // is the single event clearing an "aborting" status. Stopping while the
+    // session is between turns — or during compaction, a queued prompt, a run
+    // that already failed — produces none, and the composer sits on
+    // "stopping…" for good. So the status is confirmed against the session
+    // itself rather than trusted to arrive.
+    if (this.runtime.session.isIdle) {
+      this.emit({ type: "runtimeStatus", status: "idle" });
+      return;
+    }
     this.emit({ type: "runtimeStatus", status: "aborting" });
-    await this.runtime.session.abort();
+    try {
+      await this.runtime.session.abort();
+    } finally {
+      this.watchAbort();
+    }
+  }
+
+  /**
+   * Polls the session after an abort and reports idle as soon as it stops. A
+   * settled event that does arrive gets there first and this only re-states
+   * what the browser already shows; when none arrives, this is what ends the
+   * "stopping…" state.
+   */
+  private watchAbort(): void {
+    clearInterval(this.abortWatchdog);
+    const started = Date.now();
+    this.abortWatchdog = setInterval(() => {
+      const settled = this.runtime.session.isIdle;
+      if (!settled && Date.now() - started < ABORT_WATCH_TIMEOUT_MS) return;
+      clearInterval(this.abortWatchdog);
+      this.abortWatchdog = undefined;
+      // A session still working after this long was never stopped. Saying so
+      // and handing the composer back to "running" is more honest than a
+      // "stopping…" that will never end, and escape can try again from there.
+      if (!settled) {
+        this.emit({ type: "notification", level: "warning", message: "The run did not stop. Press escape again to retry." });
+      }
+      this.emit({ type: "runtimeStatus", status: settled ? "idle" : "running" });
+    }, ABORT_WATCH_INTERVAL_MS);
+    this.abortWatchdog.unref?.();
   }
 
   respondToPrompt(promptId: string, result: UiPromptResult): void {
@@ -709,6 +756,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   async dispose(): Promise<void> {
     this.unsubscribe?.();
+    clearInterval(this.abortWatchdog);
+    this.abortWatchdog = undefined;
     // Cancel before clearing listeners: a switched-away session must not leave
     // an extension waiting on a dialog nobody can answer.
     this.prompts.dispose();
@@ -830,6 +879,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         return;
       }
       if (event.type === "agent_settled") {
+        clearInterval(this.abortWatchdog);
+        this.abortWatchdog = undefined;
         // Deliberately not cleared here; `prompt()` drops it when the next run
         // begins, so a late snapshot still reports why this one failed.
         this.emit({ type: "runtimeStatus", status: "idle", ...(this.lastError ? { error: this.lastError } : {}) });
