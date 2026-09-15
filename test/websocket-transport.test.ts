@@ -101,6 +101,25 @@ describe("WebSocket transport", () => {
     second.socket.close();
   });
 
+  it("broadcasts runtime events to all sockets in multi-connection mode", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+    const first = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = first.socket;
+    const second = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+
+    const firstFinal = receiveOfType(first.socket, "messageFinal");
+    const secondFinal = receiveOfType(second.socket, "messageFinal");
+    first.socket.send(JSON.stringify({ version: PROTOCOL_VERSION, sessionId: "fake-session", type: "prompt", message: "Hello" }));
+
+    await expect(firstFinal).resolves.toMatchObject({ type: "messageFinal" });
+    await expect(secondFinal).resolves.toMatchObject({ type: "messageFinal" });
+    second.socket.close();
+  });
+
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {
     server = createPiChatServer(new FakeRuntimeAdapter());
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));

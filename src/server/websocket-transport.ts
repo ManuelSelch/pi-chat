@@ -150,8 +150,7 @@ export class WebSocketTransport {
       sequence: this.nextSequence(sessionId),
       ...event,
     };
-    const controller = this.controller();
-    if (controller?.socket.readyState === WebSocket.OPEN) this.sendTo(controller.socket, message);
+    void this.publishToAuthorized(sessionId, message);
     // Status and prompt changes drive the tab dots.
     if (event.type === "runtimeStatus" || event.type === "prompts") this.sendTabs();
   }
@@ -164,38 +163,43 @@ export class WebSocketTransport {
   }
 
   /** The home screen has no snapshot to read the catalogue from. */
-  private async sendCatalogue(socket = this.controller()?.socket): Promise<void> {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  private async sendCatalogue(socket?: WebSocket): Promise<void> {
+    const targets = socket ? [socket] : this.targetSockets();
     try {
       const catalogue = await this.chat.currentCatalogue();
       const features = this.chat.appFeatures();
-      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
+      for (const target of targets) this.sendTo(target, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
     } catch (error: unknown) {
       this.publishError(this.chat.activeSessionId(), error);
     }
   }
 
-  private sendTabs(socket = this.controller()?.socket): void {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    this.sendTo(socket, {
-      version: PROTOCOL_VERSION,
-      type: "tabs",
-      tabs: this.chat.tabs(),
-      activeSessionId: this.chat.activeSessionId(),
-    });
+  private sendTabs(socket?: WebSocket): void {
+    for (const target of socket ? [socket] : this.targetSockets()) {
+      this.sendTo(target, {
+        version: PROTOCOL_VERSION,
+        type: "tabs",
+        tabs: this.chat.tabs(),
+        activeSessionId: this.chat.activeSessionId(),
+      });
+    }
   }
 
-  private async sendSnapshot(sessionId: string, socket = this.controller()?.socket): Promise<void> {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  private async sendSnapshot(sessionId: string, socket?: WebSocket): Promise<void> {
     const snapshot = await this.chat.snapshot(sessionId);
     const sequence = this.sequences.get(sessionId) ?? 0;
-    this.sendTo(socket, {
+    const message: ServerMessage = {
       version: PROTOCOL_VERSION,
       type: "snapshot",
       sequence,
       throughSequence: sequence,
       ...snapshot,
-    });
+    };
+    if (socket) {
+      if (socket.readyState === WebSocket.OPEN) this.sendTo(socket, message);
+      return;
+    }
+    await this.publishToAuthorized(sessionId, message);
   }
 
   private publishError(sessionId: string, error: unknown): void {
@@ -211,6 +215,31 @@ export class WebSocketTransport {
 
   private controller(): PiChatConnection | undefined {
     return this.controllerId ? this.connections.get(this.controllerId) : undefined;
+  }
+
+  private targetSockets(): WebSocket[] {
+    if (this.chat.connectionMode() === "single-controller") {
+      const controller = this.controller();
+      return controller?.socket.readyState === WebSocket.OPEN ? [controller.socket] : [];
+    }
+    return [...this.connections.values()]
+      .map((connection) => connection.socket)
+      .filter((socket) => socket.readyState === WebSocket.OPEN);
+  }
+
+  private async publishToAuthorized(sessionId: string, message: ServerMessage): Promise<void> {
+    const candidates = this.chat.connectionMode() === "single-controller"
+      ? [...(this.controller() ? [this.controller()!] : [])]
+      : [...this.connections.values()];
+    for (const connection of candidates) {
+      if (connection.socket.readyState !== WebSocket.OPEN) continue;
+      try {
+        await this.chat.authorizeConnectionAction("snapshot.authorize", { connectionId: connection.id, sessionId });
+        this.sendTo(connection.socket, message);
+      } catch {
+        // A denied snapshot/event is simply hidden from that connection.
+      }
+    }
   }
 
   private protocolError(error: string): ServerMessage {
