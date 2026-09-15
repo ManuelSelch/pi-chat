@@ -201,7 +201,7 @@ export const actionRegistrySchema = z.object({
 export type WebFeature = z.infer<typeof webFeatureSchema>;
 export type ActionRegistry = z.infer<typeof actionRegistrySchema>;
 
-export const piChatSlotSchema = z.enum(["session.header.right", "composer.right", "settings.section"]);
+export const piChatSlotSchema = z.enum(["session.header.right", "composer.right", "composer.below", "session.status", "settings.section"]);
 export type PiChatSlot = z.infer<typeof piChatSlotSchema>;
 
 export const piChatButtonSchema = z.object({
@@ -213,8 +213,18 @@ export const piChatButtonSchema = z.object({
 });
 export type PiChatButton = z.infer<typeof piChatButtonSchema>;
 
+/** Read-only status text an extension shows for this connection, e.g. a role. */
+export const piChatBadgeSchema = z.object({
+  id: z.string().min(1),
+  slot: piChatSlotSchema,
+  label: z.string().min(1),
+  tone: z.enum(["neutral", "green", "yellow", "red"]).default("neutral"),
+});
+export type PiChatBadge = z.infer<typeof piChatBadgeSchema>;
+
 export const piChatExtensionsSchema = z.object({
   buttons: z.array(piChatButtonSchema).default([]),
+  badges: z.array(piChatBadgeSchema).default([]),
   state: z.record(z.string(), z.unknown()).default({}),
 });
 export type PiChatExtensions = z.infer<typeof piChatExtensionsSchema>;

@@ -260,7 +260,8 @@ export function App() {
             <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
           </Group>
           <Group gap="sm" wrap="nowrap">
-            {home ? null : <Slot name="session.header.right" buttons={state.extensions.buttons} onAction={chat.runExtensionAction} />}
+            {home ? null : <Slot name="session.status" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />}
+            {home ? null : <Slot name="session.header.right" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />}
             {home ? null : (
               <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
                 {state.status}
@@ -453,7 +454,7 @@ export function App() {
                 flex={1}
                 styles={{ input: { padding: "8px 10px" } }}
               />
-              <Slot name="composer.right" buttons={state.extensions.buttons} onAction={chat.runExtensionAction} />
+              <Slot name="composer.right" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
               {busy ? (
                 <ActionIcon color="red" radius="xl" size="lg" aria-label="Stop" disabled={state.status === "aborting"} onClick={() => abort()} type="button">
                   <IconPlayerStopFilled size={16} />
@@ -470,6 +471,10 @@ export function App() {
               <WidgetPanel widgets={widgetsBelow} />
             </Box>
           ) : null}
+
+          <Box mt={6} pl={12}>
+            <Slot name="composer.below" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
+          </Box>
 
           {composerStatus ? <Text size="xs" c="dimmed" mt={6} pl={12}>{composerStatus}</Text> : null}
         </Container>

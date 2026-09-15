@@ -1,7 +1,7 @@
 import type { ChatMessage } from "../shared/protocol.js";
 import type { PiChatConnectionMode, PiChatConnectionRequest } from "./connection.js";
 
-export type PiChatSlot = "session.header.right" | "composer.right" | "settings.section";
+export type PiChatSlot = "session.header.right" | "composer.right" | "composer.below" | "session.status" | "settings.section";
 
 export interface PiChatButton {
   id: string;
@@ -9,6 +9,13 @@ export interface PiChatButton {
   label: string;
   icon?: string;
   actionId: string;
+}
+
+export interface PiChatBadge {
+  id: string;
+  slot: PiChatSlot;
+  label: string;
+  tone?: "neutral" | "green" | "yellow" | "red";
 }
 
 export interface PiChatActionContext {
@@ -49,20 +56,32 @@ export interface PiChatExtensionSnapshotContext {
   sessionId?: string;
 }
 
+/** Either a fixed value or one resolved per viewer, e.g. that viewer's own role. */
+export type PiChatExtensionState =
+  | Record<string, unknown>
+  | unknown[]
+  | ((ctx: PiChatExtensionSnapshotContext) => Record<string, unknown> | unknown[] | undefined);
+
+/** A badge as sent to the browser: the tone default is resolved server side. */
+export type ResolvedPiChatBadge = PiChatBadge & { tone: NonNullable<PiChatBadge["tone"]> };
+
 export interface PiChatExtensionSnapshot {
   buttons: PiChatButton[];
+  badges: ResolvedPiChatBadge[];
   state: Record<string, unknown>;
 }
 
 export interface PiChatExtensionRegistry {
   registerButton(button: PiChatButton): void;
+  /** A badge may depend on the viewer, so it can be a function of the snapshot context. */
+  registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void;
   registerAction(action: PiChatAction): void;
   on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>): void;
   use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void;
   authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult>;
   setConnectionMode(mode: PiChatConnectionMode): void;
   connectionMode(): PiChatConnectionMode;
-  setExtensionState(extensionId: string, state: unknown | ((ctx: PiChatExtensionSnapshotContext) => unknown)): void;
+  setExtensionState(extensionId: string, state: PiChatExtensionState): void;
   clearExtensionState(extensionId: string): void;
   snapshot(ctx?: PiChatExtensionSnapshotContext): PiChatExtensionSnapshot;
   runAction(actionId: string, ctx: PiChatActionContext): Promise<void>;
@@ -71,14 +90,19 @@ export interface PiChatExtensionRegistry {
 
 class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   private readonly buttons = new Map<string, PiChatButton>();
+  private readonly badges: Array<PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)> = [];
   private readonly actions = new Map<string, PiChatAction>();
   private readonly hooks = new Map<PiChatHookName, Array<(payload: unknown) => Promise<void> | void>>();
   private readonly authorizers = new Map<PiChatAuthorizationName, PiChatAuthorizationHandler[]>();
-  private readonly states = new Map<string, unknown | ((ctx: PiChatExtensionSnapshotContext) => unknown)>();
+  private readonly states = new Map<string, PiChatExtensionState>();
   private mode: PiChatConnectionMode = "single-controller";
 
   registerButton(button: PiChatButton): void {
     this.buttons.set(button.id, button);
+  }
+
+  registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void {
+    this.badges.push(badge);
   }
 
   registerAction(action: PiChatAction): void {
@@ -113,7 +137,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
     return this.mode;
   }
 
-  setExtensionState(extensionId: string, state: unknown | ((ctx: PiChatExtensionSnapshotContext) => unknown)): void {
+  setExtensionState(extensionId: string, state: PiChatExtensionState): void {
     this.states.set(extensionId, state);
   }
 
@@ -124,6 +148,10 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   snapshot(ctx: PiChatExtensionSnapshotContext = {}): PiChatExtensionSnapshot {
     return {
       buttons: [...this.buttons.values()],
+      badges: this.badges
+        .map((badge) => (typeof badge === "function" ? badge(ctx) : badge))
+        .filter((badge): badge is PiChatBadge => badge !== undefined)
+        .map((badge) => ({ ...badge, tone: badge.tone ?? "neutral" })),
       state: Object.fromEntries([...this.states.entries()].map(([id, state]) => [id, typeof state === "function" ? state(ctx) : state])),
     };
   }
