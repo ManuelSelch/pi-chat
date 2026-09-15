@@ -214,7 +214,10 @@ export function App() {
     setActiveCommand(0);
   }
   const chimes = useChimes(app.tabs);
-  const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.status}`;
+  // Reasoning counts as growth too: a turn that thinks before it writes grows
+  // the page by the whole thinking panel, and following only `text` left the
+  // live reasoning drifting below the fold.
+  const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.draft?.thinking.length ?? 0}:${state.status}`;
   const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
 
   function submit(event?: FormEvent): void {

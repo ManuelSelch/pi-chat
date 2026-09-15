@@ -29,6 +29,12 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
     id: z.string().min(1),
     role: z.enum(["user", "assistant", "system"]),
     text: z.string(),
+    /**
+     * The model's reasoning for this turn, when it reported any. Only ever set
+     * for `assistant`. Carried on the message rather than streamed alone so it
+     * survives a reload: snapshots are rebuilt from session history.
+     */
+    thinking: z.string().optional(),
     timestamp: z.number().optional(),
   }),
   z.object({
@@ -299,6 +305,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
+  z.object({ ...sequenced, type: z.literal("thinkingDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
   z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),
   z.object({ ...sequenced, type: z.literal("runtimeStatus"), status: z.enum(["idle", "running", "aborting"]), error: z.string().optional() }),

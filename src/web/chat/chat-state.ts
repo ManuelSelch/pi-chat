@@ -14,7 +14,8 @@ export type ChatAction =
 
 export interface ChatState {
   messages: ChatMessage[];
-  draft?: { runId: string; text: string };
+  /** The run in flight: `thinking` is the reasoning streamed ahead of `text`. */
+  draft?: { runId: string; text: string; thinking: string };
   status: "connecting" | "idle" | "running" | "aborting" | "superseded";
   error?: string;
   sessionId: string;
@@ -132,9 +133,14 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     };
   }
   if (message.sequence <= state.sequence) return state;
-  if (message.type === "assistantDelta") {
-    const previous = state.draft?.runId === message.runId ? state.draft.text : "";
-    return { ...state, sequence: message.sequence, draft: { runId: message.runId, text: previous + message.delta } };
+  if (message.type === "assistantDelta" || message.type === "thinkingDelta") {
+    // A delta for another run starts a fresh draft, so a reconnect mid-turn
+    // cannot splice two runs into one bubble.
+    const previous = state.draft?.runId === message.runId ? state.draft : { runId: message.runId, text: "", thinking: "" };
+    const draft = message.type === "assistantDelta"
+      ? { ...previous, text: previous.text + message.delta }
+      : { ...previous, thinking: previous.thinking + message.delta };
+    return { ...state, sequence: message.sequence, draft };
   }
   if (message.type === "toolEvent") {
     const card = message.tool;

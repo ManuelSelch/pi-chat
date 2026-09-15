@@ -66,6 +66,32 @@ describe("session deletion", () => {
   });
 });
 
+describe("streamed reasoning", () => {
+  it("carries thinking deltas and the reasoning of a finished message", () => {
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "s1", sequence: 1, runId: "run", delta: "hm",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "s1", sequence: 2, runId: "run",
+        message: { id: "m1", role: "assistant", text: "Answer", thinking: "Reasoning" },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("keeps reasoning optional", () => {
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "s1", sequence: 2, runId: "run",
+        message: { id: "m1", role: "assistant", text: "Answer" },
+      }).success,
+    ).toBe(true);
+  });
+});
+
 describe("extension custom messages", () => {
   it("accepts displayable pi.sendMessage output in a snapshot", () => {
     expect(

@@ -5,6 +5,7 @@ import { createWebUiContext } from "./web-ui-context.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
+  | { type: "thinkingDelta"; runId: string; delta: string }
   | { type: "messageFinal"; runId: string; message: ChatMessage }
   | { type: "toolEvent"; runId: string; tool: ToolCard }
   | { type: "notification"; level: "info" | "warning" | "error"; message: string }

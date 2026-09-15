@@ -24,6 +24,17 @@ import { WidgetRegistry } from "./widget-registry.js";
 
 const ARGS_TEXT_MAX = 4_000;
 const OUTPUT_TEXT_MAX = 20_000;
+/**
+ * Reasoning is kept on every assistant message and therefore in every snapshot,
+ * so a long session would pay for it repeatedly. The tail is what a reader
+ * wants — the conclusion of the chain, not its opening — so this clamp drops
+ * the beginning rather than the end.
+ */
+const THINKING_TEXT_MAX = 8_000;
+
+function clampThinking(text: string): string {
+  return text.length > THINKING_TEXT_MAX ? `[truncated] …${text.slice(-THINKING_TEXT_MAX)}` : text;
+}
 
 function clampText(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}… [truncated]` : text;
@@ -223,6 +234,27 @@ function textFromContent(content: unknown): string {
 }
 
 /**
+ * The model's reasoning blocks, joined in order.
+ *
+ * A redacted block carries no readable text at all (only an opaque signature),
+ * so it becomes a marker: an empty panel would read as "the model did not
+ * think", which is the opposite of what happened.
+ */
+function thinkingFromContent(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((part) => {
+      if (!part || typeof part !== "object") return "";
+      const value = part as Record<string, unknown>;
+      if (value.type !== "thinking") return "";
+      if (value.redacted === true) return "_[redacted reasoning]_";
+      return typeof value.thinking === "string" ? value.thinking : "";
+    })
+    .filter((part) => part.length > 0)
+    .join("\n\n");
+}
+
+/**
  * Stable per-message identity.
  *
  * Ids must match whether a message is first seen as a live `message_end` event
@@ -251,8 +283,8 @@ export class MessageIdentity {
  * - an assistant tool-call block becomes a *running* tool entry; the matching
  *   toolResult message, which follows in session order, overwrites it as
  *   success/error, so flattening the whole session in order yields final cards.
- * - an assistant message with neither text nor tool calls yields nothing, so a
- *   failed turn never leaves an empty bubble.
+ * - an assistant message with neither text, reasoning, nor tool calls yields
+ *   nothing, so a failed turn never leaves an empty bubble.
  */
 export function toChatMessages(message: unknown, identity: MessageIdentity): ChatMessage[] {
   if (!message || typeof message !== "object") return [];
@@ -289,8 +321,17 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
 
   const entries: ChatMessage[] = [];
   const text = textFromContent(value.content);
-  if (text.length > 0) {
-    entries.push({ id: identity.idFor(message), role: value.role, text, ...stamp });
+  // Reasoning alone is worth a bubble: a turn that only thought and then called
+  // a tool would otherwise show the tool card with nothing explaining it.
+  const thinking = value.role === "assistant" ? clampThinking(thinkingFromContent(value.content)) : "";
+  if (text.length > 0 || thinking.length > 0) {
+    entries.push({
+      id: identity.idFor(message),
+      role: value.role,
+      text,
+      ...(thinking ? { thinking } : {}),
+      ...stamp,
+    });
   }
   for (const call of toolCallsFromContent(value.content)) {
     entries.push({ id: toolMessageId(call.id), role: "tool", tool: toolCardFromCall(call), ...stamp });
@@ -688,6 +729,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       }
       if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
         this.emit({ type: "assistantDelta", runId: this.currentRunId, delta: event.assistantMessageEvent.delta });
+        return;
+      }
+      // Redacted reasoning emits no deltas at all, so it only ever appears on
+      // the final message; this stream is the readable case.
+      if (event.type === "message_update" && event.assistantMessageEvent.type === "thinking_delta") {
+        this.emit({ type: "thinkingDelta", runId: this.currentRunId, delta: event.assistantMessageEvent.delta });
         return;
       }
       if (event.type === "message_end") {

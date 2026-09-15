@@ -35,13 +35,40 @@ describe("chat state", () => {
     expect(final.messages).toEqual([{ id: "answer", role: "assistant", text: "Hello world" }]);
   });
 
+  it("streams reasoning alongside the answer and hands it over to the final message", () => {
+    const snapshot = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
+      sessionId: "session", projectPath: "/project", messages: [], isStreaming: false,
+    });
+    const thought = reduceServerMessage(snapshot, { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 1, runId: "run", delta: "Let me " });
+    const thoughtMore = reduceServerMessage(thought, { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 2, runId: "run", delta: "check." });
+    // Prose arriving must not wipe the reasoning already on screen.
+    const spoke = reduceServerMessage(thoughtMore, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 3, runId: "run", delta: "Yes" });
+    expect(spoke.draft).toEqual({ runId: "run", thinking: "Let me check.", text: "Yes" });
+
+    const final = reduceServerMessage(spoke, {
+      version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "session", sequence: 4, runId: "run",
+      message: { id: "answer", role: "assistant", text: "Yes", thinking: "Let me check." },
+    });
+    expect(final.draft).toBeUndefined();
+    expect(final.messages).toEqual([{ id: "answer", role: "assistant", text: "Yes", thinking: "Let me check." }]);
+  });
+
+  it("starts a fresh draft when reasoning arrives for another run", () => {
+    const first = reduceServerMessage(
+      { ...initialChatState, sequence: 0, draft: { runId: "old", text: "stale", thinking: "stale" } },
+      { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 1, runId: "new", delta: "fresh" },
+    );
+    expect(first.draft).toEqual({ runId: "new", text: "", thinking: "fresh" });
+  });
+
   it("keeps the transcript but drops the partial stream when the socket closes", () => {
     const streaming = {
       ...initialChatState,
       status: "running" as const,
       sequence: 3,
       messages: [{ id: "saved", role: "user" as const, text: "question" }],
-      draft: { runId: "run", text: "half an ans" },
+      draft: { runId: "run", text: "half an ans", thinking: "" },
     };
     const lost = reduceServerMessage(streaming, { type: "connectionLost", error: "Waiting…" });
     expect(lost.status).toBe("connecting");

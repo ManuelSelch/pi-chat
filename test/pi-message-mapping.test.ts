@@ -42,6 +42,67 @@ describe("Pi message mapping", () => {
     expect(entries[0]!.role === "tool" && entries[0]!.tool.argsText).toContain('"ls"');
   });
 
+  it("keeps the model's reasoning on the assistant message", () => {
+    const identity = new MessageIdentity();
+    const entries = toChatMessages(
+      {
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "First step" },
+          { type: "thinking", thinking: "Second step" },
+          { type: "text", text: "Answer" },
+        ],
+      },
+      identity,
+    );
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ role: "assistant", text: "Answer", thinking: "First step\n\nSecond step" });
+  });
+
+  it("marks redacted reasoning instead of showing an empty panel", () => {
+    const identity = new MessageIdentity();
+    const entries = toChatMessages(
+      { role: "assistant", content: [{ type: "thinking", thinking: "", thinkingSignature: "opaque", redacted: true }, { type: "text", text: "Answer" }] },
+      identity,
+    );
+    expect(entries[0]).toMatchObject({ thinking: "_[redacted reasoning]_" });
+  });
+
+  it("clamps a long chain of thought to its tail", () => {
+    const identity = new MessageIdentity();
+    const entries = toChatMessages(
+      { role: "assistant", content: [{ type: "thinking", thinking: `${"a".repeat(9_000)}END` }, { type: "text", text: "Answer" }] },
+      identity,
+    );
+    const thinking = entries[0]!.role === "assistant" ? entries[0]!.thinking ?? "" : "";
+    expect(thinking.startsWith("[truncated] ")).toBe(true);
+    expect(thinking.endsWith("END")).toBe(true);
+    expect(thinking.length).toBeLessThan(9_000);
+  });
+
+  it("gives a reasoning-plus-tool-call turn a bubble for the reasoning", () => {
+    const identity = new MessageIdentity();
+    const entries = toChatMessages(
+      {
+        role: "assistant",
+        content: [{ type: "thinking", thinking: "I should look" }, { type: "toolCall", id: "call-1", name: "bash", arguments: { command: "ls" } }],
+      },
+      identity,
+    );
+    expect(entries).toHaveLength(2);
+    expect(entries[0]).toMatchObject({ role: "assistant", text: "", thinking: "I should look" });
+    expect(entries[1]).toMatchObject({ id: "tool:call-1", role: "tool" });
+  });
+
+  it("ignores reasoning on a user message", () => {
+    const identity = new MessageIdentity();
+    const entries = toChatMessages(
+      { role: "user", content: [{ type: "thinking", thinking: "not mine" }, { type: "text", text: "Hi" }] },
+      identity,
+    );
+    expect(entries[0]).toEqual({ id: expect.any(String), role: "user", text: "Hi" });
+  });
+
   it("maps a toolResult to a finalized tool entry with the same deterministic id", () => {
     const identity = new MessageIdentity();
     const entries = toChatMessages(

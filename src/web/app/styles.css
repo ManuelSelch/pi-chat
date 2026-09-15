@@ -30,6 +30,11 @@ html::-webkit-scrollbar {
 .markdown-notice { font-size: 14px; line-height: 1.5; }
 .markdown-notice p, .markdown-notice ul { margin: 4px 0; }
 .markdown-notice ul { padding-left: 18px; }
+/* Reasoning is context, not the answer: smaller and dimmed so the eye skips it
+   unless it is looking for it. */
+.markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--mantine-color-dimmed); }
+.markdown-thinking p, .markdown-thinking ul { margin: 4px 0; }
+.markdown-thinking ul { padding-left: 18px; }
 .markdown > :first-child { margin-top: 0; }
 .markdown > :last-child { margin-bottom: 0; }
 .markdown a { color: var(--mantine-color-anchor); }
@@ -110,6 +115,12 @@ html::-webkit-scrollbar {
 
 /* Tool card running pulse. */
 .tool-running-pulse { animation: stream-cursor-blink 1.2s infinite; }
+
+/* The thinking header breathes while reasoning streams, so a turn that is
+   thinking and not yet writing still looks alive. */
+.thinking-live { animation: thinking-breathe 1.8s ease-in-out infinite; }
+@keyframes thinking-breathe { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .thinking-live { animation: none; } }
 
 /* Composer "working" indicator: a hairline along the bottom edge, so a run
    needs no stop button taking up room next to the send button. Escape still

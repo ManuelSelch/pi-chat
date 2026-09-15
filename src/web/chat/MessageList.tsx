@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { Alert, Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "./Markdown.js";
+import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "./ToolCard.js";
 import type { ChatMessage } from "../../shared/protocol.js";
 import type { ChatState } from "./chat-state.js";
@@ -55,7 +56,12 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
       {message.role === "assistant" ? (
         <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
       ) : null}
-      {message.role === "user" ? (
+      {message.role === "assistant" && message.thinking ? (
+        <ThinkingPanel thinking={message.thinking} streaming={false} />
+      ) : null}
+      {/* A turn can be reasoning plus a tool call and no prose at all; the
+          panel above is then the whole message. */}
+      {message.role === "assistant" && message.text === "" ? null : message.role === "user" ? (
         <Paper bg="var(--mantine-color-default-hover)" radius="lg" p="sm" px="md" ml="auto" maw="82%">
           <div className="markdown"><Markdown>{message.text}</Markdown></div>
         </Paper>
@@ -107,6 +113,12 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
         {draft ? (
           <Box component="article">
             <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
+            {draft.thinking ? (
+              // Still "streaming" once prose starts arriving is deliberate: the
+              // panel only settles when the turn does, so it does not collapse
+              // out from under a reader mid-sentence.
+              <ThinkingPanel thinking={draft.thinking} streaming />
+            ) : null}
             <div className="markdown">
               <Markdown>{draft.text}</Markdown>
               <span className="stream-cursor" />
