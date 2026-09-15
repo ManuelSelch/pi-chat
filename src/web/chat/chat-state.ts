@@ -41,7 +41,7 @@ export const initialChatState: ChatState = {
   actions: { features: [], commands: [] },
   prompts: [],
   widgets: [],
-  extensions: { buttons: [] },
+  extensions: { buttons: [], state: {} },
   sequence: -1,
 };
 
@@ -124,7 +124,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       actions: message.actions ?? state.actions,
       prompts: message.prompts ?? [],
       widgets: message.widgets ?? [],
-      extensions: message.extensions ?? { buttons: [] },
+      extensions: message.extensions ?? { buttons: [], state: {} },
       sequence: message.throughSequence,
       // The server owns the failure now, so a refresh after a failed turn
       // reports it again instead of quietly dropping it.

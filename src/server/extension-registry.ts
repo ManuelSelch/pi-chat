@@ -45,6 +45,7 @@ export type PiChatAuthorizationHandler = (ctx: PiChatAuthorizationContext) => Pr
 
 export interface PiChatExtensionSnapshot {
   buttons: PiChatButton[];
+  state: Record<string, unknown>;
 }
 
 export interface PiChatExtensionRegistry {
@@ -55,6 +56,8 @@ export interface PiChatExtensionRegistry {
   authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult>;
   setConnectionMode(mode: PiChatConnectionMode): void;
   connectionMode(): PiChatConnectionMode;
+  setExtensionState(extensionId: string, state: unknown): void;
+  clearExtensionState(extensionId: string): void;
   snapshot(): PiChatExtensionSnapshot;
   runAction(actionId: string, ctx: PiChatActionContext): Promise<void>;
   emit<Name extends PiChatHookName>(name: Name, payload: HookPayload<Name>): Promise<void>;
@@ -65,6 +68,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   private readonly actions = new Map<string, PiChatAction>();
   private readonly hooks = new Map<PiChatHookName, Array<(payload: unknown) => Promise<void> | void>>();
   private readonly authorizers = new Map<PiChatAuthorizationName, PiChatAuthorizationHandler[]>();
+  private readonly states = new Map<string, unknown>();
   private mode: PiChatConnectionMode = "single-controller";
 
   registerButton(button: PiChatButton): void {
@@ -103,8 +107,16 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
     return this.mode;
   }
 
+  setExtensionState(extensionId: string, state: unknown): void {
+    this.states.set(extensionId, state);
+  }
+
+  clearExtensionState(extensionId: string): void {
+    this.states.delete(extensionId);
+  }
+
   snapshot(): PiChatExtensionSnapshot {
-    return { buttons: [...this.buttons.values()] };
+    return { buttons: [...this.buttons.values()], state: Object.fromEntries(this.states.entries()) };
   }
 
   async runAction(actionId: string, ctx: PiChatActionContext): Promise<void> {

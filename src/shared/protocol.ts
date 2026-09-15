@@ -215,6 +215,7 @@ export type PiChatButton = z.infer<typeof piChatButtonSchema>;
 
 export const piChatExtensionsSchema = z.object({
   buttons: z.array(piChatButtonSchema).default([]),
+  state: z.record(z.string(), z.unknown()).default({}),
 });
 export type PiChatExtensions = z.infer<typeof piChatExtensionsSchema>;
 

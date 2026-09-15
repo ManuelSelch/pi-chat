@@ -6,9 +6,20 @@ describe("Pi Chat extension registry", () => {
     const registry = createPiChatExtensionRegistry();
     registry.registerButton({ id: "demo.hello.button", slot: "composer.right", label: "Demo", actionId: "demo.hello" });
 
-    expect(registry.snapshot().buttons).toEqual([
-      { id: "demo.hello.button", slot: "composer.right", label: "Demo", actionId: "demo.hello" },
-    ]);
+    expect(registry.snapshot()).toEqual({
+      buttons: [{ id: "demo.hello.button", slot: "composer.right", label: "Demo", actionId: "demo.hello" }],
+      state: {},
+    });
+  });
+
+  it("stores extension state for snapshots", () => {
+    const registry = createPiChatExtensionRegistry();
+    registry.setExtensionState("multiuser", { participants: 2 });
+
+    expect(registry.snapshot().state).toEqual({ multiuser: { participants: 2 } });
+
+    registry.clearExtensionState("multiuser");
+    expect(registry.snapshot().state).toEqual({});
   });
 
   it("runs a registered action", async () => {
