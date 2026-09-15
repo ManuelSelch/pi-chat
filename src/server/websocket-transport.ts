@@ -41,12 +41,14 @@ export class WebSocketTransport {
     this.controllerId = connection.id;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
+    void this.chat.connectionOpened(connection.id);
     void this.sendAll(connection.socket);
 
     socket.on("message", (data) => this.handleMessage(connection, data));
 
     socket.on("close", () => {
       this.connections.delete(connection.id);
+      void this.chat.connectionClosed(connection.id);
       if (this.controllerId !== connection.id) return;
       this.controllerId = undefined;
       // A reload must not cancel a permission gate, so pending dialogs only

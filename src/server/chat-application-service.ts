@@ -248,6 +248,14 @@ export class ChatApplicationService {
     return () => this.listeners.delete(listener);
   }
 
+  async connectionOpened(connectionId: string): Promise<void> {
+    await this.extensions.emit("connection.open", { connectionId });
+  }
+
+  async connectionClosed(connectionId: string): Promise<void> {
+    await this.extensions.emit("connection.close", { connectionId });
+  }
+
   async dispose(): Promise<void> {
     this.listeners.clear();
     await this.sessions.dispose();

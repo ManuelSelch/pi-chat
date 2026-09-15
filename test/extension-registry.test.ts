@@ -30,4 +30,18 @@ describe("Pi Chat extension registry", () => {
 
     expect(handler).toHaveBeenCalledWith({ sessionId: "s1", message: { id: "m1", role: "assistant", text: "Hi" } });
   });
+
+  it("emits connection lifecycle hooks", async () => {
+    const registry = createPiChatExtensionRegistry();
+    const opened = vi.fn();
+    const closed = vi.fn();
+    registry.on("connection.open", opened);
+    registry.on("connection.close", closed);
+
+    await registry.emit("connection.open", { connectionId: "c1" });
+    await registry.emit("connection.close", { connectionId: "c1" });
+
+    expect(opened).toHaveBeenCalledWith({ connectionId: "c1" });
+    expect(closed).toHaveBeenCalledWith({ connectionId: "c1" });
+  });
 });

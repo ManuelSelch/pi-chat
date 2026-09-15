@@ -23,7 +23,9 @@ export interface PiChatAction {
 
 export type PiChatHookEvent =
   | { name: "message.final"; payload: { sessionId: string; message: ChatMessage } }
-  | { name: "session.snapshot"; payload: { sessionId: string } };
+  | { name: "session.snapshot"; payload: { sessionId: string } }
+  | { name: "connection.open"; payload: { connectionId: string } }
+  | { name: "connection.close"; payload: { connectionId: string } };
 
 export type PiChatHookName = PiChatHookEvent["name"];
 type HookPayload<Name extends PiChatHookName> = Extract<PiChatHookEvent, { name: Name }>["payload"];
