@@ -358,9 +358,24 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   /**
+   * `session_start` is otherwise never emitted in this host: Pi fires it from
+   * `session.bindExtensions`, which the terminal modes call and this host does
+   * not. Extensions that capture their dialog surface from that event — the
+   * documented way to reach `ctx.ui`, since the extension factory is not given
+   * one — were left without it and could not ask a question at all.
+   *
+   * Emitted after `bindUi`, so the surface handed out is this host's browser
+   * modal rather than the no-op one it replaces, and exactly once per adapter:
+   * a second `session_start` would look like a session change to an extension.
+   */
+  private async startExtensions(): Promise<void> {
+    await this.runtime.session.extensionRunner.emit({ type: "session_start", reason: "startup" });
+  }
+
+  /**
    * Without a UI context Pi falls back to a no-op one, so extension output such
    * as `/memory-status` is discarded. Bound on the runner rather than through
-   * `session.bindExtensions`, which would re-emit `session_start`.
+   * `session.bindExtensions`, which would bind the terminal's own mode.
    */
   private bindUi(): void {
     this.runtime.session.extensionRunner.setUIContext(
@@ -427,7 +442,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
     const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
     // Snapshots are synchronous, so the model catalogue is resolved once here.
-    return new PiRuntimeAdapter(runtime, await offeredModels(runtime.session));
+    const adapter = new PiRuntimeAdapter(runtime, await offeredModels(runtime.session));
+    await adapter.startExtensions();
+    return adapter;
   }
 
   snapshot(): RuntimeSnapshot {

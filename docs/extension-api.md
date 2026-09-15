@@ -216,6 +216,10 @@ pi.on("session_start", (_event, ctx) => {
 });
 ```
 
+Pi Chat emits `session_start` once per session, after it has bound the browser
+dialog surface, so the captured `ctx.ui` is the modal one rather than the no-op
+context Pi falls back to.
+
 Keep the name server-side and let the link carry only the token:
 
 ```ts
