@@ -74,7 +74,7 @@ Supported slots:
 | `session.header.right` | Right side of the active session header, near status/settings |
 | `composer.right` | Right side of the message input area, near Send/Stop |
 | `composer.below` | Under the message input, for notices such as read-only mode |
-| `settings.section` | Reserved for future settings UI; not rendered yet |
+| `settings.section` | An "Extensions" card in the settings drawer, for switches an extension owns |
 
 `composer` means the bottom message input area where the user writes the next prompt.
 
@@ -200,6 +200,73 @@ interface PiChatConnectionRequest {
 The browser forwards the page's query string to `/ws`, so `?invite=demo` on the
 page reaches `connection.authorize` unchanged.
 
+Returning `{ allow: false, reason }` here closes the socket with that reason, so
+this is also where an unrecognised token is turned away.
+
+## Named invite links
+
+`ctx.ui.input` is a browser modal in Pi Chat, so an extension can ask the owner
+a question and mint a link from the answer. `ctx.ui` is only handed to event
+handlers, not to the extension factory, so capture it once:
+
+```ts
+let ui: ExtensionUIContext | undefined;
+pi.on("session_start", (_event, ctx) => {
+  ui = ctx.ui;
+});
+```
+
+Keep the name server-side and let the link carry only the token:
+
+```ts
+const invites = new Map<string, { name: string }>();
+
+chat.registerAction({
+  id: "demo.invite",
+  title: "Create an invite link",
+  run: async (ctx) => {
+    const name = (await ui?.input("Name for this guest", "e.g. Anna"))?.trim();
+    if (!name) return;                     // cancelled dialog, not an error
+    const token = randomUUID();
+    invites.set(token, { name });
+    ctx.notify(`Invite link for ${name}: ${origin}/?invite=${token}`);
+  },
+});
+
+chat.use("connection.authorize", ({ connectionId, request }) => {
+  const token = request?.query.invite;
+  if (!token) return;                      // no link: treat as owner
+  const invite = invites.get(token);
+  if (!invite) return { allow: false, reason: "This invite link is not valid." };
+  participants.set(connectionId, { role: "guest", label: invite.name });
+});
+```
+
+Three things this shape gets right, and which a name-in-the-URL version does
+not:
+
+- **The name is not a claim.** A query parameter is editable by whoever holds
+  the link, so `?name=...` would let a guest label itself anything, including
+  another participant's name. Storing it against the token means the label is
+  what the owner typed.
+- **An unknown token is denied, never downgraded.** If the lookup falls through
+  to the no-token branch, a typo'd link is treated as "no link" and lands in the
+  owner path — the failure mode grants *more* access than the link carried.
+  Deny before any role is assigned.
+- **Unknown connections fail closed.** Resolving a role should default to the
+  lesser one once sharing is on. Every real browser passes `connection.authorize`
+  before it can act, so an id that is not in the participant map is an anomaly.
+
+Dialogs are session state and reach every connected browser, so gate who may
+answer them — otherwise a read-only guest can answer the owner's naming prompt,
+or a tool call's permission gate:
+
+```ts
+chat.use("dialog.authorize", ({ connectionId }) =>
+  mayWrite(connectionId) ? { allow: true } : { allow: false, reason: "Read-only guest." },
+);
+```
+
 ## Read-only guests
 
 Authorization middleware is what makes a connection read-only. Deny the write
@@ -216,8 +283,13 @@ chat.use("action.authorize", ...);
 A denied command is reported to that browser as a run error; snapshots and
 events keep flowing, so the guest still watches the session live.
 
-See `examples/pi-chat-multiuser-demo-extension.ts` for a working policy with an
-owner-only toggle that grants or revokes guest prompts at runtime.
+See [pi-chat-multiuser](https://github.com/ManuelSelch/pi-chat-multiuser) for a
+working policy with named invite links and an owner-only toggle that grants or
+revokes guest prompts at runtime. That extension is
+off by default: loading it changes nothing until its `settings.section` button
+is used, which is the pattern for an extension that widens who may reach a
+session. Switching off again calls `chat.unregisterButton(id)` to take its
+run-time controls back out of the snapshot.
 
 The browser sends a `runExtensionAction` message. Pi Chat dispatches it to the registered server action and then refreshes the session snapshot.
 
@@ -269,7 +341,9 @@ chat.registerSettingsSection({
 
 ### 2. Action input schemas
 
-Buttons should be able to open small forms or send structured input.
+Buttons should be able to open small forms or send structured input. `ctx.ui`
+covers the one-question case already; a schema would avoid a modal that every
+connected browser sees, and would let an action be parameterised per click.
 
 ```ts
 chat.registerAction({
@@ -292,7 +366,8 @@ chat.use("action.authorize", async (event, next) => next());
 
 ### 4. HTTP routes
 
-Needed for invite links and small extension APIs.
+Query-parameter tokens cover invite links today (see above). Routes would add
+landing pages for them, plus small extension APIs.
 
 ```ts
 chat.registerRoute({
@@ -321,8 +396,8 @@ It would likely use:
 
 - `registerButton` in `session.header.right`: Invite
 - `registerSettingsSection`: sharing config
-- `registerAction`: create/revoke invite
+- `registerAction`: create/revoke invite (implemented in the demo)
 - `registerRoute`: accept invite link
-- `connection.authorize`: validate invite token
+- `connection.authorize`: validate invite token (implemented in the demo)
 - `prompt.authorize`: block viewers from sending prompts
 - extension snapshot state: participants and current role

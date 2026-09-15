@@ -86,6 +86,8 @@ export interface PiChatExtensionSnapshot {
 
 export interface PiChatExtensionRegistry {
   registerButton(button: PiChatButton): void;
+  /** Removes a button again, e.g. when an extension is switched off at runtime. */
+  unregisterButton(buttonId: string): void;
   /** A badge may depend on the viewer, so it can be a function of the snapshot context. */
   registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void;
   registerAction(action: PiChatAction): void;
@@ -112,6 +114,10 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
 
   registerButton(button: PiChatButton): void {
     this.buttons.set(button.id, button);
+  }
+
+  unregisterButton(buttonId: string): void {
+    this.buttons.delete(buttonId);
   }
 
   registerBadge(badge: PiChatBadge | ((ctx: PiChatExtensionSnapshotContext) => PiChatBadge | undefined)): void {

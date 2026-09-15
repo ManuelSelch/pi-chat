@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
-import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconRefresh } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
+import { Slot } from "../extensions/Slot.js";
 
 interface SettingsDrawerProps {
   opened: boolean;
@@ -18,9 +19,10 @@ interface SettingsDrawerProps {
   chimesEnabled: boolean;
   setChimesEnabled: (value: boolean) => void;
   chimesAvailable: boolean;
+  runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, runExtensionAction }: SettingsDrawerProps) {
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
@@ -33,6 +35,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
   // Renaming to the name it already has is a no-op, so the control stays inert
   // until the field actually differs.
   const nameChanged = sessionName.trim().length > 0 && sessionName.trim() !== currentName.trim();
+  // Extensions place their own controls here, so the section only exists once one registered something.
+  const hasExtensionControls =
+    state.extensions.buttons.some((button) => button.slot === "settings.section") ||
+    state.extensions.badges.some((badge) => badge.slot === "settings.section");
 
   return (
     <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
@@ -141,6 +147,21 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             <Button variant="light" color="red" onClick={restartServer}>
               {restartFeature.state.label}
             </Button>
+          </Paper>
+        ) : null}
+
+        {hasExtensionControls ? (
+          <Paper withBorder radius="md" p="sm">
+            <Group gap={6} mb={6}>
+              <IconPuzzle size={16} />
+              <Text fw={650} size="sm">Extensions</Text>
+            </Group>
+            <Slot
+              name="settings.section"
+              buttons={state.extensions.buttons}
+              badges={state.extensions.badges}
+              onAction={runExtensionAction}
+            />
           </Paper>
         ) : null}
       </Stack>

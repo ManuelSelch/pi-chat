@@ -364,6 +364,7 @@ export function App() {
         chimesEnabled={chimes.enabled}
         setChimesEnabled={chimes.setEnabled}
         chimesAvailable={chimes.available}
+        runExtensionAction={chat.runExtensionAction}
         restartServer={() => setConfirming({
           title: "Restart server?",
           body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
