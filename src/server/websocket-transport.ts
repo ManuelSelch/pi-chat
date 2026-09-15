@@ -31,14 +31,15 @@ export class WebSocketTransport {
   }
 
   private connect(socket: WebSocket): void {
-    const connection = createConnection(socket, "single-controller");
+    const mode = this.chat.connectionMode();
+    const connection = createConnection(socket, mode);
     const previous = this.controller();
-    if (previous?.socket.readyState === WebSocket.OPEN) {
+    if (mode === "single-controller" && previous?.socket.readyState === WebSocket.OPEN) {
       this.sendTo(previous.socket, this.protocolError("Another browser took control of this Pi Chat session."));
       previous.socket.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
     this.connections.set(connection.id, connection);
-    this.controllerId = connection.id;
+    if (mode === "single-controller" || !this.controllerId) this.controllerId = connection.id;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
     void this.chat
@@ -56,7 +57,7 @@ export class WebSocketTransport {
       this.connections.delete(connection.id);
       void this.chat.connectionClosed(connection.id);
       if (this.controllerId !== connection.id) return;
-      this.controllerId = undefined;
+      this.controllerId = this.connections.keys().next().value;
       // A reload must not cancel a permission gate, so pending dialogs only
       // expire after the registry's grace period without a controller.
       this.chat.suspendPrompts();

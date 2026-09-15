@@ -2,6 +2,7 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../src/shared/protocol.js";
+import { createPiChatExtensionRegistry } from "../src/server/extension-registry.js";
 import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
 import { createPiChatServer, type PiChatServer } from "../src/server/server.js";
 
@@ -82,6 +83,22 @@ describe("WebSocket transport", () => {
 
     await expect(closed).resolves.toMatchObject({ code: 4001, reason: "Controller replaced" });
     expect(second.socket.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it("keeps multiple sockets connected when extensions opt into multi-connection mode", async () => {
+    const extensions = createPiChatExtensionRegistry();
+    extensions.setConnectionMode("multi-connection");
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, extensions);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+
+    const first = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = first.socket;
+    const second = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+
+    expect(first.socket.readyState).toBe(WebSocket.OPEN);
+    expect(second.socket.readyState).toBe(WebSocket.OPEN);
+    second.socket.close();
   });
 
   it("streams two deltas, finalizes once, and restores one transcript after reload", async () => {

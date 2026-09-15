@@ -261,6 +261,10 @@ export class ChatApplicationService {
     if (!result.allow) throw new Error(result.reason);
   }
 
+  connectionMode(): "single-controller" | "multi-connection" {
+    return this.extensions.connectionMode();
+  }
+
   async dispose(): Promise<void> {
     this.listeners.clear();
     await this.sessions.dispose();

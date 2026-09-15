@@ -1,4 +1,5 @@
 import type { ChatMessage } from "../shared/protocol.js";
+import type { PiChatConnectionMode } from "./connection.js";
 
 export type PiChatSlot = "session.header.right" | "composer.right" | "settings.section";
 
@@ -51,6 +52,8 @@ export interface PiChatExtensionRegistry {
   on<Name extends PiChatHookName>(name: Name, handler: HookHandler<Name>): void;
   use(name: PiChatAuthorizationName, handler: PiChatAuthorizationHandler): void;
   authorize(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<PiChatAuthorizationResult>;
+  setConnectionMode(mode: PiChatConnectionMode): void;
+  connectionMode(): PiChatConnectionMode;
   snapshot(): PiChatExtensionSnapshot;
   runAction(actionId: string, ctx: PiChatActionContext): Promise<void>;
   emit<Name extends PiChatHookName>(name: Name, payload: HookPayload<Name>): Promise<void>;
@@ -61,6 +64,7 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
   private readonly actions = new Map<string, PiChatAction>();
   private readonly hooks = new Map<PiChatHookName, Array<(payload: unknown) => Promise<void> | void>>();
   private readonly authorizers = new Map<PiChatAuthorizationName, PiChatAuthorizationHandler[]>();
+  private mode: PiChatConnectionMode = "single-controller";
 
   registerButton(button: PiChatButton): void {
     this.buttons.set(button.id, button);
@@ -88,6 +92,14 @@ class InMemoryPiChatExtensionRegistry implements PiChatExtensionRegistry {
       if (result?.allow === false) return result;
     }
     return { allow: true };
+  }
+
+  setConnectionMode(mode: PiChatConnectionMode): void {
+    this.mode = mode;
+  }
+
+  connectionMode(): PiChatConnectionMode {
+    return this.mode;
   }
 
   snapshot(): PiChatExtensionSnapshot {
