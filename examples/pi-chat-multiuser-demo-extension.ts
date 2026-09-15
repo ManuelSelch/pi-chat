@@ -10,7 +10,14 @@ import { getPiChatExtensionRegistry } from "../src/server/extension-registry.js"
  */
 export default function piChatMultiuserDemoExtension(_pi: ExtensionAPI): void {
   const chat = getPiChatExtensionRegistry();
-  const connections = new Set<string>();
+  const connections = new Map<string, { role: "owner" | "guest"; label: string; invite?: string }>();
+
+  function publishState(): void {
+    chat.setExtensionState("multiuser-demo", {
+      connectionCount: connections.size,
+      participants: [...connections.entries()].map(([id, info]) => ({ id, ...info })),
+    });
+  }
 
   chat.setConnectionMode("multi-connection");
 
@@ -33,17 +40,28 @@ export default function piChatMultiuserDemoExtension(_pi: ExtensionAPI): void {
     title: "Show connected users",
     run: (ctx) => {
       const count = connections.size;
-      ctx.notify(`Multi-user demo: ${count} connected browser${count === 1 ? "" : "s"}. Open another tab or laptop to watch the same session live.`);
+      const participants = [...connections.values()].map((item) => `${item.label} (${item.role})`).join(", ") || "none";
+      ctx.notify(`Multi-user demo: ${count} connected browser${count === 1 ? "" : "s"}. Participants: ${participants}. Try /?invite=demo on another browser to mark it as a guest.`);
     },
   });
 
+  chat.use("connection.authorize", ({ connectionId, request }) => {
+    const invite = request?.query.invite;
+    connections.set(connectionId, {
+      role: invite ? "guest" : "owner",
+      label: invite ? `Guest ${connections.size + 1}` : `Owner ${connections.size + 1}`,
+      ...(invite ? { invite } : {}),
+    });
+    publishState();
+  });
+
   chat.on("connection.open", ({ connectionId }) => {
-    connections.add(connectionId);
     console.log(`[pi-chat-multiuser-demo] connected ${connectionId}; total=${connections.size}`);
   });
 
   chat.on("connection.close", ({ connectionId }) => {
     connections.delete(connectionId);
+    publishState();
     console.log(`[pi-chat-multiuser-demo] disconnected ${connectionId}; total=${connections.size}`);
   });
 

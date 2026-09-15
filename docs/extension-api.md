@@ -120,6 +120,56 @@ interface PiChatActionContext {
 }
 ```
 
+## Extension state
+
+Extensions can publish JSON-serializable state into authoritative snapshots.
+This state is namespaced by extension id.
+
+```ts
+chat.setExtensionState("multiuser", {
+  participants: [
+    { id: "connection-1", role: "owner" },
+    { id: "connection-2", role: "guest" },
+  ],
+});
+
+chat.clearExtensionState("multiuser");
+```
+
+Snapshot shape:
+
+```ts
+extensions: {
+  buttons: PiChatButton[];
+  state: Record<string, unknown>;
+}
+```
+
+Use this for state that must survive reconnect/snapshot rebuilds, such as participants, invite status, current role, or sharing state.
+
+## Connection request context
+
+Authorization middleware receives request context when a WebSocket connects.
+This enables query-token demos before a full route API exists.
+
+```ts
+chat.use("connection.authorize", ({ connectionId, request }) => {
+  const invite = request?.query.invite;
+  console.log(connectionId, invite, request?.remoteAddress);
+});
+```
+
+Request shape:
+
+```ts
+interface PiChatConnectionRequest {
+  url: string;
+  query: Record<string, string>;
+  headers: IncomingMessage["headers"];
+  remoteAddress?: string;
+}
+```
+
 The browser sends a `runExtensionAction` message. Pi Chat dispatches it to the registered server action and then refreshes the session snapshot.
 
 ## Hooks
@@ -205,7 +255,7 @@ chat.registerRoute({
 
 ### 5. Extension snapshot state
 
-Needed for participant lists, invite state, badges, and role-aware UI.
+Implemented for basic namespaced state. Next step: add client rendering helpers for known state shapes such as participant badges and read-only notices.
 
 ```ts
 chat.setExtensionState("multiplayer", {
