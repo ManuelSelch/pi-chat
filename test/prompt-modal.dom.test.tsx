@@ -155,3 +155,93 @@ describe("PromptModal multi-line titles", () => {
     );
   });
 });
+
+describe("PromptModal menu loops", () => {
+  function showRerenderable(prompt: UiPrompt | undefined) {
+    const onRespond = vi.fn();
+    const ui = (next: UiPrompt | undefined) => (
+      <MantineProvider>
+        <PromptModal prompt={next} onRespond={onRespond} />
+      </MantineProvider>
+    );
+    const view = render(ui(prompt));
+    return { onRespond, rerender: (next: UiPrompt | undefined) => view.rerender(ui(next)) };
+  }
+
+  const menu = (id: string, enabled: number, marks: string[]): UiPrompt => ({
+    id,
+    kind: "select",
+    title: `Extensions (${enabled}/3 enabled)`,
+    options: marks,
+  });
+
+  it("keeps the dialog up while the next question of the same menu is in flight", () => {
+    const { rerender } = showRerenderable(menu("m1", 3, ["[x] a", "[x] b", "[x] c"]));
+
+    // The answered prompt is gone but the extension has not asked again yet.
+    rerender(undefined);
+    expect(screen.queryByRole("dialog")).not.toBeNull();
+
+    rerender(menu("m2", 2, ["[ ] a", "[x] b", "[x] c"]));
+    expect(screen.getByText("Extensions (2/3 enabled)")).toBeTruthy();
+  });
+
+  it("closes once no follow-up question arrives", async () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = showRerenderable(menu("m3", 3, ["[x] a", "[x] b", "[x] c"]));
+      rerender(undefined);
+      await vi.advanceTimersByTimeAsync(1000);
+      rerender(undefined);
+      expect(screen.queryByRole("dialog")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the caret in place when the same menu is drawn again", () => {
+    const { onRespond, rerender } = showRerenderable(menu("m4", 3, ["[x] a", "[x] b", "[x] c"]));
+    const list = screen.getByRole("listbox");
+
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    rerender(undefined);
+    rerender(menu("m5", 2, ["[x] a", "[x] b", "[ ] c"]));
+
+    expect(screen.getByRole("option", { name: "[ ] c" }).getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Enter" });
+    expect(onRespond).toHaveBeenCalledWith("m5", { cancelled: false, value: "[ ] c" });
+  });
+
+  it("starts a different question from the top", () => {
+    const { rerender } = showRerenderable(menu("m6", 3, ["[x] a", "[x] b", "[x] c"]));
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+
+    rerender({ id: "m7", kind: "select", title: "Pick a theme", options: ["dark", "light", "auto"] });
+
+    expect(screen.getByRole("option", { name: "dark" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("ignores mouse events that only fire because the list scrolled", () => {
+    showRerenderable(menu("m8", 3, ["[x] a", "[x] b", "[x] c"]));
+    const list = screen.getByRole("listbox");
+
+    // A real move onto the first option, then arrow keys while the cursor rests.
+    fireEvent.mouseMove(screen.getByRole("option", { name: "[x] a" }), { clientX: 10, clientY: 10 });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    // Scrolling re-fires a mouse event at the unchanged position on the option
+    // that slid under the cursor.
+    fireEvent.mouseMove(screen.getByRole("option", { name: "[x] a" }), { clientX: 10, clientY: 10 });
+
+    expect(screen.getByRole("option", { name: "[x] b" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("still follows a genuine pointer move", () => {
+    showRerenderable(menu("m9", 3, ["[x] a", "[x] b", "[x] c"]));
+
+    fireEvent.mouseMove(screen.getByRole("option", { name: "[x] a" }), { clientX: 10, clientY: 10 });
+    fireEvent.mouseMove(screen.getByRole("option", { name: "[x] c" }), { clientX: 10, clientY: 60 });
+
+    expect(screen.getByRole("option", { name: "[x] c" }).getAttribute("aria-selected")).toBe("true");
+  });
+});
