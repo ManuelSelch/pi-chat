@@ -53,6 +53,17 @@ describe("WebSocket transport", () => {
     if (server) await server.close();
   });
 
+  it("starts on the home screen when no session tab is open", async () => {
+    server = createPiChatServer(undefined);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const port = (server.httpServer.address() as AddressInfo).port;
+    const connected = await connectWithSnapshot(`ws://127.0.0.1:${port}/ws`);
+    socket = connected.socket;
+
+    expect(connected.snapshot).toMatchObject({ version: PROTOCOL_VERSION, type: "tabs", tabs: [], activeSessionId: "" });
+    expect(await receiveOfType(socket, "catalogue")).toMatchObject({ type: "catalogue" });
+  });
+
   it("sends a versioned snapshot and survives malformed input", async () => {
     server = createPiChatServer(new FakeRuntimeAdapter());
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));

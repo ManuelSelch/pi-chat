@@ -48,6 +48,22 @@ describe("deleting sessions", () => {
   });
 });
 
+describe("startup home", () => {
+  it("can start without a visible session tab", async () => {
+    const factory = {
+      continueProject: async () => new FakeRuntimeAdapter(),
+      openSession: async () => new FakeRuntimeAdapter(),
+      newSession: async () => new FakeRuntimeAdapter(),
+    };
+    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
+    const chat = new ChatApplicationService(undefined, factory, projectSessions);
+
+    expect(chat.tabs()).toEqual([]);
+    expect(chat.activeSessionId()).toBe("");
+    await expect(chat.currentCatalogue()).resolves.toEqual({ projects: [] });
+  });
+});
+
 describe("closing the last tab", () => {
   it("leaves no session open", async () => {
     const { chat } = service();

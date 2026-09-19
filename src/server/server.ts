@@ -15,7 +15,7 @@ export interface PiChatServer {
 }
 
 export function createPiChatServer(
-  runtime: RuntimeAdapter,
+  runtime: RuntimeAdapter | undefined,
   staticDirectory?: string,
   factory: RuntimeAdapterFactory = {
     continueProject: (path) => PiRuntimeAdapter.create(path),

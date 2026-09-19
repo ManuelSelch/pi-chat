@@ -1,18 +1,16 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { PiRuntimeAdapter } from "./pi-runtime-adapter.js";
 import { createRestartService } from "./restart-service.js";
 import { createPiChatServer } from "./server.js";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
 const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
-const runtime = await PiRuntimeAdapter.create(cwd);
 
 // `npm run dev` already reloads itself, and its watcher would start a second
 // server the moment this one exits, so restarting is offered only without one.
 const restart = process.env.PI_CHAT_DEV === "1" ? undefined : createRestartService({ shutdown: () => void shutdown() });
-const server = createPiChatServer(runtime, resolve("dist/web"), undefined, restart);
+const server = createPiChatServer(undefined, resolve("dist/web"), undefined, restart);
 
 server.httpServer.listen(port, host, () => {
   // Restarting from the browser replaces this process, so the pid the slash

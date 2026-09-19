@@ -32,14 +32,14 @@ export class ChatApplicationService {
   private catalogueCache?: ProjectCatalogue;
 
   constructor(
-    initialRuntime: RuntimeAdapter,
+    initialRuntime: RuntimeAdapter | undefined,
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
     private readonly restartService?: RestartService,
     private readonly extensions: PiChatExtensionRegistry = getPiChatExtensionRegistry(),
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
-    this.sessions.add(initialRuntime);
+    if (initialRuntime) this.sessions.add(initialRuntime);
   }
 
   tabs(): Tab[] {
