@@ -65,6 +65,21 @@ describe("ProjectSessionDrawer", () => {
     expect(screen.getByRole("button", { name: "New session here" }).hasAttribute("disabled")).toBe(false);
   });
 
+  it("moves the highlight to the clicked project", () => {
+    show(false);
+
+    const current = screen.getByText("/work/current").closest("a")!;
+    const other = screen.getByText("/work/other").closest("a")!;
+    expect(current.getAttribute("data-active")).toBe("true");
+
+    fireEvent.click(other);
+
+    expect(other.getAttribute("data-active")).toBe("true");
+    expect(current.getAttribute("data-active")).toBeNull();
+    // The running session's project stays recognisable without the highlight.
+    expect(current.textContent).toContain("current");
+  });
+
   it("opens another session while the active one is busy", () => {
     show(true);
 

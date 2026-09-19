@@ -21,6 +21,16 @@ const TONES: Record<Chime, { frequency: number; delay: number }[]> = {
 
 const NOTE_SECONDS = 0.14;
 
+/**
+ * A context that has just been created reports `currentTime === 0` while its
+ * output device is still starting, which on Bluetooth output takes longer than
+ * the whole two-note phrase. Scheduling from that clock puts both notes in the
+ * past by the time sound actually flows, and they are dropped without an error
+ * — the case where the chime "just doesn't work" until some later one warms the
+ * device up. Starting a beat late is inaudible; starting too early is silence.
+ */
+const LEAD_IN_SECONDS = 0.06;
+
 type ContextFactory = () => AudioContext;
 
 /** Safari needed the prefix until 14.1, and still exposes it. */
@@ -82,7 +92,8 @@ export class ChimePlayer {
       // refuses to start must not stop the notes being scheduled, or a browser
       // still waiting for its first gesture would silently drop every chime.
       if (context.state === "suspended") await context.resume().catch(() => {});
-      const start = context.currentTime;
+      // `baseLatency` is absent on older Safari, where the lead-in alone does.
+      const start = context.currentTime + LEAD_IN_SECONDS + (context.baseLatency || 0);
       for (const note of TONES[chime]) this.note(context, note.frequency, start + note.delay);
     } catch {
       // A blocked or unavailable audio device must never break the transcript.

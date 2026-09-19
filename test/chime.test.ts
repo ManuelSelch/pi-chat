@@ -48,16 +48,18 @@ describe("which tab changes deserve a sound", () => {
 /** Enough of the Web Audio graph to record what a chime scheduled. */
 function fakeContext(state: string, resume: () => Promise<void>) {
   const stops: number[] = [];
+  const starts: number[] = [];
   const context = {
     state,
     currentTime: 0,
+    baseLatency: 0.01,
     destination: {},
     resume,
     createOscillator: () => ({
       type: "",
       frequency: { value: 0 },
       connect: (node: unknown) => node,
-      start: () => {},
+      start: (at: number) => starts.push(at),
       stop: (at: number) => stops.push(at),
     }),
     createGain: () => ({
@@ -66,7 +68,7 @@ function fakeContext(state: string, resume: () => Promise<void>) {
     }),
     close: async () => {},
   };
-  return { context, stops };
+  return { context, stops, starts };
 }
 
 describe("chime player", () => {
@@ -93,6 +95,20 @@ describe("chime player", () => {
     await player.play("waiting");
 
     expect(stops).toHaveLength(2);
+  });
+
+  // Found in a real browser: a context created for the chime reports
+  // `currentTime === 0` while its output device is still starting, which on
+  // Bluetooth output outlasts the phrase. Scheduling from that clock put both
+  // notes in the past and they were dropped in silence.
+  it("schedules the first note ahead of the clock, not on it", async () => {
+    const { context, starts } = fakeContext("running", async () => {});
+    const player = new ChimePlayer(() => context as unknown as AudioContext);
+
+    await player.play("finished");
+
+    expect(starts).toHaveLength(2);
+    expect(starts[0]).toBeGreaterThan(context.currentTime + context.baseLatency);
   });
 
   // Safari only starts a context from inside a gesture, so switching the

@@ -62,12 +62,19 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
             {catalogue.projects.map((project) => (
               <NavLink
                 key={project.path}
-                active={project.path === state.projectPath}
+                // The highlight follows the browsed project, not the running
+                // one: clicking a project has to visibly move the selection.
+                active={project.path === activeProject?.path}
                 disabled={!project.exists}
                 label={project.name}
                 description={project.path}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
-                rightSection={<Badge size="xs" variant="light">{project.sessionCount}</Badge>}
+                rightSection={
+                  <Group gap={4} wrap="nowrap">
+                    {project.path === state.projectPath ? <Badge size="xs" variant="light" color="blue">current</Badge> : null}
+                    <Badge size="xs" variant="light">{project.sessionCount}</Badge>
+                  </Group>
+                }
                 onClick={() => setSelectedProject(project.path)}
               />
             ))}
