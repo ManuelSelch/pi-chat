@@ -1,4 +1,6 @@
+import { useCallback } from "react";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { useConfirmOnEnter } from "./confirm-enter.js";
 
 /** A pending destructive action, held until the user agrees to it. */
 export interface Confirmation {
@@ -14,6 +16,13 @@ interface ConfirmModalProps {
 }
 
 export function ConfirmModal({ confirmation, onClose }: ConfirmModalProps) {
+  const confirm = useCallback(() => {
+    confirmation?.run();
+    onClose();
+  }, [confirmation, onClose]);
+
+  useConfirmOnEnter({ enabled: Boolean(confirmation), onConfirm: confirm });
+
   return (
     // A confirmation is often raised from inside the settings drawer, and
     // Mantine gives drawers and modals the same default z-index, so the
@@ -23,13 +32,7 @@ export function ConfirmModal({ confirmation, onClose }: ConfirmModalProps) {
         <Text size="sm">{confirmation?.body}</Text>
         <Group justify="flex-end" gap="xs">
           <Button variant="default" onClick={onClose}>Cancel</Button>
-          <Button
-            color="red"
-            onClick={() => {
-              confirmation?.run();
-              onClose();
-            }}
-          >
+          <Button color="red" onClick={confirm}>
             {confirmation?.confirmLabel}
           </Button>
         </Group>
