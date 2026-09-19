@@ -39,7 +39,8 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
             >
               <Group gap={6} wrap="nowrap">
                 <Text size="sm" fw={600}>{command.kind === "action" ? command.name : `/${command.name}`}</Text>
-                {command.kind === "action" ? <Badge size="xs" variant="light">session</Badge> : null}
+                {command.kind === "command" && command.argumentHint ? <Text size="xs" c="dimmed">{command.argumentHint}</Text> : null}
+                <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge>
               </Group>
               {command.description ? (
                 <Text size="xs" c="dimmed" lineClamp={1}>{command.description}</Text>

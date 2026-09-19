@@ -34,8 +34,9 @@ export class SessionRegistry {
     const entry: Entry = {
       sessionId,
       adapter,
-      unsubscribe: adapter.subscribe((event) => this.onEvent(sessionId, event)),
+      unsubscribe: () => {},
     };
+    entry.unsubscribe = adapter.subscribe((event) => this.onEvent(entry.sessionId, event));
     this.entries.push(entry);
     this.active = sessionId;
     return entry;
@@ -62,12 +63,22 @@ export class SessionRegistry {
     const entry: Entry = {
       sessionId,
       adapter,
-      unsubscribe: adapter.subscribe((event) => this.onEvent(sessionId, event)),
+      unsubscribe: () => {},
     };
+    entry.unsubscribe = adapter.subscribe((event) => this.onEvent(entry.sessionId, event));
     this.entries[index] = entry;
     previous.unsubscribe();
     await previous.adapter.dispose();
     return entry;
+  }
+
+  rekey(previousSessionId: string, nextSessionId: string): void {
+    const entry = this.entries.find((item) => item.sessionId === previousSessionId);
+    if (!entry || previousSessionId === nextSessionId) return;
+    const duplicate = this.entries.find((item) => item !== entry && item.sessionId === nextSessionId);
+    if (duplicate) throw new Error(`Session is already open: ${nextSessionId}`);
+    entry.sessionId = nextSessionId;
+    if (this.active === previousSessionId) this.active = nextSessionId;
   }
 
   get(sessionId: string): RuntimeAdapter {

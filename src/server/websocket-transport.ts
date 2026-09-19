@@ -100,8 +100,9 @@ export class WebSocketTransport {
       // A prompt can be a native command such as /model, which changes state
       // the snapshot owns, so refresh once the run settles.
       void this.guard(connection, "prompt.authorize", { sessionId: command.sessionId }, async () => {
-        await this.chat.prompt(command.sessionId, command.message);
-        await this.sendSnapshot(command.sessionId);
+        const sessionId = await this.chat.prompt(command.sessionId, command.message);
+        connection.focusedSessionId = sessionId;
+        await this.sendSnapshot(sessionId);
       }).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "uiPromptResponse") {
       // A blocking question can be a permission gate for a tool call, so who may
@@ -187,6 +188,12 @@ export class WebSocketTransport {
   }
 
   private publish(sessionId: string, event: RuntimeEvent): void {
+    if (event.type === "sessionSwitch") {
+      void this.sendSnapshot(sessionId);
+      this.sendTabs();
+      void this.sendCatalogue();
+      return;
+    }
     const message: ServerMessage = {
       version: PROTOCOL_VERSION,
       sessionId,

@@ -12,7 +12,8 @@ export type RuntimeEvent =
   | { type: "prompts"; prompts: UiPrompt[] }
   | { type: "widgets"; widgets: Widget[] }
   | { type: "footer"; footer: FooterItem[] }
-  | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string };
+  | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string }
+  | { type: "sessionSwitch"; previousSessionId: string; sessionId: string };
 
 export interface RuntimeSnapshot {
   sessionId: string;

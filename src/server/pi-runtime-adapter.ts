@@ -54,10 +54,10 @@ function safeStringify(value: unknown): string {
 
 /** Built-ins this host implements, surfaced in the web command menu. */
 const NATIVE_COMMANDS: SlashCommand[] = [
-  { name: "model", description: "Switch the model for this session" },
-  { name: "session", description: "Show session stats, token use, and context window" },
-  { name: "thinking", description: "Set the reasoning effort for this session" },
-  { name: "compact", description: "Summarise the conversation to free up context" },
+  { name: "model", description: "Switch the model for this session", source: "native" },
+  { name: "session", description: "Show session stats, token use, and context window", source: "native" },
+  { name: "thinking", description: "Set the reasoning effort for this session", source: "native" },
+  { name: "compact", description: "Summarise the conversation to free up context", source: "native" },
 ];
 
 /**
@@ -381,6 +381,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
   private currentRunId = "";
+  private boundSessionId = "";
   /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
   private readonly inFlightTools = new Set<string>();
   /**
@@ -403,8 +404,26 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     private readonly runtime: AgentSessionRuntime,
     private readonly models: string[] = [],
   ) {
+    const runtimeHooks = this.runtime as AgentSessionRuntime & {
+      setBeforeSessionInvalidate?: (handler: () => void) => void;
+      setRebindSession?: (handler: () => Promise<void>) => void;
+    };
+    runtimeHooks.setBeforeSessionInvalidate?.(() => {
+      this.prompts.cancelAll();
+      this.widgets.clear();
+      this.statuses.clear();
+    });
+    runtimeHooks.setRebindSession?.(async () => {
+      const previousSessionId = this.boundSessionId;
+      this.bindSession();
+      this.bindUi();
+      this.bindCommandContext();
+      await this.startExtensions("resume");
+      this.emit({ type: "sessionSwitch", previousSessionId, sessionId: this.runtime.session.sessionId });
+    });
     this.bindSession();
     this.bindUi();
+    this.bindCommandContext();
   }
 
   /**
@@ -418,8 +437,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * modal rather than the no-op one it replaces, and exactly once per adapter:
    * a second `session_start` would look like a session change to an extension.
    */
-  private async startExtensions(): Promise<void> {
-    await this.runtime.session.extensionRunner.emit({ type: "session_start", reason: "startup" });
+  private async startExtensions(reason: "startup" | "resume" = "startup"): Promise<void> {
+    await this.runtime.session.extensionRunner.emit({ type: "session_start", reason });
   }
 
   /**
@@ -436,6 +455,35 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     });
     // "rpc" rather than "print": this host can answer blocking questions.
     this.runtime.session.extensionRunner.setUIContext(this.ui, "rpc");
+  }
+
+  /**
+   * Slash-command handlers receive an ExtensionCommandContext. Without these
+   * bindings commands that call ctx.newSession()/ctx.switchSession() hit the
+   * runner's safe no-op defaults, which makes web-only commands appear to do
+   * nothing.
+   */
+  private bindCommandContext(): void {
+    const runner = this.runtime.session.extensionRunner as typeof this.runtime.session.extensionRunner & {
+      bindCommandContext?: (context: {
+        waitForIdle: () => Promise<void>;
+        newSession: AgentSessionRuntime["newSession"];
+        fork: AgentSessionRuntime["fork"];
+        navigateTree: AgentSessionRuntime["session"]["navigateTree"];
+        switchSession: AgentSessionRuntime["switchSession"];
+        reload: () => Promise<void>;
+      }) => void;
+    };
+    runner.bindCommandContext?.({
+      waitForIdle: () => this.runtime.session.agent.waitForIdle(),
+      newSession: (options) => this.runtime.newSession(options),
+      fork: (entryId, options) => this.runtime.fork(entryId, options),
+      navigateTree: (targetId, options) => this.runtime.session.navigateTree(targetId, options),
+      switchSession: (sessionPath, options) => this.runtime.switchSession(sessionPath, options),
+      reload: async () => {
+        throw new Error("Use /reload in Pi Chat to reload this session.");
+      },
+    });
   }
 
   /**
@@ -630,8 +678,18 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     const registered = this.runtime.session.extensionRunner.getRegisteredCommands().map((command) => ({
       name: command.invocationName,
       ...(command.description ? { description: command.description } : {}),
+      source: "extension" as const,
     }));
-    return [...registered, ...NATIVE_COMMANDS].sort((left, right) => left.name.localeCompare(right.name));
+    const occupied = new Set([...registered, ...NATIVE_COMMANDS].map((command) => command.name));
+    const templates = this.runtime.session.promptTemplates
+      .filter((template) => !occupied.has(template.name))
+      .map((template) => ({
+        name: template.name,
+        description: template.description,
+        ...(template.argumentHint ? { argumentHint: template.argumentHint } : {}),
+        source: "prompt" as const,
+      }));
+    return [...registered, ...NATIVE_COMMANDS, ...templates].sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async setModel(model: string): Promise<void> {
@@ -810,6 +868,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   private bindSession(): void {
     this.unsubscribe?.();
+    this.boundSessionId = this.runtime.session.sessionId;
     this.unsubscribe = this.runtime.session.subscribe((event) => {
       if (event.type === "agent_start") {
         this.currentRunId = crypto.randomUUID();

@@ -37,6 +37,12 @@ describe("filterCommands", () => {
     expect(filterCommands(commands, "COMP").map((command) => command.name)).toEqual(["compact"]);
     expect(filterCommands(commands, "nope")).toEqual([]);
   });
+
+  it("preserves prompt template metadata", () => {
+    const [item] = filterCommands([{ name: "review", description: "Review code", argumentHint: "<focus>", source: "prompt" as const }], "rev");
+
+    expect(item).toMatchObject({ name: "review", argumentHint: "<focus>", source: "prompt" });
+  });
 });
 
 describe("session actions in the menu", () => {

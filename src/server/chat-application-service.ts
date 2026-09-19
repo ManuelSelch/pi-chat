@@ -23,6 +23,7 @@ export interface RuntimeAdapterFactory {
 const RELOAD_COMMAND = {
   name: "reload",
   description: "Reload this session's Pi runtime to pick up changed extensions",
+  source: "native" as const,
 };
 
 export class ChatApplicationService {
@@ -119,11 +120,18 @@ export class ChatApplicationService {
     return this.visibleFeatures(this.appFeatures(), connectionId);
   }
 
-  prompt(sessionId: string, message: string): Promise<void> {
+  async prompt(sessionId: string, message: string): Promise<string> {
     // /reload rebuilds the runtime itself, which only the registry can do, so it
     // is caught here instead of inside the adapter it replaces.
-    if (this.isReloadCommand(sessionId, message)) return this.reloadSession(sessionId);
-    return this.sessions.get(sessionId).prompt(message);
+    if (this.isReloadCommand(sessionId, message)) {
+      await this.reloadSession(sessionId);
+      return sessionId;
+    }
+    const adapter = this.sessions.get(sessionId);
+    await adapter.prompt(message);
+    const nextSessionId = adapter.snapshot().sessionId;
+    if (nextSessionId !== sessionId) this.sessions.rekey(sessionId, nextSessionId);
+    return nextSessionId;
   }
 
   /** An extension that registers its own /reload keeps it; ours is the fallback. */
@@ -319,6 +327,11 @@ export class ChatApplicationService {
   }
 
   private emit(sessionId: string, event: RuntimeEvent): void {
+    if (event.type === "sessionSwitch") {
+      this.sessions.rekey(event.previousSessionId || sessionId, event.sessionId);
+      sessionId = event.sessionId;
+      this.catalogueCache = undefined;
+    }
     if (event.type === "messageFinal") {
       void this.extensions.emit("message.final", { sessionId, message: event.message as ChatMessage });
     }

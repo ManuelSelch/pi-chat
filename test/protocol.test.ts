@@ -14,6 +14,25 @@ describe("client protocol", () => {
     expect(() => parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "prompt", message: "  " })).toThrow();
   });
 
+  it("accepts slash command metadata in snapshots", () => {
+    expect(
+      serverMessageSchema.safeParse({
+        version: PROTOCOL_VERSION,
+        type: "snapshot",
+        sessionId: "s1",
+        sequence: 1,
+        throughSequence: 1,
+        projectPath: "/tmp",
+        messages: [],
+        isStreaming: false,
+        actions: {
+          features: [],
+          commands: [{ name: "review", description: "Review code", argumentHint: "<focus>", source: "prompt" }],
+        },
+      }).success,
+    ).toBe(true);
+  });
+
   it("accepts native feature actions", () => {
     expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "session.rename", input: { name: "Study" } })).toMatchObject({
       type: "runFeature",
