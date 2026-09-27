@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
-import { getPiChatExtensionRegistry, type PiChatAuthorizationContext, type PiChatAuthorizationName, type PiChatExtensionRegistry } from "./extension-registry.js";
+import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extension-registry.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
 import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
 import type { RestartService } from "./restart-service.js";
@@ -54,15 +54,14 @@ export class ChatApplicationService {
     return this.sessions.list().map((session) => session.sessionId);
   }
 
-  async snapshot(sessionId = this.activeSessionId(), connectionId?: string): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
+  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
     const snapshot = this.sessions.get(sessionId).snapshot();
     await this.extensions.emit("session.snapshot", { sessionId });
-    const actions = this.withAppActions(snapshot.actions);
     return {
       ...snapshot,
-      actions: { ...actions, features: await this.visibleFeatures(actions.features, connectionId, sessionId) },
+      actions: this.withAppActions(snapshot.actions),
       catalogue: await this.catalogue(snapshot),
-      extensions: this.extensions.snapshot({ sessionId, connectionId }),
+      extensions: this.extensions.snapshot({ sessionId }),
     };
   }
 
@@ -82,23 +81,6 @@ export class ChatApplicationService {
     return { ...actions, features: [...actions.features, ...this.appFeatures()], commands };
   }
 
-  /**
-   * The settings a viewer may actually change.
-   *
-   * Feature controls run through `action.authorize` on click, so a viewer whose
-   * policy refuses them was still offered a settings drawer full of switches
-   * that only produced refusals. The same check decides whether the control is
-   * sent at all, which is how extension buttons already behave.
-   */
-  private async visibleFeatures(features: WebFeature[], connectionId?: string, sessionId?: string): Promise<WebFeature[]> {
-    if (!connectionId) return features;
-    const visible: WebFeature[] = [];
-    for (const feature of features) {
-      const result = await this.extensions.authorize("action.authorize", { connectionId, sessionId, actionId: feature.id });
-      if (result.allow) visible.push(feature);
-    }
-    return visible;
-  }
 
   /** Capabilities of the server itself, valid with or without an open session. */
   appFeatures(): WebFeature[] {
@@ -113,11 +95,6 @@ export class ChatApplicationService {
         state: { label: "Restart" },
       },
     ];
-  }
-
-  /** App-level features as one viewer may use them, for the home screen. */
-  appFeaturesFor(connectionId?: string): Promise<WebFeature[]> {
-    return this.visibleFeatures(this.appFeatures(), connectionId);
   }
 
   async prompt(sessionId: string, message: string): Promise<string> {
@@ -242,7 +219,7 @@ export class ChatApplicationService {
     this.catalogueCache = undefined;
   }
 
-  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>, connectionId?: string): Promise<void> {
+  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
     // Restart is app-level: it must work from the home screen too, where there
     // is no session to look up.
     if (message.type === "runExtensionAction") {
@@ -250,7 +227,6 @@ export class ChatApplicationService {
       // from the home screen, where there is none and so no modal to open.
       const ui = this.sessions.has(message.sessionId) ? this.sessions.get(message.sessionId).uiContext() : undefined;
       await this.extensions.runAction(message.actionId, {
-        connectionId,
         sessionId: message.sessionId,
         notify: (text, level = "info") => this.emit(message.sessionId, { type: "notification", level, message: text }),
         ...(ui ? { ui } : {}),
@@ -285,22 +261,6 @@ export class ChatApplicationService {
     return () => this.listeners.delete(listener);
   }
 
-  async connectionOpened(connectionId: string): Promise<void> {
-    await this.extensions.emit("connection.open", { connectionId });
-  }
-
-  async connectionClosed(connectionId: string): Promise<void> {
-    await this.extensions.emit("connection.close", { connectionId });
-  }
-
-  async authorizeConnectionAction(name: PiChatAuthorizationName, ctx: PiChatAuthorizationContext): Promise<void> {
-    const result = await this.extensions.authorize(name, ctx);
-    if (!result.allow) throw new Error(result.reason);
-  }
-
-  connectionMode(): "single-controller" | "multi-connection" {
-    return this.extensions.connectionMode();
-  }
 
   async dispose(): Promise<void> {
     this.listeners.clear();

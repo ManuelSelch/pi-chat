@@ -37,14 +37,14 @@ describe("SettingsDrawer extension section", () => {
   it("renders settings.section buttons and dispatches their action", () => {
     const runExtensionAction = renderDrawer({
       buttons: [
-        { id: "demo.enable", slot: "settings.section", label: "Enable multi-user demo", actionId: "demo.toggleEnabled" },
+        { id: "demo.enable", slot: "settings.section", label: "Enable demo", actionId: "demo.toggleEnabled" },
         { id: "demo.header", slot: "session.header.right", label: "Users", actionId: "demo.status" },
       ],
       badges: [],
       state: {},
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Enable multi-user demo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enable demo" }));
 
     expect(screen.getByText("Extensions")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Users" })).toBeNull();

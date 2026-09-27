@@ -7,70 +7,49 @@ import {
   type ServerMessage,
 } from "../shared/protocol.js";
 import { ChatApplicationService } from "./chat-application-service.js";
-import { connectionRequestFrom, createConnection, type PiChatConnection } from "./connection.js";
-import type { PiChatAuthorizationContext, PiChatAuthorizationName } from "./extension-registry.js";
 import type { RuntimeEvent } from "./runtime-adapter.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
   /** Per session: a busy tab must not advance a quiet tab's sequence. */
   private readonly sequences = new Map<string, number>();
-  private readonly connections = new Map<string, PiChatConnection>();
-  private controllerId?: string;
+  private controller?: WebSocket;
   private readonly unsubscribe: () => void;
 
   constructor(httpServer: Server, private readonly chat: ChatApplicationService) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publish(sessionId, event));
-    this.server.on("connection", (socket, request) => this.connect(socket, request));
+    this.server.on("connection", (socket) => this.connect(socket));
   }
 
   async close(): Promise<void> {
     this.unsubscribe();
-    for (const connection of this.connections.values()) connection.socket.close();
+    this.controller?.close();
     await new Promise<void>((resolve) => this.server.close(() => resolve()));
   }
 
-  private connect(socket: WebSocket, request: import("node:http").IncomingMessage): void {
-    const mode = this.chat.connectionMode();
-    const connection = createConnection(socket, mode, connectionRequestFrom(request));
-    const previous = this.controller();
-    if (mode === "single-controller" && previous?.socket.readyState === WebSocket.OPEN) {
-      this.sendTo(previous.socket, this.protocolError("Another browser took control of this Pi Chat session."));
-      previous.socket.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
+  private connect(socket: WebSocket): void {
+    if (this.controller?.readyState === WebSocket.OPEN) {
+      this.sendTo(this.controller, this.protocolError("Another browser took control of this Pi Chat session."));
+      this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
-    this.connections.set(connection.id, connection);
-    // Pinned now rather than resolved lazily: a connection that never picked a
-    // tab would otherwise keep inheriting the shared default and get dragged
-    // along every time somebody else opened a session.
-    connection.focusedSessionId = this.chat.activeSessionId() || undefined;
-    if (mode === "single-controller" || !this.controllerId) this.controllerId = connection.id;
+    this.controller = socket;
     // A browser is in control again, so pending dialogs stop counting down.
     this.chat.resumePrompts();
-    void this.chat
-      .authorizeConnectionAction("connection.authorize", { connectionId: connection.id, request: connection.request })
-      .then(() => this.chat.connectionOpened(connection.id))
-      .then(() => this.sendAll(connection.socket))
-      .catch((error: unknown) => {
-        this.sendTo(connection.socket, this.protocolError(error instanceof Error ? error.message : "Connection rejected."));
-        connection.socket.close();
-      });
+    void this.sendAll(socket);
 
-    socket.on("message", (data) => this.handleMessage(connection, data));
+    socket.on("message", (data) => this.handleMessage(socket, data));
 
     socket.on("close", () => {
-      this.connections.delete(connection.id);
-      void this.chat.connectionClosed(connection.id);
-      if (this.controllerId !== connection.id) return;
-      this.controllerId = this.connections.keys().next().value;
+      if (this.controller !== socket) return;
+      this.controller = undefined;
       // A reload must not cancel a permission gate, so pending dialogs only
       // expire after the registry's grace period without a controller.
       this.chat.suspendPrompts();
     });
   }
 
-  private handleMessage(connection: PiChatConnection, data: WebSocket.RawData): void {
-    const socket = connection.socket;
+  private handleMessage(socket: WebSocket, data: WebSocket.RawData): void {
     let parsed: unknown;
     try {
       parsed = JSON.parse(data.toString());
@@ -93,92 +72,54 @@ export class WebSocketTransport {
 
     const command = result.value;
     if (command.type === "abort") {
-      void this.guard(connection, "abort.authorize", { sessionId: command.sessionId }, () =>
-        this.chat.abort(command.sessionId),
-      ).catch((error: unknown) => this.publishError(command.sessionId, error));
+      this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "prompt") {
       // A prompt can be a native command such as /model, which changes state
       // the snapshot owns, so refresh once the run settles.
-      void this.guard(connection, "prompt.authorize", { sessionId: command.sessionId }, async () => {
-        const sessionId = await this.chat.prompt(command.sessionId, command.message);
-        connection.focusedSessionId = sessionId;
-        await this.sendSnapshot(sessionId);
-      }).catch((error: unknown) => this.publishError(command.sessionId, error));
+      this.chat
+        .prompt(command.sessionId, command.message)
+        .then((sessionId) => this.sendSnapshot(sessionId))
+        .catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "uiPromptResponse") {
-      // A blocking question can be a permission gate for a tool call, so who may
-      // answer it is a policy decision rather than "whoever is connected".
-      void this.guard(connection, "dialog.authorize", { sessionId: command.sessionId }, () => {
-        this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
-      }).catch((error: unknown) => this.publishError(command.sessionId, error));
+      this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
     } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
-      const actionId = command.type === "runExtensionAction" ? command.actionId : command.featureId;
-      void this.guard(connection, "action.authorize", { sessionId: command.sessionId, actionId }, async () => {
-        await this.chat.runFeature(command, connection.id);
-        // Renaming changes the tab label too, so the tab list must follow.
-        await this.sendSnapshot(command.sessionId);
-        this.sendTabs();
-      }).catch((error: unknown) => this.publishError(command.sessionId, error));
+      this.chat
+        .runFeature(command)
+        .then(() => {
+          // Renaming changes the tab label too, so the tab list must follow.
+          void this.sendSnapshot(command.sessionId);
+          this.sendTabs();
+        })
+        .catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "focusTab") {
-      // Private to this browser, so it needs no policy and no broadcast. The
-      // shared default follows too, which is what a reconnecting tab falls back
-      // to once its own choice is gone.
-      connection.focusedSessionId = command.sessionId;
       this.chat.focusTab(command.sessionId);
-      this.sendTabs(connection.socket);
+      this.sendTabs();
     } else if (command.type === "deleteSession") {
-      void this.guard(connection, "session.authorize", { operation: "deleteSession" }, async () => {
-        await this.chat.deleteSession(command.path);
-        await this.sendCatalogue();
-      }).catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+      this.chat
+        .deleteSession(command.path)
+        .then(() => this.sendCatalogue())
+        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
     } else if (command.type === "closeTab") {
-      void this.guard(connection, "session.authorize", { sessionId: command.sessionId, operation: "closeTab" }, async () => {
-        await this.chat.closeTab(command.sessionId);
-        // Closing the last tab lands on the home screen, which searches the catalogue.
-        this.sendTabs();
-        await this.sendCatalogue();
-      }).catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
+      this.chat
+        .closeTab(command.sessionId)
+        .then(() => {
+          // Closing the last tab lands on the home screen, which searches the catalogue.
+          this.sendTabs();
+          return this.sendCatalogue();
+        })
+        .catch((error: unknown) => this.publishError(this.chat.activeSessionId(), error));
     } else if (command.type === "openProject") {
-      void this.guard(connection, "session.authorize", { operation: "openProject" }, () =>
-        this.openTab(connection, () => this.chat.openProject(command.path)),
-      );
+      void this.openTab(() => this.chat.openProject(command.path));
     } else if (command.type === "openSession") {
-      void this.guard(connection, "session.authorize", { operation: "openSession" }, () =>
-        this.openTab(connection, () => this.chat.openSession(command.path)),
-      );
+      void this.openTab(() => this.chat.openSession(command.path));
     } else {
-      void this.guard(connection, "session.authorize", { operation: "newSession" }, () =>
-        this.openTab(connection, () => this.chat.newSession(command.path)),
-      );
+      void this.openTab(() => this.chat.newSession(command.path));
     }
   }
 
-  /**
-   * Runs `command` only when policy allows it for this connection.
-   *
-   * A refusal goes back to the browser that asked and nowhere else: publishing it
-   * as a run error would show one user's rejected command on everybody's screen.
-   */
-  private async guard(
-    connection: PiChatConnection,
-    name: PiChatAuthorizationName,
-    ctx: Omit<PiChatAuthorizationContext, "connectionId">,
-    command: () => Promise<void> | void,
-  ): Promise<void> {
-    try {
-      await this.chat.authorizeConnectionAction(name, { connectionId: connection.id, ...ctx });
-    } catch (error: unknown) {
-      const reason = error instanceof Error ? error.message : "That is not allowed here.";
-      if (connection.socket.readyState === WebSocket.OPEN) this.sendTo(connection.socket, this.protocolError(reason));
-      return;
-    }
-    await command();
-  }
-
-  /** The browser that opened a tab follows it; everyone else only learns it exists. */
-  private async openTab(connection: PiChatConnection, open: () => Promise<string>): Promise<void> {
+  private async openTab(open: () => Promise<string>): Promise<void> {
     try {
       const sessionId = await open();
-      connection.focusedSessionId = sessionId;
       await this.sendSnapshot(sessionId);
       this.sendTabs();
       await this.sendCatalogue();
@@ -200,7 +141,7 @@ export class WebSocketTransport {
       sequence: this.nextSequence(sessionId),
       ...event,
     };
-    void this.publishToAuthorized(sessionId, message);
+    this.send(message);
     // Status and prompt changes drive the tab dots.
     if (event.type === "runtimeStatus" || event.type === "prompts") this.sendTabs();
   }
@@ -213,80 +154,31 @@ export class WebSocketTransport {
   }
 
   /** The home screen has no snapshot to read the catalogue from. */
-  private async sendCatalogue(socket?: WebSocket): Promise<void> {
-    const targets = socket ? [socket] : this.targetSockets();
+  private async sendCatalogue(socket = this.controller): Promise<void> {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     try {
-      const catalogue = await this.chat.currentCatalogue();
-      for (const target of targets) {
-        const features = await this.chat.appFeaturesFor(this.connectionFor(target)?.id);
-        this.sendTo(target, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features });
-      }
+      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue: await this.chat.currentCatalogue(), features: this.chat.appFeatures() });
     } catch (error: unknown) {
       this.publishError(this.chat.activeSessionId(), error);
     }
   }
 
-  /** The tab list is shared; the highlighted tab in it is not. */
-  private sendTabs(socket?: WebSocket): void {
-    const targets = socket ? [this.connectionFor(socket)] : this.snapshotCandidates();
-    const tabs = this.chat.tabs();
-    for (const connection of targets) {
-      const target = connection?.socket ?? socket;
-      if (!target || target.readyState !== WebSocket.OPEN) continue;
-      this.sendTo(target, {
-        version: PROTOCOL_VERSION,
-        type: "tabs",
-        tabs,
-        activeSessionId: connection ? this.focusOf(connection) : this.chat.activeSessionId(),
-      });
-    }
+  private sendTabs(socket = this.controller): void {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    this.sendTo(socket, { version: PROTOCOL_VERSION, type: "tabs", tabs: this.chat.tabs(), activeSessionId: this.chat.activeSessionId() });
   }
 
-  /**
-   * A connection's own tab, falling back to the shared default. The fallback also
-   * covers a tab someone else closed, so no explicit cleanup is needed.
-   */
-  private focusOf(connection: PiChatConnection): string {
-    const focused = connection.focusedSessionId;
-    if (focused && this.chat.openSessionIds().includes(focused)) return focused;
-    return this.chat.activeSessionId();
-  }
-
-  /**
-   * Snapshots are built per connection: extension state such as the viewer's own
-   * role differs between the owner and an invited guest, so one shared payload
-   * would tell every browser the same thing.
-   */
-  private async sendSnapshot(sessionId: string, socket?: WebSocket): Promise<void> {
-    const targets = socket ? [this.connectionFor(socket)] : this.snapshotCandidates();
+  private async sendSnapshot(sessionId: string, socket = this.controller): Promise<void> {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
     const sequence = this.sequences.get(sessionId) ?? 0;
-    for (const connection of targets) {
-      const target = connection?.socket ?? socket;
-      if (!target || target.readyState !== WebSocket.OPEN) continue;
-      if (connection && !socket) {
-        const allowed = await this.chat
-          .authorizeConnectionAction("snapshot.authorize", { connectionId: connection.id, sessionId })
-          .then(() => true)
-          .catch(() => false);
-        if (!allowed) continue;
-      }
-      const snapshot = await this.chat.snapshot(sessionId, connection?.id);
-      this.sendTo(target, {
-        version: PROTOCOL_VERSION,
-        type: "snapshot",
-        sequence,
-        throughSequence: sequence,
-        ...snapshot,
-      });
-    }
-  }
-
-  private snapshotCandidates(): PiChatConnection[] {
-    if (this.chat.connectionMode() === "single-controller") {
-      const controller = this.controller();
-      return controller ? [controller] : [];
-    }
-    return [...this.connections.values()];
+    const snapshot = await this.chat.snapshot(sessionId);
+    this.sendTo(socket, {
+      version: PROTOCOL_VERSION,
+      type: "snapshot",
+      sequence,
+      throughSequence: sequence,
+      ...snapshot,
+    });
   }
 
   private publishError(sessionId: string, error: unknown): void {
@@ -300,41 +192,12 @@ export class WebSocketTransport {
     return next;
   }
 
-  private controller(): PiChatConnection | undefined {
-    return this.controllerId ? this.connections.get(this.controllerId) : undefined;
-  }
-
-  private connectionFor(socket: WebSocket): PiChatConnection | undefined {
-    return [...this.connections.values()].find((connection) => connection.socket === socket);
-  }
-
-  private targetSockets(): WebSocket[] {
-    if (this.chat.connectionMode() === "single-controller") {
-      const controller = this.controller();
-      return controller?.socket.readyState === WebSocket.OPEN ? [controller.socket] : [];
-    }
-    return [...this.connections.values()]
-      .map((connection) => connection.socket)
-      .filter((socket) => socket.readyState === WebSocket.OPEN);
-  }
-
-  private async publishToAuthorized(sessionId: string, message: ServerMessage): Promise<void> {
-    const candidates = this.chat.connectionMode() === "single-controller"
-      ? [...(this.controller() ? [this.controller()!] : [])]
-      : [...this.connections.values()];
-    for (const connection of candidates) {
-      if (connection.socket.readyState !== WebSocket.OPEN) continue;
-      try {
-        await this.chat.authorizeConnectionAction("snapshot.authorize", { connectionId: connection.id, sessionId });
-        this.sendTo(connection.socket, message);
-      } catch {
-        // A denied snapshot/event is simply hidden from that connection.
-      }
-    }
-  }
-
   private protocolError(error: string): ServerMessage {
     return { version: PROTOCOL_VERSION, type: "protocolError", error };
+  }
+
+  private send(message: ServerMessage): void {
+    if (this.controller?.readyState === WebSocket.OPEN) this.sendTo(this.controller, message);
   }
 
   private sendTo(socket: WebSocket, message: ServerMessage): void {
