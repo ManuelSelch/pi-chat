@@ -56,11 +56,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             disabled={!chimesAvailable}
             label="Chime when a run finishes or needs an answer"
           />
-          <Text size="xs" c="dimmed" mt={6}>
-            {chimesAvailable
-              ? "Plays for any tab, so a session finishing in the background is heard."
-              : "This browser exposes no audio output."}
-          </Text>
         </Panel>
         <Panel>
           <SectionHeader icon={<IconFolder size={16} />}>Projects</SectionHeader>
@@ -69,9 +64,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
             label="Show folder path in projects panel"
           />
-          <Text size="xs" c="dimmed" mt={6}>
-            Shows the full path of each project folder under the project name.
-          </Text>
         </Panel>
         {renameFeature ? (
           <Panel>
@@ -130,7 +122,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             {compactFeature.description ? (
               <Text size="xs" c="dimmed" mb="xs">{compactFeature.description}</Text>
             ) : null}
-            <Button variant="light" disabled={busy} onClick={compactSession}>
+            <Button variant="filled" disabled={busy} onClick={compactSession}>
               {compactFeature.state.label}
             </Button>
           </Panel>
