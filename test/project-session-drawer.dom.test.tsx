@@ -74,7 +74,7 @@ describe("ProjectSessionDrawer", () => {
     fireEvent.click(screen.getByText("other"));
 
     expect(screen.getByText("Other chat")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "New session here" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: "New session" }).hasAttribute("disabled")).toBe(false);
   });
 
   it("moves the highlight to the clicked project", () => {

@@ -73,7 +73,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 active={project.path === activeProject?.path}
                 disabled={!project.exists}
                 label={project.name}
-                description={showDisplayPath ? project.displayPath : undefined}
+                // description={showDisplayPath ? project.displayPath : undefined}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">
@@ -94,8 +94,8 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
           {activeProject ? (
             <Stack gap="xs">
               <Text fw={650}>{activeProject.name}</Text>
-              <Button variant="light" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
-                New session here
+              <Button variant="default" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
+                New session
               </Button>
               {activeProject.sessions.map((session) => (
                 <NavLink
