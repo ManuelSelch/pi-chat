@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { AppShell, Container } from "@mantine/core";
+import { AppShell } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../dialogs/confirm/ConfirmDialogProvider.js";
-import { MessageList } from "../chat/MessageList.js";
+import { MessageListContainer } from "../chat/MessageListContainer.js";
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome } from "../chat/app-state.js";
-import { useAutoScroll } from "./use-auto-scroll.js";
 import { ProjectSessionContainer } from "../projects/ProjectSessionContainer.js";
 import { FolderPickerContainer } from "../projects/FolderPickerContainer.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
@@ -46,12 +45,6 @@ function AppContent() {
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
 
-    // Reasoning counts as growth too: a turn that thinks before it writes grows
-  // the page by the whole thinking panel, and following only `text` left the
-  // live reasoning drifting below the fold.
-  const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.draft?.thinking.length ?? 0}:${state.status}`;
-  const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
-
   return (
     <AppShell header={{ height: 96 }} padding={0}>
       <HeaderContainer />
@@ -80,10 +73,7 @@ function AppContent() {
             onOpenFolder={() => overlays.open("folderPicker")}
           />
         ) : (
-          <Container size="sm" py="xl">
-            <MessageList key={state.sessionId} messages={state.messages} draft={state.draft} />
-            <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: footerHeight + FOOTER_GAP }} />
-          </Container>
+          <MessageListContainer footerHeight={footerHeight + FOOTER_GAP} />
         )}
       </AppShell.Main>
 
