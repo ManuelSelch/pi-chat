@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ActionIcon, Alert, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea, Tooltip } from "@mantine/core";
+import { Alert, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
-import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { type Confirmation } from "./ConfirmModal.js";
@@ -21,6 +20,7 @@ import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
+import { AppHeader } from "../shell/AppHeader.js";
 import { Slot } from "../extensions/Slot.js";
 import type { FooterItem, Tab } from "../../shared/protocol.js";
 
@@ -262,40 +262,22 @@ export function App() {
 
   return (
     <AppShell header={{ height: 96 }} padding={0}>
-      <AppShell.Header>
-        <Group h={58} px="lg" justify="space-between" wrap="nowrap">
-          <Group gap="sm" wrap="nowrap" miw={0}>
-            <Tooltip label="Projects and sessions">
-              <ActionIcon variant="subtle" color="gray" aria-label="Projects and sessions" onClick={() => setProjectsOpen(true)}>
-                <IconLayoutSidebar size={18} />
-              </ActionIcon>
-            </Tooltip>
-            <Text c="dimmed" size="xs" truncate title={state.projectPath}>{headerTitle}</Text>
-          </Group>
-          <Group gap="sm" wrap="nowrap">
-            {home ? null : <Slot name="session.status" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />}
-            {home ? null : <Slot name="session.header.right" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />}
-            {home ? null : (
-              <Text c={state.status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
-                {state.status}
-              </Text>
-            )}
-            <Tooltip label="Settings">
-              <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
-                <IconSettings size={18} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        </Group>
-        <TabBar
-          tabs={visibleTabs(app)}
-          opening={app.openingTabs}
-          activeSessionId={app.activeSessionId}
-          onFocus={chat.focusTab}
-          onClose={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : setClosing(tab))}
-          onNew={() => chat.newSession(state.projectPath || undefined)}
-        />
-      </AppShell.Header>
+      <AppHeader
+        home={home}
+        title={headerTitle}
+        status={state.status}
+        tabs={visibleTabs(app)}
+        openingTabs={app.openingTabs}
+        activeSessionId={app.activeSessionId}
+        buttons={state.extensions.buttons}
+        badges={state.extensions.badges}
+        onOpenProjects={() => setProjectsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onAction={chat.runExtensionAction}
+        onFocusTab={chat.focusTab}
+        onCloseTab={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : setClosing(tab))}
+        onNewSession={() => chat.newSession(state.projectPath || undefined)}
+      />
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
