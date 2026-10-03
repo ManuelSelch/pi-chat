@@ -421,7 +421,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
-    private readonly models: string[] = [],
+    private models: string[] = [],
   ) {
     const runtimeHooks = this.runtime as AgentSessionRuntime & {
       setBeforeSessionInvalidate?: (handler: () => void) => void;
@@ -458,6 +458,13 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    */
   private async startExtensions(reason: "startup" | "resume" = "startup"): Promise<void> {
     await this.runtime.session.extensionRunner.emit({ type: "session_start", reason });
+    await this.refreshModels();
+  }
+
+  private async refreshModels(): Promise<void> {
+    // /defaults writes settings.json directly, outside the SDK's settings cache.
+    await this.runtime.session.settingsManager.reload();
+    this.models = await offeredModels(this.runtime.session);
   }
 
   /**
@@ -566,8 +573,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     };
 
     const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
-    // Snapshots are synchronous, so the model catalogue is resolved once here.
-    const adapter = new PiRuntimeAdapter(runtime, await offeredModels(runtime.session));
+    // session_start can register providers or change defaults: resolve afterwards.
+    const adapter = new PiRuntimeAdapter(runtime);
     await adapter.startExtensions();
     return adapter;
   }
@@ -757,6 +764,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       return true;
     }
     if (name === "model") {
+      await this.refreshModels();
       const result = await this.prompts.ask({ kind: "select", title: "Select a model", options: this.models });
       if (!result.cancelled) await this.setModel(String(result.value));
       return true;
@@ -795,6 +803,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     this.abortWatchdog = undefined;
     if (await this.handleNativeCommand(message.trim())) return;
     await this.runtime.session.prompt(message);
+    // Extension commands may have changed settings or registered providers.
+    if (message.trim().startsWith("/")) await this.refreshModels();
   }
 
   async abort(): Promise<void> {

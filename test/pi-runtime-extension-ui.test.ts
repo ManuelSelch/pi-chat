@@ -15,6 +15,11 @@ function fakeRuntime() {
     sessionId: "s1",
     messages: [] as unknown[],
     isIdle: true,
+    settingsManager: {
+      reload: async () => { calls.push("refreshSettings"); },
+      getEnabledModels: () => undefined,
+    },
+    modelRuntime: { getAvailable: async () => [] },
     extensionRunner: {
       setUIContext: (uiContext: unknown) => {
         capturedUi = uiContext;
@@ -41,7 +46,7 @@ describe("extensions are started with a dialog surface", () => {
 
     await (runtime.adapter as unknown as { startExtensions(): Promise<void> }).startExtensions();
 
-    expect(runtime.calls).toEqual(["setUIContext", "emit:session_start"]);
+    expect(runtime.calls).toEqual(["setUIContext", "emit:session_start", "refreshSettings"]);
   });
 
   // The order above is the point: an extension that captures the surface at

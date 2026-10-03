@@ -7,6 +7,7 @@ import { invalidatePiExtensionCache } from "../src/server/pi-extension-cache.js"
 it("loads changed extension code after invalidating the real SDK factory cache", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-chat-cache-"));
   const path = join(dir, "extension.ts");
+  const helper = join(dir, "helper.ts");
   const sdkEntry = import.meta.resolve("@earendil-works/pi-coding-agent");
   const loader = await import(new URL("./core/extensions/loader.js", sdkEntry).href);
   const load = async () => {
@@ -15,9 +16,12 @@ it("loads changed extension code after invalidating the real SDK factory cache",
     return result.extensions[0].commands.get("cache-test").description;
   };
   try {
-    await writeFile(path, 'export default pi => { pi.registerCommand("cache-test", { description: "before", handler: async () => {} }); }');
+    // Match a real loader shim re-exporting a package that imports helper code.
+    await writeFile(path, 'export { default } from "./implementation.ts";');
+    await writeFile(join(dir, "implementation.ts"), 'import { description } from "./helper.ts"; export default pi => { pi.registerCommand("cache-test", { description, handler: async () => {} }); }');
+    await writeFile(helper, 'export const description = "before";');
     expect(await load()).toBe("before");
-    await writeFile(path, 'export default pi => { pi.registerCommand("cache-test", { description: "after", handler: async () => {} }); }');
+    await writeFile(helper, 'export const description = "after";');
     // Reproduce new-runtime creation reusing stale factories in the same cwd.
     expect(await load()).toBe("before");
     await invalidatePiExtensionCache();
