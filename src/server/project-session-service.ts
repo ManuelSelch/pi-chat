@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import { unlink } from "node:fs/promises";
+import os from "node:os";
 import { createInterface } from "node:readline";
-import { basename, resolve, sep } from "node:path";
+import { basename, dirname, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
 import type { SessionNameSource } from "../shared/protocol.js";
@@ -37,6 +38,7 @@ export interface ChatSessionSummary {
 
 export interface ChatProjectSummary {
   path: string;
+  displayPath: string;
   name: string;
   exists: boolean;
   modified: number;
@@ -60,6 +62,32 @@ export interface ActiveSessionSummary {
 
 export interface ProjectSessionLister {
   listAll(sessionDir?: string): Promise<SessionInfo[]>;
+}
+
+const GENERIC_PROJECT_DIR_NAMES = new Set(["frontend", "backend", "web", "api", "server", "client", "app"]);
+
+export function formatProjectName(projectPath: string): string {
+  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
+  const child = basename(normalizedPath) || normalizedPath;
+  if (!GENERIC_PROJECT_DIR_NAMES.has(child.toLowerCase())) return child;
+
+  const parent = basename(dirname(normalizedPath));
+  return parent ? `${parent}/${child}` : child;
+}
+
+export function formatProjectDisplayPath(projectPath: string, homePath = os.homedir()): string {
+  if (!homePath) return projectPath;
+  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
+  const normalizedHome = homePath.replaceAll("\\", "/").replace(/\/+$/, "");
+  const caseInsensitive = /^[A-Za-z]:\//.test(normalizedPath) || /^[A-Za-z]:\//.test(normalizedHome);
+  const comparisonPath = caseInsensitive ? normalizedPath.toLowerCase() : normalizedPath;
+  const comparisonHome = caseInsensitive ? normalizedHome.toLowerCase() : normalizedHome;
+
+  if (comparisonPath === comparisonHome) return "~";
+  if (comparisonPath.startsWith(`${comparisonHome}/`)) {
+    return `~/${normalizedPath.slice(normalizedHome.length + 1)}`;
+  }
+  return normalizedPath;
 }
 
 export interface SessionNameInfo {
@@ -123,7 +151,8 @@ export class ProjectSessionService {
       if (!project) {
         project = {
           path: projectPath,
-          name: basename(projectPath) || projectPath,
+          displayPath: formatProjectDisplayPath(projectPath),
+          name: formatProjectName(projectPath),
           exists: existsSync(projectPath),
           modified,
           sessionCount: 0,
@@ -166,7 +195,8 @@ export class ProjectSessionService {
     if (!project) {
       project = {
         path: projectPath,
-        name: basename(projectPath) || projectPath,
+        displayPath: formatProjectDisplayPath(projectPath),
+        name: formatProjectName(projectPath),
         exists: existsSync(projectPath),
         modified: now,
         sessionCount: 0,

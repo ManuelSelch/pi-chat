@@ -55,8 +55,16 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} withCloseButton={false} size="lg" padding="xs" title={null}>
-      <Stack gap="xs">
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      withCloseButton={false}
+      size="lg"
+      padding="xs"
+      title={null}
+      styles={{ body: { overflowX: "hidden" } }}
+    >
+      <Stack gap="xs" style={{ minWidth: 0, overflowX: "hidden" }}>
         <TextInput
           data-autofocus
           aria-label="Search sessions and projects"
@@ -69,8 +77,14 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
           styles={{ input: { paddingInline: "10px" } }}
         />
 
-        <ScrollArea.Autosize mah="55vh">
-          <Stack gap={2} role="listbox" aria-label="Sessions and projects">
+        <ScrollArea.Autosize
+          mah="55vh"
+          type="scroll"
+          scrollbarSize={6}
+          offsetScrollbars="y"
+          styles={{ root: { overflowX: "hidden" }, viewport: { overflowX: "hidden", paddingInlineEnd: 8 } }}
+        >
+          <Stack gap={2} role="listbox" aria-label="Sessions and projects" style={{ width: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box" }}>
             {results.length === 0 ? (
               <Text size="sm" c="dimmed" p="8px 12px">Nothing matches “{query.trim()}”.</Text>
             ) : null}
@@ -84,19 +98,27 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
                 onClick={() => choose(item)}
                 p="8px 12px"
                 style={{
+                  display: "block",
+                  boxSizing: "border-box",
+                  width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
+                  overflow: "hidden",
                   borderRadius: "var(--mantine-radius-sm)",
                   background: index === active ? "var(--mantine-color-default-hover)" : undefined,
                 }}
               >
-                <Group gap="xs" wrap="nowrap">
-                  {item.kind === "session" ? <IconMessage size={16} /> : <IconFolder size={16} />}
-                  <Text size="sm" truncate flex={1}>{item.title}</Text>
-                  {item.isOpen ? <Badge size="xs" variant="light">open</Badge> : null}
-                  <Text size="xs" c="dimmed" truncate maw={180}>
-                    {item.kind === "session"
-                      ? `${item.project} · ${relativeTime(item.modified)}`
-                      : "open latest session"}
-                  </Text>
+                <Group gap="xs" wrap="nowrap" align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                  {item.kind === "session" ? <IconMessage size={16} style={{ flexShrink: 0, marginTop: 2 }} /> : <IconFolder size={16} style={{ flexShrink: 0, marginTop: 2 }} />}
+                  <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
+                    <Text size="sm" truncate>{item.title}</Text>
+                    <Text size="xs" c="dimmed" truncate>
+                      {item.kind === "session"
+                        ? `${item.project} · ${relativeTime(item.modified)}`
+                        : "open latest session"}
+                    </Text>
+                  </Stack>
+                  {item.isOpen ? <Badge size="xs" variant="light" style={{ flexShrink: 0, marginTop: 2 }}>open</Badge> : null}
                 </Group>
               </UnstyledButton>
             ))}

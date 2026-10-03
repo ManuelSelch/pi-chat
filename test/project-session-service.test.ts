@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { ProjectSessionService, readLatestSessionNameInfo } from "../src/server/project-session-service.js";
+import { ProjectSessionService, formatProjectDisplayPath, formatProjectName, readLatestSessionNameInfo } from "../src/server/project-session-service.js";
 
 function info(overrides: Partial<any>) {
   return {
@@ -46,6 +46,36 @@ describe("session name source detection", () => {
   });
 });
 
+describe("formatProjectName", () => {
+  it("keeps specific project folder names unchanged", () => {
+    expect(formatProjectName("/work/pi-chat")).toBe("pi-chat");
+  });
+
+  it("prefixes generic project folder names with their parent", () => {
+    expect(formatProjectName("/work/project-a/frontend")).toBe("project-a/frontend");
+    expect(formatProjectName("/work/project-a/backend")).toBe("project-a/backend");
+  });
+
+  it("handles Windows-style generic project paths", () => {
+    expect(formatProjectName("C:\\work\\project-a\\frontend")).toBe("project-a/frontend");
+  });
+});
+
+describe("formatProjectDisplayPath", () => {
+  it("shortens Unix home paths", () => {
+    expect(formatProjectDisplayPath("/Users/me/Documents/pi-chat", "/Users/me")).toBe("~/Documents/pi-chat");
+    expect(formatProjectDisplayPath("/Users/me", "/Users/me")).toBe("~");
+  });
+
+  it("shortens Windows home paths and normalizes separators for display", () => {
+    expect(formatProjectDisplayPath("C:\\Users\\Me\\Documents\\pi-chat", "C:\\Users\\Me")).toBe("~/Documents/pi-chat");
+  });
+
+  it("leaves paths outside home absolute", () => {
+    expect(formatProjectDisplayPath("/Volumes/Drive/project", "/Users/me")).toBe("/Volumes/Drive/project");
+  });
+});
+
 describe("ProjectSessionService", () => {
   it("groups sessions by project and sorts by recent activity", async () => {
     const lister = {
@@ -58,6 +88,8 @@ describe("ProjectSessionService", () => {
     const catalogue = await new ProjectSessionService(lister).catalogue();
 
     expect(catalogue.projects).toHaveLength(1);
+    expect(catalogue.projects[0]?.displayPath).toBe(formatProjectDisplayPath(process.cwd()));
+    expect(catalogue.projects[0]?.name).toBe(formatProjectName(process.cwd()));
     expect(catalogue.projects[0]?.sessionCount).toBe(2);
     expect(catalogue.projects[0]?.sessions.map((session) => session.id)).toEqual(["new", "old"]);
     expect(catalogue.projects[0]?.sessions[0]?.title).toBe("hello");

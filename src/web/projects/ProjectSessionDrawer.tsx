@@ -67,7 +67,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 active={project.path === activeProject?.path}
                 disabled={!project.exists}
                 label={project.name}
-                description={project.path}
+                description={project.displayPath}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">

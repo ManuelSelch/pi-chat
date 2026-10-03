@@ -11,6 +11,7 @@ const catalogue: ProjectCatalogue = {
   projects: [
     {
       path: "/work/pi-chat",
+      displayPath: "/work/pi-chat",
       name: "pi-chat",
       exists: true,
       modified: Date.now(),

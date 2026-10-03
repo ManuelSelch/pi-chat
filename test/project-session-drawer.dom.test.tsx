@@ -10,6 +10,7 @@ const catalogue: ProjectCatalogue = {
   projects: [
     {
       path: "/work/current",
+      displayPath: "~/work/current",
       name: "current",
       exists: true,
       modified: 2,
@@ -20,6 +21,7 @@ const catalogue: ProjectCatalogue = {
     },
     {
       path: "/work/other",
+      displayPath: "~/work/other",
       name: "other",
       exists: true,
       modified: 1,
@@ -68,8 +70,8 @@ describe("ProjectSessionDrawer", () => {
   it("moves the highlight to the clicked project", () => {
     show(false);
 
-    const current = screen.getByText("/work/current").closest("a")!;
-    const other = screen.getByText("/work/other").closest("a")!;
+    const current = screen.getByText("~/work/current").closest("a")!;
+    const other = screen.getByText("~/work/other").closest("a")!;
     expect(current.getAttribute("data-active")).toBe("true");
 
     fireEvent.click(other);

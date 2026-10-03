@@ -194,7 +194,7 @@ describe("home screen", () => {
   });
 
   it("keeps a catalogue that arrives without any session", () => {
-    const catalogue = { projects: [{ path: "/p", name: "p", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
+    const catalogue = { projects: [{ path: "/p", displayPath: "/p", name: "p", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
     const next = reduceAppMessage(initialAppState, { version: PROTOCOL_VERSION, type: "catalogue", catalogue });
 
     expect(next.catalogue).toEqual(catalogue);

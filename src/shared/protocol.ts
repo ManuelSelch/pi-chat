@@ -86,6 +86,7 @@ export const chatSessionSummarySchema = z.object({
 
 export const chatProjectSummarySchema = z.object({
   path: z.string().min(1),
+  displayPath: z.string().min(1),
   name: z.string().min(1),
   exists: z.boolean(),
   modified: z.number(),
