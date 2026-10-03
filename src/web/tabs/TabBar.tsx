@@ -1,13 +1,7 @@
 import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import type { Tab, TabStatus } from "../../shared/protocol.js";
-
-/** Green idle, yellow running, red blocked on a prompt. */
-const STATUS_COLOR: Record<TabStatus, string> = {
-  idle: "var(--mantine-color-green-6)",
-  running: "var(--mantine-color-yellow-6)",
-  blocked: "var(--mantine-color-red-6)",
-};
+import { STATUS_COLOR } from "../theme.js";
 
 const STATUS_LABEL: Record<TabStatus, string> = {
   idle: "Idle",
