@@ -18,6 +18,8 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const activeRef = useRef<HTMLButtonElement | null>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const mouseActive = useRef<number | null>(null);
 
   const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId));
   const results = rankQuickOpen(items, query);
@@ -31,7 +33,8 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   }, [opened]);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest" });
+    if (mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
+    mouseActive.current = null;
   }, [active]);
 
   function choose(item: QuickOpenItem): void {
@@ -94,7 +97,15 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
                 ref={index === active ? activeRef : undefined}
                 role="option"
                 aria-selected={index === active}
-                onMouseEnter={() => setActive(index)}
+                onMouseMove={(event) => {
+                  const last = pointer.current;
+                  if (last && last.x === event.clientX && last.y === event.clientY) return;
+                  pointer.current = { x: event.clientX, y: event.clientY };
+                  if (index !== active) {
+                    mouseActive.current = index;
+                    setActive(index);
+                  }
+                }}
                 onClick={() => choose(item)}
                 p="8px 12px"
                 style={{

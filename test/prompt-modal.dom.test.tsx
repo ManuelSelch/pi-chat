@@ -18,6 +18,23 @@ function show(prompt: UiPrompt | undefined) {
 }
 
 describe("PromptModal", () => {
+  it("highlights real mouse movement without scrolling and ignores a parked cursor", () => {
+    show({ id: "mouse", kind: "select", title: "Pick", options: ["allow", "deny", "ask"] });
+    const scroll = vi.mocked(HTMLElement.prototype.scrollIntoView);
+    scroll.mockClear();
+    const deny = screen.getByRole("option", { name: "deny" });
+    fireEvent.mouseMove(deny, { clientX: 20, clientY: 30 });
+    expect(deny.getAttribute("aria-selected")).toBe("true");
+    expect(scroll).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "ArrowDown" });
+    expect(scroll).toHaveBeenCalled();
+    fireEvent.mouseMove(deny, { clientX: 20, clientY: 30 });
+    expect(screen.getByRole("option", { name: "ask" }).getAttribute("aria-selected")).toBe("true");
+    scroll.mockClear();
+    fireEvent.wheel(deny, { deltaY: 100 });
+    expect(scroll).not.toHaveBeenCalled();
+  });
+
   it("shows nothing when no extension is waiting", () => {
     show(undefined);
     expect(screen.queryByRole("dialog")).toBeNull();

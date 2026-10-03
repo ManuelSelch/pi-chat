@@ -61,6 +61,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   // Last real pointer position. Scrolling the list fires mouse events without
   // the pointer having moved, which would drag the selection back under it.
   const pointer = useRef<{ x: number; y: number } | null>(null);
+  const mouseActive = useRef<number | null>(null);
 
   // No live prompt means the extension has not asked the next question yet, so
   // the lingering dialog must not accept input.
@@ -102,7 +103,8 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   }, [shown?.id, shown?.kind, searchable]);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest" });
+    if (mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
+    mouseActive.current = null;
   }, [active]);
 
   if (!shown) return null;
@@ -137,7 +139,10 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
     const last = pointer.current;
     if (last && last.x === event.clientX && last.y === event.clientY) return;
     pointer.current = { x: event.clientX, y: event.clientY };
-    setActiveOption(index);
+    if (index !== active) {
+      mouseActive.current = index;
+      setActiveOption(index);
+    }
   }
 
   function textKeyDown(event: KeyboardEvent<HTMLElement>): void {

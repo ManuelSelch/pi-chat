@@ -11,9 +11,12 @@ interface CommandMenuProps {
 
 export function CommandMenu({ commands, activeIndex, onHover, onSelect }: CommandMenuProps) {
   const activeRef = useRef<HTMLButtonElement | null>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const mouseActive = useRef<number | null>(null);
 
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "nearest" });
+    if (mouseActive.current !== activeIndex) activeRef.current?.scrollIntoView({ block: "nearest" });
+    mouseActive.current = null;
   }, [activeIndex]);
 
   if (commands.length === 0) return null;
@@ -28,7 +31,15 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               ref={index === activeIndex ? activeRef : undefined}
               role="option"
               aria-selected={index === activeIndex}
-              onMouseEnter={() => onHover(index)}
+              onMouseMove={(event) => {
+                const last = pointer.current;
+                if (last && last.x === event.clientX && last.y === event.clientY) return;
+                pointer.current = { x: event.clientX, y: event.clientY };
+                if (index !== activeIndex) {
+                  mouseActive.current = index;
+                  onHover(index);
+                }
+              }}
               // The composer keeps focus, so selection must happen before blur.
               onMouseDown={(event) => { event.preventDefault(); onSelect(command); }}
               p="6px 10px"
