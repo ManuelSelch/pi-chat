@@ -5,6 +5,7 @@ import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
+import { SectionHeader } from "../ui/SectionHeader.js";
 import { Panel } from "../ui/Panel.js";
 
 interface SettingsDrawerProps {
@@ -48,10 +49,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
     <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
         <Panel>
-          <Group gap={6} mb={6}>
-            <IconBell size={16} />
-            <Text fw={650} size="sm">Sounds</Text>
-          </Group>
+          <SectionHeader icon={<IconBell size={16} />}>Sounds</SectionHeader>
           <Switch
             checked={chimesEnabled}
             onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
@@ -65,10 +63,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
           </Text>
         </Panel>
         <Panel>
-          <Group gap={6} mb={6}>
-            <IconFolder size={16} />
-            <Text fw={650} size="sm">Projects</Text>
-          </Group>
+          <SectionHeader icon={<IconFolder size={16} />}>Projects</SectionHeader>
           <Switch
             checked={displayPathShow}
             onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
@@ -80,10 +75,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
         </Panel>
         {renameFeature ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconPencil size={16} />
-              <Text fw={650} size="sm">{renameFeature.title}</Text>
-            </Group>
+            <SectionHeader icon={<IconPencil size={16} />}>{renameFeature.title}</SectionHeader>
             <Group gap="xs" align="flex-end" wrap="nowrap">
               <TextInput
                 aria-label="Session name"
@@ -109,10 +101,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
         ) : null}
         {thinkingFeature ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconBrain size={16} />
-              <Text fw={650} size="sm">{thinkingFeature.title}</Text>
-            </Group>
+            <SectionHeader icon={<IconBrain size={16} />}>{thinkingFeature.title}</SectionHeader>
             <Select
               aria-label="Thinking level"
               value={thinkingFeature.state.value}
@@ -124,10 +113,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
         ) : null}
         {modelFeature ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconCpu size={16} />
-              <Text fw={650} size="sm">{modelFeature.title}</Text>
-            </Group>
+            <SectionHeader icon={<IconCpu size={16} />}>{modelFeature.title}</SectionHeader>
             <Select
               aria-label="Model"
               searchable
@@ -140,10 +126,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
         ) : null}
         {compactFeature ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconArchive size={16} />
-              <Text fw={650} size="sm">{compactFeature.title}</Text>
-            </Group>
+            <SectionHeader icon={<IconArchive size={16} />}>{compactFeature.title}</SectionHeader>
             {compactFeature.description ? (
               <Text size="xs" c="dimmed" mb="xs">{compactFeature.description}</Text>
             ) : null}
@@ -155,10 +138,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
 
         {restartFeature ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconRefresh size={16} />
-              <Text fw={650} size="sm">{restartFeature.title}</Text>
-            </Group>
+            <SectionHeader icon={<IconRefresh size={16} />}>{restartFeature.title}</SectionHeader>
             {restartFeature.description ? (
               <Text size="xs" c="dimmed" mb="xs">{restartFeature.description}</Text>
             ) : null}
@@ -170,10 +150,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
 
         {hasExtensionControls ? (
           <Panel>
-            <Group gap={6} mb={6}>
-              <IconPuzzle size={16} />
-              <Text fw={650} size="sm">Extensions</Text>
-            </Group>
+            <SectionHeader icon={<IconPuzzle size={16} />}>Extensions</SectionHeader>
             <Slot
               name="settings.section"
               buttons={state.extensions.buttons}
