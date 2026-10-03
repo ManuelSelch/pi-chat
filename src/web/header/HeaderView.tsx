@@ -4,7 +4,7 @@ import type { PiChatBadge, PiChatButton, Tab } from "../../shared/protocol.js";
 import { Slot } from "../extensions/Slot.js";
 import { TabBar } from "../tabs/TabBar.js";
 
-interface AppHeaderProps {
+interface HeaderViewProps {
   home: boolean;
   title: string;
   status: string;
@@ -21,7 +21,7 @@ interface AppHeaderProps {
   onNewSession: () => void;
 }
 
-export function AppHeader({
+export function HeaderView({
   home,
   title,
   status,
@@ -36,7 +36,7 @@ export function AppHeader({
   onFocusTab,
   onCloseTab,
   onNewSession,
-}: AppHeaderProps) {
+}: HeaderViewProps) {
   return (
     <AppShell.Header>
       <Group h={58} px="lg" justify="space-between" wrap="nowrap">

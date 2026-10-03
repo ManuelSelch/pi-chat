@@ -8,7 +8,7 @@ import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { Footer } from "../chat/Footer.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
-import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
+import { atHome, visibleError } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { useChimes } from "./use-chimes.js";
 import { useDisplayPath } from "./use-display-path.js";
@@ -20,7 +20,7 @@ import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
-import { AppHeader } from "../shell/AppHeader.js";
+import { HeaderContainer } from "../header/HeaderContainer.js";
 import { Slot } from "../extensions/Slot.js";
 import type { FooterItem, Tab } from "../../shared/protocol.js";
 
@@ -65,7 +65,6 @@ function AppContent() {
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
   const home = atHome(app);
-  const headerTitle = home ? "No session open" : state.projectPath ? sessionName || "New session" : "Connecting…";
   const sessionPath = state.sessionPath;
   const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
   const sessionActions: LocalAction[] = [
@@ -270,21 +269,10 @@ function AppContent() {
 
   return (
     <AppShell header={{ height: 96 }} padding={0}>
-      <AppHeader
-        home={home}
-        title={headerTitle}
-        status={state.status}
-        tabs={visibleTabs(app)}
-        openingTabs={app.openingTabs}
-        activeSessionId={app.activeSessionId}
-        buttons={state.extensions.buttons}
-        badges={state.extensions.badges}
+      <HeaderContainer
         onOpenProjects={() => setProjectsOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
-        onAction={chat.runExtensionAction}
-        onFocusTab={chat.focusTab}
-        onCloseTab={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : setClosing(tab))}
-        onNewSession={() => chat.newSession(state.projectPath || undefined)}
+        onRequestCloseRunning={setClosing}
       />
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
