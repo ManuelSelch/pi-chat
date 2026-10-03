@@ -9,7 +9,7 @@ import { atHome } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { escapeIntent } from "./shortcuts.js";
 import { ProjectSessionContainer } from "../projects/ProjectSessionContainer.js";
-import { FolderPicker } from "../projects/FolderPicker.js";
+import { FolderPickerContainer } from "../projects/FolderPickerContainer.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
 import { QuickOpenContainer } from "../quickopen/QuickOpenContainer.js";
 import { Home } from "../home/Home.js";
@@ -111,13 +111,9 @@ function AppContent() {
         onClose={() => setProjectsOpen(false)}
         onOpenFolder={() => setFolderPickerOpen(true)}
       />
-      <FolderPicker
+      <FolderPickerContainer
         opened={folderPickerOpen}
-        connected={app.connection === "open"}
-        initialPath={state.projectPath || undefined}
         onClose={() => setFolderPickerOpen(false)}
-        browseDirectories={chat.browseDirectories}
-        startSession={chat.startFolderSession}
       />
       <SettingsContainer opened={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
