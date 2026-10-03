@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ActionIcon, Alert, Anchor, AppShell, Box, Button, Container, Group, Modal, Paper, Stack, Text, Textarea, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea, Tooltip } from "@mantine/core";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
-import { ConfirmModal, type Confirmation } from "./ConfirmModal.js";
+import { type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { Footer } from "../chat/Footer.js";
@@ -16,7 +16,7 @@ import { useDisplayPath } from "./use-display-path.js";
 import { clearInputIntent, escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { FolderPicker } from "../projects/FolderPicker.js";
-import { PromptModal } from "../prompts/PromptModal.js";
+import { Dialogs } from "../dialogs/Dialogs.js";
 import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
@@ -299,52 +299,18 @@ export function App() {
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
-      {/* Nested prompts stack, so the newest question is the one answered.
-          Only the focused tab shows its modal; background tabs go red instead. */}
-      <PromptModal prompt={state.prompts.at(-1)} onRespond={chat.respondToPrompt} />
-
-      <Modal opened={Boolean(closing)} onClose={() => setClosing(undefined)} title="Close running session?" centered size="sm">
-        <Stack gap="md">
-          <Text size="sm">
-            “{closing?.title}” is still running. Closing stops the run.
-          </Text>
-          <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={() => setClosing(undefined)}>Keep open</Button>
-            <Button color="red" onClick={() => { chat.closeTab(closing!.sessionId); setClosing(undefined); }}>
-              Stop and close
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
-      <ConfirmModal confirmation={confirming} onClose={() => setConfirming(undefined)} />
-
-      <Modal opened={renaming !== undefined} onClose={() => setRenaming(undefined)} title="Rename session" centered size="sm">
-        <Stack gap="md">
-          <TextInput
-            data-autofocus
-            aria-label="Session name"
-            value={renaming ?? ""}
-            onChange={(event) => setRenaming(event.currentTarget.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" || !renaming?.trim()) return;
-              event.preventDefault();
-              chat.renameSession(renaming.trim());
-              setRenaming(undefined);
-            }}
-          />
-          <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={() => setRenaming(undefined)}>Cancel</Button>
-            <Button
-              disabled={!renaming?.trim()}
-              onClick={() => { chat.renameSession(renaming!.trim()); setRenaming(undefined); }}
-            >
-              Rename
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-
+      <Dialogs
+        closing={closing}
+        onClosingChange={setClosing}
+        confirming={confirming}
+        onConfirmingChange={setConfirming}
+        renaming={renaming}
+        onRenamingChange={setRenaming}
+        prompt={state.prompts.at(-1)}
+        onRespondToPrompt={chat.respondToPrompt}
+        closeTab={chat.closeTab}
+        renameSession={chat.renameSession}
+      />
       <QuickOpen
         opened={quickOpen}
         onClose={() => setQuickOpen(false)}
