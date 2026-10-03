@@ -7,7 +7,7 @@ import { type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { Footer } from "../chat/Footer.js";
-import { usePiChat } from "../chat/use-pi-chat.js";
+import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { useChimes } from "./use-chimes.js";
@@ -30,7 +30,15 @@ const DEFAULT_FOOTER_HEIGHT = 170;
 const FOOTER_GAP = 24;
 
 export function App() {
-  const chat = usePiChat();
+  return (
+    <AppControllerProvider>
+      <AppContent />
+    </AppControllerProvider>
+  );
+}
+
+function AppContent() {
+  const chat = useAppController();
   const { app, state, prompt, abort, takeControl, dismissError } = chat;
   // Drafts are per tab: switching away must not discard a half-typed message.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
