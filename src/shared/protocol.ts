@@ -20,6 +20,7 @@ export const toolCardSchema = z.object({
   status: z.enum(["running", "success", "error"]),
   argsText: z.string().optional(),
   outputText: z.string().optional(),
+  writeContent: z.object({ text: z.string().max(102400), truncated: z.boolean() }).optional(),
   editDiff: z.object({
     format: z.enum(["unified", "pi-display"]),
     text: z.string().max(102400),

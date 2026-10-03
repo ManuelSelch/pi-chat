@@ -38,12 +38,12 @@ function SafeLink({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorEl
  *   model output can never inject markup or scripts.
  * - Code fences get highlight.js classes via rehype-highlight.
  */
-export const Markdown = memo(function Markdown({ children }: { children: string }) {
+export const Markdown = memo(function Markdown({ children, disableImages = false }: { children: string; disableImages?: boolean }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath]}
       rehypePlugins={[rehypeKatex, rehypeHighlight]}
-      components={{ a: SafeLink }}
+      components={{ a: SafeLink, ...(disableImages ? { img: ({ alt }: { alt?: string }) => <span>{alt ?? ""}</span> } : {}) }}
     >
       {children}
     </ReactMarkdown>

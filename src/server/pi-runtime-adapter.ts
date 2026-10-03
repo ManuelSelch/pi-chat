@@ -201,7 +201,23 @@ export function messagesFromBranch(branch: Iterable<unknown>, identity: MessageI
 }
 
 export function toolCardFromCall(call: ToolCallBlock): ToolCard {
+  const args = call.arguments;
+  const content = call.name === "write" && args && typeof args === "object" && !Array.isArray(args)
+    ? (args as Record<string, unknown>).content : undefined;
+  let writeContent: ToolCard["writeContent"];
+  if (typeof content === "string") {
+    // Iterate code points only up to the byte budget; never split surrogate pairs.
+    let bytes = 0, end = 0;
+    for (const character of content) {
+      const size = Buffer.byteLength(character, "utf8");
+      if (bytes + size > 102400) break;
+      bytes += size;
+      end += character.length;
+    }
+    writeContent = { text: content.slice(0, end), truncated: end < content.length };
+  }
   return {
+    ...(writeContent !== undefined ? { writeContent } : {}),
     toolCallId: call.id,
     name: call.name,
     status: "running",

@@ -1,6 +1,8 @@
 import { Badge, Box, Group, Text } from "@mantine/core";
 import type { ToolCard as ToolCardState } from "../../shared/protocol.js";
 import { EditDiff } from "./EditDiff.js";
+import { useState } from "react";
+import { WriteContent } from "./WriteContent.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
   running: "yellow",
@@ -82,18 +84,22 @@ export function toolSubject(tool: ToolCardState): string | undefined {
 
 /**
  * One tool call, collapsed by default so tools never dominate the transcript.
- * Native details/summary keeps it keyboard-operable without state. Arguments
- * and output render as plain text — never as markup — so tool output cannot
- * inject anything.
+ * Native details/summary keeps it keyboard-operable. Write previews mount only
+ * when opened; arguments and result output remain literal text.
  */
 export function ToolCard({ tool }: { tool: ToolCardState }) {
   const subject = toolSubject(tool);
+  const [opened, setOpened] = useState(false);
+  const content = tool.name === "write" ? tool.writeContent : undefined;
   const diff = tool.name === "edit" && tool.status === "success" ? tool.editDiff : undefined;
   return (
     <Box
       component="details"
       className={`tool-card ${tool.status}`}
       data-testid="tool-card"
+      onToggle={(event) => {
+        if (event.target === event.currentTarget) setOpened((event.currentTarget as HTMLDetailsElement).open);
+      }}
       style={{
         border: "1px solid var(--mantine-color-default-border)",
         borderRadius: "var(--mantine-radius-md)",
@@ -129,11 +135,12 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
           ) : null}
         </Group>
       </Box>
-      {diff || tool.argsText !== undefined || tool.outputText !== undefined ? (
+      {diff || content || tool.argsText !== undefined || tool.outputText !== undefined ? (
         <Box px="sm" pb="sm" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
           {diff ? <EditDiff diff={diff} /> : null}
+          {content && opened ? <WriteContent content={content} status={tool.status} /> : null}
           {tool.argsText !== undefined ? (
-            diff ? <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Arguments</summary><ToolPre>{tool.argsText}</ToolPre></details> : <>
+            diff || content ? <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Arguments</summary><ToolPre>{tool.argsText}</ToolPre></details> : <>
               <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mt="sm" mb={4}>Arguments</Text>
               <ToolPre>{tool.argsText}</ToolPre>
             </>
