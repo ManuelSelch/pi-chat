@@ -83,12 +83,14 @@ export function FooterView({ model, actions, footerRef, composerRef }: FooterVie
 
         <WidgetPanel widgets={widgetsAbove} />
         {menuOpen ? (
-          <CommandMenu
-            commands={matches}
-            activeIndex={activeCommand}
-            onHover={actions.setActiveCommand}
-            onSelect={actions.runMenuItem}
-          />
+          <div data-command-menu>
+            <CommandMenu
+              commands={matches}
+              activeIndex={activeCommand}
+              onHover={actions.setActiveCommand}
+              onSelect={actions.runMenuItem}
+            />
+          </div>
         ) : null}
 
         <Paper
