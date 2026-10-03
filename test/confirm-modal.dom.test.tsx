@@ -2,55 +2,50 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfirmModal, type Confirmation } from "../src/web/app/ConfirmModal.js";
+import { ConfirmDialog, type ConfirmOptions } from "../src/web/dialogs/confirm/ConfirmDialog.js";
 
 afterEach(cleanup);
 
-function show(confirmation: Confirmation | undefined) {
-  const onClose = vi.fn();
-  const run = confirmation?.run ?? vi.fn();
+function show(options: ConfirmOptions | undefined) {
+  const onResolve = vi.fn();
   render(
     <MantineProvider>
-      <ConfirmModal confirmation={confirmation ? { ...confirmation, run } : undefined} onClose={onClose} />
+      <ConfirmDialog options={options} onResolve={onResolve} />
     </MantineProvider>,
   );
-  return { onClose, run };
+  return { onResolve };
 }
 
-describe("ConfirmModal", () => {
+describe("ConfirmDialog", () => {
   it("confirms the pending action on Enter", () => {
-    const { onClose, run } = show({ title: "Restart server?", body: "Restart now", confirmLabel: "Restart", run: vi.fn() });
+    const { onResolve } = show({ title: "Restart server?", body: "Restart now", confirmLabel: "Restart" });
 
     fireEvent.keyDown(window, { key: "Enter" });
 
-    expect(run).toHaveBeenCalledTimes(1);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onResolve).toHaveBeenCalledWith(true);
   });
 
-  it("cancels without running the action", () => {
-    const { onClose, run } = show({ title: "Delete session?", body: "Move to trash", confirmLabel: "Delete", run: vi.fn() });
+  it("cancels without confirming", () => {
+    const { onResolve } = show({ title: "Delete session?", body: "Move to trash", confirmLabel: "Delete" });
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(run).not.toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onResolve).toHaveBeenCalledWith(false);
   });
 
-  it("keeps Escape wired to close without confirming", () => {
-    const { onClose, run } = show({ title: "Delete session?", body: "Move to trash", confirmLabel: "Delete", run: vi.fn() });
+  it("keeps Escape wired to cancel", () => {
+    const { onResolve } = show({ title: "Delete session?", body: "Move to trash", confirmLabel: "Delete" });
 
     fireEvent.keyDown(document.body, { key: "Escape" });
 
-    expect(run).not.toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onResolve).toHaveBeenCalledWith(false);
   });
 
-  it("does not confirm when no confirmation is open", () => {
-    const { onClose, run } = show(undefined);
+  it("does not confirm when no dialog is open", () => {
+    const { onResolve } = show(undefined);
 
     fireEvent.keyDown(window, { key: "Enter" });
 
-    expect(run).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onResolve).not.toHaveBeenCalled();
   });
 });

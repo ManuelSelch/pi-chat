@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AppShell, Container } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { type Confirmation } from "./ConfirmModal.js";
+import { ConfirmDialogProvider, useConfirmDialog } from "../dialogs/confirm/ConfirmDialogProvider.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
@@ -27,23 +27,24 @@ const FOOTER_GAP = 24;
 export function App() {
   return (
     <AppControllerProvider>
-      <AppContent />
+      <ConfirmDialogProvider>
+        <AppContent />
+      </ConfirmDialogProvider>
     </AppControllerProvider>
   );
 }
 
 function AppContent() {
   const chat = useAppController();
+  const { confirm } = useConfirmDialog();
   const { app, state } = chat;
   const [closing, setClosing] = useState<Tab | undefined>();
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [renaming, setRenaming] = useState<string | undefined>();
-  const [confirming, setConfirming] = useState<Confirmation | undefined>();
   const [footerHeight, setFooterHeight] = useState(170);
   const busy = state.status === "running" || state.status === "aborting";
-  const connecting = app.connection === "connecting" && app.tabs.length === 0;
   // The rename action already carries the live session name, so the header does
   // not need its own snapshot field.
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
@@ -101,8 +102,6 @@ function AppContent() {
       <Dialogs
         closing={closing}
         onClosingChange={setClosing}
-        confirming={confirming}
-        onConfirmingChange={setConfirming}
         renaming={renaming}
         onRenamingChange={setRenaming}
         prompt={state.prompts.at(-1)}
@@ -148,12 +147,11 @@ function AppContent() {
         displayPathShow={displayPath.show}
         setDisplayPathShow={displayPath.setShow}
         runExtensionAction={chat.runExtensionAction}
-        restartServer={() => setConfirming({
-          title: "Restart server?",
-          body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
-          confirmLabel: "Restart",
-          run: () => chat.restartServer(),
-        })}
+        restartServer={async () => {
+          if (await confirm({ title: "Restart server?", body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.", confirmLabel: "Restart" })) {
+            await chat.restartServer();
+          }
+        }}
       />
 
       <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
@@ -177,18 +175,6 @@ function AppContent() {
         overlayOpen={overlayOpen}
         onHeightChange={setFooterHeight}
         onRename={() => setRenaming(sessionName ?? "")}
-        onDelete={() => setConfirming({
-          title: "Delete session?",
-          body: `“${sessionName || "This session"}” moves to the trash and its tab closes.`,
-          confirmLabel: "Delete",
-          run: () => { if (state.sessionPath) void chat.deleteSession(state.sessionPath); },
-        })}
-        onRestart={() => setConfirming({
-          title: "Restart server?",
-          body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
-          confirmLabel: "Restart",
-          run: () => void chat.restartServer(),
-        })}
       />
     </AppShell>
   );

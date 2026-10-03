@@ -1,5 +1,4 @@
 import type { Tab, UiPrompt, UiPromptResult } from "../../shared/protocol.js";
-import { ConfirmModal, type Confirmation } from "../app/ConfirmModal.js";
 import { PromptModal } from "../prompts/PromptModal.js";
 import { CloseSessionDialog } from "./CloseSessionDialog.js";
 import { RenameSessionDialog } from "./RenameSessionDialog.js";
@@ -7,8 +6,6 @@ import { RenameSessionDialog } from "./RenameSessionDialog.js";
 interface DialogsProps {
   closing: Tab | undefined;
   onClosingChange: (tab: Tab | undefined) => void;
-  confirming: Confirmation | undefined;
-  onConfirmingChange: (confirmation: Confirmation | undefined) => void;
   renaming: string | undefined;
   onRenamingChange: (value: string | undefined) => void;
   prompt?: UiPrompt;
@@ -20,8 +17,6 @@ interface DialogsProps {
 export function Dialogs({
   closing,
   onClosingChange,
-  confirming,
-  onConfirmingChange,
   renaming,
   onRenamingChange,
   prompt,
@@ -37,7 +32,6 @@ export function Dialogs({
         onClose={() => onClosingChange(undefined)}
         onConfirm={closeTab}
       />
-      <ConfirmModal confirmation={confirming} onClose={() => onConfirmingChange(undefined)} />
       <RenameSessionDialog value={renaming} onChange={onRenamingChange} onRename={renameSession} />
     </>
   );
