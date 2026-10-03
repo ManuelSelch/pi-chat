@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ActionIcon, Badge, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
 import { MANTINE_COLOR } from "../theme.js";
+import { StatusBadge } from "../ui/StatusBadge.js";
 import { IconFolder, IconFolderOff, IconMessage, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
@@ -77,8 +78,8 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">
-                    {project.path === state.projectPath ? <Badge size="xs" variant="light" color={MANTINE_COLOR.primary}>current</Badge> : null}
-                    <Badge size="xs" variant="light">{project.sessionCount}</Badge>
+                    {project.path === state.projectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}
+                    <StatusBadge>{project.sessionCount}</StatusBadge>
                   </Group>
                 }
                 onClick={() => setSelectedProject(project.path)}
@@ -103,9 +104,9 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                   rightSection={
                     <Group gap={4} wrap="nowrap">
                       {session.nameSource === "none" ? null : (
-                        <Badge size="xs" variant={session.nameSource === "manual" ? "filled" : "light"} color={session.nameSource === "manual" ? "blue" : "gray"}>
+                        <StatusBadge variant={session.nameSource === "manual" ? "filled" : "light"} color={session.nameSource === "manual" ? "blue" : "gray"}>
                           {session.nameSource}
-                        </Badge>
+                        </StatusBadge>
                       )}
                       <Tooltip label="Delete session">
                         <ActionIcon
