@@ -1,0 +1,64 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 8px 7px;
+  border-radius: var(--mantine-radius-sm);
+  cursor: pointer;
+  transition: background-color 100ms ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.active {
+  background: var(--mantine-primary-color-light);
+}
+
+.icon {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dimmed);
+}
+
+.content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.meta > * {
+  white-space: nowrap;
+}
+
+.delete {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.row:hover .delete,
+.row:focus-within .delete {
+  opacity: 1;
+}
+
+.delete:disabled {
+  opacity: 0.35;
+}

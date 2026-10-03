@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ActionIcon, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import { Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../theme.js";
 import { StatusBadge } from "../ui/StatusBadge.js";
 import { DialogActions } from "../dialogs/DialogActions.js";
-import { IconFolder, IconFolderOff, IconMessage, IconPlus, IconTrash } from "@tabler/icons-react";
+import { IconFolder, IconFolderOff, IconPlus } from "@tabler/icons-react";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
+import { SessionRow } from "./SessionRow.js";
 import type { ChatState } from "../chat/chat-state.js";
 
 interface ProjectSessionDrawerProps {
@@ -73,7 +74,6 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 active={project.path === activeProject?.path}
                 disabled={!project.exists}
                 label={project.name}
-                // description={showDisplayPath ? project.displayPath : undefined}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">
@@ -98,37 +98,14 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 New session
               </Button>
               {activeProject.sessions.map((session) => (
-                <NavLink
+                <SessionRow
                   key={session.path}
+                  session={session}
                   active={session.id === state.sessionId}
                   disabled={!activeProject.exists}
-                  label={session.title}
-                  leftSection={<IconMessage size={16} />}
-                  rightSection={
-                    <Group gap={4} wrap="nowrap">
-                      {session.nameSource === "none" ? null : (
-                        <StatusBadge variant={session.nameSource === "manual" ? "filled" : "light"} color={session.nameSource === "manual" ? "blue" : "gray"}>
-                          {session.nameSource}
-                        </StatusBadge>
-                      )}
-                      <Tooltip label="Delete session">
-                        <ActionIcon
-                          component="div"
-                          role="button"
-                          size="sm"
-                          variant="subtle"
-                          color={MANTINE_COLOR.neutral}
-                          disabled={busy && session.id === state.sessionId}
-                          aria-label={`Delete ${session.title}`}
-                          onClick={(event) => { event.stopPropagation(); setPendingDelete(session); }}
-                        >
-                          <IconTrash size={14} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  }
-                  description={`${new Date(session.modified).toLocaleString()} · ${session.messageCount} messages`}
-                  onClick={() => { openSession(session.path); onClose(); }}
+                  deleteDisabled={busy && session.id === state.sessionId}
+                  onOpen={() => { openSession(session.path); onClose(); }}
+                  onDelete={() => setPendingDelete(session)}
                 />
               ))}
             </Stack>
