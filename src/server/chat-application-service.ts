@@ -17,6 +17,7 @@ export interface RuntimeAdapterFactory {
   continueProject(path: string): Promise<RuntimeAdapter>;
   openSession(path: string): Promise<RuntimeAdapter>;
   newSession(path: string): Promise<RuntimeAdapter>;
+  invalidateExtensionCache?(): Promise<void>;
 }
 
 /** The one command this service implements itself, added to every session's catalogue. */
@@ -135,6 +136,8 @@ export class ChatApplicationService {
     // start empty and the transcript would be lost.
     if (!snapshot.sessionPath) throw new Error("This session has no file on disk yet, so it cannot be reloaded.");
 
+    // New SDK resource loaders otherwise reuse process-wide cached factories.
+    await this.factory.invalidateExtensionCache?.();
     const replacement = await this.factory.openSession(snapshot.sessionPath);
     await this.sessions.replace(sessionId, replacement);
     this.catalogueCache = undefined;

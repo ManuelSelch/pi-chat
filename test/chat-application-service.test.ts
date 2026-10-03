@@ -156,14 +156,32 @@ describe("/reload", () => {
     const runtime = new FakeRuntimeAdapter();
     const replacement = new FakeRuntimeAdapter();
     const openSession = vi.fn(async () => replacement);
+    const invalidateExtensionCache = vi.fn(async () => {});
     const factory = {
       continueProject: async () => new FakeRuntimeAdapter(),
       openSession,
       newSession: async () => new FakeRuntimeAdapter(),
+      invalidateExtensionCache,
     };
     const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
-    return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, replacement, openSession };
+    return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, replacement, openSession, invalidateExtensionCache };
   }
+
+  it("invalidates cached extension factories before opening the replacement", async () => {
+    const { chat, openSession, invalidateExtensionCache } = reloadable();
+    await chat.prompt(chat.activeSessionId(), "/reload");
+    expect(invalidateExtensionCache).toHaveBeenCalledOnce();
+    expect(invalidateExtensionCache.mock.invocationCallOrder[0]).toBeLessThan(openSession.mock.invocationCallOrder[0]!);
+  });
+
+  it("keeps the existing runtime if cache invalidation fails", async () => {
+    const { chat, runtime, openSession, invalidateExtensionCache } = reloadable();
+    const disposed = vi.spyOn(runtime, "dispose");
+    invalidateExtensionCache.mockRejectedValueOnce(new Error("Cache invalidation failed"));
+    await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow("Cache invalidation failed");
+    expect(openSession).not.toHaveBeenCalled();
+    expect(disposed).not.toHaveBeenCalled();
+  });
 
   it("is offered as a command on every session", async () => {
     const { chat } = reloadable();
@@ -195,11 +213,12 @@ describe("/reload", () => {
   });
 
   it("refuses while the session is still running", async () => {
-    const { chat, runtime, openSession } = reloadable();
+    const { chat, runtime, openSession, invalidateExtensionCache } = reloadable();
     vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
 
     await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow(/finish/);
     expect(openSession).not.toHaveBeenCalled();
+    expect(invalidateExtensionCache).not.toHaveBeenCalled();
   });
 
   it("refuses a session that has no file to reopen", async () => {
