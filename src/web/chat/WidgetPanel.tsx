@@ -1,4 +1,5 @@
-import { Box, Group, Paper, Text, UnstyledButton } from "@mantine/core";
+import { Box, Group, Text, UnstyledButton } from "@mantine/core";
+import { Panel } from "../ui/Panel.js";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { useState } from "react";
 import type { Widget } from "../../shared/protocol.js";
@@ -18,7 +19,7 @@ function WidgetBlock({ widget }: { widget: Widget }) {
   const title = widget.key;
 
   return (
-    <Paper withBorder radius="md" p="xs" mb="xs">
+    <Panel p="xs" mb="xs">
       <UnstyledButton onClick={() => setOpen((value) => !value)} w="100%" aria-expanded={open}>
         <Group gap={6} wrap="nowrap">
           {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
@@ -56,7 +57,7 @@ function WidgetBlock({ widget }: { widget: Widget }) {
           {widget.lines.join("\n")}
         </Box>
       ) : null}
-    </Paper>
+    </Panel>
   );
 }
 

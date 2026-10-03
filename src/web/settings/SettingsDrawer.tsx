@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Drawer, Group, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
 import { MANTINE_COLOR } from "../theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
+import { Panel } from "../ui/Panel.js";
 
 interface SettingsDrawerProps {
   opened: boolean;
@@ -46,7 +47,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
   return (
     <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
-        <Paper withBorder radius="md" p="sm">
+        <Panel>
           <Group gap={6} mb={6}>
             <IconBell size={16} />
             <Text fw={650} size="sm">Sounds</Text>
@@ -62,8 +63,8 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
               ? "Plays for any tab, so a session finishing in the background is heard."
               : "This browser exposes no audio output."}
           </Text>
-        </Paper>
-        <Paper withBorder radius="md" p="sm">
+        </Panel>
+        <Panel>
           <Group gap={6} mb={6}>
             <IconFolder size={16} />
             <Text fw={650} size="sm">Projects</Text>
@@ -76,9 +77,9 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
           <Text size="xs" c="dimmed" mt={6}>
             Shows the full path of each project folder under the project name.
           </Text>
-        </Paper>
+        </Panel>
         {renameFeature ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconPencil size={16} />
               <Text fw={650} size="sm">{renameFeature.title}</Text>
@@ -104,10 +105,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
                 </ActionIcon>
               </Tooltip>
             </Group>
-          </Paper>
+          </Panel>
         ) : null}
         {thinkingFeature ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconBrain size={16} />
               <Text fw={650} size="sm">{thinkingFeature.title}</Text>
@@ -119,10 +120,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
               disabled={busy || thinkingFeature.state.options.length <= 1}
               onChange={(value) => { if (value) setThinkingLevel(value as ThinkingLevel); }}
             />
-          </Paper>
+          </Panel>
         ) : null}
         {modelFeature ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconCpu size={16} />
               <Text fw={650} size="sm">{modelFeature.title}</Text>
@@ -135,10 +136,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
               disabled={busy || modelFeature.state.options.length === 0}
               onChange={(value) => { if (value) setModel(value); }}
             />
-          </Paper>
+          </Panel>
         ) : null}
         {compactFeature ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconArchive size={16} />
               <Text fw={650} size="sm">{compactFeature.title}</Text>
@@ -149,11 +150,11 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             <Button variant="light" disabled={busy} onClick={compactSession}>
               {compactFeature.state.label}
             </Button>
-          </Paper>
+          </Panel>
         ) : null}
 
         {restartFeature ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconRefresh size={16} />
               <Text fw={650} size="sm">{restartFeature.title}</Text>
@@ -164,11 +165,11 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             <Button variant="light" color={MANTINE_COLOR.danger} onClick={restartServer}>
               {restartFeature.state.label}
             </Button>
-          </Paper>
+          </Panel>
         ) : null}
 
         {hasExtensionControls ? (
-          <Paper withBorder radius="md" p="sm">
+          <Panel>
             <Group gap={6} mb={6}>
               <IconPuzzle size={16} />
               <Text fw={650} size="sm">Extensions</Text>
@@ -179,7 +180,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
               badges={state.extensions.badges}
               onAction={runExtensionAction}
             />
-          </Paper>
+          </Panel>
         ) : null}
       </Stack>
     </Drawer>
