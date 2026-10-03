@@ -1,4 +1,5 @@
-import { Button, Group, Modal, Stack, TextInput } from "@mantine/core";
+import { Modal, Stack, TextInput } from "@mantine/core";
+import { DialogActions } from "./DialogActions.js";
 
 interface RenameSessionDialogProps {
   value: string | undefined;
@@ -29,10 +30,12 @@ export function RenameSessionDialog({ value, onChange, onRename }: RenameSession
             rename();
           }}
         />
-        <Group justify="flex-end" gap="xs">
-          <Button variant="default" onClick={() => onChange(undefined)}>Cancel</Button>
-          <Button disabled={!value?.trim()} onClick={rename}>Rename</Button>
-        </Group>
+        <DialogActions
+          confirmLabel="Rename"
+          onCancel={() => onChange(undefined)}
+          onConfirm={rename}
+          confirmProps={{ disabled: !value?.trim() }}
+        />
       </Stack>
     </Modal>
   );

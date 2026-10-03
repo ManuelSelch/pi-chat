@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { Modal, Stack, Text } from "@mantine/core";
+import { DialogActions } from "../DialogActions.js";
 import { MANTINE_COLOR } from "../../theme.js";
 import { useConfirmOnEnter } from "./confirm-enter.js";
 
@@ -22,10 +23,12 @@ export function ConfirmDialog({ options, onResolve }: ConfirmDialogProps) {
     <Modal opened={Boolean(options)} onClose={() => resolve(false)} title={options?.title} centered size="sm" zIndex={400}>
       <Stack gap="md">
         <Text size="sm">{options?.body}</Text>
-        <Group justify="flex-end" gap="xs">
-          <Button variant="default" onClick={() => resolve(false)}>Cancel</Button>
-          <Button color={MANTINE_COLOR.danger} onClick={() => resolve(true)}>{options?.confirmLabel ?? "Confirm"}</Button>
-        </Group>
+        <DialogActions
+          confirmLabel={options?.confirmLabel ?? "Confirm"}
+          onCancel={() => resolve(false)}
+          onConfirm={() => resolve(true)}
+          confirmProps={{ color: MANTINE_COLOR.danger }}
+        />
       </Stack>
     </Modal>
   );

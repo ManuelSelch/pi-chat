@@ -1,4 +1,5 @@
-import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { Modal, Stack, Text } from "@mantine/core";
+import { DialogActions } from "./DialogActions.js";
 import { MANTINE_COLOR } from "../theme.js";
 import type { Tab } from "../../shared/protocol.js";
 
@@ -13,12 +14,13 @@ export function CloseSessionDialog({ tab, onClose, onConfirm }: CloseSessionDial
     <Modal opened={Boolean(tab)} onClose={onClose} title="Close running session?" centered size="sm">
       <Stack gap="md">
         <Text size="sm">“{tab?.title}” is still running. Closing stops the run.</Text>
-        <Group justify="flex-end" gap="xs">
-          <Button variant="default" onClick={onClose}>Keep open</Button>
-          <Button color={MANTINE_COLOR.danger} onClick={() => { onConfirm(tab!.sessionId); onClose(); }}>
-            Stop and close
-          </Button>
-        </Group>
+        <DialogActions
+          cancelLabel="Keep open"
+          confirmLabel="Stop and close"
+          onCancel={onClose}
+          onConfirm={() => { onConfirm(tab!.sessionId); onClose(); }}
+          confirmProps={{ color: MANTINE_COLOR.danger }}
+        />
       </Stack>
     </Modal>
   );

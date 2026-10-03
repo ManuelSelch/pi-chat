@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
 import { MANTINE_COLOR } from "../theme.js";
 import { StatusBadge } from "../ui/StatusBadge.js";
+import { DialogActions } from "../dialogs/DialogActions.js";
 import { IconFolder, IconFolderOff, IconMessage, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
@@ -51,12 +52,13 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
           <Text size="sm">
             “{pendingDelete?.title}” moves to the trash. An open session closes its tab first.
           </Text>
-          <Group justify="flex-end" gap="xs">
-            <Button variant="default" onClick={() => setPendingDelete(undefined)}>Keep</Button>
-            <Button color={MANTINE_COLOR.danger} onClick={() => { deleteSession(pendingDelete!.path); setPendingDelete(undefined); }}>
-              Delete
-            </Button>
-          </Group>
+          <DialogActions
+            cancelLabel="Keep"
+            confirmLabel="Delete"
+            onCancel={() => setPendingDelete(undefined)}
+            onConfirm={() => { deleteSession(pendingDelete!.path); setPendingDelete(undefined); }}
+            confirmProps={{ color: MANTINE_COLOR.danger }}
+          />
         </Stack>
       </Modal>
 
