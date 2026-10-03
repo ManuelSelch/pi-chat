@@ -1,12 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Alert, Anchor, AppShell, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { AppShell, Container } from "@mantine/core";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
-import { CommandMenu } from "../commands/CommandMenu.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
 import { type Confirmation } from "./ConfirmModal.js";
 import { MessageList } from "../chat/MessageList.js";
-import { placeWidgets, WidgetDock, WidgetPanel, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
-import { Footer } from "../chat/Footer.js";
+import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome, visibleError } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
@@ -21,7 +19,7 @@ import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
-import { Slot } from "../extensions/Slot.js";
+import { FooterView } from "../footer/FooterView.js";
 import type { FooterItem, Tab } from "../../shared/protocol.js";
 
 /** Height of a composer with nothing above it; replaced once measured. */
@@ -359,98 +357,34 @@ function AppContent() {
         )}
       </AppShell.Main>
 
-      {home ? null : (
-      <Box
-        component="footer"
-        ref={footerRef}
-        pos="fixed"
-        bottom={0}
-        left={0}
-        right={0}
-        pb="md"
-        style={{ background: "linear-gradient(transparent, var(--mantine-color-body) 30%)", pointerEvents: "none" }}
-      >
-        <Container size="sm" style={{ pointerEvents: "auto" }}>
-          {app.connection === "superseded" ? (
-            <Text size="sm" c="dimmed" mb="xs">
-              Another browser tab is using this Pi session. <Anchor component="button" type="button" onClick={takeControl}>Take control here</Anchor>
-            </Text>
-          ) : connecting ? (
-            <Text size="sm" c="dimmed" mb="xs">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</Text>
-          ) : null}
-
-          {/* Shown next to the reconnect notice rather than instead of it: a
-              failed turn stays relevant while the socket is coming back. */}
-          {visibleError(app, state) ? (
-            <Alert
-              color="red"
-              variant="light"
-              mb="xs"
-              role="alert"
-              withCloseButton
-              closeButtonLabel="Dismiss error"
-              onClose={() => dismissError()}
-              styles={{ message: { whiteSpace: "pre-wrap", wordBreak: "break-word" } }}
-            >
-              {visibleError(app, state)}
-            </Alert>
-          ) : null}
-
-          {/* Extension panels sit where the terminal puts them: around the
-              editor, which here is the composer. */}
-          <WidgetPanel widgets={widgetsAbove} />
-
-          {menuOpen ? (
-            <CommandMenu
-              commands={matches}
-              activeIndex={activeCommand}
-              onHover={setActiveCommand}
-              onSelect={runMenuItem}
-            />
-          ) : null}
-
-          <Paper
-            component="form"
-            onSubmit={submit}
-            withBorder
-            radius="lg"
-            p="xs"
-            shadow="md"
-            className={busy ? "composer-working" : undefined}
-            aria-busy={busy || undefined}
-          >
-            <Group gap="xs" align="flex-end" wrap="nowrap">
-              <Textarea
-                ref={composerRef}
-                aria-label="Message Pi"
-                autosize
-                minRows={2}
-                maxRows={8}
-                onChange={(event) => changeInput(event.currentTarget.value)}
-                onKeyDown={keyDown}
-                placeholder="Ask Pi anything…"
-                value={input}
-                variant="unstyled"
-                flex={1}
-                styles={{ input: { padding: "8px 10px" } }}
-              />
-              <Slot name="composer.right" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
-            </Group>
-          </Paper>
-          {widgetsBelow.length > 0 ? (
-            <Box mt="xs">
-              <WidgetPanel widgets={widgetsBelow} />
-            </Box>
-          ) : null}
-
-          <Box mt={6} pl={12}>
-            <Slot name="composer.below" buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction} />
-          </Box>
-
-          <Footer items={footerItems} />
-        </Container>
-      </Box>
-      )}
+      <FooterView
+        model={{
+          home,
+          connection: app.connection,
+          connecting,
+          error: visibleError(app, state),
+          busy,
+          input,
+          activeCommand,
+          matches,
+          footerItems,
+          widgetsAbove,
+          widgetsBelow,
+          extensions: state.extensions,
+        }}
+        actions={{
+          takeControl,
+          dismissError,
+          changeInput,
+          keyDown,
+          submit,
+          setActiveCommand,
+          runMenuItem,
+          runExtensionAction: chat.runExtensionAction,
+        }}
+        footerRef={footerRef}
+        composerRef={composerRef}
+      />
     </AppShell>
   );
 }
