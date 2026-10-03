@@ -1,4 +1,5 @@
 import { Alert, Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { MANTINE_COLOR, THEME } from "../theme.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import type { MenuItem } from "../commands/command-menu.js";
@@ -55,7 +56,7 @@ export function FooterView({ model, actions, footerRef, composerRef }: FooterVie
       left={0}
       right={0}
       pb="md"
-      style={{ background: "linear-gradient(transparent, var(--mantine-color-body) 30%)", pointerEvents: "none" }}
+      style={{ background: `linear-gradient(transparent, ${THEME.surface.page} 30%)`, pointerEvents: "none" }}
     >
       <Container size="sm" style={{ pointerEvents: "auto" }}>
         {connection === "superseded" ? (
@@ -68,7 +69,7 @@ export function FooterView({ model, actions, footerRef, composerRef }: FooterVie
 
         {error ? (
           <Alert
-            color="red"
+            color={MANTINE_COLOR.danger}
             variant="light"
             mb="xs"
             role="alert"

@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
 import { Badge, Box, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { THEME } from "../theme.js";
 import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../shared/protocol.js";
 import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quickopen/quick-open.js";
@@ -94,7 +95,7 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
                 p="xs"
                 style={(theme) => ({
                   borderRadius: theme.radius.sm,
-                  background: index === clamped ? "var(--mantine-color-default-hover)" : undefined,
+                  background: index === clamped ? THEME.surface.panelHover : undefined,
                 })}
               >
                 <Group gap="xs" wrap="nowrap">

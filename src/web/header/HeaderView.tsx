@@ -3,6 +3,7 @@ import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import type { PiChatBadge, PiChatButton, Tab } from "../../shared/protocol.js";
 import { Slot } from "../extensions/Slot.js";
 import { TabBar } from "../tabs/TabBar.js";
+import { MANTINE_COLOR } from "../theme.js";
 
 interface HeaderViewProps {
   home: boolean;
@@ -42,7 +43,7 @@ export function HeaderView({
       <Group h={58} px="lg" justify="space-between" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" miw={0}>
           <Tooltip label="Projects and sessions">
-            <ActionIcon variant="subtle" color="gray" aria-label="Projects and sessions" onClick={onOpenProjects}>
+            <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Projects and sessions" onClick={onOpenProjects}>
               <IconLayoutSidebar size={18} />
             </ActionIcon>
           </Tooltip>
@@ -57,7 +58,7 @@ export function HeaderView({
             </Text>
           )}
           <Tooltip label="Settings">
-            <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={onOpenSettings}>
+            <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Settings" onClick={onOpenSettings}>
               <IconSettings size={18} />
             </ActionIcon>
           </Tooltip>

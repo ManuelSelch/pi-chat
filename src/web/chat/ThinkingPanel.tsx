@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Box, Group, Text } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
 import { Markdown } from "./Markdown.js";
+import { THEME } from "../theme.js";
 
 /**
  * The model's reasoning for one turn.
@@ -77,7 +78,7 @@ export function ThinkingPanel({ thinking, streaming }: { thinking: string; strea
         mah={280}
         style={{
           overflowY: "auto",
-          borderLeft: "2px solid var(--mantine-color-default-border)",
+          borderLeft: `2px solid ${THEME.border.default}`,
         }}
       >
         <Markdown>{thinking}</Markdown>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Button, Group, Modal, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { THEME } from "../theme.js";
 import type { UiPrompt, UiPromptResult } from "../../shared/protocol.js";
 
 interface PromptModalProps {
@@ -219,8 +220,8 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
                   p="8px 12px"
                   style={{
                     borderRadius: "var(--mantine-radius-sm)",
-                    background: index === active ? "var(--mantine-color-default-hover)" : undefined,
-                    borderLeft: `2px solid ${index === active ? "var(--mantine-primary-color-filled)" : "transparent"}`,
+                    background: index === active ? THEME.surface.panelHover : undefined,
+                    borderLeft: `2px solid ${index === active ? THEME.accent.primary : "transparent"}`,
                   }}
                 >
                   <Text size="sm">{option}</Text>

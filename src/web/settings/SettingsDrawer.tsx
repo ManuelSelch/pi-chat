@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { MANTINE_COLOR } from "../theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
@@ -160,7 +161,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             {restartFeature.description ? (
               <Text size="xs" c="dimmed" mb="xs">{restartFeature.description}</Text>
             ) : null}
-            <Button variant="light" color="red" onClick={restartServer}>
+            <Button variant="light" color={MANTINE_COLOR.danger} onClick={restartServer}>
               {restartFeature.state.label}
             </Button>
           </Paper>

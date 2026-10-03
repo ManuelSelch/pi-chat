@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import type { Tab, TabStatus } from "../../shared/protocol.js";
-import { STATUS_COLOR } from "../theme.js";
+import { MANTINE_COLOR, STATUS_COLOR, THEME } from "../theme.js";
 
 const STATUS_LABEL: Record<TabStatus, string> = {
   idle: "Idle",
@@ -23,7 +23,7 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
   if (tabs.length === 0 && opening === 0) return null;
 
   return (
-    <Group gap={4} wrap="nowrap" px="xs" py={4} style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
+    <Group gap={4} wrap="nowrap" px="xs" py={4} style={{ borderBottom: `1px solid ${THEME.border.default}` }}>
       <ScrollArea type="never" style={{ flex: 1 }}>
         <Group gap={4} wrap="nowrap">
           {tabs.map((tab) => {
@@ -39,8 +39,8 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
                 maw={220}
                 style={{
                   borderRadius: "var(--mantine-radius-sm)",
-                  background: active ? "var(--mantine-color-default-hover)" : undefined,
-                  borderBottom: `2px solid ${active ? "var(--mantine-primary-color-filled)" : "transparent"}`,
+                  background: active ? THEME.surface.panelHover : undefined,
+                  borderBottom: `2px solid ${active ? THEME.accent.primary : "transparent"}`,
                 }}
               >
                 <Group gap={6} wrap="nowrap">
@@ -59,7 +59,7 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
                     role="button"
                     size="xs"
                     variant="subtle"
-                    color="gray"
+                    color={MANTINE_COLOR.neutral}
                     aria-label={`Close ${tab.title}`}
                     onClick={(event) => { event.stopPropagation(); onClose(tab); }}
                   >
@@ -78,7 +78,7 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
         </Group>
       </ScrollArea>
       <Tooltip label="New session in this project">
-        <Button size="compact-xs" variant="subtle" color="gray" aria-label="New session" onClick={onNew}>
+        <Button size="compact-xs" variant="subtle" color={MANTINE_COLOR.neutral} aria-label="New session" onClick={onNew}>
           <IconPlus size={14} />
         </Button>
       </Tooltip>

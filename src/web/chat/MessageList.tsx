@@ -6,6 +6,7 @@ import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "./ToolCard.js";
 import type { ChatMessage } from "../../shared/protocol.js";
 import type { ChatState } from "./chat-state.js";
+import { MANTINE_COLOR, THEME } from "../theme.js";
 
 /**
  * Rendering markdown, KaTeX, and highlighting is expensive, and a long session
@@ -19,7 +20,7 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
     return (
       <Alert
         variant="light"
-        color={message.level === "error" ? "red" : message.level === "warning" ? "yellow" : "blue"}
+        color={message.level === "error" ? MANTINE_COLOR.danger : message.level === "warning" ? MANTINE_COLOR.warning : MANTINE_COLOR.info}
         icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
         p="xs"
       >
@@ -41,9 +42,9 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         component="article"
         data-testid="custom-message"
         pl="sm"
-        style={{ borderLeft: "3px solid var(--mantine-primary-color-filled)" }}
+        style={{ borderLeft: `3px solid ${THEME.accent.primary}` }}
       >
-        <Text size="xs" fw={650} tt="uppercase" lts={1} mb={4} c="var(--mantine-primary-color-filled)">
+        <Text size="xs" fw={650} tt="uppercase" lts={1} mb={4} c={THEME.accent.primary}>
           {message.customType}
         </Text>
         <div className="markdown"><Markdown>{message.text}</Markdown></div>
@@ -62,7 +63,7 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
       {/* A turn can be reasoning plus a tool call and no prose at all; the
           panel above is then the whole message. */}
       {message.role === "assistant" && message.text === "" ? null : message.role === "user" ? (
-        <Paper bg="var(--mantine-color-default-hover)" radius="lg" p="sm" px="md" ml="auto" maw="82%">
+        <Paper bg={THEME.surface.panelHover} radius="lg" p="sm" px="md" ml="auto" maw="82%">
           <div className="markdown"><Markdown>{message.text}</Markdown></div>
         </Paper>
       ) : (

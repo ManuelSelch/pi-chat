@@ -1,5 +1,6 @@
 import { Box, Text } from "@mantine/core";
 import type { ToolCard } from "../../shared/protocol.js";
+import { THEME } from "../theme.js";
 
 type Row = { kind: "addition" | "removal" | "context" | "header"; text: string; old?: number; next?: number; marker?: string };
 
@@ -39,11 +40,11 @@ export function EditDiff({ diff }: { diff: NonNullable<ToolCard["editDiff"]> }) 
   const truncated = diff.truncated || diff.text.split("\n").length > 2001;
   return <>
     <Text size="xs" fw={650} c="dimmed" mt="sm" mb={4}>Changes</Text>
-    <Box role="region" aria-label="Edit changes" tabIndex={0} style={{ overflow: "auto", maxHeight: 360, maxWidth: "100%", border: "1px solid var(--mantine-color-default-border)", borderRadius: 4 }}>
+    <Box role="region" aria-label="Edit changes" tabIndex={0} style={{ overflow: "auto", maxHeight: 360, maxWidth: "100%", border: `1px solid ${THEME.border.default}`, borderRadius: 4 }}>
       <Box ff="monospace" fz={12} lh={1.5} style={{ minWidth: "100%", width: "max-content" }}>
-        {rows.map((row, index) => <div key={index} data-kind={row.kind} style={{ display: "flex", whiteSpace: "pre", background: row.kind === "addition" ? "var(--mantine-color-green-light)" : row.kind === "removal" ? "var(--mantine-color-red-light)" : undefined }}>
-          <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: "var(--mantine-color-dimmed)", userSelect: "none" }}>{row.old ?? ""}</span>
-          <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: "var(--mantine-color-dimmed)", userSelect: "none" }}>{row.next ?? ""}</span>
+        {rows.map((row, index) => <div key={index} data-kind={row.kind} style={{ display: "flex", whiteSpace: "pre", background: row.kind === "addition" ? THEME.diff.addition : row.kind === "removal" ? THEME.diff.removal : undefined }}>
+          <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.old ?? ""}</span>
+          <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.next ?? ""}</span>
           <span style={{ width: "3ch", flexShrink: 0, textAlign: "center" }}>{row.marker ?? " "}</span>
           <span style={{ paddingRight: 12 }}>{row.text || " "}</span>
         </div>)}

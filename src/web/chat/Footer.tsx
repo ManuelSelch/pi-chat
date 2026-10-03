@@ -1,5 +1,6 @@
 import { Badge, Group, Text } from "@mantine/core";
 import type { FooterItem } from "../../shared/protocol.js";
+import { MANTINE_COLOR } from "../theme.js";
 
 /**
  * The composer footer, the browser's counterpart to the terminal's footer line:
@@ -15,7 +16,7 @@ import type { FooterItem } from "../../shared/protocol.js";
 function FooterEntry({ item }: { item: FooterItem }) {
   if (item.variant === "badge") {
     return (
-      <Badge size="sm" radius="sm" variant="light" color="yellow" tt="none">
+      <Badge size="sm" radius="sm" variant="light" color={MANTINE_COLOR.warning} tt="none">
         {item.text}
       </Badge>
     );

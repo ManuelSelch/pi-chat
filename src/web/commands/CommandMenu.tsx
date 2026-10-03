@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Badge, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
+import { THEME } from "../theme.js";
 import type { MenuItem } from "./command-menu.js";
 
 interface CommandMenuProps {
@@ -45,7 +46,7 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               p="6px 10px"
               style={{
                 borderRadius: "var(--mantine-radius-sm)",
-                background: index === activeIndex ? "var(--mantine-color-default-hover)" : undefined,
+                background: index === activeIndex ? THEME.surface.panelHover : undefined,
               }}
             >
               <Group gap={6} wrap="nowrap">

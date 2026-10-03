@@ -3,11 +3,12 @@ import type { ToolCard as ToolCardState } from "../../shared/protocol.js";
 import { EditDiff } from "./EditDiff.js";
 import { useState } from "react";
 import { WriteContent } from "./WriteContent.js";
+import { MANTINE_COLOR, THEME } from "../theme.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
-  running: "yellow",
-  success: "green",
-  error: "red",
+  running: MANTINE_COLOR.warning,
+  success: MANTINE_COLOR.success,
+  error: MANTINE_COLOR.danger,
 };
 
 const STATUS_LABEL: Record<ToolCardState["status"], string> = {
@@ -101,9 +102,9 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
         if (event.target === event.currentTarget) setOpened((event.currentTarget as HTMLDetailsElement).open);
       }}
       style={{
-        border: "1px solid var(--mantine-color-default-border)",
+        border: `1px solid ${THEME.border.default}`,
         borderRadius: "var(--mantine-radius-md)",
-        background: "var(--mantine-color-default)",
+        background: THEME.surface.panel,
         fontSize: 13,
       }}
     >
@@ -116,7 +117,7 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
             w={8}
             h={8}
             className={tool.status === "running" ? "tool-running-pulse" : undefined}
-            style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[tool.status]}-filled)`, flex: "none" }}
+            style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[tool.status]}-6)`, flex: "none" }}
           />
           <Text ff="monospace" fw={600} size="sm" style={{ flex: "none" }}>{tool.name}</Text>
           {subject ? (
@@ -136,7 +137,7 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
         </Group>
       </Box>
       {diff || content || tool.argsText !== undefined || tool.outputText !== undefined ? (
-        <Box px="sm" pb="sm" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
+        <Box px="sm" pb="sm" style={{ borderTop: `1px solid ${THEME.border.default}` }}>
           {diff ? <EditDiff diff={diff} /> : null}
           {content && opened ? <WriteContent content={content} status={tool.status} /> : null}
           {tool.argsText !== undefined ? (
@@ -173,8 +174,8 @@ function ToolPre({ children }: { children: string }) {
         overflow: "auto",
         whiteSpace: "pre-wrap",
         overflowWrap: "anywhere",
-        background: "var(--mantine-color-body)",
-        border: "1px solid var(--mantine-color-default-border)",
+        background: THEME.surface.page,
+        border: `1px solid ${THEME.border.default}`,
         borderRadius: "var(--mantine-radius-sm)",
       }}
     >

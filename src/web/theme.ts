@@ -5,21 +5,27 @@
  * while custom styles need resolved CSS values. Keep both forms here so
  * components do not invent their own colors.
  */
+export const MANTINE_COLOR = {
+  primary: "blue",
+  neutral: "gray",
+  success: "green",
+  warning: "yellow",
+  danger: "red",
+  info: "cyan",
+} as const;
+
 export const THEME = {
-  colors: {
-    primary: "blue",
-    neutral: "gray",
-    success: "green",
-    warning: "yellow",
-    danger: "red",
-    info: "cyan",
-  },
+  colors: MANTINE_COLOR,
 
   surface: {
     page: "var(--mantine-color-body)",
     panel: "var(--mantine-color-default)",
     panelHover: "var(--mantine-color-default-hover)",
     code: "var(--mantine-color-default)",
+  },
+
+  accent: {
+    primary: "var(--mantine-primary-color-filled)",
   },
 
   text: {
@@ -30,6 +36,11 @@ export const THEME = {
 
   border: {
     default: "var(--mantine-color-default-border)",
+  },
+
+  diff: {
+    addition: "var(--mantine-color-green-light)",
+    removal: "var(--mantine-color-red-light)",
   },
 
   status: {

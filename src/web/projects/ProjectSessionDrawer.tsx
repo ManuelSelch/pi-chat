@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActionIcon, Badge, Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text, Tooltip } from "@mantine/core";
+import { MANTINE_COLOR } from "../theme.js";
 import { IconFolder, IconFolderOff, IconMessage, IconPlus, IconTrash } from "@tabler/icons-react";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
@@ -51,7 +52,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
           </Text>
           <Group justify="flex-end" gap="xs">
             <Button variant="default" onClick={() => setPendingDelete(undefined)}>Keep</Button>
-            <Button color="red" onClick={() => { deleteSession(pendingDelete!.path); setPendingDelete(undefined); }}>
+            <Button color={MANTINE_COLOR.danger} onClick={() => { deleteSession(pendingDelete!.path); setPendingDelete(undefined); }}>
               Delete
             </Button>
           </Group>
@@ -76,7 +77,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">
-                    {project.path === state.projectPath ? <Badge size="xs" variant="light" color="blue">current</Badge> : null}
+                    {project.path === state.projectPath ? <Badge size="xs" variant="light" color={MANTINE_COLOR.primary}>current</Badge> : null}
                     <Badge size="xs" variant="light">{project.sessionCount}</Badge>
                   </Group>
                 }
@@ -112,7 +113,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                           role="button"
                           size="sm"
                           variant="subtle"
-                          color="gray"
+                          color={MANTINE_COLOR.neutral}
                           disabled={busy && session.id === state.sessionId}
                           aria-label={`Delete ${session.title}`}
                           onClick={(event) => { event.stopPropagation(); setPendingDelete(session); }}
