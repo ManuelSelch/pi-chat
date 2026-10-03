@@ -10,8 +10,6 @@ import { FooterView } from "./FooterView.js";
 
 interface FooterContainerProps {
   overlayOpen: boolean;
-  quickOpen: boolean;
-  onOpenQuickOpen: () => void;
   onHeightChange: (height: number) => void;
   onRename: () => void;
   onDelete: () => void;
@@ -20,7 +18,7 @@ interface FooterContainerProps {
 
 const DEFAULT_FOOTER_HEIGHT = 170;
 
-export function FooterContainer({ overlayOpen, quickOpen, onOpenQuickOpen, onHeightChange, onRename, onDelete, onRestart }: FooterContainerProps) {
+export function FooterContainer({ overlayOpen, onHeightChange, onRename, onDelete, onRestart }: FooterContainerProps) {
   const chat = useAppController();
   const { app, state } = chat;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -70,9 +68,7 @@ export function FooterContainer({ overlayOpen, quickOpen, onOpenQuickOpen, onHei
 
   useHotkeys(
     [
-      ["mod+shift+O", () => { if (!home) onOpenQuickOpen(); }],
-      ["mod+O", () => { if (!home) onOpenQuickOpen(); }],
-      ["mod+K", () => { if (!quickOpen) openCommandMenu(); }],
+      ["mod+K", () => { if (!document.querySelector("[role='dialog']")) openCommandMenu(); }],
       ["ctrl+C", () => {
         const hasSelection = Boolean(window.getSelection()?.toString());
         if (clearInputIntent({ hasSelection, input }) === "clear") changeInput("");

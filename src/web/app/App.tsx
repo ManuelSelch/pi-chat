@@ -13,7 +13,7 @@ import { escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
 import { FolderPicker } from "../projects/FolderPicker.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
-import { QuickOpen } from "../quickopen/QuickOpen.js";
+import { QuickOpenContainer } from "../quickopen/QuickOpenContainer.js";
 import { Home } from "../home/Home.js";
 import { SettingsDrawer } from "../settings/SettingsDrawer.js";
 import { TabBar } from "../tabs/TabBar.js";
@@ -39,7 +39,6 @@ function AppContent() {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
   const [renaming, setRenaming] = useState<string | undefined>();
   const [confirming, setConfirming] = useState<Confirmation | undefined>();
   const [footerHeight, setFooterHeight] = useState(170);
@@ -54,7 +53,7 @@ function AppContent() {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const overlayOpen = quickOpen || projectsOpen || folderPickerOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
+  const overlayOpen = projectsOpen || folderPickerOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
 
   // Escape is contended. Mantine overlays listen on window in the capture phase
   // too, and React flushes their onClose synchronously, so a handler that runs
@@ -111,14 +110,7 @@ function AppContent() {
         closeTab={chat.closeTab}
         renameSession={chat.renameSession}
       />
-      <QuickOpen
-        opened={quickOpen}
-        onClose={() => setQuickOpen(false)}
-        catalogue={app.catalogue}
-        tabs={app.tabs}
-        onOpenSession={chat.openSession}
-        onOpenProject={chat.openProject}
-      />
+      <QuickOpenContainer />
 
       <ProjectSessionDrawer
         opened={projectsOpen}
@@ -183,8 +175,6 @@ function AppContent() {
 
       <FooterContainer
         overlayOpen={overlayOpen}
-        quickOpen={quickOpen}
-        onOpenQuickOpen={() => setQuickOpen(true)}
         onHeightChange={setFooterHeight}
         onRename={() => setRenaming(sessionName ?? "")}
         onDelete={() => setConfirming({
