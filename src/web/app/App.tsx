@@ -1,13 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AppShell, Container } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { ConfirmDialogProvider, useConfirmDialog } from "../dialogs/confirm/ConfirmDialogProvider.js";
+import { ConfirmDialogProvider } from "../dialogs/confirm/ConfirmDialogProvider.js";
 import { MessageList } from "../chat/MessageList.js";
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
-import { useChimes } from "./use-chimes.js";
 import { useDisplayPath } from "./use-display-path.js";
 import { escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
@@ -15,7 +14,7 @@ import { FolderPicker } from "../projects/FolderPicker.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
 import { QuickOpenContainer } from "../quickopen/QuickOpenContainer.js";
 import { Home } from "../home/Home.js";
-import { SettingsDrawer } from "../settings/SettingsDrawer.js";
+import { SettingsContainer } from "../settings/SettingsContainer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
 import { FooterContainer } from "../footer/FooterContainer.js";
@@ -36,7 +35,6 @@ export function App() {
 
 function AppContent() {
   const chat = useAppController();
-  const { confirm } = useConfirmDialog();
   const { app, state } = chat;
   const [closing, setClosing] = useState<Tab | undefined>();
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -49,6 +47,7 @@ function AppContent() {
   // not need its own snapshot field.
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
+  const displayPath = useDisplayPath();
   const home = atHome(app);
   const { docked: widgetsDocked } = placeWidgets(
     state.widgets,
@@ -81,9 +80,7 @@ function AppContent() {
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
-    const chimes = useChimes(app.tabs);
-  const displayPath = useDisplayPath();
-  // Reasoning counts as growth too: a turn that thinks before it writes grows
+    // Reasoning counts as growth too: a turn that thinks before it writes grows
   // the page by the whole thinking panel, and following only `text` left the
   // live reasoning drifting below the fold.
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.draft?.thinking.length ?? 0}:${state.status}`;
@@ -131,28 +128,7 @@ function AppContent() {
         browseDirectories={chat.browseDirectories}
         startSession={chat.startFolderSession}
       />
-      <SettingsDrawer
-        opened={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        state={state}
-        busy={busy}
-        renameSession={chat.renameSession}
-        setThinkingLevel={chat.setThinkingLevel}
-        setModel={chat.setModel}
-        compactSession={chat.compactSession}
-        appFeatures={app.appFeatures}
-        chimesEnabled={chimes.enabled}
-        setChimesEnabled={chimes.setEnabled}
-        chimesAvailable={chimes.available}
-        displayPathShow={displayPath.show}
-        setDisplayPathShow={displayPath.setShow}
-        runExtensionAction={chat.runExtensionAction}
-        restartServer={async () => {
-          if (await confirm({ title: "Restart server?", body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.", confirmLabel: "Restart" })) {
-            await chat.restartServer();
-          }
-        }}
-      />
+      <SettingsContainer opened={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (
