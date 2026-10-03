@@ -46,7 +46,6 @@ export function SessionRow({ session, active, disabled, deleteDisabled, onOpen, 
       onClick={disabled ? undefined : onOpen}
       onKeyDown={disabled ? undefined : handleKeyDown}
     >
-      <IconMessage className={styles.icon} size={16} aria-hidden="true" />
       <div className={styles.content}>
         <Text className={styles.title} fw={600} size="sm" title={session.title}>
           {session.title}
@@ -55,7 +54,6 @@ export function SessionRow({ session, active, disabled, deleteDisabled, onOpen, 
           <Text size="xs" c="dimmed">{formatSessionDate(session.modified)}</Text>
           <Text size="xs" c="dimmed" aria-hidden="true">·</Text>
           <Text size="xs" c="dimmed">{session.messageCount} messages</Text>
-          {session.nameSource === "manual" ? <StatusBadge color="blue">named</StatusBadge> : null}
         </Group>
       </div>
       <Tooltip label="Delete session">
