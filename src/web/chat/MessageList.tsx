@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
 import { Notice } from "../ui/Notice.js";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
-import { Markdown } from "./Markdown.js";
+import { Markdown } from "./MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "./ToolCard.js";
 import type { ChatMessage } from "../../shared/protocol.js";

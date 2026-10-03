@@ -1,6 +1,6 @@
 import { Box, Text } from "@mantine/core";
 import type { ToolCard } from "../../shared/protocol.js";
-import { Markdown } from "./Markdown.js";
+import { Markdown } from "./MarkdownLazy.js";
 
 export function WriteContent({ content, status }: { content: NonNullable<ToolCard["writeContent"]>; status: ToolCard["status"] }) {
   const label = status === "success" ? "Written content" : status === "error" ? "Attempted content" : "Content to write";

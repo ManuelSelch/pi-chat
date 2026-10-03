@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Group, Text } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
-import { Markdown } from "./Markdown.js";
+import { Markdown } from "./MarkdownLazy.js";
 import { THEME } from "../theme.js";
 
 /**
