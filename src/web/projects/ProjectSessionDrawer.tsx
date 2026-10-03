@@ -75,6 +75,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 disabled={!project.exists}
                 label={project.name}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
+                description={showDisplayPath ? project.displayPath : undefined}
                 rightSection={
                   <Group gap={4} wrap="nowrap">
                     {project.path === state.projectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}
