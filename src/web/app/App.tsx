@@ -7,9 +7,8 @@ import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
-import { useDisplayPath } from "./use-display-path.js";
 import { escapeIntent } from "./shortcuts.js";
-import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
+import { ProjectSessionContainer } from "../projects/ProjectSessionContainer.js";
 import { FolderPicker } from "../projects/FolderPicker.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
 import { QuickOpenContainer } from "../quickopen/QuickOpenContainer.js";
@@ -47,7 +46,6 @@ function AppContent() {
   // not need its own snapshot field.
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const sessionName = renameFeature?.state.name?.trim();
-  const displayPath = useDisplayPath();
   const home = atHome(app);
   const { docked: widgetsDocked } = placeWidgets(
     state.widgets,
@@ -108,16 +106,9 @@ function AppContent() {
       />
       <QuickOpenContainer />
 
-      <ProjectSessionDrawer
+      <ProjectSessionContainer
         opened={projectsOpen}
         onClose={() => setProjectsOpen(false)}
-        state={state}
-        catalogue={app.catalogue}
-        busy={busy}
-        showDisplayPath={displayPath.show}
-        openSession={chat.openSession}
-        newSession={chat.newSession}
-        deleteSession={chat.deleteSession}
         onOpenFolder={() => setFolderPickerOpen(true)}
       />
       <FolderPicker
