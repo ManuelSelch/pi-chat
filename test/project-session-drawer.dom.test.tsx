@@ -64,7 +64,7 @@ afterEach(() => {
 describe("ProjectSessionDrawer", () => {
   it("opens the server folder picker while an agent is running", () => {
     show(true);
-    fireEvent.click(screen.getByRole("button", { name: "Open folder…" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
     expect(onOpenFolder).toHaveBeenCalledOnce();
     expect(openSession).not.toHaveBeenCalled();
   });

@@ -53,7 +53,7 @@ function show() {
 describe("Home", () => {
   it("opens the server folder picker without creating a default session", () => {
     const { onOpenFolder, onNewSession } = show();
-    fireEvent.click(screen.getByRole("button", { name: "Open folder…" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
     expect(onOpenFolder).toHaveBeenCalledOnce();
     expect(onNewSession).not.toHaveBeenCalled();
   });

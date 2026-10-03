@@ -62,9 +62,6 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
         </Stack>
       </Modal>
 
-      <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>
-        Open folder…
-      </Button>
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
@@ -87,6 +84,10 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 onClick={() => setSelectedProject(project.path)}
               />
             ))}
+
+            <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>
+              Open folder
+            </Button>
           </Stack>
         </ScrollArea>
         <ScrollArea h="100%" flex={1}>

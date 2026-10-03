@@ -75,7 +75,7 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
             New session
           </Button>
           <Button variant="default" leftSection={<IconFolder size={16} />} onClick={onOpenFolder}>
-            Open folder…
+            Open folder
           </Button>
         </Stack>
 
