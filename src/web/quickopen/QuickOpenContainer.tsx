@@ -1,32 +1,28 @@
-import { useState } from "react";
 import { useHotkeys } from "@mantine/hooks";
 import { atHome } from "../chat/app-state.js";
 import { useAppController } from "../state/AppControllerContext.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {
   const { app, openSession, openProject } = useAppController();
-  const [opened, setOpened] = useState(false);
+  const overlays = useOverlays();
+  const opened = overlays.state.quickOpen;
   const home = atHome(app);
 
   useHotkeys(
     [
-      ["mod+shift+O", open],
-      ["mod+O", () => open],
+      ["mod+shift+O", () => { if (!home) overlays.open("quickOpen"); }],
+      ["mod+O", () => { if (!home) overlays.open("quickOpen"); }],
     ],
     [],
   );
-
-  function open() {
-    if (home) return;
-    setOpened(true);
-  }
 
   return (
     <>
       <QuickOpen
         opened={opened}
-        onClose={() => setOpened(false)}
+        onClose={() => overlays.close("quickOpen")}
         catalogue={app.catalogue}
         tabs={app.tabs}
         onOpenSession={openSession}

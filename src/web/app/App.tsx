@@ -17,7 +17,7 @@ import { SettingsContainer } from "../settings/SettingsContainer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
 import { FooterContainer } from "../footer/FooterContainer.js";
-import type { Tab } from "../../shared/protocol.js";
+import { OverlayController, useOverlays } from "../overlays/OverlayController.js";
 
 /** Breathing room between the last message and the composer. */
 const FOOTER_GAP = 24;
@@ -26,7 +26,9 @@ export function App() {
   return (
     <AppControllerProvider>
       <ConfirmDialogProvider>
-        <AppContent />
+        <OverlayController>
+          <AppContent />
+        </OverlayController>
       </ConfirmDialogProvider>
     </AppControllerProvider>
   );
@@ -35,11 +37,7 @@ export function App() {
 function AppContent() {
   const chat = useAppController();
   const { app, state } = chat;
-  const [closing, setClosing] = useState<Tab | undefined>();
-  const [projectsOpen, setProjectsOpen] = useState(false);
-  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [renaming, setRenaming] = useState<string | undefined>();
+  const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const busy = state.status === "running" || state.status === "aborting";
   // The rename action already carries the live session name, so the header does
@@ -51,7 +49,7 @@ function AppContent() {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const overlayOpen = projectsOpen || folderPickerOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
+  const overlayOpen = overlays.anyOpen || state.prompts.length > 0;
 
   // Escape is contended. Mantine overlays listen on window in the capture phase
   // too, and React flushes their onClose synchronously, so a handler that runs
@@ -87,18 +85,18 @@ function AppContent() {
   return (
     <AppShell header={{ height: 96 }} padding={0}>
       <HeaderContainer
-        onOpenProjects={() => setProjectsOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onRequestCloseRunning={setClosing}
+        onOpenProjects={() => overlays.open("projects")}
+        onOpenSettings={() => overlays.open("settings")}
+        onRequestCloseRunning={overlays.requestCloseTab}
       />
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
       <Dialogs
-        closing={closing}
-        onClosingChange={setClosing}
-        renaming={renaming}
-        onRenamingChange={setRenaming}
+        closing={overlays.state.closingTab}
+        onClosingChange={(tab) => tab ? overlays.requestCloseTab(tab) : overlays.close("closingTab")}
+        renaming={overlays.state.renamingSession}
+        onRenamingChange={(value) => value === undefined ? overlays.close("renamingSession") : overlays.requestRename(value)}
         prompt={state.prompts.at(-1)}
         onRespondToPrompt={chat.respondToPrompt}
         closeTab={chat.closeTab}
@@ -107,15 +105,15 @@ function AppContent() {
       <QuickOpenContainer />
 
       <ProjectSessionContainer
-        opened={projectsOpen}
-        onClose={() => setProjectsOpen(false)}
-        onOpenFolder={() => setFolderPickerOpen(true)}
+        opened={overlays.state.projects}
+        onClose={() => overlays.close("projects")}
+        onOpenFolder={() => overlays.open("folderPicker")}
       />
       <FolderPickerContainer
-        opened={folderPickerOpen}
-        onClose={() => setFolderPickerOpen(false)}
+        opened={overlays.state.folderPicker}
+        onClose={() => overlays.close("folderPicker")}
       />
-      <SettingsContainer opened={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsContainer opened={overlays.state.settings} onClose={() => overlays.close("settings")} />
 
       <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (
@@ -124,7 +122,7 @@ function AppContent() {
             onOpenSession={chat.openSession}
             onOpenProject={chat.openProject}
             onNewSession={() => chat.newSession()}
-            onOpenFolder={() => setFolderPickerOpen(true)}
+            onOpenFolder={() => overlays.open("folderPicker")}
           />
         ) : (
           <Container size="sm" py="xl">
@@ -137,7 +135,7 @@ function AppContent() {
       <FooterContainer
         overlayOpen={overlayOpen}
         onHeightChange={setFooterHeight}
-        onRename={() => setRenaming(sessionName ?? "")}
+        onRename={() => overlays.requestRename(sessionName ?? "")}
       />
     </AppShell>
   );
