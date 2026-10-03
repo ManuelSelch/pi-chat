@@ -57,7 +57,6 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
       <Stack gap="lg" w="100%" maw={620} style={{ height: "min(560px, calc(100dvh - 150px))" }}>
         <Stack gap={4} align="center">
           <Text size="xl" fw={600}>Pi Chat</Text>
-          <Text size="sm" c="dimmed">Open a session to start</Text>
         </Stack>
 
         <Stack gap="sm">
@@ -71,12 +70,14 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
             onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
             onKeyDown={onKeyDown}
           />
-          <Button variant="light" leftSection={<IconPlus size={16} />} onClick={onNewSession}>
-            New session
-          </Button>
-          <Button variant="default" leftSection={<IconFolder size={16} />} onClick={onOpenFolder}>
-            Open folder
-          </Button>
+          <Group justify="center">
+             <Button variant="default" leftSection={<IconPlus size={16} />} onClick={onNewSession}>
+              New session
+            </Button>
+            <Button variant="default" leftSection={<IconFolder size={16} />} onClick={onOpenFolder}>
+              Open folder
+            </Button>
+          </Group>
         </Stack>
 
         <Box h={320}>
