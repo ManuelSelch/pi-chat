@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { AppShell, Container } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../dialogs/confirm/ConfirmDialogProvider.js";
@@ -7,7 +7,6 @@ import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
-import { escapeIntent } from "./shortcuts.js";
 import { ProjectSessionContainer } from "../projects/ProjectSessionContainer.js";
 import { FolderPickerContainer } from "../projects/FolderPickerContainer.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
@@ -18,6 +17,7 @@ import { TabBar } from "../tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
 import { FooterContainer } from "../footer/FooterContainer.js";
 import { OverlayController, useOverlays } from "../overlays/OverlayController.js";
+import { GlobalKeyboardController } from "../shortcuts/GlobalKeyboardController.js";
 
 /** Breathing room between the last message and the composer. */
 const FOOTER_GAP = 24;
@@ -27,6 +27,7 @@ export function App() {
     <AppControllerProvider>
       <ConfirmDialogProvider>
         <OverlayController>
+          <GlobalKeyboardController />
           <AppContent />
         </OverlayController>
       </ConfirmDialogProvider>
@@ -39,38 +40,11 @@ function AppContent() {
   const { app, state } = chat;
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
-  const busy = state.status === "running" || state.status === "aborting";
   const home = atHome(app);
   const { docked: widgetsDocked } = placeWidgets(
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const overlayOpen = overlays.anyOpen || state.prompts.length > 0;
-
-  // Escape is contended. Mantine overlays listen on window in the capture phase
-  // too, and React flushes their onClose synchronously, so a handler that runs
-  // after one of them sees no open dialog and aborts the run behind it. Two
-  // defences: useLayoutEffect registers this listener before any child effect
-  // does, and a closing dialog is still in the DOM during its exit transition.
-  const escapeState = useRef({ overlayOpen: false, menuOpen: false, busy: false, abort: chat.abort });
-  escapeState.current = {
-    overlayOpen,
-    menuOpen: false,
-    busy,
-    abort: chat.abort,
-  };
-
-  useLayoutEffect(() => {
-    function onKeyDown(event: globalThis.KeyboardEvent): void {
-      if (event.key !== "Escape") return;
-      const current = escapeState.current;
-      const overlayOpen = current.overlayOpen || document.querySelector("[role='dialog']") !== null;
-      const menuOpen = document.querySelector("[data-command-menu]") !== null;
-      if (escapeIntent({ ...current, overlayOpen, menuOpen }) === "abort") current.abort();
-    }
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
 
     // Reasoning counts as growth too: a turn that thinks before it writes grows
   // the page by the whole thinking panel, and following only `text` left the
