@@ -131,7 +131,7 @@ html::-webkit-scrollbar {
   content: "";
   position: absolute;
   inset: auto 12px 0 12px;
-  height: 1px;
+  height: 2px;
   border-radius: 1px;
   /* A short highlight sliding left to right reads as progress; animating
      background-position keeps it off the compositor's slow path. */
@@ -139,7 +139,7 @@ html::-webkit-scrollbar {
     0 0 / 40% 100% no-repeat;
   opacity: 0.55;
   pointer-events: none;
-  animation: composer-sweep 2.4s ease-in-out infinite;
+  animation: composer-sweep 1.4s ease-in-out infinite;
 }
 @keyframes composer-sweep {
   from { background-position: -40% 0; }
