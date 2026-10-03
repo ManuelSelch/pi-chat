@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Breadcrumbs, Button, Checkbox, Group, Loader, Modal, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
-import { MANTINE_COLOR } from "../theme.js";
+import { Breadcrumbs, Button, Checkbox, Group, Loader, Modal, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
+import { Notice } from "../ui/Notice.js";
 import { IconFolder } from "@tabler/icons-react";
 import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
 
@@ -108,8 +108,8 @@ export function FolderPicker({ opened, connected, initialPath, onClose, browseDi
         void start();
       }}>
       <Stack gap="sm">
-        {!connected ? <Alert color={MANTINE_COLOR.warning}>Reconnect to browse server folders.</Alert> : null}
-        {error ? <Alert color={MANTINE_COLOR.danger} role="alert">{error}</Alert> : null}
+        {!connected ? <Notice tone="warning">Reconnect to browse server folders.</Notice> : null}
+        {error ? <Notice tone="danger" role="alert">{error}</Notice> : null}
         <form onSubmit={(event) => { event.preventDefault(); void start(); }}>
           <Group align="flex-end" wrap="nowrap">
             <TextInput label="Server folder path" aria-label="Server folder path" value={input} onChange={(event) => setInput(event.currentTarget.value)}

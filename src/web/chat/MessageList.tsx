@@ -1,12 +1,13 @@
 import { memo, useState } from "react";
-import { Alert, Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
+import { Notice } from "../ui/Notice.js";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "./Markdown.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "./ToolCard.js";
 import type { ChatMessage } from "../../shared/protocol.js";
 import type { ChatState } from "./chat-state.js";
-import { MANTINE_COLOR, THEME } from "../theme.js";
+import { THEME } from "../theme.js";
 
 /**
  * Rendering markdown, KaTeX, and highlighting is expensive, and a long session
@@ -18,16 +19,15 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
 
   if (message.role === "notice") {
     return (
-      <Alert
-        variant="light"
-        color={message.level === "error" ? MANTINE_COLOR.danger : message.level === "warning" ? MANTINE_COLOR.warning : MANTINE_COLOR.info}
+      <Notice
+        tone={message.level === "error" ? "danger" : message.level === "warning" ? "warning" : "info"}
         icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
         p="xs"
       >
         {/* Command output such as /session is markdown, and a one-line notice
             renders the same either way. */}
         <div className="markdown markdown-notice"><Markdown>{message.text}</Markdown></div>
-      </Alert>
+      </Notice>
     );
   }
 

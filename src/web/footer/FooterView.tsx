@@ -1,5 +1,6 @@
-import { Alert, Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
-import { MANTINE_COLOR, THEME } from "../theme.js";
+import { Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { THEME } from "../theme.js";
+import { Notice } from "../ui/Notice.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
 import { CommandMenu } from "../commands/CommandMenu.js";
 import type { MenuItem } from "../commands/command-menu.js";
@@ -68,9 +69,8 @@ export function FooterView({ model, actions, footerRef, composerRef }: FooterVie
         ) : null}
 
         {error ? (
-          <Alert
-            color={MANTINE_COLOR.danger}
-            variant="light"
+          <Notice
+            tone="danger"
             mb="xs"
             role="alert"
             withCloseButton
@@ -79,7 +79,7 @@ export function FooterView({ model, actions, footerRef, composerRef }: FooterVie
             styles={{ message: { whiteSpace: "pre-wrap", wordBreak: "break-word" } }}
           >
             {error}
-          </Alert>
+          </Notice>
         ) : null}
 
         <WidgetPanel widgets={widgetsAbove} />
