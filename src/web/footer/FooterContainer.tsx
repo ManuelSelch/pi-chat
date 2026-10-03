@@ -5,20 +5,20 @@ import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuIte
 import { atHome, visibleError } from "../chat/app-state.js";
 import { useAppController } from "../state/AppControllerContext.js";
 import { useConfirmDialog } from "../dialogs/confirm/ConfirmDialogProvider.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { clearInputIntent } from "../app/shortcuts.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { FooterView } from "./FooterView.js";
 
 interface FooterContainerProps {
-  overlayOpen: boolean;
   onHeightChange: (height: number) => void;
-  onRename: () => void;
 }
 
 const DEFAULT_FOOTER_HEIGHT = 170;
 
-export function FooterContainer({ overlayOpen, onHeightChange, onRename }: FooterContainerProps) {
+export function FooterContainer({ onHeightChange }: FooterContainerProps) {
   const chat = useAppController();
+  const overlays = useOverlays();
   const { confirm } = useConfirmDialog();
   const { app, state } = chat;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -35,7 +35,7 @@ export function FooterContainer({ overlayOpen, onHeightChange, onRename }: Foote
   const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
   const sessionActions: LocalAction[] = [
     { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
-    { name: "Rename session", description: "Set the display name for this session", run: onRename },
+    { name: "Rename session", description: "Set the display name for this session", run: () => overlays.requestRename(sessionName ?? "") },
     { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
     ...(sessionPath && !busy ? [{ name: "Delete session", description: "Move this session to the trash and close its tab", run: () => {
       void confirm({ title: "Delete session?", body: `“${sessionName || "This session"}” moves to the trash and its tab closes.`, confirmLabel: "Delete" }).then((yes) => {
@@ -132,9 +132,9 @@ export function FooterContainer({ overlayOpen, onHeightChange, onRename }: Foote
   }
 
   useLayoutEffect(() => {
-    if (home || overlayOpen) return;
+    if (home || overlays.anyOpen || state.prompts.length > 0) return;
     composerRef.current?.focus();
-  }, [app.activeSessionId, home, overlayOpen]);
+  }, [app.activeSessionId, home, overlays.anyOpen, state.prompts.length]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;

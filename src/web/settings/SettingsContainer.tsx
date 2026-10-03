@@ -1,18 +1,15 @@
 import { useCallback } from "react";
 import { useAppController } from "../state/AppControllerContext.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { useConfirmDialog } from "../dialogs/confirm/ConfirmDialogProvider.js";
 import { useChimes } from "../app/use-chimes.js";
 import { useDisplayPath } from "../app/use-display-path.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 
-interface SettingsContainerProps {
-  opened: boolean;
-  onClose: () => void;
-}
-
-export function SettingsContainer({ opened, onClose }: SettingsContainerProps) {
+export function SettingsContainer() {
   const chat = useAppController();
   const { confirm } = useConfirmDialog();
+  const overlays = useOverlays();
   const { app, state } = chat;
   const busy = state.status === "running" || state.status === "aborting";
   const chimes = useChimes(app.tabs);
@@ -28,8 +25,8 @@ export function SettingsContainer({ opened, onClose }: SettingsContainerProps) {
 
   return (
     <SettingsDrawer
-      opened={opened}
-      onClose={onClose}
+      opened={overlays.state.settings}
+      onClose={() => overlays.close("settings")}
       state={state}
       busy={busy}
       renameSession={chat.renameSession}

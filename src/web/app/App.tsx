@@ -40,10 +40,6 @@ function AppContent() {
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const busy = state.status === "running" || state.status === "aborting";
-  // The rename action already carries the live session name, so the header does
-  // not need its own snapshot field.
-  const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
-  const sessionName = renameFeature?.state.name?.trim();
   const home = atHome(app);
   const { docked: widgetsDocked } = placeWidgets(
     state.widgets,
@@ -84,19 +80,11 @@ function AppContent() {
 
   return (
     <AppShell header={{ height: 96 }} padding={0}>
-      <HeaderContainer
-        onOpenProjects={() => overlays.open("projects")}
-        onOpenSettings={() => overlays.open("settings")}
-        onRequestCloseRunning={overlays.requestCloseTab}
-      />
+      <HeaderContainer />
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
       <Dialogs
-        closing={overlays.state.closingTab}
-        onClosingChange={(tab) => tab ? overlays.requestCloseTab(tab) : overlays.close("closingTab")}
-        renaming={overlays.state.renamingSession}
-        onRenamingChange={(value) => value === undefined ? overlays.close("renamingSession") : overlays.requestRename(value)}
         prompt={state.prompts.at(-1)}
         onRespondToPrompt={chat.respondToPrompt}
         closeTab={chat.closeTab}
@@ -104,16 +92,9 @@ function AppContent() {
       />
       <QuickOpenContainer />
 
-      <ProjectSessionContainer
-        opened={overlays.state.projects}
-        onClose={() => overlays.close("projects")}
-        onOpenFolder={() => overlays.open("folderPicker")}
-      />
-      <FolderPickerContainer
-        opened={overlays.state.folderPicker}
-        onClose={() => overlays.close("folderPicker")}
-      />
-      <SettingsContainer opened={overlays.state.settings} onClose={() => overlays.close("settings")} />
+      <ProjectSessionContainer />
+      <FolderPickerContainer />
+      <SettingsContainer />
 
       <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (
@@ -132,11 +113,7 @@ function AppContent() {
         )}
       </AppShell.Main>
 
-      <FooterContainer
-        overlayOpen={overlayOpen}
-        onHeightChange={setFooterHeight}
-        onRename={() => overlays.requestRename(sessionName ?? "")}
-      />
+      <FooterContainer onHeightChange={setFooterHeight} />
     </AppShell>
   );
 }

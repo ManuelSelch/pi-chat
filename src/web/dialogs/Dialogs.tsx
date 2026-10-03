@@ -1,13 +1,10 @@
-import type { Tab, UiPrompt, UiPromptResult } from "../../shared/protocol.js";
+import type { UiPrompt, UiPromptResult } from "../../shared/protocol.js";
 import { PromptModal } from "../prompts/PromptModal.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { CloseSessionDialog } from "./CloseSessionDialog.js";
 import { RenameSessionDialog } from "./RenameSessionDialog.js";
 
 interface DialogsProps {
-  closing: Tab | undefined;
-  onClosingChange: (tab: Tab | undefined) => void;
-  renaming: string | undefined;
-  onRenamingChange: (value: string | undefined) => void;
   prompt?: UiPrompt;
   onRespondToPrompt: (promptId: string, result: UiPromptResult) => void;
   closeTab: (sessionId: string) => void;
@@ -15,24 +12,25 @@ interface DialogsProps {
 }
 
 export function Dialogs({
-  closing,
-  onClosingChange,
-  renaming,
-  onRenamingChange,
   prompt,
   onRespondToPrompt,
   closeTab,
   renameSession,
 }: DialogsProps) {
+  const overlays = useOverlays();
   return (
     <>
       <PromptModal prompt={prompt} onRespond={onRespondToPrompt} />
       <CloseSessionDialog
-        tab={closing}
-        onClose={() => onClosingChange(undefined)}
+        tab={overlays.state.closingTab}
+        onClose={() => overlays.close("closingTab")}
         onConfirm={closeTab}
       />
-      <RenameSessionDialog value={renaming} onChange={onRenamingChange} onRename={renameSession} />
+      <RenameSessionDialog
+        value={overlays.state.renamingSession}
+        onChange={(value) => value === undefined ? overlays.close("renamingSession") : overlays.requestRename(value)}
+        onRename={renameSession}
+      />
     </>
   );
 }

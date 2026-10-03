@@ -1,23 +1,19 @@
 import { useAppController } from "../state/AppControllerContext.js";
 import { useDisplayPath } from "../app/use-display-path.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { ProjectSessionDrawer } from "./ProjectSessionDrawer.js";
 
-interface ProjectSessionContainerProps {
-  opened: boolean;
-  onClose: () => void;
-  onOpenFolder: () => void;
-}
-
-export function ProjectSessionContainer({ opened, onClose, onOpenFolder }: ProjectSessionContainerProps) {
+export function ProjectSessionContainer() {
   const chat = useAppController();
+  const overlays = useOverlays();
   const { app, state } = chat;
   const displayPath = useDisplayPath();
   const busy = state.status === "running" || state.status === "aborting";
 
   return (
     <ProjectSessionDrawer
-      opened={opened}
-      onClose={onClose}
+      opened={overlays.state.projects}
+      onClose={() => overlays.close("projects")}
       state={state}
       catalogue={app.catalogue}
       busy={busy}
@@ -25,7 +21,7 @@ export function ProjectSessionContainer({ opened, onClose, onOpenFolder }: Proje
       openSession={chat.openSession}
       newSession={chat.newSession}
       deleteSession={chat.deleteSession}
-      onOpenFolder={onOpenFolder}
+      onOpenFolder={() => overlays.open("folderPicker")}
     />
   );
 }

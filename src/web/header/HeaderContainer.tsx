@@ -1,16 +1,11 @@
 import { atHome, visibleTabs } from "../chat/app-state.js";
 import { useAppController } from "../state/AppControllerContext.js";
-import type { Tab } from "../../shared/protocol.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { HeaderView } from "./HeaderView.js";
 
-interface HeaderContainerProps {
-  onOpenProjects: () => void;
-  onOpenSettings: () => void;
-  onRequestCloseRunning: (tab: Tab) => void;
-}
-
-export function HeaderContainer({ onOpenProjects, onOpenSettings, onRequestCloseRunning }: HeaderContainerProps) {
+export function HeaderContainer() {
   const chat = useAppController();
+  const overlays = useOverlays();
   const { app, state } = chat;
   const home = atHome(app);
   const sessionName = state.actions.features.find((feature) => feature.id === "session.rename")?.state.name?.trim();
@@ -26,11 +21,11 @@ export function HeaderContainer({ onOpenProjects, onOpenSettings, onRequestClose
       activeSessionId={app.activeSessionId}
       buttons={state.extensions.buttons}
       badges={state.extensions.badges}
-      onOpenProjects={onOpenProjects}
-      onOpenSettings={onOpenSettings}
+      onOpenProjects={() => overlays.open("projects")}
+      onOpenSettings={() => overlays.open("settings")}
       onAction={chat.runExtensionAction}
       onFocusTab={chat.focusTab}
-      onCloseTab={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : onRequestCloseRunning(tab))}
+      onCloseTab={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : overlays.requestCloseTab(tab))}
       onNewSession={() => chat.newSession(state.projectPath || undefined)}
     />
   );
