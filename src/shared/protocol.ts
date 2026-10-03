@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
 
 export const PROTOCOL_VERSION = 1 as const;
 
@@ -295,7 +296,8 @@ export const clientMessageSchema = z.union([
   }),
   z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
-  z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional() }),
+  z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional(), requestId: z.string().min(1).max(128).optional() }),
+  directoryBrowseSchema.extend({ ...baseClientMessage, type: z.literal("browseDirectories"), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("deleteSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
@@ -317,6 +319,10 @@ const sequenced = {
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
+  z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),
+  z.object({ ...baseClientMessage, type: z.literal("directoryBrowseError"), requestId: z.string(), error: z.string() }),
+  z.object({ ...baseClientMessage, type: z.literal("sessionOpened"), requestId: z.string(), sessionId: z.string() }),
+  z.object({ ...baseClientMessage, type: z.literal("sessionOpenError"), requestId: z.string(), error: z.string() }),
   z.object({
     ...sequenced,
     type: z.literal("snapshot"),

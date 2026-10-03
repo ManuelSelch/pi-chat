@@ -5,7 +5,7 @@ import type { ActionRegistry, ChatMessage, FooterItem, PiChatExtensions, Project
  * action rather than something the hook patches in afterwards.
  */
 /** Session-scoped server messages; app-level ones are handled by the app reducer. */
-export type SessionServerMessage = Extract<ServerMessage, { sessionId: string }>;
+export type SessionServerMessage = Extract<ServerMessage, { sessionId: string; sequence: number }>;
 
 export type ChatAction =
   | SessionServerMessage

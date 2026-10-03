@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../src/shared/protocol.js";
 import { usePiChat } from "../src/web/chat/use-pi-chat.js";
@@ -38,7 +38,8 @@ class FakeWebSocket {
     this.close(CONTROLLER_REPLACED_CODE);
   }
 
-  send(): void {}
+  readonly sent: string[] = [];
+  send(message: string): void { this.sent.push(message); }
 
   acceptConnection(): void {
     this.readyState = FakeWebSocket.OPEN;
@@ -70,7 +71,62 @@ function Probe() {
   );
 }
 
+function FolderProbe() {
+  const { browseDirectories, startFolderSession, takeControl } = usePiChat();
+  const [result, setResult] = useState("");
+  return <>
+    <button onClick={takeControl}>Reclaim</button>
+    <button onClick={() => void browseDirectories({ path: "~" }).then((listing) => setResult(listing.path), (error: Error) => setResult(error.message))}>Browse</button>
+    <button onClick={() => void startFolderSession("/server/fresh").then(setResult, (error: Error) => setResult(error.message))}>Start folder</button>
+    <output data-testid="result">{result}</output>
+  </>;
+}
+
 describe("usePiChat connection lifecycle", () => {
+  it("sends correlated folder requests without a session and receives their results", async () => {
+    render(<FolderProbe />);
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => socket.acceptConnection());
+    act(() => screen.getByText("Browse").click());
+    const browse = JSON.parse(socket.sent[0]!);
+    expect(browse).toMatchObject({ type: "browseDirectories", path: "~" });
+    await act(async () => socket.deliver({ version: 1, type: "directoryListing", requestId: browse.requestId, listing: { path: "/server/home", entries: [], breadcrumbs: [] } }));
+    expect(screen.getByTestId("result").textContent).toBe("/server/home");
+    act(() => screen.getByText("Start folder").click());
+    const start = JSON.parse(socket.sent[1]!);
+    expect(start).toMatchObject({ type: "newSession", path: "/server/fresh" });
+    await act(async () => socket.deliver({ version: 1, type: "sessionOpenError", requestId: start.requestId, error: "Permission denied" }));
+    expect(screen.getByTestId("result").textContent).toBe("Permission denied");
+  });
+
+  it("does not cancel new requests when a disposed socket closes late", async () => {
+    render(<FolderProbe />);
+    act(() => void vi.advanceTimersByTime(0));
+    const old = FakeWebSocket.instances[0]!;
+    act(() => old.acceptConnection());
+    const close = vi.spyOn(old, "close").mockImplementation(() => {});
+    act(() => screen.getByText("Reclaim").click());
+    act(() => void vi.advanceTimersByTime(0));
+    const next = FakeWebSocket.instances[1]!;
+    act(() => next.acceptConnection());
+    act(() => screen.getByText("Browse").click());
+    const request = JSON.parse(next.sent[0]!);
+    close.mockRestore();
+    await act(async () => old.close());
+    await act(async () => next.deliver({ version: 1, type: "directoryListing", requestId: request.requestId, listing: { path: "/new", entries: [], breadcrumbs: [] } }));
+    expect(screen.getByTestId("result").textContent).toBe("/new");
+  });
+
+  it("rejects in-flight folder requests when the socket disconnects", async () => {
+    render(<FolderProbe />);
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => socket.acceptConnection());
+    act(() => screen.getByText("Browse").click());
+    await act(async () => socket.close());
+    expect(screen.getByTestId("result").textContent).toContain("Connection lost");
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     FakeWebSocket.instances = [];

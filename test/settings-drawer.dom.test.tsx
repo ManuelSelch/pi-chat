@@ -26,6 +26,8 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         chimesEnabled={false}
         setChimesEnabled={noop}
         chimesAvailable
+        displayPathShow={true}
+        setDisplayPathShow={noop}
         runExtensionAction={runExtensionAction}
       />
     </MantineProvider>,

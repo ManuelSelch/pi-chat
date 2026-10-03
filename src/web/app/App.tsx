@@ -12,8 +12,10 @@ import { usePiChat } from "../chat/use-pi-chat.js";
 import { atHome, visibleError, visibleTabs } from "../chat/app-state.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { useChimes } from "./use-chimes.js";
+import { useDisplayPath } from "./use-display-path.js";
 import { clearInputIntent, escapeIntent } from "./shortcuts.js";
 import { ProjectSessionDrawer } from "../projects/ProjectSessionDrawer.js";
+import { FolderPicker } from "../projects/FolderPicker.js";
 import { PromptModal } from "../prompts/PromptModal.js";
 import { QuickOpen } from "../quickopen/QuickOpen.js";
 import { Home } from "../home/Home.js";
@@ -37,6 +39,7 @@ export function App() {
   const [activeCommand, setActiveCommand] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [renaming, setRenaming] = useState<string | undefined>();
@@ -105,7 +108,7 @@ export function App() {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const overlayOpen = quickOpen || projectsOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
+  const overlayOpen = quickOpen || projectsOpen || folderPickerOpen || settingsOpen || renaming !== undefined || state.prompts.length > 0;
   const query = menuDismissed ? undefined : commandQuery(input);
   const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
   const menuOpen = matches.length > 0;
@@ -215,6 +218,7 @@ export function App() {
     setActiveCommand(0);
   }
   const chimes = useChimes(app.tabs);
+  const displayPath = useDisplayPath();
   // Reasoning counts as growth too: a turn that thinks before it writes grows
   // the page by the whole thinking panel, and following only `text` left the
   // live reasoning drifting below the fold.
@@ -356,9 +360,19 @@ export function App() {
         state={state}
         catalogue={app.catalogue}
         busy={busy}
+        showDisplayPath={displayPath.show}
         openSession={chat.openSession}
         newSession={chat.newSession}
         deleteSession={chat.deleteSession}
+        onOpenFolder={() => setFolderPickerOpen(true)}
+      />
+      <FolderPicker
+        opened={folderPickerOpen}
+        connected={app.connection === "open"}
+        initialPath={state.projectPath || undefined}
+        onClose={() => setFolderPickerOpen(false)}
+        browseDirectories={chat.browseDirectories}
+        startSession={chat.startFolderSession}
       />
       <SettingsDrawer
         opened={settingsOpen}
@@ -373,6 +387,8 @@ export function App() {
         chimesEnabled={chimes.enabled}
         setChimesEnabled={chimes.setEnabled}
         chimesAvailable={chimes.available}
+        displayPathShow={displayPath.show}
+        setDisplayPathShow={displayPath.setShow}
         runExtensionAction={chat.runExtensionAction}
         restartServer={() => setConfirming({
           title: "Restart server?",
@@ -389,6 +405,7 @@ export function App() {
             onOpenSession={chat.openSession}
             onOpenProject={chat.openProject}
             onNewSession={() => chat.newSession()}
+            onOpenFolder={() => setFolderPickerOpen(true)}
           />
         ) : (
           <Container size="sm" py="xl">

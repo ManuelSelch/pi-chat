@@ -8,6 +8,8 @@ import {
   type UiPromptResult,
 } from "../../shared/protocol.js";
 import { activeSession, initialAppState, reduceAppMessage } from "./app-state.js";
+import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
+import { FolderRequests } from "../projects/folder-requests.js";
 
 const FIRST_RETRY_MS = 250;
 const MAX_RETRY_MS = 5_000;
@@ -20,6 +22,8 @@ const MAX_RETRY_MS = 5_000;
 export function usePiChat() {
   const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
   const socketRef = useRef<WebSocket | undefined>(undefined);
+  const folderRequests = useRef(new FolderRequests());
+  const folderRequestSequence = useRef(0);
   // Bumping this re-runs the effect, which is how a superseded tab takes the
   // controller slot back on an explicit user action.
   const [claim, setClaim] = useState(0);
@@ -40,6 +44,7 @@ export function usePiChat() {
       });
 
       socket.addEventListener("message", (event) => {
+        if (disposed || socketRef.current !== socket) return;
         let value: unknown;
         try {
           value = JSON.parse(String(event.data));
@@ -47,7 +52,7 @@ export function usePiChat() {
           return;
         }
         const parsed = serverMessageSchema.safeParse(value);
-        if (parsed.success) dispatch(parsed.data);
+        if (parsed.success && !folderRequests.current.receive(parsed.data)) dispatch(parsed.data);
       });
 
       // A refused connection fires error and then close on its own, so close is
@@ -55,8 +60,9 @@ export function usePiChat() {
       // handler would only abort a still-connecting socket and log
       // "closed before the connection is established".
       socket.addEventListener("close", (event) => {
-        if (socketRef.current === socket) socketRef.current = undefined;
-        if (disposed) return;
+        if (disposed || socketRef.current !== socket) return;
+        socketRef.current = undefined;
+        folderRequests.current.disconnect();
         if (event.code === CONTROLLER_REPLACED_CODE) {
           dispatch({ type: "superseded" });
           return;
@@ -76,6 +82,7 @@ export function usePiChat() {
     return () => {
       disposed = true;
       if (retryTimer) clearTimeout(retryTimer);
+      folderRequests.current.disconnect();
       socketRef.current?.close();
       socketRef.current = undefined;
     };
@@ -94,6 +101,27 @@ export function usePiChat() {
     socket.send(JSON.stringify(message));
   }, []);
 
+  const folderRequest = useCallback((command: Omit<Extract<ClientMessage, { type: "browseDirectories" }>, "requestId"> | Omit<Extract<ClientMessage, { type: "newSession" }>, "requestId">, signal?: AbortSignal) => {
+    const requestId = `folder-${++folderRequestSequence.current}`;
+    return folderRequests.current.request({ ...command, requestId }, (message) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
+      socket.send(JSON.stringify(message));
+    }, signal);
+  }, []);
+
+  const browseDirectories = useCallback(async (request: DirectoryBrowse, signal?: AbortSignal): Promise<DirectoryListing> => {
+    const reply = await folderRequest({ version: PROTOCOL_VERSION, type: "browseDirectories", ...request }, signal);
+    if (reply.type !== "directoryListing") throw new Error("Unexpected folder response.");
+    return reply.listing;
+  }, [folderRequest]);
+
+  const startFolderSession = useCallback(async (path: string, signal?: AbortSignal): Promise<string> => {
+    const reply = await folderRequest({ version: PROTOCOL_VERSION, type: "newSession", path }, signal);
+    if (reply.type !== "sessionOpened") throw new Error("Unexpected session response.");
+    return reply.sessionId;
+  }, [folderRequest]);
+
   // Commands act on the tab the user is looking at unless one is named.
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
@@ -101,6 +129,8 @@ export function usePiChat() {
   return {
     app,
     state: session,
+    browseDirectories,
+    startFolderSession,
     prompt: (message: string, sessionId?: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "prompt", message }),
     abort: (sessionId?: string) => send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "abort" }),

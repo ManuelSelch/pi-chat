@@ -7,6 +7,7 @@
 
 - streaming assistant text, tool cards, Markdown + KaTeX
 - multiple tabs over persistent Pi sessions, with project/session browsing
+- server folder picker to start sessions in folders without previous Pi history
 - slash commands, a command palette, and quick-open
 - extension UI support: `notify`, dialogs, `setWidget` panels, `setStatus` footer labels, and experimental web extension slots/actions/hooks
 
@@ -22,6 +23,24 @@ which adds three commands to any Pi session:
 - `/pi-chat-stop`: stop pi-chat server
 - `/pi-chat`: show status
 
+
+## Open another folder
+
+Choose **Open folder…** on Home or in the Projects drawer. The picker browses
+folders on the **Pi Chat server**, not the device running your browser. Navigate
+with folder rows, breadcrumbs, Up/Home, or enter an absolute path, `~/…`, or a
+path relative to the displayed folder. Hidden folders are optional; large lists
+have **Load more folders**.
+
+**Open** or **Enter** opens a new tab with the selected folder as its working
+directory. An edited path is resolved before opening; **Go** browses it without
+starting a session. Any accessible existing directory works; no Git repository or previous
+Pi session is required. Symlinks resolve to their canonical target. Recent projects
+and explicit session resume continue to work as before.
+
+Pi Chat assumes a trusted/local deployment. This feature exposes folders accessible
+to the server process and starts an agent with existing tool permissions; it is not
+a filesystem sandbox or authentication layer. Do not expose it to untrusted users.
 
 ## Extension API
 

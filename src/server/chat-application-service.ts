@@ -1,4 +1,6 @@
 import { homedir } from "node:os";
+import type { DirectoryBrowse, DirectoryListing } from "../shared/directories.js";
+import { DirectoryBrowserService } from "./directory-browser-service.js";
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extension-registry.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
@@ -38,6 +40,7 @@ export class ChatApplicationService {
     private readonly projectSessions = new ProjectSessionService(),
     private readonly restartService?: RestartService,
     private readonly extensions: PiChatExtensionRegistry = getPiChatExtensionRegistry(),
+    private readonly directories = new DirectoryBrowserService(),
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
     if (initialRuntime) this.sessions.add(initialRuntime);
@@ -165,8 +168,13 @@ export class ChatApplicationService {
     for (const session of this.sessions.list()) session.adapter.resumePrompts();
   }
 
+  browseDirectories(request: DirectoryBrowse): Promise<DirectoryListing> {
+    return this.directories.browse(request);
+  }
+
   async openProject(path: string): Promise<string> {
-    return this.openTab(() => this.factory.continueProject(path));
+    const target = await this.directories.validate(path);
+    return this.openTab(() => this.factory.continueProject(target));
   }
 
   /** Opening an already-open session focuses its tab instead of duplicating it. */
@@ -181,7 +189,7 @@ export class ChatApplicationService {
 
   async newSession(path?: string): Promise<string> {
     const active = this.activeSessionId();
-    const target = path ?? (active ? this.sessions.get(active).snapshot().projectPath : homedir());
+    const target = await this.directories.validate(path ?? (active ? this.sessions.get(active).snapshot().projectPath : homedir()));
     return this.openTab(() => this.factory.newSession(target));
   }
 

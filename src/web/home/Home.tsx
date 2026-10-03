@@ -9,6 +9,7 @@ interface HomeProps {
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: () => void;
+  onOpenFolder: () => void;
 }
 
 /**
@@ -16,7 +17,7 @@ interface HomeProps {
  * modal: the same ranking, but always visible, because there is nothing behind
  * it to go back to.
  */
-export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: HomeProps) {
+export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, onOpenFolder }: HomeProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
@@ -71,6 +72,9 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
           />
           <Button variant="light" leftSection={<IconPlus size={16} />} onClick={onNewSession}>
             New session
+          </Button>
+          <Button variant="default" leftSection={<IconFolder size={16} />} onClick={onOpenFolder}>
+            Open folder…
           </Button>
         </Stack>
 

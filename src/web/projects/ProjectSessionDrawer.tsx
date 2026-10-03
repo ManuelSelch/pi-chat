@@ -12,12 +12,14 @@ interface ProjectSessionDrawerProps {
   /** A run only blocks deleting the session it is writing to; every other
    *  action opens its own tab and is safe to use meanwhile. */
   busy: boolean;
+  showDisplayPath: boolean;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
   deleteSession: (path: string) => void;
+  onOpenFolder: () => void;
 }
 
-export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, openSession, newSession, deleteSession }: ProjectSessionDrawerProps) {
+export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, showDisplayPath, openSession, newSession, deleteSession, onOpenFolder }: ProjectSessionDrawerProps) {
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   // Deleting moves a file to the trash, so it is always confirmed first.
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
@@ -56,6 +58,9 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
         </Stack>
       </Modal>
 
+      <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>
+        Open folder…
+      </Button>
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
@@ -67,7 +72,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 active={project.path === activeProject?.path}
                 disabled={!project.exists}
                 label={project.name}
-                description={project.displayPath}
+                description={showDisplayPath ? project.displayPath : undefined}
                 leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                 rightSection={
                   <Group gap={4} wrap="nowrap">

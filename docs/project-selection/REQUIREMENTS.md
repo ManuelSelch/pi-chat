@@ -1,6 +1,6 @@
 # Server folder project selection
 
-Status: proposed plan; no implementation yet.
+Status: implemented. Defaults below are adopted for the first version.
 
 ## Problem and current behavior
 
@@ -24,10 +24,10 @@ Select any accessible existing folder on the Pi Chat server and start a Pi sessi
 
 1. Provide an **Open folder…** action on Home and in the Projects drawer.
 2. Open a shared folder picker, initially at the active project's folder, or the server home directory when no session is open.
-3. Show “Folders on the Pi Chat server”, the current absolute path, editable path input, breadcrumbs, Up, Home, and Refresh.
+3. Show the current absolute path in the editable input, breadcrumbs, Up, Home, and Refresh. Do not repeat the full path as a label or show explanatory server-folder text.
 4. List immediate child directories, alphabetically. Clicking a row navigates into it; navigation never starts a session.
 5. Provide a Show hidden folders toggle, off by default. Direct path entry can still reach a hidden folder.
-6. **Start session here** explicitly creates a new session in the displayed directory. Do not silently resume an old session. Existing-session resume remains available through recent projects.
+6. **Open** or **Enter** creates a new session in the selected directory. If the input path was edited, resolve and validate it first; invalid input must not open the previous folder. **Go** only browses. Do not silently resume an old session. Existing-session resume remains available through recent projects.
 7. Focus the new tab and close the picker only on successful creation. The folder then appears in recent projects through the existing catalogue mechanism.
 
 Cancel leaves tabs, running agents, and project selection unchanged. Opening a new folder remains possible while another tab is streaming.
@@ -98,7 +98,7 @@ Test canonical working directory passed to the factory, newly selected folder wi
 
 ### 5. Integration and documentation
 
-Run TypeScript checks, full Vitest suite, and production build. Manually test in a browser: close every tab → Open folder → navigate to a temporary folder with no Pi session → Start session here → verify working directory → reload and check recent projects. Repeat with another tab streaming and with invalid/inaccessible paths.
+Run TypeScript checks, full Vitest suite, and production build. Manually test in a browser: close every tab → Open folder → navigate to a temporary folder with no Pi session → Open → verify working directory → reload and check recent projects. Repeat with another tab streaming and with invalid/inaccessible paths.
 
 Update README with server-path behavior and trusted-server security assumptions. Each slice should leave existing tests passing.
 
@@ -108,8 +108,16 @@ Saved projects/favorites without sessions, folder creation, recursive repository
 
 ## Assumptions and decisions to confirm
 
-Recommended defaults, not yet user-confirmed:
+Defaults adopted on implementation approval:
 - Selecting a folder starts a **new** session; resume remains an explicit recent-session action.
 - All server-accessible folders are available under the existing trusted deployment model; restricted roots are a separate deployment decision.
 - Canonical symlink target paths become the displayed/session paths.
 - No persistent bookmarks in the first version; browsing without starting a session does not create recent history.
+
+## Verification
+
+- Full Vitest run: 48 files, 382 tests pass (includes concurrent write-preview work).
+- `npx tsc --noEmit`, `npm run build`, and `git diff --check` pass.
+- Managed browser smoke test against an isolated server with a fake runtime: Home → Open folder → new temporary folder → create tab; drawer → Open folder → invalid path error retains last folder → relative child path → create a second tab; reload preserves tabs and active project in catalogue. Production Pi runtime creation uses the existing factory unchanged.
+- Directory service tests use temporary real folders; permission failures are injected for portability. Request lifecycle tests cover disconnect, cancellation, and correlation; DOM tests cover hidden folders, pagination, root navigation, errors, and reconnect.
+- Closing the picker is disabled during session creation, because accepting Open commits a server-side operation that browser cancellation cannot undo. Connection loss may leave a successfully created tab to be restored by the reconnect snapshot.

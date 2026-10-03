@@ -34,6 +34,7 @@ const catalogue: ProjectCatalogue = {
 };
 
 const openSession = vi.fn();
+const onOpenFolder = vi.fn();
 
 function show(busy: boolean) {
   render(
@@ -44,9 +45,11 @@ function show(busy: boolean) {
         state={{ ...initialChatState, status: busy ? "running" : "idle", sessionId: "current", projectPath: "/work/current" }}
         catalogue={catalogue}
         busy={busy}
+        showDisplayPath={true}
         openSession={openSession}
         newSession={vi.fn()}
         deleteSession={vi.fn()}
+        onOpenFolder={onOpenFolder}
       />
     </MantineProvider>,
   );
@@ -55,9 +58,16 @@ function show(busy: boolean) {
 afterEach(() => {
   cleanup();
   openSession.mockClear();
+  onOpenFolder.mockClear();
 });
 
 describe("ProjectSessionDrawer", () => {
+  it("opens the server folder picker while an agent is running", () => {
+    show(true);
+    fireEvent.click(screen.getByRole("button", { name: "Open folder…" }));
+    expect(onOpenFolder).toHaveBeenCalledOnce();
+    expect(openSession).not.toHaveBeenCalled();
+  });
   it("allows selecting projects while the active session is busy", () => {
     show(true);
 

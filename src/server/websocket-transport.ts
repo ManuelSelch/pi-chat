@@ -71,7 +71,13 @@ export class WebSocketTransport {
     }
 
     const command = result.value;
-    if (command.type === "abort") {
+    if (socket !== this.controller) return;
+    if (command.type === "browseDirectories") {
+      this.chat.browseDirectories(command).then(
+        (listing) => this.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryListing", requestId: command.requestId, listing }),
+        (error: unknown) => this.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryBrowseError", requestId: command.requestId, error: this.errorText(error) }),
+      );
+    } else if (command.type === "abort") {
       this.chat.abort(command.sessionId).catch((error: unknown) => this.publishError(command.sessionId, error));
     } else if (command.type === "prompt") {
       // A prompt can be a native command such as /model, which changes state
@@ -112,20 +118,40 @@ export class WebSocketTransport {
       void this.openTab(() => this.chat.openProject(command.path));
     } else if (command.type === "openSession") {
       void this.openTab(() => this.chat.openSession(command.path));
-    } else {
-      void this.openTab(() => this.chat.newSession(command.path));
+    } else if (command.type === "newSession") {
+      void this.openTab(() => this.chat.newSession(command.path), socket, command.requestId);
     }
   }
 
-  private async openTab(open: () => Promise<string>): Promise<void> {
+  private async openTab(open: () => Promise<string>, socket = this.controller, requestId?: string): Promise<void> {
+    let sessionId: string;
     try {
-      const sessionId = await open();
+      sessionId = await open();
+    } catch (error: unknown) {
+      if (requestId && socket) {
+        this.replyTo(socket, { version: PROTOCOL_VERSION, type: "sessionOpenError", requestId, error: this.errorText(error) });
+      } else this.publishError(this.chat.activeSessionId(), error);
+      return;
+    }
+    // Creation succeeded even if a later snapshot/catalogue refresh fails.
+    try {
       await this.sendSnapshot(sessionId);
       this.sendTabs();
       await this.sendCatalogue();
     } catch (error: unknown) {
-      this.publishError(this.chat.activeSessionId(), error);
+      this.publishError(sessionId, error);
+    } finally {
+      if (requestId && socket) this.replyTo(socket, { version: PROTOCOL_VERSION, type: "sessionOpened", requestId, sessionId });
     }
+  }
+
+  private errorText(error: unknown): string {
+    return error instanceof Error ? error.message : "Unable to open this server folder.";
+  }
+
+  /** Correlated app replies stay with the originating controller, never a replacement. */
+  private replyTo(socket: WebSocket, message: ServerMessage): void {
+    if (socket === this.controller && socket.readyState === WebSocket.OPEN) this.sendTo(socket, message);
   }
 
   private publish(sessionId: string, event: RuntimeEvent): void {

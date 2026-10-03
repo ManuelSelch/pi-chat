@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Paper, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
-import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
@@ -19,10 +19,12 @@ interface SettingsDrawerProps {
   chimesEnabled: boolean;
   setChimesEnabled: (value: boolean) => void;
   chimesAvailable: boolean;
+  displayPathShow: boolean;
+  setDisplayPathShow: (value: boolean) => void;
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, runExtensionAction }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, runExtensionAction }: SettingsDrawerProps) {
   const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
   const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
@@ -58,6 +60,20 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             {chimesAvailable
               ? "Plays for any tab, so a session finishing in the background is heard."
               : "This browser exposes no audio output."}
+          </Text>
+        </Paper>
+        <Paper withBorder radius="md" p="sm">
+          <Group gap={6} mb={6}>
+            <IconFolder size={16} />
+            <Text fw={650} size="sm">Projects</Text>
+          </Group>
+          <Switch
+            checked={displayPathShow}
+            onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
+            label="Show folder path in projects panel"
+          />
+          <Text size="xs" c="dimmed" mt={6}>
+            Shows the full path of each project folder under the project name.
           </Text>
         </Paper>
         {renameFeature ? (

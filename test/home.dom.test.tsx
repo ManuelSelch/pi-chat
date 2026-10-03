@@ -35,6 +35,7 @@ function show() {
   const onOpenSession = vi.fn();
   const onOpenProject = vi.fn();
   const onNewSession = vi.fn();
+  const onOpenFolder = vi.fn();
   render(
     <MantineProvider>
       <Home
@@ -42,13 +43,20 @@ function show() {
         onOpenSession={onOpenSession}
         onOpenProject={onOpenProject}
         onNewSession={onNewSession}
+        onOpenFolder={onOpenFolder}
       />
     </MantineProvider>,
   );
-  return { onOpenSession, onOpenProject, onNewSession };
+  return { onOpenSession, onOpenProject, onNewSession, onOpenFolder };
 }
 
 describe("Home", () => {
+  it("opens the server folder picker without creating a default session", () => {
+    const { onOpenFolder, onNewSession } = show();
+    fireEvent.click(screen.getByRole("button", { name: "Open folder…" }));
+    expect(onOpenFolder).toHaveBeenCalledOnce();
+    expect(onNewSession).not.toHaveBeenCalled();
+  });
   it("starts quiet and does not show recent sessions before typing", () => {
     show();
 
