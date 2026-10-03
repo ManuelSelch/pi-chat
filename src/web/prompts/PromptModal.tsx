@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from
 import { Button, Group, Modal, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
 import { THEME } from "../theme.js";
 import type { UiPrompt, UiPromptResult } from "../../shared/protocol.js";
+import { usePromptFocus } from "./use-prompt-focus.js";
 
 interface PromptModalProps {
   prompt?: UiPrompt;
@@ -72,6 +73,13 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   const needle = query.trim().toLowerCase();
   const options = needle ? allOptions.filter((option) => option.toLowerCase().includes(needle)) : allOptions;
   const active = Math.min(activeOption, Math.max(options.length - 1, 0));
+
+  // Mantine autofocus runs when the modal mounts, but prompt handover can
+  // replace its content while the modal stays mounted.
+  const focusRef = usePromptFocus<HTMLElement>(
+    shown?.id,
+    Boolean(shown) && !waiting && (shown?.kind !== "select" || searchable),
+  );
 
   useEffect(() => {
     if (prompt) {
@@ -185,6 +193,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
         {shown.kind === "select" && searchable ? (
           <TextInput
+            ref={focusRef}
             aria-label="Filter options"
             data-autofocus
             placeholder="Type to filter…"
@@ -233,6 +242,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
         {shown.kind === "input" ? (
           <TextInput
+            ref={focusRef}
             aria-label={heading}
             data-autofocus
             placeholder={shown.placeholder}
@@ -244,6 +254,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
         {shown.kind === "editor" ? (
           <Textarea
+            ref={focusRef}
             aria-label={heading}
             data-autofocus
             rows={8}
@@ -268,7 +279,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
                 {confirmLabel}
               </Button>
             ) : (
-              <Button data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>
+              <Button ref={focusRef} data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>
                 {confirmLabel}
               </Button>
             )}
