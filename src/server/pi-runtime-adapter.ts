@@ -134,6 +134,8 @@ export function toolMessageId(toolCallId: string): string {
   return `tool:${toolCallId}`;
 }
 
+import { projectEditDiff } from "../shared/edit-diff.js";
+
 interface ToolCallBlock {
   id: string;
   name: string;
@@ -307,6 +309,7 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
           toolCallId: value.toolCallId,
           name: typeof value.toolName === "string" && value.toolName.length > 0 ? value.toolName : "tool",
           status: value.isError === true ? "error" : "success",
+          editDiff: projectEditDiff(String(value.toolName), value.isError === true, value.details),
           ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
         },
         ...stamp,
@@ -937,6 +940,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
             toolCallId: event.toolCallId,
             name: event.toolName,
             status: event.isError ? "error" : "success",
+            editDiff: projectEditDiff(event.toolName, event.isError, (event.result as { details?: unknown })?.details),
             ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
           },
         });

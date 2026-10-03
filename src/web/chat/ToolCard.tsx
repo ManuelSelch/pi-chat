@@ -1,5 +1,6 @@
 import { Badge, Box, Group, Text } from "@mantine/core";
 import type { ToolCard as ToolCardState } from "../../shared/protocol.js";
+import { EditDiff } from "./EditDiff.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
   running: "yellow",
@@ -87,6 +88,7 @@ export function toolSubject(tool: ToolCardState): string | undefined {
  */
 export function ToolCard({ tool }: { tool: ToolCardState }) {
   const subject = toolSubject(tool);
+  const diff = tool.name === "edit" && tool.status === "success" ? tool.editDiff : undefined;
   return (
     <Box
       component="details"
@@ -127,10 +129,11 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
           ) : null}
         </Group>
       </Box>
-      {tool.argsText !== undefined || tool.outputText !== undefined ? (
+      {diff || tool.argsText !== undefined || tool.outputText !== undefined ? (
         <Box px="sm" pb="sm" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
+          {diff ? <EditDiff diff={diff} /> : null}
           {tool.argsText !== undefined ? (
-            <>
+            diff ? <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Arguments</summary><ToolPre>{tool.argsText}</ToolPre></details> : <>
               <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mt="sm" mb={4}>Arguments</Text>
               <ToolPre>{tool.argsText}</ToolPre>
             </>

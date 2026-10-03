@@ -20,6 +20,12 @@ export const toolCardSchema = z.object({
   status: z.enum(["running", "success", "error"]),
   argsText: z.string().optional(),
   outputText: z.string().optional(),
+  editDiff: z.object({
+    format: z.enum(["unified", "pi-display"]),
+    text: z.string().max(102400),
+    truncated: z.boolean(),
+    firstChangedLine: z.number().int().positive().optional(),
+  }).optional(),
 });
 
 export type ToolCard = z.infer<typeof toolCardSchema>;

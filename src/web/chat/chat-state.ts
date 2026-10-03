@@ -169,6 +169,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
         status: card.status,
         ...(card.argsText !== undefined ? { argsText: card.argsText } : {}),
         ...(card.outputText !== undefined ? { outputText: card.outputText } : {}),
+        ...(card.editDiff !== undefined ? { editDiff: card.editDiff } : {}),
       },
     };
     const messages = [...state.messages];
