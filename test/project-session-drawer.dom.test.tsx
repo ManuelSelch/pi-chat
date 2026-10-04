@@ -90,13 +90,10 @@ describe("ProjectSessionDrawer", () => {
 
     expect(screen.getByText("pi-chat")).toBeTruthy();
     expect(screen.getByText("feat/worktree-projects-panel")).toBeTruthy();
-    expect(screen.getByText("fix/reconnect")).toBeTruthy();
+    expect(screen.queryByText("fix/reconnect")).toBeNull();
     expect(screen.getByText("~/.worktrees/pi-chat/feature")).toBeTruthy();
     expect(screen.queryByText("~/.worktrees/pi-chat/fix")).toBeNull();
-
-    fireEvent.click(screen.getByText("fix/reconnect"));
-    expect(screen.getByText("~/.worktrees/pi-chat/fix")).toBeTruthy();
-    expect(screen.getByText("No sessions in this checkout yet.")).toBeTruthy();
+    expect(screen.queryByText("No sessions in this checkout yet.")).toBeNull();
   });
 
   it("opens the server folder picker while an agent is running", () => {
