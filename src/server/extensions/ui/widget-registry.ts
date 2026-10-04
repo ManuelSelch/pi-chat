@@ -1,14 +1,5 @@
 import type { Widget, WidgetPlacement } from "../../../shared/protocol.js";
-
-/**
- * Terminal widgets may carry colour, and the browser renders them as text, so
- * the escape sequences would otherwise show up as literal garbage.
- */
-const ANSI = new RegExp("\\u001B\\[[0-9;?]*[ -/]*[@-~]", "g");
-
-export function stripAnsi(line: string): string {
-  return line.replace(ANSI, "");
-}
+import { stripAnsi } from "./ansi.js";
 
 /**
  * A widget's trailing blank lines are terminal spacing, which a browser panel
@@ -34,6 +25,8 @@ function sameLines(left: string[], right: string[]): boolean {
  * them as plain string lines, which is exactly what a web client can render, so
  * no per-extension support is needed here.
  */
+export { stripAnsi } from "./ansi.js";
+
 export class WidgetRegistry {
   private readonly widgets = new Map<string, Widget>();
 
