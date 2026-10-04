@@ -6,7 +6,7 @@ import { DialogActions } from "../ui/DialogActions.js";
 import { IconFolder, IconFolderOff, IconPlus } from "@tabler/icons-react";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
 import { SessionRow } from "./SessionRow.js";
-import type { ChatState } from "../chat/chat-state.js";
+import type { ChatState } from "../app/state/chat-state.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;

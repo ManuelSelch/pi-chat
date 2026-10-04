@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearInputIntent, escapeIntent } from "../src/web/app/shortcuts.js";
+import { clearInputIntent, escapeIntent } from "../src/web/app/keyboard/shortcuts.js";
 
 describe("escape", () => {
   it("stops a running agent", () => {

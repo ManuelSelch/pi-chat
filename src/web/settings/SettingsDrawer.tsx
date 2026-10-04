@@ -3,7 +3,7 @@ import { ActionIcon, Button, Drawer, Group, Select, Stack, Switch, Text, TextInp
 import { MANTINE_COLOR } from "../ui/theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
-import type { ChatState } from "../chat/chat-state.js";
+import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
 import { SectionHeader } from "../ui/SectionHeader.js";
 import { Panel } from "../ui/Panel.js";

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useAppController } from "../state/AppControllerContext.js";
-import { useOverlays } from "../overlays/OverlayController.js";
+import { useAppController } from "../app/AppControllerContext.js";
+import { useOverlays } from "../app/overlays/OverlayController.js";
 import { useConfirmDialog } from "../ui/confirm/ConfirmDialogProvider.js";
 import { useChimes } from "../app/use-chimes.js";
 import { useDisplayPath } from "../app/use-display-path.js";

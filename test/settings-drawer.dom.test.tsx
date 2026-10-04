@@ -2,7 +2,7 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initialChatState } from "../src/web/chat/chat-state.js";
+import { initialChatState } from "../src/web/app/state/chat-state.js";
 import { SettingsDrawer } from "../src/web/settings/SettingsDrawer.js";
 
 afterEach(cleanup);

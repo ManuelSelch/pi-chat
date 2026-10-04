@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FolderRequests } from "../src/web/projects/folder-requests.js";
+import { FolderRequests } from "../src/web/app/connection/folder-requests.js";
 
 describe("folder request correlation", () => {
   it("matches only the corresponding response, ignoring unrelated operations", async () => {

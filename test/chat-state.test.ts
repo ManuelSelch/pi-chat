@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ServerMessage } from "../src/shared/protocol.js";
-import { initialChatState, reduceServerMessage, type ChatState } from "../src/web/chat/chat-state.js";
+import { initialChatState, reduceServerMessage, type ChatState } from "../src/web/app/state/chat-state.js";
 
 describe("chat state", () => {
   it("replaces projected state with an authoritative snapshot", () => {

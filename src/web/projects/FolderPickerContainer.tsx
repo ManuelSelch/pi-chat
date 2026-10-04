@@ -1,5 +1,5 @@
-import { useAppController } from "../state/AppControllerContext.js";
-import { useOverlays } from "../overlays/OverlayController.js";
+import { useAppController } from "../app/AppControllerContext.js";
+import { useOverlays } from "../app/overlays/OverlayController.js";
 import { FolderPicker } from "./FolderPicker.js";
 
 export function FolderPickerContainer() {

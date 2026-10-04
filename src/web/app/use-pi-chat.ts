@@ -7,9 +7,9 @@ import {
   type ThinkingLevel,
   type UiPromptResult,
 } from "../../shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage } from "./app-state.js";
+import { activeSession, initialAppState, reduceAppMessage } from "./state/app-state.js";
 import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
-import { FolderRequests } from "../projects/folder-requests.js";
+import { FolderRequests } from "./connection/folder-requests.js";
 
 const FIRST_RETRY_MS = 250;
 const MAX_RETRY_MS = 5_000;

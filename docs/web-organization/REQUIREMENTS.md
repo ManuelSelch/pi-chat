@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; shared UI ownership (step 1) and chat presentation grouping (step 5) are complete.
+Status: partially implemented; shared UI ownership (step 1), application services (step 2), and chat presentation grouping (step 5) are complete.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -10,7 +10,7 @@ Implemented step 5 first at the user's request:
 - Grouped transcript, Markdown, and tools under `chat/transcript/`, `chat/markdown/`, and `chat/tools/`.
 - Moved auto-scroll into transcript and command-menu files into `chat/composer/`.
 - Moved/renamed FooterContainer and FooterView to ComposerContainer and ComposerView; updated App and test imports.
-- Application state/transport and runtime footer/widgets remain at their existing paths until steps 2 and 4. No compatibility shims were introduced.
+- At completion of step 5, application state/transport and runtime footer/widgets were left for steps 2 and 4. Application services have since moved in step 2; runtime footer/widgets still await step 4. No compatibility shims were introduced.
 - Fixed three pre-existing DOM test failures by awaiting lazy Markdown rendering. No production behavior changed.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. All 14 relocated modules were compared with the originals: only import paths and Composer naming changed. The production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
@@ -23,6 +23,16 @@ Implemented step 1 next at the user's request:
 - All source/test changes are file moves and import-path updates only. No compatibility copies or behavior changes.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
+
+Implemented step 2 using the clearer naming discussed with the user:
+
+- Moved `use-pi-chat.ts` and `AppControllerContext.tsx` directly into `app/`: the hook coordinates state and communication, so it is not labeled as a pure connection module.
+- Moved both reducers into `app/state/` and folder request correlation into `app/connection/`.
+- Moved overlay coordination into `app/overlays/` and global keyboard routing/intent helpers into `app/keyboard/`.
+- Removed the empty top-level `state/`, `overlays/`, and `shortcuts/` directories; updated source/test imports without compatibility shims.
+- Verified application services no longer import projects or other presentation features. Existing public names and implementations are unchanged.
+
+Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. All source/test changes are file moves and import-path updates only. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
 
 ## Problem and goals
 
@@ -48,11 +58,12 @@ src/web/
     main.tsx
     App.tsx
     styles.css
-    controller/
-      AppControllerContext.tsx
-      use-pi-chat.ts
+    AppControllerContext.tsx
+    use-pi-chat.ts
+    state/
       app-state.ts
       chat-state.ts
+    connection/
       folder-requests.ts
     shell/
       HeaderContainer.tsx
@@ -137,7 +148,7 @@ These are responsibility groups, not mandatory architectural layers. Avoid addin
 
 ### Ownership decisions
 
-**App:** owns startup, composition, connection/controller state, overlay coordination, and global keyboard routing. Keep both reducers together in `app/controller/`: `ChatState` is a session projection containing settings, prompts, widgets, and transcript data, not just chat UI state. Keep existing names and exports initially; renaming `ChatState` to `SessionState` is not necessary for grouping.
+**App:** owns startup, composition, application state, server communication, overlay coordination, and global keyboard routing. Keep both reducers together in `app/state/`: `ChatState` is a session projection containing settings, prompts, widgets, and transcript data, not just chat UI state. Keep hook/context directly in `app/`, because the hook coordinates both state and communication. `app/connection/` contains request correlation; it does not imply that the WebSocket lifecycle has been extracted from the hook. The initially proposed `app/controller/` folder was dropped because its name obscured these responsibilities. Keep existing names and exports; renaming `ChatState` or `AppControllerContext` is not necessary for grouping.
 
 **Chat:** owns reading/writing a conversation. Rename `FooterContainer`/`FooterView` to `ComposerContainer`/`ComposerView`; they own drafts, submission, suggestions, and composer measurement. `use-auto-scroll` belongs to the transcript, its actual consumer. Markdown is shared by transcript/tool rendering within chat; do not move it to generic `ui/` yet.
 
@@ -151,9 +162,9 @@ These are responsibility groups, not mandatory architectural layers. Avoid addin
 
 ## Dependency requirements
 
-1. `app/controller/` may import shared protocol/directory types and its own modules, but no presentation features. Moving `folder-requests.ts` removes its current dependency on `projects/`.
+1. Application services (`app/use-pi-chat.ts`, `app/AppControllerContext.tsx`, `app/state/`, and `app/connection/`) may import shared protocol/directory types and other application services, but no presentation features or app composition/overlay/keyboard components. Moving `folder-requests.ts` removes the hook's dependency on `projects/`.
 2. `ui/` must not import application context or feature modules. Generic confirmation is allowed to depend on other `ui/` files.
-3. Feature containers may import `app/controller/` and `app/overlays/OverlayController.tsx`. Feature views should retain their existing prop-driven APIs; do not introduce controller access into views merely to shorten props.
+3. Feature containers may import `app/AppControllerContext.tsx`, `app/state/`, and `app/overlays/OverlayController.tsx`. Feature views should retain their existing prop-driven APIs; type-only state imports are allowed, but do not introduce controller access into views merely to shorten props.
 4. Feature modules must not import `App.tsx`, shell components, or `AppOverlays.tsx`. App composition may import all features. This distinguishes app services from the composition root and avoids a misleading blanket rule that features cannot import `app/`.
 5. Chat and the shell may render `extensions/` contributions. Extension views must not import the composer, transcript, or shell.
 6. Put cross-feature overlay wiring in `AppOverlays.tsx`, not in a feature-neutral `dialogs/Dialogs.tsx`. It assembles QuickOpen, project/folder/settings containers, runtime prompts, and session dialogs. Keep `OverlayController` as the existing app-level coordinator; do not split providers in this refactor.
@@ -194,11 +205,12 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ### 2. Consolidate application services
 
-- Move AppControllerContext, usePiChat, both reducers, and FolderRequests into `app/controller/`.
+- Move AppControllerContext and usePiChat directly into `app/`.
+- Move both reducers to `app/state/` and FolderRequests to `app/connection/`.
 - Move OverlayController to `app/overlays/`.
 - Move global keyboard controller and its pure intent helpers to `app/keyboard/`.
-- Keep hook/reducer behavior and public names unchanged.
-- Verify controller no longer imports projects or other presentation code.
+- Keep hook/reducer behavior and public names unchanged; do not extract or redesign the WebSocket lifecycle during these moves.
+- Verify application services no longer import projects or other presentation code.
 
 ### 3. Group session navigation
 
@@ -250,6 +262,6 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved and completed chat presentation grouping first, then shared UI ownership. Steps 2, 3, 4, 6, and 7 remain proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership, then application services with revised folder naming. Steps 3, 4, 6, and 7 remain proposed.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.

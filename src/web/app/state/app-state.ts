@@ -1,4 +1,4 @@
-import type { ProjectCatalogue, ServerMessage, Tab, WebFeature } from "../../shared/protocol.js";
+import type { ProjectCatalogue, ServerMessage, Tab, WebFeature } from "../../../shared/protocol.js";
 import { initialChatState, reduceServerMessage, type ChatState } from "./chat-state.js";
 
 export type AppAction =

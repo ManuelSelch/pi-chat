@@ -1,5 +1,5 @@
 import { Container } from "@mantine/core";
-import { useAppController } from "../../state/AppControllerContext.js";
+import { useAppController } from "../../app/AppControllerContext.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { MessageList } from "./MessageList.js";
 

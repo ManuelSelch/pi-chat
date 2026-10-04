@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
-import { useAppController } from "../state/AppControllerContext.js";
+import { useAppController } from "../AppControllerContext.js";
 import { useOverlays } from "../overlays/OverlayController.js";
-import { escapeIntent } from "../app/shortcuts.js";
+import { escapeIntent } from "./shortcuts.js";
 
 export function GlobalKeyboardController() {
   const chat = useAppController();

@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from "../../shared/protocol.js";
+import type { ClientMessage, ServerMessage } from "../../../shared/protocol.js";
 
 type FolderReply = Extract<ServerMessage, { requestId: string }>;
 type FolderCommand = Extract<ClientMessage, { type: "newSession" | "browseDirectories" }> & { requestId: string };

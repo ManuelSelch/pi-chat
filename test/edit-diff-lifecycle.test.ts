@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { diffRows } from "../src/web/chat/tools/EditDiff.js";
-import { initialChatState, reduceServerMessage } from "../src/web/chat/chat-state.js";
+import { initialChatState, reduceServerMessage } from "../src/web/app/state/chat-state.js";
 import { PROTOCOL_VERSION } from "../src/shared/protocol.js";
 
 it("counts hunk lines without mistaking code for file headers", () => {

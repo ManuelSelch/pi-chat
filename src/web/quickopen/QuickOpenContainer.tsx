@@ -1,7 +1,7 @@
 import { useHotkeys } from "@mantine/hooks";
-import { atHome } from "../chat/app-state.js";
-import { useAppController } from "../state/AppControllerContext.js";
-import { useOverlays } from "../overlays/OverlayController.js";
+import { atHome } from "../app/state/app-state.js";
+import { useAppController } from "../app/AppControllerContext.js";
+import { useOverlays } from "../app/overlays/OverlayController.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {

@@ -2,11 +2,11 @@ import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent }
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import type { Tab } from "../../../shared/protocol.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "./command-menu.js";
-import { atHome, visibleError } from "../app-state.js";
-import { useAppController } from "../../state/AppControllerContext.js";
+import { atHome, visibleError } from "../../app/state/app-state.js";
+import { useAppController } from "../../app/AppControllerContext.js";
 import { useConfirmDialog } from "../../ui/confirm/ConfirmDialogProvider.js";
-import { useOverlays } from "../../overlays/OverlayController.js";
-import { clearInputIntent } from "../../app/shortcuts.js";
+import { useOverlays } from "../../app/overlays/OverlayController.js";
+import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../WidgetPanel.js";
 import { ComposerView } from "./ComposerView.js";
 

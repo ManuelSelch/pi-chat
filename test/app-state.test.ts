@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../src/shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs, atHome } from "../src/web/chat/app-state.js";
+import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs, atHome } from "../src/web/app/state/app-state.js";
 
 const snapshot = (sessionId: string, text: string): ServerMessage => ({
   version: PROTOCOL_VERSION,

@@ -6,7 +6,7 @@ import { Markdown } from "../markdown/MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
-import type { ChatState } from "../chat-state.js";
+import type { ChatState } from "../../app/state/chat-state.js";
 import { THEME } from "../../ui/theme.js";
 
 /**

@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectCatalogue } from "../src/shared/protocol.js";
-import { initialChatState } from "../src/web/chat/chat-state.js";
+import { initialChatState } from "../src/web/app/state/chat-state.js";
 import { ProjectSessionDrawer } from "../src/web/projects/ProjectSessionDrawer.js";
 
 const catalogue: ProjectCatalogue = {
