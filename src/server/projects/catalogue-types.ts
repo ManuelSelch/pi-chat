@@ -1,0 +1,56 @@
+import type { SessionNameSource } from "../../shared/protocol.js";
+
+export interface ChatSessionSummary {
+  path: string;
+  id: string;
+  title: string;
+  name?: string;
+  nameSource: SessionNameSource;
+  firstMessage?: string;
+  modified: number;
+  created: number;
+  messageCount: number;
+}
+
+export interface ChatProjectSummary {
+  path: string;
+  displayPath: string;
+  name: string;
+  exists: boolean;
+  modified: number;
+  sessionCount: number;
+  sessions: ChatSessionSummary[];
+}
+
+export interface ProjectCatalogue {
+  projects: ChatProjectSummary[];
+}
+
+export interface ActiveSessionSummary {
+  path?: string;
+  id: string;
+  name?: string;
+  nameSource?: SessionNameSource;
+  cwd: string;
+  messageCount: number;
+  firstMessage?: string;
+}
+
+export interface PersistedSessionRecord {
+  path: string;
+  id: string;
+  cwd?: string;
+  firstMessage?: string;
+  modified: Date;
+  created: Date;
+  messageCount: number;
+}
+
+export interface ProjectSessionLister {
+  listAll(sessionDir?: string): Promise<PersistedSessionRecord[]>;
+}
+
+export interface SessionNameInfo {
+  name?: string;
+  source: SessionNameSource;
+}

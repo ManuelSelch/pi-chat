@@ -1,0 +1,58 @@
+import { WebSocket } from "ws";
+import { PROTOCOL_VERSION, type ClientMessage } from "../../shared/protocol.js";
+import type { ChatApplicationService } from "../application/chat-application-service.js";
+import { ServerPublisher } from "./server-publisher.js";
+
+export interface CommandHandlerDependencies {
+  chat: ChatApplicationService;
+  publisher: ServerPublisher;
+  isController(socket: WebSocket): boolean;
+  openTab(open: () => Promise<string>, socket?: WebSocket, requestId?: string): void;
+}
+
+/** Dispatches already-parsed browser commands; socket ownership stays injectable. */
+export function handleClientCommand(socket: WebSocket, command: ClientMessage, dependencies: CommandHandlerDependencies): void {
+  if (!dependencies.isController(socket)) return;
+  const { chat, publisher } = dependencies;
+  if (command.type === "browseDirectories") {
+    chat.browseDirectories(command).then(
+      (listing) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryListing", requestId: command.requestId, listing }),
+      (error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryBrowseError", requestId: command.requestId, error: publisher.errorText(error) }),
+    );
+  } else if (command.type === "abort") {
+    chat.abort(command.sessionId).catch((error: unknown) => publisher.publishError(command.sessionId, error));
+  } else if (command.type === "prompt") {
+    chat.prompt(command.sessionId, command.message)
+      .then((sessionId) => publisher.sendSnapshot(sessionId))
+      .catch((error: unknown) => publisher.publishError(command.sessionId, error));
+  } else if (command.type === "uiPromptResponse") {
+    chat.respondToPrompt(command.sessionId, command.promptId, command.result);
+  } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
+    chat.runFeature(command)
+      .then(() => {
+        void publisher.sendSnapshot(command.sessionId);
+        publisher.sendTabs();
+      })
+      .catch((error: unknown) => publisher.publishError(command.sessionId, error));
+  } else if (command.type === "focusTab") {
+    chat.focusTab(command.sessionId);
+    publisher.sendTabs();
+  } else if (command.type === "deleteSession") {
+    chat.deleteSession(command.path)
+      .then(() => publisher.sendCatalogue())
+      .catch((error: unknown) => publisher.publishError(chat.activeSessionId(), error));
+  } else if (command.type === "closeTab") {
+    chat.closeTab(command.sessionId)
+      .then(() => {
+        publisher.sendTabs();
+        return publisher.sendCatalogue();
+      })
+      .catch((error: unknown) => publisher.publishError(chat.activeSessionId(), error));
+  } else if (command.type === "openProject") {
+    dependencies.openTab(() => chat.openProject(command.path), socket);
+  } else if (command.type === "openSession") {
+    dependencies.openTab(() => chat.openSession(command.path), socket);
+  } else if (command.type === "newSession") {
+    dependencies.openTab(() => chat.newSession(command.path), socket, command.requestId);
+  }
+}

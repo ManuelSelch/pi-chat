@@ -1,140 +1,29 @@
-import { execFile } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
-import { unlink } from "node:fs/promises";
-import os from "node:os";
-import { createInterface } from "node:readline";
-import { basename, dirname, resolve, sep } from "node:path";
-import { promisify } from "node:util";
-import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
-import type { SessionNameSource } from "../../shared/protocol.js";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
+import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
+import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
+export { readLatestSessionNameInfo } from "./pi-session-store.js";
+export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
+export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 
-const run = promisify(execFile);
-
-/**
- * Recoverable delete, matching Pi's own session picker: a mistaken click should
- * be undoable from the Trash rather than gone for good.
- */
-async function moveToTrash(path: string): Promise<void> {
-  try {
-    await run("trash", [path]);
-    return;
-  } catch {
-    // No `trash` binary (or it refused); a plain unlink still has to work.
-    await unlink(path);
-  }
-}
-
-export interface ChatSessionSummary {
-  path: string;
-  id: string;
-  title: string;
-  name?: string;
-  nameSource: SessionNameSource;
-  firstMessage?: string;
-  modified: number;
-  created: number;
-  messageCount: number;
-}
-
-export interface ChatProjectSummary {
-  path: string;
-  displayPath: string;
-  name: string;
-  exists: boolean;
-  modified: number;
-  sessionCount: number;
-  sessions: ChatSessionSummary[];
-}
-
-export interface ProjectCatalogue {
-  projects: ChatProjectSummary[];
-}
-
-export interface ActiveSessionSummary {
-  path?: string;
-  id: string;
-  name?: string;
-  nameSource?: SessionNameSource;
-  cwd: string;
-  messageCount: number;
-  firstMessage?: string;
-}
-
-export interface ProjectSessionLister {
-  listAll(sessionDir?: string): Promise<SessionInfo[]>;
-}
-
-const GENERIC_PROJECT_DIR_NAMES = new Set(["frontend", "backend", "web", "api", "server", "client", "app"]);
-
-export function formatProjectName(projectPath: string): string {
-  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const child = basename(normalizedPath) || normalizedPath;
-  if (!GENERIC_PROJECT_DIR_NAMES.has(child.toLowerCase())) return child;
-
-  const parent = basename(dirname(normalizedPath));
-  return parent ? `${parent}/${child}` : child;
-}
-
-export function formatProjectDisplayPath(projectPath: string, homePath = os.homedir()): string {
-  if (!homePath) return projectPath;
-  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const normalizedHome = homePath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const caseInsensitive = /^[A-Za-z]:\//.test(normalizedPath) || /^[A-Za-z]:\//.test(normalizedHome);
-  const comparisonPath = caseInsensitive ? normalizedPath.toLowerCase() : normalizedPath;
-  const comparisonHome = caseInsensitive ? normalizedHome.toLowerCase() : normalizedHome;
-
-  if (comparisonPath === comparisonHome) return "~";
-  if (comparisonPath.startsWith(`${comparisonHome}/`)) {
-    return `~/${normalizedPath.slice(normalizedHome.length + 1)}`;
-  }
-  return normalizedPath;
-}
-
-export interface SessionNameInfo {
-  name?: string;
-  source: SessionNameSource;
-}
-
-export async function readLatestSessionNameInfo(path: string): Promise<SessionNameInfo> {
-  let latest: SessionNameInfo = { source: "none" };
-  try {
-    const lines = createInterface({ input: createReadStream(path, { encoding: "utf8" }), crlfDelay: Infinity });
-    for await (const line of lines) {
-      let entry: unknown;
-      try {
-        entry = JSON.parse(line);
-      } catch {
-        continue;
-      }
-      if (!entry || typeof entry !== "object") continue;
-      const value = entry as Record<string, unknown>;
-      if (value.type !== "session_info") continue;
-      const name = typeof value.name === "string" ? value.name.trim() : "";
-      latest = name ? { name, source: value.autoTitle === true ? "auto" : "manual" } : { source: "none" };
-    }
-  } catch {
-    return { source: "none" };
-  }
-  return latest;
-}
 
 export class ProjectSessionService {
+  private readonly store: PiSessionStore;
+
   constructor(
-    private readonly lister: ProjectSessionLister = SessionManager,
-    private readonly sessionsRoot = resolve(getAgentDir(), "sessions"),
-  ) {}
+    private readonly lister: ProjectSessionLister = new PiSessionStore(),
+    sessionsRoot?: string,
+  ) {
+    this.store = new PiSessionStore(sessionsRoot);
+  }
 
   /**
    * Deletes one session file. The path arrives from the browser, so it is
    * checked against the Pi session folder instead of being trusted.
    */
   async delete(sessionPath: string): Promise<void> {
-    const target = resolve(sessionPath);
-    if (!target.endsWith(".jsonl") || !target.startsWith(this.sessionsRoot + sep)) {
-      throw new Error("Refusing to delete a path outside the Pi session folder.");
-    }
-    if (!existsSync(target)) throw new Error("That session file no longer exists.");
-    await moveToTrash(target);
+    await this.store.delete(sessionPath);
   }
 
   async catalogue(active?: ActiveSessionSummary): Promise<ProjectCatalogue> {

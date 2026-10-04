@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import type { PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import { PiRuntimeAdapter } from "../runtime/pi/pi-runtime-adapter.js";
+import { ProjectSessionService } from "../projects/project-session-service.js";
+import { PiSessionStore } from "../projects/pi-session-store.js";
 import { invalidatePiExtensionCache } from "../runtime/pi/pi-extension-cache.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory } from "../runtime/contracts.js";
 import type { RestartService } from "./restart-service.js";
@@ -35,7 +37,8 @@ export function createPiChatServer(
   }
 
   const httpServer = createServer(app);
-  const chat = new ChatApplicationService(runtime, factory, undefined, restart, extensions);
+  const projectSessions = new ProjectSessionService(new PiSessionStore());
+  const chat = new ChatApplicationService(runtime, factory, projectSessions, restart, extensions);
   const transport = new WebSocketTransport(httpServer, chat);
   return {
     httpServer,
