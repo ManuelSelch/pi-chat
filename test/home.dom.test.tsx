@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectCatalogue } from "../src/shared/protocol.js";
-import { Home } from "../src/web/home/Home.js";
+import { Home } from "../src/web/sessions/home/Home.js";
 
 afterEach(cleanup);
 

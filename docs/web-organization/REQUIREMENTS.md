@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; shared UI ownership (step 1), application services (step 2), and chat presentation grouping (step 5) are complete.
+Status: partially implemented; shared UI ownership (step 1), application services (step 2), session navigation (step 3), and chat presentation grouping (step 5) are complete.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -33,6 +33,15 @@ Implemented step 2 using the clearer naming discussed with the user:
 - Verified application services no longer import projects or other presentation features. Existing public names and implementations are unchanged.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. All source/test changes are file moves and import-path updates only. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
+
+Implemented step 3 at the user's request:
+
+- Grouped Home, project/session browsing, folder selection, quick-open, tabs, and close/rename dialogs under `sessions/`, using the planned subfolders.
+- Kept Home's search/ranking shared with QuickOpen and SessionRow's CSS module alongside its component.
+- Updated App, header, Dialogs, and test imports. `dialogs/Dialogs.tsx` still aggregates runtime prompts and session dialogs until step 7.
+- Removed the empty top-level `home/`, `projects/`, `quickopen/`, and `tabs/` directories. All 13 file moves and consumer/test updates preserve implementation apart from import paths.
+
+Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Existing tests cover Home/session selection, folder browsing/creation, quick-open ranking/mouse interaction, project session browsing, and optimistic tab state. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
 
 ## Problem and goals
 
@@ -262,6 +271,6 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved and completed chat presentation grouping first, then shared UI ownership, then application services with revised folder naming. Steps 3, 4, 6, and 7 remain proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, and session navigation. Steps 4, 6, and 7 remain proposed.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.

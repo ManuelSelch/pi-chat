@@ -2,7 +2,7 @@
 import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FolderPicker } from "../src/web/projects/FolderPicker.js";
+import { FolderPicker } from "../src/web/sessions/folders/FolderPicker.js";
 import type { DirectoryListing } from "../src/shared/directories.js";
 
 afterEach(cleanup);

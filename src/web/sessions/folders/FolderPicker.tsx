@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Breadcrumbs, Button, Checkbox, Group, Loader, Modal, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
-import { Notice } from "../ui/Notice.js";
+import { Notice } from "../../ui/Notice.js";
 import { IconFolder } from "@tabler/icons-react";
-import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
+import type { DirectoryBrowse, DirectoryListing } from "../../../shared/directories.js";
 
 interface FolderPickerProps {
   opened: boolean;

@@ -2,9 +2,9 @@ import type { KeyboardEvent } from "react";
 import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
 import styles from "./SessionRow.module.css";
 import { IconMessage, IconTrash } from "@tabler/icons-react";
-import { MANTINE_COLOR } from "../ui/theme.js";
-import { StatusBadge } from "../ui/StatusBadge.js";
-import type { ChatSessionSummary } from "../../shared/protocol.js";
+import { MANTINE_COLOR } from "../../ui/theme.js";
+import { StatusBadge } from "../../ui/StatusBadge.js";
+import type { ChatSessionSummary } from "../../../shared/protocol.js";
 
 interface SessionRowProps {
   session: ChatSessionSummary;

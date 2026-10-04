@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
-import { MANTINE_COLOR } from "../ui/theme.js";
-import { StatusBadge } from "../ui/StatusBadge.js";
-import { DialogActions } from "../ui/DialogActions.js";
+import { MANTINE_COLOR } from "../../ui/theme.js";
+import { StatusBadge } from "../../ui/StatusBadge.js";
+import { DialogActions } from "../../ui/DialogActions.js";
 import { IconFolder, IconFolderOff, IconPlus } from "@tabler/icons-react";
-import type { ChatSessionSummary, ProjectCatalogue } from "../../shared/protocol.js";
+import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
 import { SessionRow } from "./SessionRow.js";
-import type { ChatState } from "../app/state/chat-state.js";
+import type { ChatState } from "../../app/state/chat-state.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;

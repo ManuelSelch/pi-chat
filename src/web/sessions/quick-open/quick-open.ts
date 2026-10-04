@@ -1,4 +1,4 @@
-import type { ProjectCatalogue } from "../../shared/protocol.js";
+import type { ProjectCatalogue } from "../../../shared/protocol.js";
 
 export interface QuickOpenItem {
   kind: "session" | "project";

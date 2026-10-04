@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectCatalogue } from "../src/shared/protocol.js";
-import { buildQuickOpenItems, rankQuickOpen } from "../src/web/quickopen/quick-open.js";
+import { buildQuickOpenItems, rankQuickOpen } from "../src/web/sessions/quick-open/quick-open.js";
 
 const HOUR = 3_600_000;
 

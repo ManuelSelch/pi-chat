@@ -6,13 +6,13 @@ import { MessageListContainer } from "../chat/transcript/MessageListContainer.js
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "./AppControllerContext.js";
 import { atHome } from "./state/app-state.js";
-import { ProjectSessionContainer } from "../projects/ProjectSessionContainer.js";
-import { FolderPickerContainer } from "../projects/FolderPickerContainer.js";
+import { ProjectSessionContainer } from "../sessions/projects/ProjectSessionContainer.js";
+import { FolderPickerContainer } from "../sessions/folders/FolderPickerContainer.js";
 import { Dialogs } from "../dialogs/Dialogs.js";
-import { QuickOpenContainer } from "../quickopen/QuickOpenContainer.js";
-import { Home } from "../home/Home.js";
+import { QuickOpenContainer } from "../sessions/quick-open/QuickOpenContainer.js";
+import { Home } from "../sessions/home/Home.js";
 import { SettingsContainer } from "../settings/SettingsContainer.js";
-import { TabBar } from "../tabs/TabBar.js";
+import { TabBar } from "../sessions/tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";

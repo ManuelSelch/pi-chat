@@ -1,9 +1,9 @@
 import { useState, type KeyboardEvent } from "react";
 import { Badge, Box, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { THEME } from "../ui/theme.js";
+import { THEME } from "../../ui/theme.js";
 import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
-import type { ProjectCatalogue } from "../../shared/protocol.js";
-import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quickopen/quick-open.js";
+import type { ProjectCatalogue } from "../../../shared/protocol.js";
+import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quick-open/quick-open.js";
 
 interface HomeProps {
   catalogue: ProjectCatalogue;
