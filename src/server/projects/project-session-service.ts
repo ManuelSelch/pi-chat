@@ -1,50 +1,30 @@
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { unlink } from "node:fs/promises";
-import { resolve, sep } from "node:path";
-import { promisify } from "node:util";
+import { resolve } from "node:path";
 import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
-import { readLatestSessionNameInfo } from "./pi-session-store.js";
+import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
 export { readLatestSessionNameInfo } from "./pi-session-store.js";
 export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 
-const run = promisify(execFile);
-
-/**
- * Recoverable delete, matching Pi's own session picker: a mistaken click should
- * be undoable from the Trash rather than gone for good.
- */
-async function moveToTrash(path: string): Promise<void> {
-  try {
-    await run("trash", [path]);
-    return;
-  } catch {
-    // No `trash` binary (or it refused); a plain unlink still has to work.
-    await unlink(path);
-  }
-}
-
 
 export class ProjectSessionService {
+  private readonly store: PiSessionStore;
+
   constructor(
     private readonly lister: ProjectSessionLister = SessionManager,
-    private readonly sessionsRoot = resolve(getAgentDir(), "sessions"),
-  ) {}
+    sessionsRoot = resolve(getAgentDir(), "sessions"),
+  ) {
+    this.store = new PiSessionStore(sessionsRoot);
+  }
 
   /**
    * Deletes one session file. The path arrives from the browser, so it is
    * checked against the Pi session folder instead of being trusted.
    */
   async delete(sessionPath: string): Promise<void> {
-    const target = resolve(sessionPath);
-    if (!target.endsWith(".jsonl") || !target.startsWith(this.sessionsRoot + sep)) {
-      throw new Error("Refusing to delete a path outside the Pi session folder.");
-    }
-    if (!existsSync(target)) throw new Error("That session file no longer exists.");
-    await moveToTrash(target);
+    await this.store.delete(sessionPath);
   }
 
   async catalogue(active?: ActiveSessionSummary): Promise<ProjectCatalogue> {
