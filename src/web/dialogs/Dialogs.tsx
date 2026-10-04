@@ -1,5 +1,5 @@
 import type { UiPrompt, UiPromptResult } from "../../shared/protocol.js";
-import { PromptModal } from "../prompts/PromptModal.js";
+import { PromptModal } from "../extensions/prompts/PromptModal.js";
 import { useOverlays } from "../app/overlays/OverlayController.js";
 import { CloseSessionDialog } from "../sessions/dialogs/CloseSessionDialog.js";
 import { RenameSessionDialog } from "../sessions/dialogs/RenameSessionDialog.js";

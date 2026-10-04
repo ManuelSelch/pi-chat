@@ -7,7 +7,7 @@ import { useAppController } from "../../app/AppControllerContext.js";
 import { useConfirmDialog } from "../../ui/confirm/ConfirmDialogProvider.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
-import { placeWidgets, WIDGET_DOCK_QUERY } from "../WidgetPanel.js";
+import { placeWidgets, WIDGET_DOCK_QUERY } from "../../extensions/widgets/WidgetPanel.js";
 import { ComposerView } from "./ComposerView.js";
 
 interface ComposerContainerProps {

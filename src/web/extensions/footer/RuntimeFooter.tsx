@@ -1,6 +1,6 @@
 import { Badge, Group, Text } from "@mantine/core";
-import type { FooterItem } from "../../shared/protocol.js";
-import { MANTINE_COLOR } from "../ui/theme.js";
+import type { FooterItem } from "../../../shared/protocol.js";
+import { MANTINE_COLOR } from "../../ui/theme.js";
 
 /**
  * The composer footer, the browser's counterpart to the terminal's footer line:
@@ -24,7 +24,7 @@ function FooterEntry({ item }: { item: FooterItem }) {
   return <Text size="xs" c="dimmed">{item.text}</Text>;
 }
 
-export function Footer({ items }: { items: FooterItem[] }) {
+export function RuntimeFooter({ items }: { items: FooterItem[] }) {
   const left = items.filter((item) => item.align !== "right");
   const right = items.filter((item) => item.align === "right");
   if (items.length === 0) return null;

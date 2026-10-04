@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UiPrompt } from "../src/shared/protocol.js";
-import { PromptModal } from "../src/web/prompts/PromptModal.js";
+import { PromptModal } from "../src/web/extensions/prompts/PromptModal.js";
 
 afterEach(cleanup);
 

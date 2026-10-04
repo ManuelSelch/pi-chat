@@ -9,7 +9,7 @@ import {
   WidgetPanel,
   WIDGET_DOCK_MAX_WIDTH,
   WIDGET_DOCK_TOP,
-} from "../src/web/chat/WidgetPanel.js";
+} from "../src/web/extensions/widgets/WidgetPanel.js";
 
 afterEach(cleanup);
 

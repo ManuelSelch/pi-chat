@@ -1,8 +1,8 @@
 import { Box, Group, Text, UnstyledButton } from "@mantine/core";
-import { Panel } from "../ui/Panel.js";
+import { Panel } from "../../ui/Panel.js";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { useState } from "react";
-import type { Widget } from "../../shared/protocol.js";
+import type { Widget } from "../../../shared/protocol.js";
 
 /**
  * A widget an extension pushed with `ctx.ui.setWidget`, e.g. a todo overlay.

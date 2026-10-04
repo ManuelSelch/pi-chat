@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; steps 1, 2, 3, 5, and 6 are complete. Extension presentation (step 4) and final app composition (step 7) remain.
+Status: partially implemented; steps 1, 2, 3, 5, and 6 are complete. Step 4 file moves are complete; widget splitting and final app composition (step 7) remain.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -51,6 +51,14 @@ Implemented step 6 at the user's request, retaining `preferences/`:
 - App composition is unchanged: SettingsContainer remains mounted while its drawer is closed, so chime playback remains active.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Source/test changes are file moves and import-path updates only. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
+
+Implemented step 4's move-only stage:
+
+- Moved runtime prompts into `extensions/prompts/`, the widget module into `extensions/widgets/`, and runtime footer metadata into `extensions/footer/RuntimeFooter.tsx`.
+- Renamed Footer's public component to RuntimeFooter and updated source/test imports without compatibility shims.
+- Preserved prompt focus, responsive widget placement, footer order, and component mount behavior. Widget rendering/docking/placement are still together until the next stage.
+
+Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only stage.
 
 ## Problem and goals
 

@@ -3,7 +3,7 @@ import { AppShell } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../ui/confirm/ConfirmDialogProvider.js";
 import { MessageListContainer } from "../chat/transcript/MessageListContainer.js";
-import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
+import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../extensions/widgets/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "./AppControllerContext.js";
 import { atHome } from "./state/app-state.js";
 import { ProjectSessionContainer } from "../sessions/projects/ProjectSessionContainer.js";

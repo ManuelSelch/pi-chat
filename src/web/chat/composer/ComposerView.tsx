@@ -4,8 +4,8 @@ import { Notice } from "../../ui/Notice.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
 import { CommandMenu } from "./CommandMenu.js";
 import type { MenuItem } from "./command-menu.js";
-import { Footer } from "../Footer.js";
-import { WidgetPanel } from "../WidgetPanel.js";
+import { RuntimeFooter } from "../../extensions/footer/RuntimeFooter.js";
+import { WidgetPanel } from "../../extensions/widgets/WidgetPanel.js";
 import { Slot } from "../../extensions/Slot.js";
 import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../../shared/protocol.js";
 
@@ -126,7 +126,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
         <Box mt={6} pl={12}>
           <Slot name="composer.below" buttons={extensions.buttons} badges={extensions.badges} onAction={actions.runExtensionAction} />
         </Box>
-        <Footer items={footerItems} />
+        <RuntimeFooter items={footerItems} />
       </Container>
     </Box>
   );

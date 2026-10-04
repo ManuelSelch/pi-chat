@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { FooterItem } from "../src/shared/protocol.js";
-import { Footer } from "../src/web/chat/Footer.js";
+import { RuntimeFooter } from "../src/web/extensions/footer/RuntimeFooter.js";
 
 afterEach(cleanup);
 
@@ -14,13 +14,13 @@ const thinking: FooterItem = { key: "thinking", text: "thinking: minimal", align
 function show(items: FooterItem[]) {
   const { container } = render(
     <MantineProvider>
-      <Footer items={items} />
+      <RuntimeFooter items={items} />
     </MantineProvider>,
   );
   return container;
 }
 
-describe("Footer", () => {
+describe("RuntimeFooter", () => {
   it("puts what the session runs with on the right and pinned labels on the left", () => {
     const container = show([readonly, model, thinking]);
     const [left, right] = [...container.querySelectorAll("[class*='Group-root'] > [class*='Group-root']")];
