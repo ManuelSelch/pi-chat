@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Badge, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
-import { THEME } from "../../theme.js";
+import { THEME } from "../../ui/theme.js";
 import type { MenuItem } from "./command-menu.js";
 
 interface CommandMenuProps {

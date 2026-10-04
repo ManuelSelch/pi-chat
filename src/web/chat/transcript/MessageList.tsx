@@ -7,7 +7,7 @@ import { ThinkingPanel } from "./ThinkingPanel.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../chat-state.js";
-import { THEME } from "../../theme.js";
+import { THEME } from "../../ui/theme.js";
 
 /**
  * Rendering markdown, KaTeX, and highlighting is expensive, and a long session

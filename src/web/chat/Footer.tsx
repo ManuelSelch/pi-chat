@@ -1,6 +1,6 @@
 import { Badge, Group, Text } from "@mantine/core";
 import type { FooterItem } from "../../shared/protocol.js";
-import { MANTINE_COLOR } from "../theme.js";
+import { MANTINE_COLOR } from "../ui/theme.js";
 
 /**
  * The composer footer, the browser's counterpart to the terminal's footer line:

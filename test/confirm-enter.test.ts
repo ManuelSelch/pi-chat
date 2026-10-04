@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { shouldConfirmOnEnter } from "../src/web/dialogs/confirm/confirm-enter.js";
+import { shouldConfirmOnEnter } from "../src/web/ui/confirm/confirm-enter.js";
 
 function key(target: EventTarget, init: KeyboardEventInit = {}): KeyboardEvent {
   const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, ...init });

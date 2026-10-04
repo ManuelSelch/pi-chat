@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; chat presentation grouping (step 5) is complete.
+Status: partially implemented; shared UI ownership (step 1) and chat presentation grouping (step 5) are complete.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -14,6 +14,15 @@ Implemented step 5 first at the user's request:
 - Fixed three pre-existing DOM test failures by awaiting lazy Markdown rendering. No production behavior changed.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. All 14 relocated modules were compared with the originals: only import paths and Composer naming changed. The production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
+
+Implemented step 1 next at the user's request:
+
+- Moved theme tokens to `ui/theme.ts`, shared dialog actions to `ui/DialogActions.tsx`, and generic confirmation modules to `ui/confirm/`.
+- Updated all source and test imports; feature-specific close/rename dialogs remain in `dialogs/`.
+- Verified every relative dependency in `ui/` stays within `ui/`; no feature or controller imports remain.
+- All source/test changes are file moves and import-path updates only. No compatibility copies or behavior changes.
+
+Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
 
 ## Problem and goals
 
@@ -241,6 +250,6 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved chat presentation grouping first; the remaining migration steps are still proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership. Steps 2, 3, 4, 6, and 7 remain proposed.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.

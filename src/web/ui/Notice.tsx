@@ -1,5 +1,5 @@
 import { Alert, type AlertProps } from "@mantine/core";
-import { MANTINE_COLOR } from "../theme.js";
+import { MANTINE_COLOR } from "./theme.js";
 
 export type NoticeTone = keyof typeof MANTINE_COLOR;
 

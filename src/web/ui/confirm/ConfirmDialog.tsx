@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { Modal, Stack, Text } from "@mantine/core";
 import { DialogActions } from "../DialogActions.js";
-import { MANTINE_COLOR } from "../../theme.js";
+import { MANTINE_COLOR } from "../theme.js";
 import { useConfirmOnEnter } from "./confirm-enter.js";
 
 export interface ConfirmOptions {

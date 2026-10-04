@@ -1,6 +1,6 @@
 import { Modal, Stack, Text } from "@mantine/core";
-import { DialogActions } from "./DialogActions.js";
-import { MANTINE_COLOR } from "../theme.js";
+import { DialogActions } from "../ui/DialogActions.js";
+import { MANTINE_COLOR } from "../ui/theme.js";
 import type { Tab } from "../../shared/protocol.js";
 
 interface CloseSessionDialogProps {

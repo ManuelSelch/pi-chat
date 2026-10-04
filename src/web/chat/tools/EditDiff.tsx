@@ -1,6 +1,6 @@
 import { Box, Text } from "@mantine/core";
 import type { ToolCard } from "../../../shared/protocol.js";
-import { THEME } from "../../theme.js";
+import { THEME } from "../../ui/theme.js";
 
 type Row = { kind: "addition" | "removal" | "context" | "header"; text: string; old?: number; next?: number; marker?: string };
 

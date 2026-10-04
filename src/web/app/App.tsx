@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { ConfirmDialogProvider } from "../dialogs/confirm/ConfirmDialogProvider.js";
+import { ConfirmDialogProvider } from "../ui/confirm/ConfirmDialogProvider.js";
 import { MessageListContainer } from "../chat/transcript/MessageListContainer.js";
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";

@@ -1,5 +1,5 @@
 import { Badge, type BadgeProps } from "@mantine/core";
-import { MANTINE_COLOR } from "../theme.js";
+import { MANTINE_COLOR } from "./theme.js";
 
 export type StatusBadgeTone = keyof typeof MANTINE_COLOR;
 

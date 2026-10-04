@@ -1,5 +1,5 @@
 import { Modal, Stack, TextInput } from "@mantine/core";
-import { DialogActions } from "./DialogActions.js";
+import { DialogActions } from "../ui/DialogActions.js";
 
 interface RenameSessionDialogProps {
   value: string | undefined;

@@ -1,5 +1,5 @@
 import { Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
-import { THEME } from "../../theme.js";
+import { THEME } from "../../ui/theme.js";
 import { Notice } from "../../ui/Notice.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
 import { CommandMenu } from "./CommandMenu.js";

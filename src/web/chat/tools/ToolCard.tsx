@@ -3,7 +3,7 @@ import type { ToolCard as ToolCardState } from "../../../shared/protocol.js";
 import { EditDiff } from "./EditDiff.js";
 import { useState } from "react";
 import { WriteContent } from "./WriteContent.js";
-import { MANTINE_COLOR, THEME } from "../../theme.js";
+import { MANTINE_COLOR, THEME } from "../../ui/theme.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
   running: MANTINE_COLOR.warning,

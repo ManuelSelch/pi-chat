@@ -3,7 +3,7 @@ import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import type { PiChatBadge, PiChatButton, Tab } from "../../shared/protocol.js";
 import { Slot } from "../extensions/Slot.js";
 import { TabBar } from "../tabs/TabBar.js";
-import { MANTINE_COLOR } from "../theme.js";
+import { MANTINE_COLOR } from "../ui/theme.js";
 
 interface HeaderViewProps {
   home: boolean;

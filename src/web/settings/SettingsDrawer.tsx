@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActionIcon, Button, Drawer, Group, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
-import { MANTINE_COLOR } from "../theme.js";
+import { MANTINE_COLOR } from "../ui/theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../chat/chat-state.js";

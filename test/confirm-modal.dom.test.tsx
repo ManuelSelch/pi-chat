@@ -2,7 +2,7 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfirmDialog, type ConfirmOptions } from "../src/web/dialogs/confirm/ConfirmDialog.js";
+import { ConfirmDialog, type ConfirmOptions } from "../src/web/ui/confirm/ConfirmDialog.js";
 
 afterEach(cleanup);
 

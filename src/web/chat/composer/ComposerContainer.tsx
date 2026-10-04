@@ -4,7 +4,7 @@ import type { Tab } from "../../../shared/protocol.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "./command-menu.js";
 import { atHome, visibleError } from "../app-state.js";
 import { useAppController } from "../../state/AppControllerContext.js";
-import { useConfirmDialog } from "../../dialogs/confirm/ConfirmDialogProvider.js";
+import { useConfirmDialog } from "../../ui/confirm/ConfirmDialogProvider.js";
 import { useOverlays } from "../../overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/shortcuts.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../WidgetPanel.js";

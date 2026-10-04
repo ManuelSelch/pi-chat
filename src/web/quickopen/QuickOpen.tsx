@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Badge, Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { THEME } from "../theme.js";
+import { THEME } from "../ui/theme.js";
 import { IconFolder, IconMessage } from "@tabler/icons-react";
 import type { ProjectCatalogue, Tab } from "../../shared/protocol.js";
 import { buildQuickOpenItems, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";

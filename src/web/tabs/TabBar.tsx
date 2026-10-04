@@ -1,7 +1,7 @@
 import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import type { Tab, TabStatus } from "../../shared/protocol.js";
-import { MANTINE_COLOR, STATUS_COLOR, THEME } from "../theme.js";
+import { MANTINE_COLOR, STATUS_COLOR, THEME } from "../ui/theme.js";
 
 const STATUS_LABEL: Record<TabStatus, string> = {
   idle: "Idle",
