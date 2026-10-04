@@ -14,7 +14,13 @@ export interface CommandHandlerDependencies {
 export function handleClientCommand(socket: WebSocket, command: ClientMessage, dependencies: CommandHandlerDependencies): void {
   if (!dependencies.isController(socket)) return;
   const { chat, publisher } = dependencies;
-  if (command.type === "browseDirectories") {
+  if (command.type === "completeCommandArguments") {
+    // Start in a promise so a missing/closed session is also a correlated error.
+    Promise.resolve().then(() => chat.completeCommandArguments(command.sessionId, command.commandName, command.argumentPrefix)).then(
+      (items) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "commandArgumentCompletions", sessionId: command.sessionId, requestId: command.requestId, items }),
+      (error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "commandArgumentCompletions", sessionId: command.sessionId, requestId: command.requestId, items: [], error: error instanceof Error ? error.message : "Unable to complete command arguments." }),
+    );
+  } else if (command.type === "browseDirectories") {
     chat.browseDirectories(command).then(
       (listing) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryListing", requestId: command.requestId, listing }),
       (error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryBrowseError", requestId: command.requestId, error: publisher.errorText(error) }),

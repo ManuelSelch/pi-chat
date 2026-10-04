@@ -1,5 +1,5 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, ThinkingLevel, UiPromptResult } from "../../src/shared/protocol.js";
+import type { ChatMessage, CommandCompletionItem, ThinkingLevel, UiPromptResult } from "../../src/shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../../src/server/runtime/contracts.js";
 import { UiPromptRegistry } from "../../src/server/extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "../../src/server/runtime/pi/web-ui-context.js";
@@ -58,6 +58,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   async setModel(): Promise<void> {}
 
   async compact(): Promise<void> {}
+  async completeCommandArguments(_commandName: string, _argumentPrefix: string): Promise<CommandCompletionItem[]> { return []; }
 
   /**
    * Built once: a caller may compare the surface it was handed against the

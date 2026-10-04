@@ -16,6 +16,24 @@ function service(deleteSpy = vi.fn(async () => {})) {
   return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, deleteSpy, newSessionSpy };
 }
 
+describe("command argument completion", () => {
+  it("uses the named session even when another tab is focused", async () => {
+    const first = new FakeRuntimeAdapter("first");
+    const second = new FakeRuntimeAdapter("second");
+    const completeFirst = vi.spyOn(first, "completeCommandArguments").mockResolvedValue([{ value: "first-value", label: "First" }]);
+    const completeSecond = vi.spyOn(second, "completeCommandArguments");
+    const chat = new ChatApplicationService(first, {
+      continueProject: async () => second, openSession: async () => second, newSession: async () => second,
+    });
+    await chat.openSession("second.jsonl");
+    expect(chat.activeSessionId()).toBe("second");
+    expect(await chat.completeCommandArguments("first", "deploy", "st")).toEqual([{ value: "first-value", label: "First" }]);
+    expect(completeFirst).toHaveBeenCalledWith("deploy", "st");
+    expect(completeSecond).not.toHaveBeenCalled();
+    await chat.dispose();
+  });
+});
+
 describe("deleting sessions", () => {
   it("closes the tab of an idle session before deleting it", async () => {
     const { chat, runtime, deleteSpy } = service();

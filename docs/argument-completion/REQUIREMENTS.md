@@ -1,6 +1,12 @@
 # Command argument completion
 
-Status: planned; implementation not started.
+Status: implemented.
+
+Verified: full suite (56 files, 418 tests), TypeScript, production build, and
+whitespace check pass. An isolated real Pi runtime/browser smoke test confirmed
+empty-prefix suggestions, keyboard navigation, insertion without execution,
+submission executing the handler, caret/suffix preservation, delayed-reply
+Escape dismissal, and recoverable callback failure. Browser event log was clean.
 
 ## Goal
 

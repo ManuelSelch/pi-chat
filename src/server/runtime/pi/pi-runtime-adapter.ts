@@ -3,7 +3,7 @@ import {
   type AgentSessionRuntime,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
+import { commandCompletionItemSchema, type CommandCompletionItem, type ChatMessage, type SlashCommand, type ThinkingLevel, type UiPromptResult } from "../../../shared/protocol.js";
 
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
@@ -194,6 +194,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         source: "prompt" as const,
       }));
     return [...registered, ...NATIVE_COMMANDS, ...templates].sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  async completeCommandArguments(commandName: string, argumentPrefix: string): Promise<CommandCompletionItem[]> {
+    const command = this.runtime.session.extensionRunner.getCommand(commandName);
+    const items = await command?.getArgumentCompletions?.(argumentPrefix);
+    return commandCompletionItemSchema.array().parse(items ?? []);
   }
 
   async setModel(model: string): Promise<void> {

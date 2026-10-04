@@ -1,5 +1,5 @@
 import type { AddressInfo } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import WebSocket from "ws";
 import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../src/shared/protocol.js";
 import { createPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
@@ -51,6 +51,25 @@ describe("WebSocket transport", () => {
   afterEach(async () => {
     socket?.close();
     if (server) await server.close();
+  });
+
+  it("returns Pi argument suggestions without running or publishing a snapshot", async () => {
+    const runtime = new FakeRuntimeAdapter();
+    const complete = vi.spyOn(runtime, "completeCommandArguments").mockResolvedValue([{ value: "staging", label: "Staging" }]);
+    const prompt = vi.spyOn(runtime, "prompt");
+    server = createPiChatServer(runtime);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
+    socket = connected.socket;
+    const reply = receiveOfType(socket, "commandArgumentCompletions");
+    socket.send(JSON.stringify({ version: 1, type: "completeCommandArguments", sessionId: "fake-session", requestId: "c1", commandName: "deploy:2", argumentPrefix: "st" }));
+    expect(await reply).toMatchObject({ requestId: "c1", sessionId: "fake-session", items: [{ value: "staging", label: "Staging" }] });
+    expect(complete).toHaveBeenCalledWith("deploy:2", "st");
+    expect(prompt).not.toHaveBeenCalled();
+    const failure = receiveOfType(socket, "commandArgumentCompletions");
+    complete.mockRejectedValueOnce(new Error("Provider unavailable"));
+    socket.send(JSON.stringify({ version: 1, type: "completeCommandArguments", sessionId: "fake-session", requestId: "c2", commandName: "deploy", argumentPrefix: "" }));
+    expect(await failure).toMatchObject({ requestId: "c2", items: [], error: "Provider unavailable" });
   });
 
   it("starts on the home screen when no session tab is open", async () => {

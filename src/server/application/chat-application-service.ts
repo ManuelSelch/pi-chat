@@ -146,6 +146,10 @@ export class ChatApplicationService {
     });
   }
 
+  completeCommandArguments(sessionId: string, commandName: string, argumentPrefix: string) {
+    return this.sessions.get(sessionId).completeCommandArguments(commandName, argumentPrefix);
+  }
+
   abort(sessionId: string): Promise<void> {
     return this.sessions.get(sessionId).abort();
   }

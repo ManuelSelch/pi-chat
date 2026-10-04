@@ -232,6 +232,13 @@ export const slashCommandSchema = z.object({
 
 export type SlashCommand = z.infer<typeof slashCommandSchema>;
 
+export const commandCompletionItemSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  description: z.string().optional(),
+});
+export type CommandCompletionItem = z.infer<typeof commandCompletionItemSchema>;
+
 export const actionRegistrySchema = z.object({
   features: z.array(webFeatureSchema),
   commands: z.array(slashCommandSchema).default([]),
@@ -286,6 +293,7 @@ const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 const sessionScoped = { ...baseClientMessage, sessionId: z.string().min(1) };
 
 export const clientMessageSchema = z.union([
+  z.object({ ...sessionScoped, type: z.literal("completeCommandArguments"), requestId: z.string().min(1), commandName: z.string().min(1), argumentPrefix: z.string() }),
   z.object({ ...sessionScoped, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("abort") }),
   z.object({
@@ -319,6 +327,7 @@ const sequenced = {
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
+  z.object({ ...sessionScoped, type: z.literal("commandArgumentCompletions"), requestId: z.string(), items: z.array(commandCompletionItemSchema), error: z.string().optional() }),
   z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),
   z.object({ ...baseClientMessage, type: z.literal("directoryBrowseError"), requestId: z.string(), error: z.string() }),
   z.object({ ...baseClientMessage, type: z.literal("sessionOpened"), requestId: z.string(), sessionId: z.string() }),

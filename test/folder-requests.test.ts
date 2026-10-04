@@ -7,6 +7,7 @@ describe("folder request correlation", () => {
     const send = vi.fn();
     const pending = requests.request({ version: 1, type: "browseDirectories", path: "~", requestId: "a" }, send);
     expect(send).toHaveBeenCalledOnce();
+    expect(requests.receive({ version: 1, type: "commandArgumentCompletions", sessionId: "s", requestId: "a", items: [] })).toBe(false);
     requests.receive({ version: 1, type: "sessionOpened", requestId: "other", sessionId: "s" });
     requests.receive({ version: 1, type: "directoryListing", requestId: "a", listing: { path: "/home", breadcrumbs: [], entries: [] } });
     await expect(pending).resolves.toMatchObject({ type: "directoryListing" });
