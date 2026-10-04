@@ -10,9 +10,8 @@ import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
 import { type SessionStatsView } from "./session-stats.js";
-import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, textFromContent, toChatMessage, toChatMessages } from "./message-mapping.js";
-import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
-import { projectEditDiff } from "../../../shared/edit-diff.js";
+import { MessageIdentity, mergeEntriesById, messagesFromBranch, toChatMessages } from "./message-mapping.js";
+import { createSessionEventHandler } from "./event-mapping.js";
 import { projectFooter, projectSnapshot } from "./snapshot.js";
 import { offeredModels } from "./models.js";
 import { createPiRuntime } from "./runtime-factory.js";
@@ -27,7 +26,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
-  private currentRunId = "";
+  private readonly projectionState = { currentRunId: "", lastError: undefined as string | undefined };
   private boundSessionId = "";
   /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
   private readonly inFlightTools = new Set<string>();
@@ -39,7 +38,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * snapshot refresh follows every prompt, and a snapshot that could not report
    * the failure silently replaced it with a clean state.
    */
-  private lastError?: string;
   private abortWatchdog?: ReturnType<typeof setInterval>;
   private readonly prompts = new UiPromptRegistry((prompts) => this.emit({ type: "prompts", prompts }));
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
@@ -159,7 +157,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       cwd: this.runtime.cwd,
       messages,
       inFlightTools: this.inFlightTools,
-      ...(this.lastError ? { lastError: this.lastError } : {}),
+      ...(this.projectionState.lastError ? { lastError: this.projectionState.lastError } : {}),
       models: this.models,
       commands: this.commands(),
       prompts: this.prompts.list(),
@@ -252,7 +250,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async prompt(message: string): Promise<void> {
-    this.lastError = undefined;
+    this.projectionState.lastError = undefined;
     // A new run owns the status from here; a watchdog left from the previous
     // abort would report idle in the middle of it.
     clearInterval(this.abortWatchdog);
@@ -354,123 +352,17 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private bindSession(): void {
     this.unsubscribe?.();
     this.boundSessionId = this.runtime.session.sessionId;
-    this.unsubscribe = this.runtime.session.subscribe((event) => {
-      if (event.type === "agent_start") {
-        this.currentRunId = crypto.randomUUID();
-        this.emit({ type: "runtimeStatus", status: "running" });
-        return;
-      }
-      if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
-        this.emit({ type: "assistantDelta", runId: this.currentRunId, delta: event.assistantMessageEvent.delta });
-        return;
-      }
-      // Redacted reasoning emits no deltas at all, so it only ever appears on
-      // the final message; this stream is the readable case.
-      if (event.type === "message_update" && event.assistantMessageEvent.type === "thinking_delta") {
-        this.emit({ type: "thinkingDelta", runId: this.currentRunId, delta: event.assistantMessageEvent.delta });
-        return;
-      }
-      if (event.type === "message_end") {
-        const failure = event.message as { stopReason?: string; errorMessage?: string };
-        if (failure.stopReason === "error") {
-          this.lastError = failure.errorMessage?.trim() || "The model ended the turn with an error.";
-        }
-        // Tool entries come from tool_execution events instead, so only text
-        // entries become messageFinal here; a tool-call-only assistant message
-        // therefore does not leave an empty bubble.
-        const final = toChatMessage(event.message, this.identity);
-        if (final && (final.role === "user" || final.role === "assistant" || final.role === "custom")) {
-          this.emit({ type: "messageFinal", runId: this.currentRunId, message: final });
-        }
-        return;
-      }
-      if (event.type === "entry_appended") {
-        const message = customMessageFromEntry(event.entry);
-        if (message) this.emit({ type: "messageFinal", runId: this.currentRunId, message });
-        return;
-      }
-      if (event.type === "tool_execution_start") {
-        this.inFlightTools.add(event.toolCallId);
-        this.emit({
-          type: "toolEvent",
-          runId: this.currentRunId,
-          tool: toolCardFromCall({ id: event.toolCallId, name: event.toolName, arguments: event.args }),
-        });
-        return;
-      }
-      if (event.type === "tool_execution_update") {
-        const output = textFromContent((event.partialResult as { content?: unknown })?.content).trim();
-        this.emit({
-          type: "toolEvent",
-          runId: this.currentRunId,
-          tool: {
-            toolCallId: event.toolCallId,
-            name: event.toolName,
-            status: "running",
-            ...(output ? { outputText: clampToolOutput(output) } : {}),
-          },
-        });
-        return;
-      }
-      if (event.type === "tool_execution_end") {
-        this.inFlightTools.delete(event.toolCallId);
-        const output = textFromContent((event.result as { content?: unknown })?.content).trim();
-        this.emit({
-          type: "toolEvent",
-          runId: this.currentRunId,
-          tool: {
-            toolCallId: event.toolCallId,
-            name: event.toolName,
-            status: event.isError ? "error" : "success",
-            editDiff: projectEditDiff(event.toolName, event.isError, (event.result as { details?: unknown })?.details),
-            ...(output ? { outputText: clampToolOutput(output) } : {}),
-          },
-        });
-        return;
-      }
-      // Auto-compaction runs before the turn the user just asked for and can
-      // take several seconds. The session does not report it as streaming, so
-      // without these the browser shows nothing at all and still believes it is
-      // idle, which is how a prompt slips through to the agent underneath and
-      // comes back as "Agent is already processing a prompt".
-      if (event.type === "compaction_start") {
-        this.emit({ type: "runtimeStatus", status: "running" });
-        // `compact()` announces the manual case itself.
-        if (event.reason !== "manual") {
-          this.emit({
-            type: "notification",
-            level: "info",
-            message:
-              event.reason === "overflow"
-                ? "Context limit reached, compacting the session…"
-                : "Context is nearly full, compacting the session…",
-          });
-        }
-        return;
-      }
-      if (event.type === "compaction_end") {
-        if (event.errorMessage) {
-          this.emit({ type: "notification", level: "error", message: `Compaction failed: ${event.errorMessage}` });
-        } else if (event.aborted) {
-          this.emit({ type: "notification", level: "warning", message: "Compaction was cancelled." });
-        }
-        // More work follows a retry, and a compaction inside a run is followed
-        // by the rest of that run, so `agent_settled` reports idle instead.
-        // The compaction flag itself is still set here, cleared only after this
-        // event, so it cannot be used to make this decision.
-        if (!event.willRetry && !this.runtime.session.isStreaming) {
-          this.emit({ type: "runtimeStatus", status: "idle" });
-        }
-        return;
-      }
-      if (event.type === "agent_settled") {
+    this.unsubscribe = this.runtime.session.subscribe(createSessionEventHandler({
+      session: this.runtime.session,
+      identity: this.identity,
+      state: this.projectionState,
+      inFlightTools: this.inFlightTools,
+      emit: (event) => this.emit(event),
+      clearAbortWatchdog: () => {
         clearInterval(this.abortWatchdog);
         this.abortWatchdog = undefined;
-        // Deliberately not cleared here; `prompt()` drops it when the next run
-        // begins, so a late snapshot still reports why this one failed.
-        this.emit({ type: "runtimeStatus", status: "idle", ...(this.lastError ? { error: this.lastError } : {}) });
-      }
-    });
+      },
+    }));
   }
 
   private emit(event: RuntimeEvent): void {
