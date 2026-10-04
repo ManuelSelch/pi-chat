@@ -4,8 +4,8 @@ import { unlink } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
-import type { SessionNameInfo } from "./catalogue-types.js";
+import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
+import type { PersistedSessionRecord, SessionNameInfo } from "./catalogue-types.js";
 
 const run = promisify(execFile);
 
@@ -21,6 +21,19 @@ async function moveToTrash(path: string): Promise<void> {
 /** Persistence-specific access to Pi session files. */
 export class PiSessionStore {
   constructor(private readonly sessionsRoot = resolve(getAgentDir(), "sessions")) {}
+
+  async listAll(): Promise<PersistedSessionRecord[]> {
+    const sessions = await SessionManager.listAll();
+    return sessions.map((session: SessionInfo) => ({
+      path: session.path,
+      id: session.id,
+      ...(session.cwd !== undefined ? { cwd: session.cwd } : {}),
+      ...(session.firstMessage !== undefined ? { firstMessage: session.firstMessage } : {}),
+      modified: session.modified,
+      created: session.created,
+      messageCount: session.messageCount,
+    }));
+  }
 
   async delete(sessionPath: string): Promise<void> {
     const target = resolve(sessionPath);

@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
@@ -13,8 +12,8 @@ export class ProjectSessionService {
   private readonly store: PiSessionStore;
 
   constructor(
-    private readonly lister: ProjectSessionLister = SessionManager,
-    sessionsRoot = resolve(getAgentDir(), "sessions"),
+    private readonly lister: ProjectSessionLister = new PiSessionStore(),
+    sessionsRoot?: string,
   ) {
     this.store = new PiSessionStore(sessionsRoot);
   }
