@@ -4,6 +4,7 @@ import { Notice } from "../../ui/Notice.js";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "../markdown/MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
+import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../../app/state/chat-state.js";
@@ -16,6 +17,7 @@ import { THEME } from "../../ui/theme.js";
  */
 const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage }) {
   if (message.role === "tool") return <ToolCard tool={message.tool} />;
+  if (message.role === "bash") return <BashCard bash={message.bash} />;
 
   if (message.role === "notice") {
     return (

@@ -32,7 +32,26 @@ export const toolCardSchema = z.object({
 
 export type ToolCard = z.infer<typeof toolCardSchema>;
 
+export const bashCardSchema = z.object({
+  command: z.string(),
+  output: z.string().max(20_000),
+  status: z.enum(["running", "success", "error", "cancelled"]),
+  exitCode: z.number().int().optional(),
+  excludeFromContext: z.boolean(),
+  truncated: z.boolean(),
+  fullOutputPath: z.string().optional(),
+});
+export type BashCard = z.infer<typeof bashCardSchema>;
+export const bashMessageSchema = z.object({
+  id: z.string().min(1),
+  role: z.literal("bash"),
+  bash: bashCardSchema,
+  timestamp: z.number().optional(),
+});
+export type BashMessage = z.infer<typeof bashMessageSchema>;
+
 export const chatMessageSchema = z.discriminatedUnion("role", [
+  bashMessageSchema,
   z.object({
     id: z.string().min(1),
     role: z.enum(["user", "assistant", "system"]),

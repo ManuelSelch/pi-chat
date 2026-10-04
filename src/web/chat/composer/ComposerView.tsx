@@ -94,6 +94,11 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
           </div>
         ) : null}
 
+        {input.trimStart().startsWith("!") ? (
+          <Text size="xs" c="dimmed" mb={4}>
+            {input.trimStart().startsWith("!!") ? "Runs bash on the server; output stays out of model context." : "Runs bash on the server; output is included in the next prompt."}
+          </Text>
+        ) : null}
         <Paper
           component="form"
           onSubmit={actions.submit}

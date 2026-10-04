@@ -15,6 +15,7 @@
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - server folder picker to start sessions in folders without previous Pi history
 - slash commands, a command palette, and quick-open
+- native `!command` / `!!command` bash execution from the composer (output is shown after completion)
 - extension UI support: `notify`, dialogs, `setWidget` panels, `setStatus` footer labels, and experimental web extension slots/actions/hooks
 
 ## Install
@@ -38,6 +39,8 @@ which adds three commands to any Pi session:
 | `⌘K` / `Ctrl+K` | Session actions (new, rename, delete, close tab) plus every Pi slash command |
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
+
+Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.
 
 
 
