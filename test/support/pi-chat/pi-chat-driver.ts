@@ -3,6 +3,7 @@ import { createPiChatServer, type PiChatServer } from "../../../src/server/boots
 import { BrowserClient } from "./browser-client.js";
 import { BrowserDriver } from "./browser-driver.js";
 import { ChatDriver } from "./chat-driver.js";
+import { ProjectDriver } from "./project-driver.js";
 import { TabDriver } from "./tab-driver.js";
 import { TestWorld, type AssistantResponse } from "./test-world.js";
 import type { DriverContext } from "./driver-context.js";
@@ -29,6 +30,7 @@ export class PiChatDriver {
   readonly Browser: BrowserDriver;
   readonly Chat: ChatDriver;
   readonly Tabs: TabDriver;
+  readonly Projects: ProjectDriver;
   private disposal?: Promise<void>;
 
   private constructor(
@@ -39,6 +41,7 @@ export class PiChatDriver {
     this.Browser = new BrowserDriver(context);
     this.Chat = new ChatDriver(context);
     this.Tabs = new TabDriver(context);
+    this.Projects = new ProjectDriver(context);
   }
 
   static async start(options: PiChatDriverOptions = {}): Promise<PiChatDriver> {

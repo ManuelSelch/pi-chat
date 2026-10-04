@@ -84,6 +84,13 @@ try {
   acknowledgements, including same-tab focus; closing the last tab awaits a new
   home catalogue. Handles survive reconnect but reject closed/foreign tabs.
   Tab operations must be awaited sequentially.
+- `Projects.Browse(path?)`: browses a server folder through the correlated folder
+  protocol and returns its validated directory listing.
+- `Projects.Open(path?)`: opens a valid server folder as a new conversation and
+  waits for its tab and authoritative snapshot. Failed opens reject with the
+  recoverable server error without changing the active project.
+- `Projects.ShouldRemainAtHome()` and `ShouldBeOpen(path?)`: semantic project
+  state assertions.
 
 Feature drivers share a narrow internal context. The private client validates
 protocol schemas and uses the **production browser reducers** to reconstruct the
@@ -110,24 +117,26 @@ npm run test:spike
 The default suite includes prompt/reply, reconnect restoration, and repeated
 identical prompts before and after reconnect, creation from home, independent
 multi-tab transcripts, active/background tab closure, and reconnect/recreation
-from home. Driver/client/world tests cover script validation, semantic diagnostics,
-bounded waits, server rejection, pending-wait cancellation, failed creation and
-retry, closed handles, isolated paths, concurrent creation guards, idempotent
-disposal, partial-startup cleanup, and cleanup during in-flight creation.
+from home, valid folder browsing/opening, and invalid-folder recovery. Driver/
+client/world tests cover script validation, semantic diagnostics, bounded waits,
+server rejection, pending-wait cancellation, failed creation and retry, closed
+handles, isolated paths, concurrent creation guards, idempotent disposal,
+partial-startup cleanup, and cleanup during in-flight creation.
 
-Latest verification: 58 test files / 424 tests passed; build/typecheck and spike passed.
+Latest verification: 67 test files / 480 tests passed; build and spike verification passed.
 
 The standalone spike now delegates to the same driver, rather than duplicating
 setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md](SPIKE.md).
 
 ## Next slice
 
-The core multi-session milestone is covered. `Projects`, `Extensions`, abort,
-controller takeover, persisted `Tabs.Open()`, and controlled active-turn reconnect
-are not covered yet. Continuing/reopening persisted sessions and replacing a
-runtime explicitly reject unsupported operations rather than falling back to
-production settings or providers. Tab creation currently uses the world's
-isolated default project, not arbitrary external folders.
+The core multi-session and project selection/error milestones are covered.
+`Extensions`, abort, controller takeover, persisted `Tabs.Open()`, and
+controlled active-turn reconnect remain. Continuing/reopening persisted sessions
+and replacing a runtime explicitly reject unsupported operations rather than
+falling back to production settings or providers. Folder workflows currently
+allow the world's isolated project only; arbitrary external folders are still
+rejected by the test factory.
 
-Next: project selection/error flows or controlled streaming/abort scenarios; see
-[REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.
+Next: controlled streaming/abort scenarios; see [REQUIREMENTS.md](REQUIREMENTS.md)
+for the broader plan.
