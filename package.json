@@ -24,7 +24,6 @@
     "node": ">=22.19"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.85.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@types/express": "^5.0.6",
@@ -55,5 +54,8 @@
     "vitest": "^5.0.0",
     "ws": "^8.21.3",
     "zod": "^4.6.4"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   }
 }
