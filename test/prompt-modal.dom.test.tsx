@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { MantineProvider } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UiPrompt } from "../src/shared/protocol.js";
 import { PromptModal } from "../src/web/extensions/prompts/PromptModal.js";
@@ -18,6 +18,20 @@ function show(prompt: UiPrompt | undefined) {
 }
 
 describe("PromptModal", () => {
+  it("focuses the text field rather than sharing its ref with the submit button", async () => {
+    show({ id: "focus-input", kind: "input", title: "Name", prefill: "ready" });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox")));
+  });
+
+  it.each(["input", "editor", "select", "confirm"] as const)("prevents programmatic focus escaping a %s prompt", async (kind) => {
+    render(<textarea aria-label="Composer" />);
+    show({ id: `focus-${kind}`, kind, title: "Question", options: ["Yes", "No"] });
+    const dialog = screen.getByRole("dialog");
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    screen.getByRole("textbox", { name: "Composer" }).focus();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+
   it("highlights real mouse movement without scrolling and ignores a parked cursor", () => {
     show({ id: "mouse", kind: "select", title: "Pick", options: ["allow", "deny", "ask"] });
     const scroll = vi.mocked(HTMLElement.prototype.scrollIntoView);
@@ -203,6 +217,17 @@ describe("PromptModal menu loops", () => {
     expect(screen.getByText("Extensions (2/3 enabled)")).toBeTruthy();
   });
 
+  it("contains focus during handover and focuses the next text question", async () => {
+    render(<textarea aria-label="Composer" />);
+    const { rerender } = showRerenderable(menu("handover-1", 3, ["a", "b", "c"]));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("listbox")));
+    rerender(undefined);
+    screen.getByRole("textbox", { name: "Composer" }).focus();
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+    rerender({ id: "handover-2", kind: "input", title: "Name", prefill: "ready" });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Name" })));
+  });
+
   it("closes once no follow-up question arrives", async () => {
     vi.useFakeTimers();
     try {
@@ -211,6 +236,11 @@ describe("PromptModal menu loops", () => {
       await vi.advanceTimersByTimeAsync(1000);
       rerender(undefined);
       expect(screen.queryByRole("dialog")).toBeNull();
+      const composer = document.createElement("textarea");
+      document.body.append(composer);
+      composer.focus();
+      expect(document.activeElement).toBe(composer);
+      composer.remove();
     } finally {
       vi.useRealTimers();
     }
