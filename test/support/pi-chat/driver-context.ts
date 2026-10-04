@@ -10,6 +10,7 @@ export interface DriverContext {
   reconnect(): Promise<void>;
   remainingResponses(): number;
   nextPrompt(): string | undefined;
+  releaseControlledResponse(): void;
 }
 
 export function check(context: DriverContext, operation: string, assertion: () => void): void {

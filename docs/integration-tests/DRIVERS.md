@@ -72,8 +72,12 @@ try {
   reconnecting or submitting the next prompt in this slice.
 - `Chat.ShouldContainMessages(expected)`: ordered containment, not exact equality.
   Pair with `ShouldHaveMessageCount(count)` for an exact transcript.
-- `Chat.ShouldHaveAssistantReply(text)`, `ShouldHaveNoDuplicateMessages()`, and
-  `ShouldHaveConsumedResponses()` (for the active conversation).
+- `Chat.ShouldHaveAssistantReply(text)`, `ShouldNotHaveAssistantReply(text)`,
+  `ShouldHaveNoDuplicateMessages()`, and `ShouldHaveConsumedResponses()` (for
+  the active conversation).
+- `Chat.Abort()` waits for the active run to settle without a late assistant
+  response. Controlled test responses can be held with `hold: true` and released
+  through `Chat.ReleaseControlledResponse()`.
 - `Browser.Reconnect()`: closes the prior client, creates a fresh client/state,
   waits for all open tab snapshots (or the home catalogue), and checks active identity.
 - `Browser.ShouldBeUsable()` / `ShouldBeAtHome()`: checks connected, loaded state.
@@ -117,11 +121,12 @@ npm run test:spike
 The default suite includes prompt/reply, reconnect restoration, and repeated
 identical prompts before and after reconnect, creation from home, independent
 multi-tab transcripts, active/background tab closure, and reconnect/recreation
-from home, valid folder browsing/opening, and invalid-folder recovery. Driver/
-client/world tests cover script validation, semantic diagnostics, bounded waits,
-server rejection, pending-wait cancellation, failed creation and retry, closed
-handles, isolated paths, concurrent creation guards, idempotent disposal,
-partial-startup cleanup, and cleanup during in-flight creation.
+from home, valid folder browsing/opening, invalid-folder recovery, and
+controlled active-response abort without transcript corruption. Driver/client/
+world tests cover script validation, semantic diagnostics, bounded waits, server
+rejection, pending-wait cancellation, failed creation and retry, closed handles,
+isolated paths, concurrent creation guards, idempotent disposal, partial-startup
+cleanup, and cleanup during in-flight creation.
 
 Latest verification: 67 test files / 480 tests passed; build and spike verification passed.
 
@@ -131,12 +136,12 @@ setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md
 ## Next slice
 
 The core multi-session and project selection/error milestones are covered.
-`Extensions`, abort, controller takeover, persisted `Tabs.Open()`, and
-controlled active-turn reconnect remain. Continuing/reopening persisted sessions
+`Extensions`, controller takeover, persisted `Tabs.Open()`, and controlled
+active-turn reconnect remain. Continuing/reopening persisted sessions
 and replacing a runtime explicitly reject unsupported operations rather than
 falling back to production settings or providers. Folder workflows currently
 allow the world's isolated project only; arbitrary external folders are still
 rejected by the test factory.
 
-Next: controlled streaming/abort scenarios; see [REQUIREMENTS.md](REQUIREMENTS.md)
-for the broader plan.
+Next: extension UI flows or controller takeover; see
+[REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

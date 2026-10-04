@@ -3,11 +3,17 @@ import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
+import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import type { RuntimeAdapterFactory } from "../../../src/server/runtime/contracts.js";
 import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
 
-export interface AssistantResponse { prompt: string; reply: string }
+export interface AssistantResponse {
+  prompt: string;
+  reply: string;
+  /** Keep the model result pending until the test explicitly releases it. */
+  hold?: boolean;
+}
 
 interface OwnedSession {
   harness: TestSession;
@@ -19,6 +25,7 @@ interface OwnedSession {
 export class TestWorld {
   readonly projectPath = realpathSync(mkdtempSync(join(tmpdir(), "pi-chat-driver-")));
   private readonly sessions = new Map<string, OwnedSession>();
+  private readonly controlledResponses = new Map<string, () => void>();
   private readonly creating = new Set<Promise<PiRuntimeAdapter>>();
   private reservation?: { responses: readonly AssistantResponse[]; started: boolean };
   private disposed = false;
@@ -70,6 +77,46 @@ export class TestWorld {
         resourceLoader: session.resourceLoader,
         diagnostics: [],
       }, async () => { throw new Error("Runtime replacement is not supported by this driver yet"); });
+      const agent = session.agent as {
+        streamFunction: (...args: unknown[]) => { result: () => Promise<AssistantMessage> };
+      };
+      const playbookStream = agent.streamFunction;
+      agent.streamFunction = (...args) => {
+        const stream = playbookStream(...args);
+        const response = responses[harness.playbook.consumed - 1];
+        if (!response?.hold) return stream;
+
+        const controlled = createAssistantMessageEventStream();
+        let result: AssistantMessage | undefined;
+        let released = false;
+        let aborted = false;
+        const finish = () => {
+          if ((!released && !aborted) || !result) return;
+          controlled.push(aborted
+            ? {
+              type: "error",
+              reason: "aborted",
+              error: { ...result, content: [], stopReason: "aborted" },
+            }
+            : { type: "done", reason: "stop", message: result });
+          this.controlledResponses.set(session.sessionId, () => {});
+        };
+        void stream.result().then(message => {
+          result = message;
+          finish();
+        });
+        const signal = (args[2] as { signal?: AbortSignal } | undefined)?.signal;
+        signal?.addEventListener("abort", () => {
+          aborted = true;
+          finish();
+        }, { once: true });
+        this.controlledResponses.set(session.sessionId, () => {
+          released = true;
+          finish();
+        });
+        return controlled;
+      };
+
       const adapter = PiRuntimeAdapter.fromRuntime(runtime);
       const originalDispose = adapter.dispose.bind(adapter);
       let disposal: Promise<void> | undefined;
@@ -77,7 +124,10 @@ export class TestWorld {
       // or unregistered sessions. Give both paths the same idempotent disposal.
       adapter.dispose = () => disposal ??= (async () => {
         try { await originalDispose(); }
-        finally { harness.dispose(); }
+        finally {
+          this.controlledResponses.delete(session.sessionId);
+          harness.dispose();
+        }
       })();
       this.sessions.set(session.sessionId, { harness, responses, adapter });
       return adapter;
@@ -95,6 +145,7 @@ export class TestWorld {
   }
 
   remainingResponses(id: string): number { return this.session(id).harness.playbook.remaining; }
+  releaseControlledResponse(id: string): void { this.controlledResponses.get(id)?.(); }
   nextPrompt(id: string): string | undefined {
     const { responses, harness } = this.session(id);
     return responses[harness.playbook.consumed]?.prompt.trim();

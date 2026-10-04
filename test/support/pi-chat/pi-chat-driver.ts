@@ -69,6 +69,7 @@ export class PiChatDriver {
         reserveSession: responses => world.reserveSession(responses),
         remainingResponses: () => world.remainingResponses(context.client.appState.activeSessionId),
         nextPrompt: () => world.nextPrompt(context.client.appState.activeSessionId),
+        releaseControlledResponse: () => world.releaseControlledResponse(context.client.appState.activeSessionId),
         async reconnect() {
           await context.client.close();
           // Fresh state requires authoritative snapshots instead of keeping a

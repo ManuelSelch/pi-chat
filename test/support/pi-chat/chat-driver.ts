@@ -31,6 +31,23 @@ export class ChatDriver {
       m.type === "messageFinal" && m.sessionId === sessionId && m.message.role === "user" && m.message.text === text.trim());
   }
 
+  async Abort(): Promise<void> {
+    const { client } = this.context;
+    const sessionId = requireSession(this.context, "Chat.Abort");
+    const after = client.mark();
+    client.send({ version: PROTOCOL_VERSION, type: "abort", sessionId });
+    await client.waitForMessage("Chat.Abort", "aborted turn settled", after, message =>
+      message.type === "runtimeStatus" && message.sessionId === sessionId && message.status === "idle");
+    await client.wait("Chat.Abort", "current conversation idle", () => client.chat.status === "idle");
+    check(this.context, "Chat.Abort", () => assert.equal(client.chat.error, undefined, "Runtime failed while aborting"));
+    this.pendingTurns.delete(sessionId);
+  }
+
+  ReleaseControlledResponse(): void {
+    requireSession(this.context, "Chat.ReleaseControlledResponse");
+    this.context.releaseControlledResponse();
+  }
+
   async WaitUntilIdle(): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.WaitUntilIdle");
@@ -65,6 +82,10 @@ export class ChatDriver {
 
   ShouldHaveAssistantReply(text: string): void {
     check(this.context, "Chat.ShouldHaveAssistantReply", () => assert(this.context.client.chat.messages.some(m => m.role === "assistant" && m.text === text), `Missing assistant reply ${JSON.stringify(text)}`));
+  }
+
+  ShouldNotHaveAssistantReply(text: string): void {
+    check(this.context, "Chat.ShouldNotHaveAssistantReply", () => assert(!this.context.client.chat.messages.some(m => m.role === "assistant" && m.text === text), `Unexpected assistant reply ${JSON.stringify(text)}`));
   }
 
   ShouldHaveNoDuplicateMessages(): void {
