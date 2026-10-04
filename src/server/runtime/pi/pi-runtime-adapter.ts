@@ -11,7 +11,7 @@ import {
   type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
+import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
@@ -26,6 +26,7 @@ import { sessionStatsMarkdown, type SessionStatsView } from "./session-stats.js"
 import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, textFromContent, toChatMessage, toChatMessages } from "./message-mapping.js";
 import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
+import { projectFooter, projectSnapshot } from "./snapshot.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
@@ -102,7 +103,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
   private ui!: ExtensionUIContext;
   private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
-  private readonly statuses = new StatusRegistry(() => this.emit({ type: "footer", footer: this.footer() }));
+  private readonly statuses = new StatusRegistry(() => this.emit({ type: "footer", footer: projectFooter(this.runtime.session, this.statuses.list()) }));
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
@@ -269,109 +270,19 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     const messages = branch
       ? messagesFromBranch(branch, this.identity)
       : mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
-    // Compaction is a long model call that the session does not count as
-    // streaming, so asking `isStreaming` alone reports a busy session as idle
-    // and re-enables the composer mid-compaction.
-    const isStreaming = !this.runtime.session.isIdle;
-    // A "running" card is only honest while its tool is actually executing.
-    // After a server restart mid-run (or any missed end event) nothing will
-    // ever finalize it, so report it as interrupted instead of spinning forever.
-    for (const entry of messages) {
-      if (entry.role === "tool" && entry.tool.status === "running" && !this.inFlightTools.has(entry.tool.toolCallId)) {
-        entry.tool = {
-          ...entry.tool,
-          status: "error",
-          ...(entry.tool.outputText === undefined ? { outputText: "Tool run was interrupted before its result was recorded." } : {}),
-        };
-      }
-    }
-    return {
-      sessionId: this.runtime.session.sessionId,
-      ...(this.runtime.session.sessionFile ? { sessionPath: this.runtime.session.sessionFile } : {}),
-      ...(this.runtime.session.sessionName ? { sessionName: this.runtime.session.sessionName } : {}),
-      projectPath: this.runtime.cwd,
+    return projectSnapshot({
+      session: this.runtime.session,
+      cwd: this.runtime.cwd,
       messages,
-      isStreaming,
+      inFlightTools: this.inFlightTools,
       ...(this.lastError ? { lastError: this.lastError } : {}),
-      actions: {
-        features: [
-          {
-            id: "session.rename",
-            group: "session",
-            kind: "form",
-            title: "Rename session",
-            description: "Set the display name shown in Pi session lists.",
-            state: { name: this.runtime.session.sessionName ?? "" },
-          },
-          {
-            id: "thinking.level",
-            group: "model",
-            kind: "select",
-            title: "Thinking level",
-            description: "Change the reasoning effort for the current session when the model supports it.",
-            state: {
-              value: this.runtime.session.thinkingLevel as ThinkingLevel,
-              options: this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[],
-            },
-          },
-          {
-            id: "model.select",
-            group: "model",
-            kind: "select",
-            title: "Model",
-            description: "Switch the model for this session only.",
-            state: { value: this.currentModel(), options: this.models },
-          },
-          {
-            id: "session.compact",
-            group: "session",
-            kind: "action",
-            title: "Compact session",
-            description: "Summarise the conversation so far to free up context.",
-            state: { label: "Compact now" },
-          },
-        ],
-        commands: this.commands(),
-      },
+      models: this.models,
+      commands: this.commands(),
       prompts: this.prompts.list(),
       widgets: this.widgets.list(),
-      footer: this.footer(),
-    };
-  }
+      statuses: this.statuses.list(),
+    });
 
-  /**
-   * The composer footer, laid out as the terminal lays its own out: what the
-   * session runs with on the right, and extension labels on the left.
-   *
-   * The browser used to assemble the model line itself out of the settings
-   * features, which meant the footer could only ever say what that one piece of
-   * UI code had been taught to say. Building it here makes it the session's
-   * statement about itself, and an extension's `setStatus` label joins it
-   * through the same list.
-   *
-   * Thinking is reported only when the model reasons at all, which is the same
-   * condition the terminal uses — "thinking: off" against a model that has no
-   * thinking to switch on is noise.
-   */
-  private footer(): FooterItem[] {
-    const model = this.currentModel();
-    return [
-      ...this.statuses.list().map((status) => ({
-        key: `status.${status.key}`,
-        text: status.text,
-        align: "left" as const,
-        variant: "badge" as const,
-      })),
-      ...(model ? [{ key: "model", text: model, align: "right" as const, variant: "plain" as const }] : []),
-      ...(this.runtime.session.supportsThinking()
-        ? [{
-            key: "thinking",
-            text: `thinking: ${this.runtime.session.thinkingLevel}`,
-            align: "right" as const,
-            variant: "plain" as const,
-          }]
-        : []),
-    ];
   }
 
   private currentModel(): string {

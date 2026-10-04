@@ -1,6 +1,6 @@
 # Server modularization plan
 
-Status: implementation in progress; slices 1–2 complete. Slice 3 has session-stat rendering and message/tool mapping extracted; snapshot projection remains next.
+Status: implementation in progress; slices 1–2 complete. Slice 3 complete: session-stat rendering, message/tool mapping, and snapshot projection extracted.
 Scope: `src/server/` and imports into it, based on the pre-refactor checkout.
 
 ## Problem and goals
