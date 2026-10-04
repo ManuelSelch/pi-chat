@@ -9,8 +9,9 @@ const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 
 // `npm run dev` already reloads itself, and its watcher would start a second
 // server the moment this one exits, so restarting is offered only without one.
-const restart = process.env.PI_CHAT_DEV === "1" ? undefined : createRestartService({ shutdown: () => void shutdown() });
-const server = createPiChatServer(undefined, resolve("dist/web"), undefined, restart);
+const isDevelopment = process.env.PI_CHAT_DEV === "1";
+const restart = isDevelopment ? undefined : createRestartService({ shutdown: () => void shutdown() });
+const server = createPiChatServer(undefined, isDevelopment ? undefined : resolve("dist/web"), undefined, restart);
 
 server.httpServer.listen(port, host, () => {
   // Restarting from the browser replaces this process, so the pid the slash

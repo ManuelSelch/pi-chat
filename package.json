@@ -13,8 +13,8 @@
   },
   "scripts": {
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
-    "dev:server": "PI_CHAT_DEV=1 tsx watch src/server/index.ts",
-    "dev:web": "vite",
+    "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8789 tsx watch src/server/index.ts",
+    "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8789 PI_CHAT_WEB_PORT=5174 vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
