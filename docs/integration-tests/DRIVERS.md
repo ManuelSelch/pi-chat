@@ -80,6 +80,9 @@ try {
   through `Chat.ReleaseControlledResponse()`.
 - `Browser.Reconnect()`: closes the prior client, creates a fresh client/state,
   waits for all open tab snapshots (or the home catalogue), and checks active identity.
+- `Browser.TakeControl()`: opens a second browser connection, waits for its
+  authoritative state, and verifies that the previous controller is replaced
+  without changing the active conversation.
 - `Browser.ShouldBeUsable()` / `ShouldBeAtHome()`: checks connected, loaded state.
 - `Tabs.Create({ responses? })`: creates a real isolated session via a correlated
   server command, then waits for its tab and snapshot. Returns an opaque tab handle.
@@ -121,12 +124,13 @@ npm run test:spike
 The default suite includes prompt/reply, reconnect restoration, and repeated
 identical prompts before and after reconnect, creation from home, independent
 multi-tab transcripts, active/background tab closure, and reconnect/recreation
-from home, valid folder browsing/opening, invalid-folder recovery, and
-controlled active-response abort without transcript corruption. Driver/client/
-world tests cover script validation, semantic diagnostics, bounded waits, server
-rejection, pending-wait cancellation, failed creation and retry, closed handles,
-isolated paths, concurrent creation guards, idempotent disposal, partial-startup
-cleanup, and cleanup during in-flight creation.
+from home, valid folder browsing/opening, invalid-folder recovery, controlled
+active-response abort without transcript corruption, and controller takeover with
+conversation restoration. Driver/client/world tests cover script validation,
+semantic diagnostics, bounded waits, server rejection, pending-wait cancellation,
+failed creation and retry, closed handles, isolated paths, concurrent creation
+guards, idempotent disposal, partial-startup cleanup, and cleanup during
+in-flight creation.
 
 Latest verification: 67 test files / 480 tests passed; build and spike verification passed.
 
@@ -136,12 +140,12 @@ setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md
 ## Next slice
 
 The core multi-session and project selection/error milestones are covered.
-`Extensions`, controller takeover, persisted `Tabs.Open()`, and controlled
-active-turn reconnect remain. Continuing/reopening persisted sessions
+`Extensions`, persisted `Tabs.Open()`, and controlled active-turn reconnect
+remain. Continuing/reopening persisted sessions
 and replacing a runtime explicitly reject unsupported operations rather than
 falling back to production settings or providers. Folder workflows currently
 allow the world's isolated project only; arbitrary external folders are still
 rejected by the test factory.
 
-Next: extension UI flows or controller takeover; see
+Next: extension UI flows or persisted-session reopening; see
 [REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

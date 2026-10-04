@@ -77,6 +77,13 @@ export class PiChatDriver {
           context.client = new BrowserClient(listeningServer, timeoutMs);
           await context.client.ready("Browser.Reconnect");
         },
+        async takeControl() {
+          const previous = context.client;
+          const next = new BrowserClient(listeningServer, timeoutMs);
+          await next.ready("Browser.TakeControl");
+          await previous.waitForClose();
+          context.client = next;
+        },
       };
       const app = new PiChatDriver(context, server, world);
       await client.ready("PiChatDriver.start");

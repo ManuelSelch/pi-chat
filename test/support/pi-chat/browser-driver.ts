@@ -11,6 +11,12 @@ export class BrowserDriver {
     check(this.context, "Browser.Reconnect", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Reconnect changed the active conversation"));
   }
 
+  async TakeControl(): Promise<void> {
+    const previousSession = this.context.client.appState.activeSessionId;
+    await this.context.takeControl();
+    check(this.context, "Browser.TakeControl", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Taking control changed the active conversation"));
+  }
+
   ShouldBeAtHome(): void {
     this.ShouldBeUsable();
     check(this.context, "Browser.ShouldBeAtHome", () => assert(atHome(this.context.client.appState), "Expected the home screen"));

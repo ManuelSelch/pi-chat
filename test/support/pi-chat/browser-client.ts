@@ -90,6 +90,11 @@ export class BrowserClient {
     });
   }
 
+  async waitForClose(): Promise<void> {
+    if (this.closeInfo) return;
+    await new Promise<void>(resolve => this.socket.once("close", () => resolve()));
+  }
+
   async close(): Promise<void> {
     if (this.socket.readyState === WebSocket.CLOSED) return;
     this.closing = true;
