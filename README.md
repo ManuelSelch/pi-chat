@@ -41,6 +41,11 @@ which adds three commands to any Pi session:
 
 
 
+## Architecture
+
+See the [high-level web and server architecture](docs/architecture.md) for components,
+data flow, and ownership boundaries.
+
 ## Server organization
 
 `src/server/index.ts` remains the process entry point. Server code is grouped by ownership:
