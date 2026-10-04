@@ -48,11 +48,11 @@ which adds three commands to any Pi session:
 - `bootstrap/`: HTTP server composition and process restart
 - `application/`: chat coordination and open-session registry
 - `transport/`: WebSocket connections and protocol handling
-- `runtime/`: runtime contract and fake; `runtime/pi/` contains the Pi adapter, browser UI bridge and SDK cache workaround
+- `runtime/contracts.ts`: runtime adapter, factory, event and snapshot contracts; `runtime/pi/` contains the Pi adapter, browser UI bridge and SDK cache workaround
 - `projects/`: session catalogue and directory browsing
 - `extensions/`: web extension registry; `extensions/ui/` contains prompt, widget and status registries
 
-This first grouping changes paths only; responsibility extraction is deferred.
+The test fake lives in `test/support/fake-runtime-adapter.ts`, separate from production contracts. Runtime implementation extraction is deferred.
 The old `src/server/extension-registry.ts` import remains a deprecated compatibility re-export of `extensions/extension-registry.ts`.
 
 ## Environment variables

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
-import type { RuntimeEvent } from "../src/server/runtime/runtime-adapter.js";
+import type { RuntimeEvent } from "../src/server/runtime/contracts.js";
 
 type SessionEvent = { type: "agent_settled" };
 

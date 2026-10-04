@@ -3,7 +3,7 @@ import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories
 import { DirectoryBrowserService } from "../projects/directory-browser-service.js";
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
-import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../runtime/runtime-adapter.js";
+import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import { ProjectSessionService, type ProjectCatalogue } from "../projects/project-session-service.js";
 import type { RestartService } from "../bootstrap/restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
@@ -13,13 +13,6 @@ function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
     if (message.role === "user") return message.text;
   }
   return undefined;
-}
-
-export interface RuntimeAdapterFactory {
-  continueProject(path: string): Promise<RuntimeAdapter>;
-  openSession(path: string): Promise<RuntimeAdapter>;
-  newSession(path: string): Promise<RuntimeAdapter>;
-  invalidateExtensionCache?(): Promise<void>;
 }
 
 /** The one command this service implements itself, added to every session's catalogue. */

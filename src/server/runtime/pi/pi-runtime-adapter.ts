@@ -17,7 +17,7 @@ import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, ToolCard, Ui
 type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
-import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../runtime-adapter.js";
+import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";

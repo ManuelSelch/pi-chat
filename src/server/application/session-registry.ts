@@ -1,7 +1,7 @@
 import { basename } from "node:path";
 import type { Tab, TabStatus } from "../../shared/protocol.js";
 import { firstUserMessage, sessionTitle } from "../../shared/session-title.js";
-import type { RuntimeAdapter, RuntimeEvent } from "../runtime/runtime-adapter.js";
+import type { RuntimeAdapter, RuntimeEvent } from "../runtime/contracts.js";
 
 export interface OpenSession {
   sessionId: string;

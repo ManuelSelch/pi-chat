@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../src/server/application/chat-application-service.js";
 import { createPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
-import { FakeRuntimeAdapter } from "../src/server/runtime/runtime-adapter.js";
+import { FakeRuntimeAdapter } from "./support/fake-runtime-adapter.js";
 
 function service(deleteSpy = vi.fn(async () => {})) {
   const runtime = new FakeRuntimeAdapter();

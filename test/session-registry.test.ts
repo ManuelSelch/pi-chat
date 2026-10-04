@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { FakeRuntimeAdapter } from "../src/server/runtime/runtime-adapter.js";
+import { FakeRuntimeAdapter } from "./support/fake-runtime-adapter.js";
 import { SessionRegistry } from "../src/server/application/session-registry.js";
 
 function adapterWith(overrides: Partial<ReturnType<FakeRuntimeAdapter["snapshot"]>>): FakeRuntimeAdapter {
