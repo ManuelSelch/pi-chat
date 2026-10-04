@@ -7,7 +7,6 @@ import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from ".
 
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
-import { bindWebUiContext } from "./extension-bindings.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
 import { type SessionStatsView } from "./session-stats.js";
@@ -18,6 +17,7 @@ import { projectFooter, projectSnapshot } from "./snapshot.js";
 import { offeredModels } from "./models.js";
 import { createPiRuntime } from "./runtime-factory.js";
 import { handleNativeCommand, NATIVE_COMMANDS } from "./native-commands.js";
+import { bindExtensionCommandContext, bindWebUiContext } from "./extension-bindings.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
@@ -116,26 +116,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * nothing.
    */
   private bindCommandContext(): void {
-    const runner = this.runtime.session.extensionRunner as typeof this.runtime.session.extensionRunner & {
-      bindCommandContext?: (context: {
-        waitForIdle: () => Promise<void>;
-        newSession: AgentSessionRuntime["newSession"];
-        fork: AgentSessionRuntime["fork"];
-        navigateTree: AgentSessionRuntime["session"]["navigateTree"];
-        switchSession: AgentSessionRuntime["switchSession"];
-        reload: () => Promise<void>;
-      }) => void;
-    };
-    runner.bindCommandContext?.({
-      waitForIdle: () => this.runtime.session.agent.waitForIdle(),
-      newSession: (options) => this.runtime.newSession(options),
-      fork: (entryId, options) => this.runtime.fork(entryId, options),
-      navigateTree: (targetId, options) => this.runtime.session.navigateTree(targetId, options),
-      switchSession: (sessionPath, options) => this.runtime.switchSession(sessionPath, options),
-      reload: async () => {
-        throw new Error("Use /reload in Pi Chat to reload this session.");
-      },
-    });
+    bindExtensionCommandContext(this.runtime);
   }
 
   /**
