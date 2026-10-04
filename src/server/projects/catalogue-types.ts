@@ -12,6 +12,13 @@ export interface ChatSessionSummary {
   messageCount: number;
 }
 
+export interface ChatWorktreeSummary {
+  branch?: string;
+  commit?: string;
+  detached: boolean;
+  primary: boolean;
+}
+
 export interface ChatProjectSummary {
   path: string;
   displayPath: string;
@@ -20,6 +27,9 @@ export interface ChatProjectSummary {
   modified: number;
   sessionCount: number;
   sessions: ChatSessionSummary[];
+  repositoryPath?: string;
+  repositoryName?: string;
+  worktree?: ChatWorktreeSummary;
 }
 
 export interface ProjectCatalogue {

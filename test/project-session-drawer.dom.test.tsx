@@ -36,6 +36,14 @@ const catalogue: ProjectCatalogue = {
 const openSession = vi.fn();
 const onOpenFolder = vi.fn();
 
+const groupedCatalogue: ProjectCatalogue = {
+  projects: [
+    { ...catalogue.projects[0]!, path: "/work/pi-chat", name: "pi-chat", repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "main", detached: false, primary: true } },
+    { ...catalogue.projects[1]!, path: "/work/pi-chat-feature", name: "pi-chat-feature", displayPath: "~/.worktrees/pi-chat/feature", repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "feat/worktree-projects-panel", detached: false, primary: false } },
+    { path: "/work/pi-chat-fix", displayPath: "~/.worktrees/pi-chat/fix", name: "pi-chat-fix", exists: true, modified: 0, sessionCount: 0, sessions: [], repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "fix/reconnect", detached: false, primary: false } },
+  ],
+};
+
 function show(busy: boolean) {
   render(
     <MantineProvider>
@@ -62,6 +70,35 @@ afterEach(() => {
 });
 
 describe("ProjectSessionDrawer", () => {
+  it("groups linked worktrees and shows the selected path in the session panel", () => {
+    render(
+      <MantineProvider>
+        <ProjectSessionDrawer
+          opened
+          onClose={vi.fn()}
+          state={{ ...initialChatState, status: "idle", sessionId: "current", projectPath: "/work/pi-chat-feature" }}
+          catalogue={groupedCatalogue}
+          busy={false}
+          showDisplayPath={true}
+          openSession={openSession}
+          newSession={vi.fn()}
+          deleteSession={vi.fn()}
+          onOpenFolder={onOpenFolder}
+        />
+      </MantineProvider>,
+    );
+
+    expect(screen.getByText("pi-chat")).toBeTruthy();
+    expect(screen.getByText("feat/worktree-projects-panel")).toBeTruthy();
+    expect(screen.getByText("fix/reconnect")).toBeTruthy();
+    expect(screen.getByText("~/.worktrees/pi-chat/feature")).toBeTruthy();
+    expect(screen.queryByText("~/.worktrees/pi-chat/fix")).toBeNull();
+
+    fireEvent.click(screen.getByText("fix/reconnect"));
+    expect(screen.getByText("~/.worktrees/pi-chat/fix")).toBeTruthy();
+    expect(screen.getByText("No sessions in this checkout yet.")).toBeTruthy();
+  });
+
   it("opens the server folder picker while an agent is running", () => {
     show(true);
     fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
@@ -80,8 +117,8 @@ describe("ProjectSessionDrawer", () => {
   it("moves the highlight to the clicked project", () => {
     show(false);
 
-    const current = screen.getByText("~/work/current").closest("a")!;
-    const other = screen.getByText("~/work/other").closest("a")!;
+    const current = screen.getAllByText("~/work/current")[0]!.closest("a")!;
+    const other = screen.getAllByText("~/work/other")[0]!.closest("a")!;
     expect(current.getAttribute("data-active")).toBe("true");
 
     fireEvent.click(other);

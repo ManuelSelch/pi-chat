@@ -111,6 +111,13 @@ export const chatSessionSummarySchema = z.object({
   messageCount: z.number().int().nonnegative(),
 });
 
+export const chatWorktreeSummarySchema = z.object({
+  branch: z.string().min(1).optional(),
+  commit: z.string().min(1).optional(),
+  detached: z.boolean(),
+  primary: z.boolean(),
+});
+
 export const chatProjectSummarySchema = z.object({
   path: z.string().min(1),
   displayPath: z.string().min(1),
@@ -119,6 +126,9 @@ export const chatProjectSummarySchema = z.object({
   modified: z.number(),
   sessionCount: z.number().int().nonnegative(),
   sessions: z.array(chatSessionSummarySchema),
+  repositoryPath: z.string().min(1).optional(),
+  repositoryName: z.string().min(1).optional(),
+  worktree: chatWorktreeSummarySchema.optional(),
 });
 
 export const projectCatalogueSchema = z.object({ projects: z.array(chatProjectSummarySchema) });

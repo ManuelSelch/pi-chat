@@ -3,8 +3,8 @@ import { Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text } from "
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
 import { DialogActions } from "../../ui/DialogActions.js";
-import { IconFolder, IconFolderOff, IconPlus } from "@tabler/icons-react";
-import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
+import { IconChevronDown, IconChevronRight, IconFolder, IconFolderOff, IconGitFork, IconPlus } from "@tabler/icons-react";
+import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
 import { SessionRow } from "./SessionRow.js";
 import type { ChatState } from "../../app/state/chat-state.js";
 
@@ -23,10 +23,53 @@ interface ProjectSessionDrawerProps {
   onOpenFolder: () => void;
 }
 
+interface ProjectGroup {
+  key: string;
+  name: string;
+  projects: ChatProjectSummary[];
+}
+
+function projectGroups(projects: ChatProjectSummary[]): ProjectGroup[] {
+  const grouped = new Map<string, ChatProjectSummary[]>();
+  const standalone: ChatProjectSummary[] = [];
+  for (const project of projects) {
+    if (project.repositoryPath) {
+      const entries = grouped.get(project.repositoryPath) ?? [];
+      entries.push(project);
+      grouped.set(project.repositoryPath, entries);
+    } else standalone.push(project);
+  }
+
+  const groups: ProjectGroup[] = [];
+  for (const [repositoryPath, entries] of grouped) {
+    const sorted = [...entries].sort((a, b) => {
+      if (a.worktree?.primary !== b.worktree?.primary) return a.worktree?.primary ? -1 : 1;
+      return b.modified - a.modified || a.name.localeCompare(b.name);
+    });
+    // A repository with only one known checkout keeps the original flat row.
+    if (sorted.length === 1) standalone.push(sorted[0]!);
+    else groups.push({ key: repositoryPath, name: sorted[0]?.repositoryName ?? sorted[0]?.name ?? repositoryPath, projects: sorted });
+  }
+
+  for (const project of standalone) groups.push({ key: project.path, name: project.name, projects: [project] });
+  return groups.sort((a, b) => groupModified(b) - groupModified(a) || a.name.localeCompare(b.name));
+}
+
+function groupModified(group: ProjectGroup): number {
+  return Math.max(...group.projects.map((project) => project.modified), 0);
+}
+
+function checkoutLabel(project: ChatProjectSummary): string {
+  if (project.worktree?.branch) return project.worktree.branch;
+  if (project.worktree?.detached && project.worktree.commit) return `detached ${project.worktree.commit.slice(0, 7)}`;
+  return project.name;
+}
+
 export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, showDisplayPath, openSession, newSession, deleteSession, onOpenFolder }: ProjectSessionDrawerProps) {
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
-  // Deleting moves a file to the trash, so it is always confirmed first.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
+  const groups = projectGroups(catalogue.projects);
   const activeProject = catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? catalogue.projects[0];
 
   return (
@@ -35,24 +78,14 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
       onClose={onClose}
       title="Projects and sessions"
       size="lg"
-      // The lists scroll inside the drawer, so the body has to claim the height
-      // left over by the header instead of guessing a viewport fraction.
       styles={{
         content: { display: "flex", flexDirection: "column" },
         body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
       }}
     >
-      <Modal
-        opened={Boolean(pendingDelete)}
-        onClose={() => setPendingDelete(undefined)}
-        title="Delete session?"
-        centered
-        size="sm"
-      >
+      <Modal opened={Boolean(pendingDelete)} onClose={() => setPendingDelete(undefined)} title="Delete session?" centered size="sm">
         <Stack gap="md">
-          <Text size="sm">
-            “{pendingDelete?.title}” moves to the trash. An open session closes its tab first.
-          </Text>
+          <Text size="sm">“{pendingDelete?.title}” moves to the trash. An open session closes its tab first.</Text>
           <DialogActions
             cancelLabel="Keep"
             confirmLabel="Delete"
@@ -66,39 +99,59 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
-            {catalogue.projects.map((project) => (
-              <NavLink
-                key={project.path}
-                // The highlight follows the browsed project, not the running
-                // one: clicking a project has to visibly move the selection.
-                active={project.path === activeProject?.path}
-                disabled={!project.exists}
-                label={project.name}
-                leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
-                description={showDisplayPath ? project.displayPath : undefined}
-                rightSection={
-                  <Group gap={4} wrap="nowrap">
-                    {project.path === state.projectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}
-                    <StatusBadge>{project.sessionCount}</StatusBadge>
-                  </Group>
-                }
-                onClick={() => setSelectedProject(project.path)}
-              />
-            ))}
-
-            <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>
-              Open folder
-            </Button>
+            {groups.map((group) => {
+              const nested = group.projects.length > 1;
+              const open = expanded[group.key] ?? group.projects.some((project) => project.path === state.projectPath);
+              const count = group.projects.reduce((total, project) => total + project.sessionCount, 0);
+              const current = group.projects.some((project) => project.path === state.projectPath);
+              if (!nested) {
+                const project = group.projects[0]!;
+                return (
+                  <NavLink
+                    key={group.key}
+                    active={project.path === activeProject?.path}
+                    disabled={!project.exists}
+                    label={project.name}
+                    leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
+                    description={showDisplayPath ? project.displayPath : undefined}
+                    rightSection={<Group gap={4} wrap="nowrap">{project.path === state.projectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{project.sessionCount}</StatusBadge></Group>}
+                    onClick={() => setSelectedProject(project.path)}
+                  />
+                );
+              }
+              return (
+                <Stack key={group.key} gap={0}>
+                  <NavLink
+                    label={group.name}
+                    leftSection={open ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+                    rightSection={<Group gap={4} wrap="nowrap">{current ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{count}</StatusBadge></Group>}
+                    onClick={() => setExpanded((value) => ({ ...value, [group.key]: !open }))}
+                  />
+                  {open ? group.projects.map((project) => (
+                    <NavLink
+                      key={project.path}
+                      active={project.path === activeProject?.path}
+                      disabled={!project.exists}
+                      label={<Group gap={6} wrap="nowrap">{project.path === state.projectPath ? <Text component="span" c="blue" size="sm" fw={700} aria-label="current checkout">●</Text> : null}<Text size="sm" truncate>{checkoutLabel(project)}</Text>{project.worktree?.primary ? <StatusBadge>primary</StatusBadge> : null}</Group>}
+                      leftSection={project.worktree?.primary ? <IconFolder size={16} /> : <IconGitFork size={16} />}
+                      rightSection={<StatusBadge>{project.sessionCount}</StatusBadge>}
+                      pl="xl"
+                      onClick={() => setSelectedProject(project.path)}
+                    />
+                  )) : null}
+                </Stack>
+              );
+            })}
+            <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>Open folder</Button>
           </Stack>
         </ScrollArea>
         <ScrollArea h="100%" flex={1}>
           {activeProject ? (
             <Stack gap="xs">
               <Text fw={650}>{activeProject.name}</Text>
-              <Button variant="default" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>
-                New session
-              </Button>
-              {activeProject.sessions.map((session) => (
+              {showDisplayPath ? <Text size="xs" c="dimmed">{activeProject.displayPath}</Text> : null}
+              <Button variant="default" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>New session</Button>
+              {activeProject.sessions.length === 0 ? <Text c="dimmed" size="sm" mt="sm">No sessions in this checkout yet.</Text> : activeProject.sessions.map((session) => (
                 <SessionRow
                   key={session.path}
                   session={session}
@@ -110,9 +163,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 />
               ))}
             </Stack>
-          ) : (
-            <Text c="dimmed">No Pi sessions found yet.</Text>
-          )}
+          ) : <Text c="dimmed">No Pi sessions found yet.</Text>}
         </ScrollArea>
       </Group>
     </Drawer>
