@@ -1,13 +1,13 @@
 import { memo, useState } from "react";
 import { Box, Button, Center, Paper, Stack, Text, Title } from "@mantine/core";
-import { Notice } from "../ui/Notice.js";
+import { Notice } from "../../ui/Notice.js";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
-import { Markdown } from "./MarkdownLazy.js";
+import { Markdown } from "../markdown/MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
-import { ToolCard } from "./ToolCard.js";
-import type { ChatMessage } from "../../shared/protocol.js";
-import type { ChatState } from "./chat-state.js";
-import { THEME } from "../theme.js";
+import { ToolCard } from "../tools/ToolCard.js";
+import type { ChatMessage } from "../../../shared/protocol.js";
+import type { ChatState } from "../chat-state.js";
+import { THEME } from "../../theme.js";
 
 /**
  * Rendering markdown, KaTeX, and highlighting is expensive, and a long session

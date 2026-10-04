@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AppShell } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../dialogs/confirm/ConfirmDialogProvider.js";
-import { MessageListContainer } from "../chat/MessageListContainer.js";
+import { MessageListContainer } from "../chat/transcript/MessageListContainer.js";
 import { placeWidgets, WidgetDock, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
 import { AppControllerProvider, useAppController } from "../state/AppControllerContext.js";
 import { atHome } from "../chat/app-state.js";
@@ -14,7 +14,7 @@ import { Home } from "../home/Home.js";
 import { SettingsContainer } from "../settings/SettingsContainer.js";
 import { TabBar } from "../tabs/TabBar.js";
 import { HeaderContainer } from "../header/HeaderContainer.js";
-import { FooterContainer } from "../footer/FooterContainer.js";
+import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "../overlays/OverlayController.js";
 import { GlobalKeyboardController } from "../shortcuts/GlobalKeyboardController.js";
 
@@ -77,7 +77,7 @@ function AppContent() {
         )}
       </AppShell.Main>
 
-      <FooterContainer onHeightChange={setFooterHeight} />
+      <ComposerContainer onHeightChange={setFooterHeight} />
     </AppShell>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commandQuery, filterCommands, menuItems } from "../src/web/commands/command-menu.js";
+import { commandQuery, filterCommands, menuItems } from "../src/web/chat/composer/command-menu.js";
 
 const commands = [
   { name: "compact", description: "Compact the session" },

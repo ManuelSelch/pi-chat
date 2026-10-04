@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Markdown } from "../src/web/chat/Markdown.js";
+import { Markdown } from "../src/web/chat/markdown/Markdown.js";
 
 function withMantine(children: ReactNode) {
   return <MantineProvider>{children}</MantineProvider>;
@@ -91,7 +91,7 @@ describe("Markdown rendering", () => {
 
 describe("ToolCard rendering", () => {
   it("is collapsed by default and expands to show arguments and result", async () => {
-    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/tools/ToolCard.js");
     render(withMantine(
       <ToolCard
         tool={{ toolCallId: "c1", name: "bash", status: "success", argsText: '{"command":"ls"}', outputText: "README.md" }}
@@ -108,7 +108,7 @@ describe("ToolCard rendering", () => {
   });
 
   it("marks errors visually", async () => {
-    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/tools/ToolCard.js");
     render(withMantine(<ToolCard tool={{ toolCallId: "c2", name: "edit", status: "error", outputText: "permission denied" }} />));
     const card = screen.getByTestId("tool-card");
     expect(card.className).toContain("error");
@@ -118,7 +118,7 @@ describe("ToolCard rendering", () => {
 
 describe("tool path in the collapsed bar", () => {
   it("shows the path for edit and write calls", async () => {
-    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/tools/ToolCard.js");
     render(withMantine(
       <ToolCard tool={{ toolCallId: "p1", name: "edit", status: "success", argsText: '{"path":"src/web/chat/ToolCard.tsx","edits":[]}' }} />,
     ));
@@ -127,7 +127,7 @@ describe("tool path in the collapsed bar", () => {
   });
 
   it("shows the command a bash call is running", async () => {
-    const { ToolCard } = await import("../src/web/chat/ToolCard.js");
+    const { ToolCard } = await import("../src/web/chat/tools/ToolCard.js");
     render(withMantine(
       <ToolCard tool={{ toolCallId: "p2", name: "bash", status: "success", argsText: '{"command":"npm test","timeout":10}' }} />,
     ));
@@ -136,7 +136,7 @@ describe("tool path in the collapsed bar", () => {
   });
 
   it("reads a subject out of a half-streamed fragment and keeps it to one line", async () => {
-    const { toolSubject } = await import("../src/web/chat/ToolCard.js");
+    const { toolSubject } = await import("../src/web/chat/tools/ToolCard.js");
 
     expect(toolSubject({ toolCallId: "p3", name: "bash", status: "running", argsText: '{"command":"git log --one' }))
       .toBe("git log --one");
@@ -146,7 +146,7 @@ describe("tool path in the collapsed bar", () => {
   });
 
   it("falls back to the first string argument for an unknown tool", async () => {
-    const { toolSubject } = await import("../src/web/chat/ToolCard.js");
+    const { toolSubject } = await import("../src/web/chat/tools/ToolCard.js");
 
     expect(toolSubject({ toolCallId: "p7", name: "fetch", status: "success", argsText: '{"url":"https://example.com"}' }))
       .toBe("https://example.com");

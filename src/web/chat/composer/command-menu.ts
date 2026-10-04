@@ -1,4 +1,4 @@
-import type { SlashCommand } from "../../shared/protocol.js";
+import type { SlashCommand } from "../../../shared/protocol.js";
 
 /**
  * A menu row is either a Pi slash command (inserted into the composer) or an

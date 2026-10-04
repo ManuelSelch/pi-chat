@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import { afterEach, expect, it } from "vitest";
-import { ToolCard } from "../src/web/chat/ToolCard.js";
+import { ToolCard } from "../src/web/chat/tools/ToolCard.js";
 import type { ToolCard as Card } from "../src/shared/protocol.js";
 afterEach(cleanup);
 function show(text: string, status: Card["status"] = "success", truncated = false) {
@@ -13,11 +13,11 @@ function open() {
   card.open = true;
   fireEvent(card, new Event("toggle"));
 }
-it("renders Markdown only after expansion, with no active HTML or remote images", () => {
+it("renders Markdown only after expansion, with no active HTML or remote images", async () => {
   const { container } = show("# Document\n\n- item\n\n```js\nconst x = 1;\n```\n\n![picture](https://example.com/a.png)\n\n<script>bad()</script>\n\n[bad](javascript:alert(1))");
   expect(screen.queryByRole("heading", { name: "Document" })).toBeNull();
   open();
-  expect(screen.getByRole("heading", { name: "Document" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Document" })).toBeTruthy();
   expect(container.querySelector("li")?.textContent).toBe("item");
   expect(container.querySelector("pre code")).toBeTruthy();
   expect(container.querySelector("img, script, a[href^='javascript:']")).toBeNull();

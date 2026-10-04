@@ -1,15 +1,15 @@
 import { Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
-import { THEME } from "../theme.js";
-import { Notice } from "../ui/Notice.js";
+import { THEME } from "../../theme.js";
+import { Notice } from "../../ui/Notice.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
-import { CommandMenu } from "../commands/CommandMenu.js";
-import type { MenuItem } from "../commands/command-menu.js";
-import { Footer } from "../chat/Footer.js";
-import { WidgetPanel } from "../chat/WidgetPanel.js";
-import { Slot } from "../extensions/Slot.js";
-import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../shared/protocol.js";
+import { CommandMenu } from "./CommandMenu.js";
+import type { MenuItem } from "./command-menu.js";
+import { Footer } from "../Footer.js";
+import { WidgetPanel } from "../WidgetPanel.js";
+import { Slot } from "../../extensions/Slot.js";
+import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../../shared/protocol.js";
 
-export interface FooterViewModel {
+export interface ComposerViewModel {
   home: boolean;
   connection: "connecting" | "open" | "superseded";
   connecting: boolean;
@@ -24,7 +24,7 @@ export interface FooterViewModel {
   extensions: { buttons: PiChatButton[]; badges: PiChatBadge[] };
 }
 
-export interface FooterViewActions {
+export interface ComposerViewActions {
   takeControl(): void;
   dismissError(): void;
   changeInput(value: string): void;
@@ -35,14 +35,14 @@ export interface FooterViewActions {
   runExtensionAction(actionId: string): void;
 }
 
-interface FooterViewProps {
-  model: FooterViewModel;
-  actions: FooterViewActions;
+interface ComposerViewProps {
+  model: ComposerViewModel;
+  actions: ComposerViewActions;
   footerRef: RefObject<HTMLElement | null>;
   composerRef: RefObject<HTMLTextAreaElement | null>;
 }
 
-export function FooterView({ model, actions, footerRef, composerRef }: FooterViewProps) {
+export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
   const { home, connection, connecting, error, busy, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
   const menuOpen = matches.length > 0;
 

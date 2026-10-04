@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { CommandMenu } from "../src/web/commands/CommandMenu.js";
+import { CommandMenu } from "../src/web/chat/composer/CommandMenu.js";
 import { QuickOpen } from "../src/web/quickopen/QuickOpen.js";
 
 afterEach(cleanup);

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Group, Text } from "@mantine/core";
 import { IconChevronRight } from "@tabler/icons-react";
-import { Markdown } from "./MarkdownLazy.js";
-import { THEME } from "../theme.js";
+import { Markdown } from "../markdown/MarkdownLazy.js";
+import { THEME } from "../../theme.js";
 
 /**
  * The model's reasoning for one turn.

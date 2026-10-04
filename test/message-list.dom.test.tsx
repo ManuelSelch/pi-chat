@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { MantineProvider } from "@mantine/core";
-import { MessageList } from "../src/web/chat/MessageList.js";
+import { MessageList } from "../src/web/chat/transcript/MessageList.js";
 import type { ChatMessage } from "../src/shared/protocol.js";
 
 afterEach(cleanup);
@@ -17,7 +17,7 @@ function renderMessages(messages: ChatMessage[], draft?: { runId: string; text: 
 }
 
 describe("MessageList", () => {
-  it("renders pi.sendMessage custom messages as distinct extension cards", () => {
+  it("renders pi.sendMessage custom messages as distinct extension cards", async () => {
     const { container } = renderMessages([
       {
         id: "custom-1",
@@ -33,15 +33,15 @@ describe("MessageList", () => {
     expect(card.style.borderLeft).toBe("3px solid var(--mantine-primary-color-filled)");
     expect(card.style.background).toBe("");
     expect(screen.getByText("pi-memory-md-check").style.textTransform).toBe("uppercase");
-    expect(screen.getByRole("heading", { name: "Memory Check" })).not.toBeNull();
+    expect(await screen.findByRole("heading", { name: "Memory Check" })).not.toBeNull();
     expect(container.querySelector("article[data-testid='custom-message'] .markdown")).not.toBeNull();
   });
 
-  it("collapses the reasoning of a finished message and leaves the answer visible", () => {
+  it("collapses the reasoning of a finished message and leaves the answer visible", async () => {
     renderMessages([{ id: "a", role: "assistant", text: "The answer", thinking: "The reasoning" }]);
     const panel = screen.getByTestId("thinking-panel") as HTMLDetailsElement;
     expect(panel.open).toBe(false);
-    expect(screen.getByText("The answer")).not.toBeNull();
+    expect(await screen.findByText("The answer")).not.toBeNull();
   });
 
   it("opens the reasoning while it is still streaming", () => {

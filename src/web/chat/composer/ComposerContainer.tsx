@@ -1,22 +1,22 @@
 import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
-import type { Tab } from "../../shared/protocol.js";
-import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "../commands/command-menu.js";
-import { atHome, visibleError } from "../chat/app-state.js";
-import { useAppController } from "../state/AppControllerContext.js";
-import { useConfirmDialog } from "../dialogs/confirm/ConfirmDialogProvider.js";
-import { useOverlays } from "../overlays/OverlayController.js";
-import { clearInputIntent } from "../app/shortcuts.js";
-import { placeWidgets, WIDGET_DOCK_QUERY } from "../chat/WidgetPanel.js";
-import { FooterView } from "./FooterView.js";
+import type { Tab } from "../../../shared/protocol.js";
+import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "./command-menu.js";
+import { atHome, visibleError } from "../app-state.js";
+import { useAppController } from "../../state/AppControllerContext.js";
+import { useConfirmDialog } from "../../dialogs/confirm/ConfirmDialogProvider.js";
+import { useOverlays } from "../../overlays/OverlayController.js";
+import { clearInputIntent } from "../../app/shortcuts.js";
+import { placeWidgets, WIDGET_DOCK_QUERY } from "../WidgetPanel.js";
+import { ComposerView } from "./ComposerView.js";
 
-interface FooterContainerProps {
+interface ComposerContainerProps {
   onHeightChange: (height: number) => void;
 }
 
 const DEFAULT_FOOTER_HEIGHT = 170;
 
-export function FooterContainer({ onHeightChange }: FooterContainerProps) {
+export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const chat = useAppController();
   const overlays = useOverlays();
   const { confirm } = useConfirmDialog();
@@ -150,7 +150,7 @@ export function FooterContainer({ onHeightChange }: FooterContainerProps) {
   }, [home, onHeightChange]);
 
   return (
-    <FooterView
+    <ComposerView
       model={{
         home,
         connection: app.connection,
