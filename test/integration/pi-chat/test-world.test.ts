@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it, vi } from "vitest";
 import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
-import { TestWorld } from "./support/pi-chat/test-world.js";
+import { TestWorld } from "../../support/pi-chat/test-world.js";
 
 let world: TestWorld | undefined;
 afterEach(async () => {

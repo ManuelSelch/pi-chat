@@ -1,8 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
-import { BrowserClient } from "./support/pi-chat/browser-client.js";
-import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
-import { PiChatDriver } from "./support/pi-chat/pi-chat-driver.js";
+import { BrowserClient } from "../../support/pi-chat/browser-client.js";
+import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
+import { PiChatDriver } from "../../support/pi-chat/pi-chat-driver.js";
 
 let app: PiChatDriver | undefined;
 afterEach(async () => {

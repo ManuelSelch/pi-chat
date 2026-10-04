@@ -1,5 +1,5 @@
 import { afterEach, it } from "vitest";
-import { PiChatDriver } from "./support/pi-chat/pi-chat-driver.js";
+import { PiChatDriver } from "../../support/pi-chat/pi-chat-driver.js";
 
 let app: PiChatDriver | undefined;
 afterEach(async () => { await app?.dispose(); app = undefined; });
