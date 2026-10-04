@@ -7,14 +7,9 @@ import { WidgetDock } from "../extensions/widgets/WidgetDock.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../extensions/widgets/widget-placement.js";
 import { AppControllerProvider, useAppController } from "./AppControllerContext.js";
 import { atHome } from "./state/app-state.js";
-import { ProjectSessionContainer } from "../sessions/projects/ProjectSessionContainer.js";
-import { FolderPickerContainer } from "../sessions/folders/FolderPickerContainer.js";
-import { Dialogs } from "../dialogs/Dialogs.js";
-import { QuickOpenContainer } from "../sessions/quick-open/QuickOpenContainer.js";
+import { AppOverlays } from "./overlays/AppOverlays.js";
 import { Home } from "../sessions/home/Home.js";
-import { SettingsContainer } from "../settings/SettingsContainer.js";
-import { TabBar } from "../sessions/tabs/TabBar.js";
-import { HeaderContainer } from "../header/HeaderContainer.js";
+import { HeaderContainer } from "./shell/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
@@ -52,17 +47,7 @@ function AppContent() {
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}
 
-      <Dialogs
-        prompt={state.prompts.at(-1)}
-        onRespondToPrompt={chat.respondToPrompt}
-        closeTab={chat.closeTab}
-        renameSession={chat.renameSession}
-      />
-      <QuickOpenContainer />
-
-      <ProjectSessionContainer />
-      <FolderPickerContainer />
-      <SettingsContainer />
+      <AppOverlays />
 
       <AppShell.Main pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
         {home ? (

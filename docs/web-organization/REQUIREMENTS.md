@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; steps 1 through 6 are complete. Final app composition (step 7) remains.
+Status: implemented; all seven steps are complete.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -69,6 +69,16 @@ Completed step 4's widget split in a separate stage:
 - Verified extension presentation only depends on other extension modules, shared UI, and shared protocol types. Rendering, placement algorithm, and dock geometry match their pre-extraction implementations.
 
 Verification: all 49 test files / 392 tests pass, TypeScript and production build pass, and whitespace checks pass. No browser smoke was run for this extraction; DOM tests cover rendering, collapse/expand, dock layout, and wide/narrow placement policy.
+
+Completed step 7's app composition:
+
+- Moved the header container/view into `app/shell/`, retaining their APIs and behavior.
+- Replaced `dialogs/Dialogs.tsx` with `app/overlays/AppOverlays.tsx`, assembling runtime prompts, close/rename dialogs, quick-open, projects, folders, and settings in their original relative order.
+- Kept provider nesting, global keyboard routing, composer mounting, Home/transcript selection, measured spacing, and widget docking unchanged. Settings remains mounted while closed so its chime hook stays active.
+- Removed the legacy header/dialogs directories; the only top-level owners are now `app`, `chat`, `sessions`, `settings`, `extensions`, and `ui`. The entry point and lazy Markdown loading are unchanged.
+- Added composition tests for overlay order, persistent settings mounting, and prompt/session action wiring. Documented the owners and dependency boundaries in the README.
+
+Verification: all 50 test files / 395 tests pass, TypeScript and production build pass, and whitespace checks pass. Relative-import boundary inspection, including type-only imports, found no violations. Managed Chromium smoke against an isolated fake-runtime production server verified Home/new-session navigation, folder selection from Projects, independent tab drafts, quick-open and Escape dismissal, settings, runtime confirmation, composer suggestions, transcript rendering, wide dock/narrow inline widgets (390px iframe), reload, and take-control between browser tabs. Busy-run abort, long-transcript autoscroll, and app restart confirmations were covered by existing automated tests rather than this browser smoke.
 
 ## Problem and goals
 
@@ -298,7 +308,7 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, session navigation, settings preferences, and extension presentation. Step 7 remains proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, session navigation, settings preferences, extension presentation, and final app composition.
 - Retain the `settings/preferences/` folder as explicitly requested; chime playback helpers are colocated with the browser preference they implement.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.
