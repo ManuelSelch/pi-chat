@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
-import { toolCardFromCall, mergeEntriesById } from "../src/server/runtime/pi/pi-runtime-adapter.js";
+import { toolCardFromCall } from "../src/server/runtime/pi/tool-mapping.js";
+import { mergeEntriesById } from "../src/server/runtime/pi/message-mapping.js";
 import { initialChatState, reduceServerMessage } from "../src/web/app/state/chat-state.js";
 import { PROTOCOL_VERSION } from "../src/shared/protocol.js";
 
