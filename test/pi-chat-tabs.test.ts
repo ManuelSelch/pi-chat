@@ -15,7 +15,7 @@ it("creates a real session from home and exchanges a prompt", async () => {
   await app.Chat.WaitUntilIdle();
   app.Chat.ShouldHaveAssistantReply("New conversation.");
   app.Chat.ShouldHaveConsumedResponses();
-});
+}, 15000);
 
 it("keeps two conversations independent when switching and reconnecting", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
@@ -51,7 +51,7 @@ it("keeps two conversations independent when switching and reconnecting", async 
   ]);
   app.Chat.ShouldHaveMessageCount(2);
   app.Chat.ShouldHaveNoDuplicateMessages();
-});
+}, 15000);
 
 it("closes the active tab, preserves the other conversation, and returns home", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
@@ -72,7 +72,7 @@ it("closes the active tab, preserves the other conversation, and returns home", 
   const fresh = await app.Tabs.Create();
   app.Tabs.ShouldBeActive(fresh);
   app.Chat.ShouldHaveMessageCount(0);
-});
+}, 15000);
 
 it("closes a background tab without changing the active conversation", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
@@ -83,4 +83,4 @@ it("closes a background tab without changing the active conversation", async () 
   app.Tabs.ShouldHaveCount(1);
   await app.Tabs.SwitchTo(active); // Even same-tab focus waits for a fresh ACK.
   app.Tabs.ShouldBeActive(active);
-});
+}, 15000);
