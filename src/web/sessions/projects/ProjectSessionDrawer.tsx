@@ -32,8 +32,15 @@ interface ProjectGroup {
 function projectGroups(projects: ChatProjectSummary[]): ProjectGroup[] {
   // Worktree discovery reports every checkout, including ones Pi has never
   // opened. Keep those in the catalogue for discovery, but do not make empty
-  // checkouts compete for space in the projects panel.
-  const visibleProjects = projects.filter((project) => !project.worktree || project.sessions.length > 0);
+  // checkouts compete for space in the projects panel. The primary checkout
+  // remains visible when the repository has linked worktrees, so the
+  // repository still has a stable "main" entry.
+  const visibleProjects = projects.filter((project) => {
+    if (!project.worktree || project.sessions.length > 0) return true;
+    return project.worktree.primary && projects.some((candidate) => (
+      candidate.path !== project.path && candidate.repositoryPath === project.repositoryPath && candidate.worktree
+    ));
+  });
   const grouped = new Map<string, ChatProjectSummary[]>();
   const standalone: ChatProjectSummary[] = [];
   for (const project of visibleProjects) {

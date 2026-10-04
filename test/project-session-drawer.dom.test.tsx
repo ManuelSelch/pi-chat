@@ -38,7 +38,7 @@ const onOpenFolder = vi.fn();
 
 const groupedCatalogue: ProjectCatalogue = {
   projects: [
-    { ...catalogue.projects[0]!, path: "/work/pi-chat", name: "pi-chat", repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "main", detached: false, primary: true } },
+    { ...catalogue.projects[0]!, path: "/work/pi-chat", name: "pi-chat", sessionCount: 0, sessions: [], repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "main", detached: false, primary: true } },
     { ...catalogue.projects[1]!, path: "/work/pi-chat-feature", name: "pi-chat-feature", displayPath: "~/.worktrees/pi-chat/feature", repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "feat/worktree-projects-panel", detached: false, primary: false } },
     { path: "/work/pi-chat-fix", displayPath: "~/.worktrees/pi-chat/fix", name: "pi-chat-fix", exists: true, modified: 0, sessionCount: 0, sessions: [], repositoryPath: "/work/pi-chat", repositoryName: "pi-chat", worktree: { branch: "fix/reconnect", detached: false, primary: false } },
   ],
