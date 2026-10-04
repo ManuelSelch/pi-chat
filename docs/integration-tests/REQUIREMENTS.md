@@ -2,7 +2,13 @@
 
 ## Status
 
-Driver implementation remains proposed. The commit-pinned GitHub ManuelSelch fork of
+The first `PiChatDriver` slice is implemented: `Chat` and `Browser` drivers cover
+prompt/reply, reconnect restoration, and repeated identical prompts in the normal
+Vitest suite. Setup, cleanup, response scripts, client reducers, and bounded
+message waits live in shared test support. See [DRIVERS.md](DRIVERS.md). Tabs,
+projects, extensions, and the larger first milestone remain planned.
+
+The commit-pinned GitHub ManuelSelch fork of
 `@marcfargas/pi-test-harness@0.6.1` now passes a compatibility spike with Pi
 0.85.1: a real SDK session wrapped in `AgentSessionRuntime`, attached through
 `PiRuntimeAdapter.fromRuntime`, and driven over the real Pi Chat WebSocket
@@ -72,7 +78,8 @@ copying WinForms concepts literally.
 1. Provide a reusable `PiChatDriver` root object, exposed as `app` in tests.
 2. Expose semantic feature drivers for user-visible product behavior.
 3. Exercise the real server, application service, transport, protocol schemas,
-   and fake runtime boundary together, while hiding those implementation details.
+   and real Pi runtime with a deterministic model boundary together, while hiding
+   those implementation details.
 4. Keep test scenarios readable as imperative user workflows.
 5. Make asynchronous behavior deterministic and failures diagnosable.
 6. Keep the driver API independent of whether the test is backed by a protocol
@@ -220,7 +227,7 @@ still have these private collaborators:
 ```text
 PiChatDriver       domain-specific operations used by tests
 Client adapter     receives browser-facing state and sends user commands
-Test world         server, fake runtime, temporary resources, cleanup
+Test world         server, harness-backed real Pi runtime, temporary resources, cleanup
 ```
 
 The client adapter is what was previously described as a “protocol driver”. It is
@@ -274,7 +281,7 @@ Write ordinary Vitest tests using the drivers. Suggested first scenarios:
    - send separate prompts;
    - switch tabs and assert each transcript belongs to the correct session.
 4. **Abort a running prompt**
-   - configure a controlled long-running fake response;
+   - configure a controlled long-running mocked model response;
    - call `app.Chat.Abort()`;
    - assert the runtime settles and no late output corrupts the transcript.
 5. **Extension UI flow**
@@ -314,7 +321,7 @@ Write ordinary Vitest tests using the drivers. Suggested first scenarios:
    - support prompt, streaming completion, abort, transcript projection, and
      semantic assertions;
    - extend the harness only when a concrete Pi Chat scenario requires a missing capability.
-6. **Implement `ProjectDriver` and `ExtensionDriver`
+6. **Implement `ProjectDriver` and `ExtensionDriver`**
    - cover folder errors and extension prompt/widget/action flows;
    - ensure extension fixtures are explicit and isolated.
 7. **Add the initial integration scenarios**
@@ -373,17 +380,16 @@ The first milestone is complete when:
    close codes, session-registry operations, and protocol message types stay
    inside the driver implementation or low-level transport tests.
 
-5. **Harness compatibility verification:** resolve the observed import mismatch
-   (`@earendil-works/pi-ai` versus `@earendil-works/pi-ai/compat`) and then
-   confirm that the harness can create the exact Pi runtime shape required by
-   `PiRuntimeAdapter`. This is a validation task, not an architectural choice.
+5. **Verified:** the pinned fork fixes the import/auth/stream function mismatches.
+   Its real session is wrapped in `AgentSessionRuntime` and attached via
+   `PiRuntimeAdapter.fromRuntime()`. This runs in normal integration tests.
 6. **Runtime factory seam:** decide whether the harness-backed runtime is added
    through the existing `RuntimeAdapterFactory`, a new test-only factory helper,
    or a small adapter around the harness's `TestSession`.
-7. **Response configuration API:** decide which domain-level response setup the
-   driver exposes, for example `PiChatDriver.start({ assistant: ... })` or
-   `app.Chat.UseResponses(...)`. The harness's `when/calls/says` playbook API
-   should remain below the Pi Chat driver boundary.
+7. **Implemented response configuration:**
+   `PiChatDriver.start({ responses: [{ prompt, reply }] })` translates domain
+   scripts to harness playbooks internally. Missing/mismatched prompts fail
+   before submission; `Chat.ShouldHaveConsumedResponses()` asserts completion.
 8. **Client coverage level:** decide whether the first milestone uses only a
    private browser-facing WebSocket client, or also mounts the React application
    for a small number of DOM-backed user flows. The protocol client should be

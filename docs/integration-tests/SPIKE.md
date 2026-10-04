@@ -1,7 +1,8 @@
 # Harness compatibility spike
 
 Verified against the commit-pinned GitHub ManuelSelch fork and Pi 0.85.1. This is a
-standalone spike, not the final `PiChatDriver` API or part of the default suite.
+standalone smoke entry point now delegates to `PiChatDriver`. Equivalent
+workflows run in the default Vitest suite; see [DRIVERS.md](DRIVERS.md).
 
 ## Reproduce
 
@@ -35,8 +36,9 @@ than allowing npm to select an incompatible newer release.
 - Cleanup of sockets, server, runtime, and harness temporary directory.
 - Event-driven bounded waits without polling or sleeps.
 
-Latest checks: harness 69 tests passed; Pi Chat 401 tests passed; Pi Chat build
-passed. The dependency graph is now declared in package.json/package-lock.json.
+The original spike passed with 69 harness tests and 401 Pi Chat tests. The driver
+slice adds default-suite workflow and infrastructure tests. The dependency graph
+is declared in package.json/package-lock.json.
 
 ## Implementation seams
 
@@ -55,5 +57,5 @@ explicitly throws because replacement is outside this spike.
 
 Tabs/new sessions/runtime replacement, tools driven through Pi Chat, extension UI
 integration, abort/recovery, persisted session reopening, browser React rendering,
-and the final domain driver are not covered here. The spike restores one live
+and broader feature drivers are not covered here. The spike restores one live
 session's transcript by reconnecting, not by restarting the application.
