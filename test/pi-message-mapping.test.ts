@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, sessionStatsMarkdown, toChatMessage, toChatMessages } from "../src/server/runtime/pi/pi-runtime-adapter.js";
+import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, toChatMessage, toChatMessages } from "../src/server/runtime/pi/message-mapping.js";
+import { sessionStatsMarkdown } from "../src/server/runtime/pi/session-stats.js";
 
 describe("Pi message mapping", () => {
   it("gives one message the same id live and in a later snapshot", () => {

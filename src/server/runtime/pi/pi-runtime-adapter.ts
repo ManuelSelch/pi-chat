@@ -1,56 +1,26 @@
 import {
-  createAgentSessionFromServices,
-  createAgentSessionRuntime,
-  createAgentSessionServices,
-  getAgentDir,
-  resolveCliModel,
-  resolveModelScopeWithDiagnostics,
   SessionManager,
   type AgentSessionRuntime,
-  type AgentSessionServices,
-  type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../../../shared/protocol.js";
+import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
 
-/** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
-type ModelOverride = Partial<
-  Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
->;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
+import { sessionStatsMarkdown, type SessionStatsView } from "./session-stats.js";
+import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, textFromContent, toChatMessage, toChatMessages } from "./message-mapping.js";
+import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
+import { projectEditDiff } from "../../../shared/edit-diff.js";
+import { projectFooter, projectSnapshot } from "./snapshot.js";
+import { offeredModels } from "./models.js";
+import { createPiRuntime } from "./runtime-factory.js";
 
-const ARGS_TEXT_MAX = 4_000;
-const OUTPUT_TEXT_MAX = 20_000;
-/**
- * Reasoning is kept on every assistant message and therefore in every snapshot,
- * so a long session would pay for it repeatedly. The tail is what a reader
- * wants — the conclusion of the chain, not its opening — so this clamp drops
- * the beginning rather than the end.
- */
-const THINKING_TEXT_MAX = 8_000;
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
 const ABORT_WATCH_TIMEOUT_MS = 15_000;
-
-function clampThinking(text: string): string {
-  return text.length > THINKING_TEXT_MAX ? `[truncated] …${text.slice(-THINKING_TEXT_MAX)}` : text;
-}
-
-function clampText(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max)}… [truncated]` : text;
-}
-
-function safeStringify(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2) ?? String(value);
-  } catch {
-    return String(value);
-  }
-}
 
 /** Built-ins this host implements, surfaced in the web command menu. */
 const NATIVE_COMMANDS: SlashCommand[] = [
@@ -72,328 +42,6 @@ const PI_BUILTIN_COMMANDS = new Set([
   "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
   "compact", "resume", "quit",
 ]);
-
-/** The parts of Pi's `SessionStats` this host reports, kept structural for tests. */
-export interface SessionStatsView {
-  sessionId: string;
-  sessionFile?: string | undefined;
-  totalMessages: number;
-  userMessages: number;
-  assistantMessages: number;
-  toolCalls: number;
-  toolResults: number;
-  tokens: { input: number; output: number; cacheRead: number; cacheWrite: number; total: number };
-  cost: number;
-  contextUsage?: { tokens: number | null; contextWindow: number; percent: number | null } | undefined;
-}
-
-/**
- * The terminal prints this with box drawing and colour; the web transcript
- * renders markdown, so the same numbers are laid out as a definition list.
- * Context usage is absent until the model reports it (right after compaction,
- * for instance), and the line is dropped rather than shown as unknown.
- */
-export function sessionStatsMarkdown(stats: SessionStatsView, sessionName?: string, model?: string): string {
-  const count = (value: number) => value.toLocaleString("en-US");
-  const { input, output, cacheRead, cacheWrite, total } = stats.tokens;
-  const prompt = input + cacheRead + cacheWrite;
-  const lines = [
-    "**Session**",
-    ...(sessionName ? [`- Name: ${sessionName}`] : []),
-    ...(model ? [`- Model: ${model}`] : []),
-    `- File: ${stats.sessionFile ?? "in memory"}`,
-    `- ID: ${stats.sessionId}`,
-    "",
-    "**Messages**",
-    `- Total: ${count(stats.totalMessages)} (${count(stats.userMessages)} user, ${count(stats.assistantMessages)} assistant)`,
-    `- Tools: ${count(stats.toolCalls)} calls, ${count(stats.toolResults)} results`,
-    "",
-    "**Tokens**",
-    `- Input: ${count(prompt)}`,
-    // Only meaningful once the provider actually reports cache activity.
-    ...(prompt > 0 && (cacheRead > 0 || cacheWrite > 0)
-      ? [
-          `  - Cached: ${count(cacheRead)} (${((cacheRead / prompt) * 100).toFixed(1)}%)`,
-          `  - Uncached: ${count(input + cacheWrite)}`,
-        ]
-      : []),
-    `- Output: ${count(output)}`,
-    `- Total: ${count(total)}`,
-  ];
-  const usage = stats.contextUsage;
-  if (usage && usage.tokens !== null) {
-    const percent = usage.percent ?? (usage.contextWindow > 0 ? (usage.tokens / usage.contextWindow) * 100 : 0);
-    lines.push("", "**Context**", `- Used: ${count(usage.tokens)} of ${count(usage.contextWindow)} (${percent.toFixed(1)}%)`);
-  }
-  if (stats.cost > 0) lines.push("", "**Cost**", `- Total: $${stats.cost.toFixed(3)}`);
-  return lines.join("\n");
-}
-
-/** Deterministic so a live tool event and a rebuilt snapshot never duplicate. */
-export function toolMessageId(toolCallId: string): string {
-  return `tool:${toolCallId}`;
-}
-
-import { projectEditDiff } from "../../../shared/edit-diff.js";
-
-interface ToolCallBlock {
-  id: string;
-  name: string;
-  arguments?: unknown;
-}
-
-function toolCallsFromContent(content: unknown): ToolCallBlock[] {
-  if (!Array.isArray(content)) return [];
-  const calls: ToolCallBlock[] = [];
-  for (const part of content) {
-    if (!part || typeof part !== "object") continue;
-    const value = part as Record<string, unknown>;
-    if (value.type !== "toolCall" || typeof value.id !== "string" || value.id.length === 0) continue;
-    calls.push({
-      id: value.id,
-      name: typeof value.name === "string" && value.name.length > 0 ? value.name : "tool",
-      arguments: value.arguments,
-    });
-  }
-  return calls;
-}
-
-/**
- * Merges flattened entries by id. A tool call appears twice in history — the
- * assistant's tool-call block (running, with arguments) and its toolResult
- * (final, with output) — so the merge keeps the latest status/output while
- * preserving argsText from the earlier entry.
- */
-export function mergeEntriesById(flattened: ChatMessage[]): ChatMessage[] {
-  const byId = new Map<string, ChatMessage>();
-  const order: string[] = [];
-  for (const entry of flattened) {
-    if (!byId.has(entry.id)) order.push(entry.id);
-    const previous = byId.get(entry.id);
-    if (previous?.role === "tool" && entry.role === "tool") {
-      byId.set(entry.id, {
-        ...entry,
-        tool: {
-          ...previous.tool,
-          ...entry.tool,
-          ...(previous.tool.argsText !== undefined && entry.tool.argsText === undefined
-            ? { argsText: previous.tool.argsText }
-            : {}),
-        },
-      });
-    } else {
-      byId.set(entry.id, entry);
-    }
-  }
-  return order.map((id) => byId.get(id)!);
-}
-
-function messageFromEntry(entry: unknown, identity: MessageIdentity): ChatMessage[] {
-  if (!entry || typeof entry !== "object") return [];
-  const value = entry as Record<string, unknown>;
-  if (value.type === "message") return toChatMessages(value.message, identity);
-  const custom = customMessageFromEntry(value);
-  return custom ? [custom] : [];
-}
-
-export function messagesFromBranch(branch: Iterable<unknown>, identity: MessageIdentity): ChatMessage[] {
-  return mergeEntriesById(Array.from(branch).flatMap((entry) => messageFromEntry(entry, identity)));
-}
-
-export function toolCardFromCall(call: ToolCallBlock): ToolCard {
-  const args = call.arguments;
-  const content = call.name === "write" && args && typeof args === "object" && !Array.isArray(args)
-    ? (args as Record<string, unknown>).content : undefined;
-  let writeContent: ToolCard["writeContent"];
-  if (typeof content === "string") {
-    // Iterate code points only up to the byte budget; never split surrogate pairs.
-    let bytes = 0, end = 0;
-    for (const character of content) {
-      const size = Buffer.byteLength(character, "utf8");
-      if (bytes + size > 102400) break;
-      bytes += size;
-      end += character.length;
-    }
-    writeContent = { text: content.slice(0, end), truncated: end < content.length };
-  }
-  return {
-    ...(writeContent !== undefined ? { writeContent } : {}),
-    toolCallId: call.id,
-    name: call.name,
-    status: "running",
-    ...(call.arguments === undefined ? {} : { argsText: clampText(safeStringify(call.arguments), ARGS_TEXT_MAX) }),
-  };
-}
-
-function timestampFromEntry(value: Record<string, unknown>): { timestamp?: number } {
-  if (typeof value.timestamp !== "string") return {};
-  const timestamp = Date.parse(value.timestamp);
-  return Number.isFinite(timestamp) ? { timestamp } : {};
-}
-
-export function customMessageFromEntry(entry: unknown): ChatMessage | undefined {
-  if (!entry || typeof entry !== "object") return undefined;
-  const value = entry as Record<string, unknown>;
-  if (value.type !== "custom_message") return undefined;
-  if (value.display !== true || typeof value.customType !== "string" || value.customType.length === 0) return undefined;
-  if (typeof value.id !== "string" || value.id.length === 0) return undefined;
-  const text = textFromContent(value.content);
-  if (text.length === 0) return undefined;
-  return { id: value.id, role: "custom", customType: value.customType, text, ...timestampFromEntry(value) };
-}
-
-function textFromContent(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .map((part) => {
-      if (!part || typeof part !== "object") return "";
-      const value = part as Record<string, unknown>;
-      if (value.type === "text" && typeof value.text === "string") return value.text;
-      return "";
-    })
-    .join("");
-}
-
-/**
- * The model's reasoning blocks, joined in order.
- *
- * A redacted block carries no readable text at all (only an opaque signature),
- * so it becomes a marker: an empty panel would read as "the model did not
- * think", which is the opposite of what happened.
- */
-function thinkingFromContent(content: unknown): string {
-  if (!Array.isArray(content)) return "";
-  return content
-    .map((part) => {
-      if (!part || typeof part !== "object") return "";
-      const value = part as Record<string, unknown>;
-      if (value.type !== "thinking") return "";
-      if (value.redacted === true) return "_[redacted reasoning]_";
-      return typeof value.thinking === "string" ? value.thinking : "";
-    })
-    .filter((part) => part.length > 0)
-    .join("\n\n");
-}
-
-/**
- * Stable per-message identity.
- *
- * Ids must match whether a message is first seen as a live `message_end` event
- * or later read back from `session.messages` for a snapshot, otherwise a reload
- * would duplicate messages the client already holds. Pi hands out the same
- * object in both paths, so identity is keyed on the object itself rather than
- * on its position, timestamp, or text.
- */
-export class MessageIdentity {
-  private readonly ids = new WeakMap<object, string>();
-  private next = 0;
-
-  idFor(message: object): string {
-    const existing = this.ids.get(message);
-    if (existing) return existing;
-    const id = `msg-${++this.next}`;
-    this.ids.set(message, id);
-    return id;
-  }
-}
-
-/**
- * Maps one Pi session message to zero or more transcript entries.
- *
- * - user/system/assistant text becomes one text entry.
- * - an assistant tool-call block becomes a *running* tool entry; the matching
- *   toolResult message, which follows in session order, overwrites it as
- *   success/error, so flattening the whole session in order yields final cards.
- * - an assistant message with neither text, reasoning, nor tool calls yields
- *   nothing, so a failed turn never leaves an empty bubble.
- */
-export function toChatMessages(message: unknown, identity: MessageIdentity): ChatMessage[] {
-  if (!message || typeof message !== "object") return [];
-  const value = message as Record<string, unknown>;
-  const timestamp = typeof value.timestamp === "number" ? value.timestamp : undefined;
-  const stamp = timestamp === undefined ? {} : { timestamp };
-
-  if (value.role === "toolResult") {
-    if (typeof value.toolCallId !== "string" || value.toolCallId.length === 0) return [];
-    const output = textFromContent(value.content).trim();
-    return [
-      {
-        id: toolMessageId(value.toolCallId),
-        role: "tool",
-        tool: {
-          toolCallId: value.toolCallId,
-          name: typeof value.toolName === "string" && value.toolName.length > 0 ? value.toolName : "tool",
-          status: value.isError === true ? "error" : "success",
-          editDiff: projectEditDiff(String(value.toolName), value.isError === true, value.details),
-          ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
-        },
-        ...stamp,
-      },
-    ];
-  }
-
-  if (value.role === "custom") {
-    if (value.display !== true || typeof value.customType !== "string" || value.customType.length === 0) return [];
-    const text = textFromContent(value.content);
-    if (text.length === 0) return [];
-    return [{ id: identity.idFor(message), role: "custom", customType: value.customType, text, ...stamp }];
-  }
-
-  if (value.role !== "user" && value.role !== "assistant" && value.role !== "system") return [];
-
-  const entries: ChatMessage[] = [];
-  const text = textFromContent(value.content);
-  // Reasoning alone is worth a bubble: a turn that only thought and then called
-  // a tool would otherwise show the tool card with nothing explaining it.
-  const thinking = value.role === "assistant" ? clampThinking(thinkingFromContent(value.content)) : "";
-  if (text.length > 0 || thinking.length > 0) {
-    entries.push({
-      id: identity.idFor(message),
-      role: value.role,
-      text,
-      ...(thinking ? { thinking } : {}),
-      ...stamp,
-    });
-  }
-  for (const call of toolCallsFromContent(value.content)) {
-    entries.push({ id: toolMessageId(call.id), role: "tool", tool: toolCardFromCall(call), ...stamp });
-  }
-  return entries;
-}
-
-/** @deprecated single-text-entry view, kept for callers that only want text */
-export function toChatMessage(message: unknown, identity: MessageIdentity): ChatMessage | undefined {
-  return toChatMessages(message, identity).find((entry) => entry.role !== "tool");
-}
-
-const modelReference = (model: { provider: string; id: string }): string => `${model.provider}/${model.id}`;
-
-/**
- * The models this host offers, narrowed by Pi's own `enabledModels` setting.
- *
- * That setting is where a shortlist belongs: it is Pi's, not this host's, so
- * the terminal and the browser agree and it survives independently of Pi Chat.
- * Only the terminal resolved it though, so without this the browser kept
- * listing every model from every provider.
- *
- * Patterns are globs (`anthropic/*`, `*sonnet*`) as well as exact references.
- */
-export async function offeredModels(session: AgentSessionRuntime["session"]): Promise<string[]> {
-  const available = (await session.modelRuntime.getAvailable()).map(modelReference).sort();
-  const patterns = session.settingsManager.getEnabledModels();
-  if (!patterns?.length) return available;
-
-  const { scopedModels, diagnostics } = await resolveModelScopeWithDiagnostics(patterns, session.modelRuntime);
-  for (const diagnostic of diagnostics) console.warn(`enabledModels: ${diagnostic.message}`);
-  // A shortlist that matches nothing would otherwise leave no model to pick,
-  // which is worse than ignoring a setting the user mistyped.
-  if (scopedModels.length === 0) {
-    console.warn("enabledModels matched no available model, so every model is offered instead.");
-    return available;
-  }
-  return scopedModels.map((scoped) => modelReference(scoped.model)).sort();
-}
 
 export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
@@ -417,7 +65,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   /** Assigned by `bindUi` from the constructor, before anything can reach it. */
   private ui!: ExtensionUIContext;
   private readonly widgets = new WidgetRegistry((widgets) => this.emit({ type: "widgets", widgets }));
-  private readonly statuses = new StatusRegistry(() => this.emit({ type: "footer", footer: this.footer() }));
+  private readonly statuses = new StatusRegistry(() => this.emit({ type: "footer", footer: projectFooter(this.runtime.session, this.statuses.list()) }));
 
   private constructor(
     private readonly runtime: AgentSessionRuntime,
@@ -521,32 +169,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     return this.ui;
   }
 
-  /**
-   * `PI_CHAT_MODEL` overrides the model for this server only, so testing a
-   * specific provider never edits the user's global Pi settings. Accepts the
-   * same spelling as the CLI, e.g. `doppelclaude/claude-opus-5`, optionally
-   * suffixed with a thinking level (`:high`).
-   *
-   * It must resolve against the services' runtime, not a bare `ModelRuntime`:
-   * providers contributed by extensions (doppelclaude among them) only exist
-   * once the resource loader has run.
-   */
-  private static resolveOverride(services: AgentSessionServices): ModelOverride {
-    const requested = process.env.PI_CHAT_MODEL?.trim();
-    if (!requested) return {};
-
-    const resolved = resolveCliModel({ cliModel: requested, modelRuntime: services.modelRuntime });
-    if (resolved.error) throw new Error(`PI_CHAT_MODEL=${requested}: ${resolved.error}`);
-    if (resolved.warning) console.warn(`PI_CHAT_MODEL: ${resolved.warning}`);
-    if (!resolved.model) throw new Error(`PI_CHAT_MODEL=${requested}: no matching model`);
-
-    console.log(`Model: ${resolved.model.provider}/${resolved.model.id}`);
-    return {
-      model: resolved.model,
-      ...(resolved.thinkingLevel ? { thinkingLevel: resolved.thinkingLevel } : {}),
-    };
-  }
-
   static async create(cwd: string): Promise<PiRuntimeAdapter> {
     return PiRuntimeAdapter.fromSessionManager(cwd, SessionManager.continueRecent(cwd));
   }
@@ -561,18 +183,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   private static async fromSessionManager(cwd: string, sessionManager: SessionManager): Promise<PiRuntimeAdapter> {
-    const agentDir = getAgentDir();
-    const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager, sessionStartEvent }) => {
-      const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
-      const override = PiRuntimeAdapter.resolveOverride(services);
-      return {
-        ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent, ...override })),
-        services,
-        diagnostics: services.diagnostics,
-      };
-    };
-
-    const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
+    const runtime = await createPiRuntime(cwd, sessionManager);
     // session_start can register providers or change defaults: resolve afterwards.
     const adapter = new PiRuntimeAdapter(runtime);
     await adapter.startExtensions();
@@ -584,109 +195,19 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     const messages = branch
       ? messagesFromBranch(branch, this.identity)
       : mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
-    // Compaction is a long model call that the session does not count as
-    // streaming, so asking `isStreaming` alone reports a busy session as idle
-    // and re-enables the composer mid-compaction.
-    const isStreaming = !this.runtime.session.isIdle;
-    // A "running" card is only honest while its tool is actually executing.
-    // After a server restart mid-run (or any missed end event) nothing will
-    // ever finalize it, so report it as interrupted instead of spinning forever.
-    for (const entry of messages) {
-      if (entry.role === "tool" && entry.tool.status === "running" && !this.inFlightTools.has(entry.tool.toolCallId)) {
-        entry.tool = {
-          ...entry.tool,
-          status: "error",
-          ...(entry.tool.outputText === undefined ? { outputText: "Tool run was interrupted before its result was recorded." } : {}),
-        };
-      }
-    }
-    return {
-      sessionId: this.runtime.session.sessionId,
-      ...(this.runtime.session.sessionFile ? { sessionPath: this.runtime.session.sessionFile } : {}),
-      ...(this.runtime.session.sessionName ? { sessionName: this.runtime.session.sessionName } : {}),
-      projectPath: this.runtime.cwd,
+    return projectSnapshot({
+      session: this.runtime.session,
+      cwd: this.runtime.cwd,
       messages,
-      isStreaming,
+      inFlightTools: this.inFlightTools,
       ...(this.lastError ? { lastError: this.lastError } : {}),
-      actions: {
-        features: [
-          {
-            id: "session.rename",
-            group: "session",
-            kind: "form",
-            title: "Rename session",
-            description: "Set the display name shown in Pi session lists.",
-            state: { name: this.runtime.session.sessionName ?? "" },
-          },
-          {
-            id: "thinking.level",
-            group: "model",
-            kind: "select",
-            title: "Thinking level",
-            description: "Change the reasoning effort for the current session when the model supports it.",
-            state: {
-              value: this.runtime.session.thinkingLevel as ThinkingLevel,
-              options: this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[],
-            },
-          },
-          {
-            id: "model.select",
-            group: "model",
-            kind: "select",
-            title: "Model",
-            description: "Switch the model for this session only.",
-            state: { value: this.currentModel(), options: this.models },
-          },
-          {
-            id: "session.compact",
-            group: "session",
-            kind: "action",
-            title: "Compact session",
-            description: "Summarise the conversation so far to free up context.",
-            state: { label: "Compact now" },
-          },
-        ],
-        commands: this.commands(),
-      },
+      models: this.models,
+      commands: this.commands(),
       prompts: this.prompts.list(),
       widgets: this.widgets.list(),
-      footer: this.footer(),
-    };
-  }
+      statuses: this.statuses.list(),
+    });
 
-  /**
-   * The composer footer, laid out as the terminal lays its own out: what the
-   * session runs with on the right, and extension labels on the left.
-   *
-   * The browser used to assemble the model line itself out of the settings
-   * features, which meant the footer could only ever say what that one piece of
-   * UI code had been taught to say. Building it here makes it the session's
-   * statement about itself, and an extension's `setStatus` label joins it
-   * through the same list.
-   *
-   * Thinking is reported only when the model reasons at all, which is the same
-   * condition the terminal uses — "thinking: off" against a model that has no
-   * thinking to switch on is noise.
-   */
-  private footer(): FooterItem[] {
-    const model = this.currentModel();
-    return [
-      ...this.statuses.list().map((status) => ({
-        key: `status.${status.key}`,
-        text: status.text,
-        align: "left" as const,
-        variant: "badge" as const,
-      })),
-      ...(model ? [{ key: "model", text: model, align: "right" as const, variant: "plain" as const }] : []),
-      ...(this.runtime.session.supportsThinking()
-        ? [{
-            key: "thinking",
-            text: `thinking: ${this.runtime.session.thinkingLevel}`,
-            align: "right" as const,
-            variant: "plain" as const,
-          }]
-        : []),
-    ];
   }
 
   private currentModel(): string {
@@ -951,7 +472,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
             toolCallId: event.toolCallId,
             name: event.toolName,
             status: "running",
-            ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
+            ...(output ? { outputText: clampToolOutput(output) } : {}),
           },
         });
         return;
@@ -967,7 +488,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
             name: event.toolName,
             status: event.isError ? "error" : "success",
             editDiff: projectEditDiff(event.toolName, event.isError, (event.result as { details?: unknown })?.details),
-            ...(output ? { outputText: clampText(output, OUTPUT_TEXT_MAX) } : {}),
+            ...(output ? { outputText: clampToolOutput(output) } : {}),
           },
         });
         return;
