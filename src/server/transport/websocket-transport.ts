@@ -7,6 +7,7 @@ import {
 } from "../../shared/protocol.js";
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
+import { handleClientCommand } from "./command-handler.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
@@ -69,57 +70,12 @@ export class WebSocketTransport {
       return;
     }
 
-    const command = result.value;
-    if (socket !== this.controller) return;
-    if (command.type === "browseDirectories") {
-      this.chat.browseDirectories(command).then(
-        (listing) => this.publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryListing", requestId: command.requestId, listing }),
-        (error: unknown) => this.publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "directoryBrowseError", requestId: command.requestId, error: this.publisher.errorText(error) }),
-      );
-    } else if (command.type === "abort") {
-      this.chat.abort(command.sessionId).catch((error: unknown) => this.publisher.publishError(command.sessionId, error));
-    } else if (command.type === "prompt") {
-      // A prompt can be a native command such as /model, which changes state
-      // the snapshot owns, so refresh once the run settles.
-      this.chat
-        .prompt(command.sessionId, command.message)
-        .then((sessionId) => this.publisher.sendSnapshot(sessionId))
-        .catch((error: unknown) => this.publisher.publishError(command.sessionId, error));
-    } else if (command.type === "uiPromptResponse") {
-      this.chat.respondToPrompt(command.sessionId, command.promptId, command.result);
-    } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
-      this.chat
-        .runFeature(command)
-        .then(() => {
-          // Renaming changes the tab label too, so the tab list must follow.
-          void this.publisher.sendSnapshot(command.sessionId);
-          this.publisher.sendTabs();
-        })
-        .catch((error: unknown) => this.publisher.publishError(command.sessionId, error));
-    } else if (command.type === "focusTab") {
-      this.chat.focusTab(command.sessionId);
-      this.publisher.sendTabs();
-    } else if (command.type === "deleteSession") {
-      this.chat
-        .deleteSession(command.path)
-        .then(() => this.publisher.sendCatalogue())
-        .catch((error: unknown) => this.publisher.publishError(this.chat.activeSessionId(), error));
-    } else if (command.type === "closeTab") {
-      this.chat
-        .closeTab(command.sessionId)
-        .then(() => {
-          // Closing the last tab lands on the home screen, which searches the catalogue.
-          this.publisher.sendTabs();
-          return this.publisher.sendCatalogue();
-        })
-        .catch((error: unknown) => this.publisher.publishError(this.chat.activeSessionId(), error));
-    } else if (command.type === "openProject") {
-      void this.openTab(() => this.chat.openProject(command.path));
-    } else if (command.type === "openSession") {
-      void this.openTab(() => this.chat.openSession(command.path));
-    } else if (command.type === "newSession") {
-      void this.openTab(() => this.chat.newSession(command.path), socket, command.requestId);
-    }
+    handleClientCommand(socket, result.value, {
+      chat: this.chat,
+      publisher: this.publisher,
+      isController: (candidate) => candidate === this.controller,
+      openTab: (open, origin, requestId) => void this.openTab(open, origin, requestId),
+    });
   }
 
   private async openTab(open: () => Promise<string>, socket = this.controller, requestId?: string): Promise<void> {
