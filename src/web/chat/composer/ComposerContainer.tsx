@@ -172,7 +172,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   }
 
   useLayoutEffect(() => {
-    if (home || overlays.anyOpen || state.prompts.length > 0) return;
+    // A prompt can linger during handover after state.prompts becomes empty;
+    // other portalled dialogs (including confirmations) also still own focus.
+    if (home || overlays.anyOpen || state.prompts.length > 0 || document.querySelector('[role="dialog"]')) return;
     composerRef.current?.focus();
   }, [app.activeSessionId, home, overlays.anyOpen, state.prompts.length]);
 
