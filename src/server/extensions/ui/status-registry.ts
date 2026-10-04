@@ -1,4 +1,4 @@
-import { stripAnsi } from "./widget-registry.js";
+import { stripAnsi } from "./ansi.js";
 
 /** A label an extension pinned, before the footer decides where to put it. */
 export interface ExtensionStatus {
