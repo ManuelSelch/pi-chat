@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createPiChatExtensionRegistry } from "../src/server/extension-registry.js";
+import { createPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
 
 describe("Pi Chat extension registry", () => {
   it("stores declarative buttons for snapshots", () => {

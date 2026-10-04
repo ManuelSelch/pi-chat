@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PiRuntimeAdapter } from "../src/server/pi-runtime-adapter.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 
 function fixture() {
   let savedPatterns = ["p/old"];

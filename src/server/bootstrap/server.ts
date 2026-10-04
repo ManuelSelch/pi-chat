@@ -1,13 +1,13 @@
 import express from "express";
 import { createServer, type Server } from "node:http";
 import { resolve } from "node:path";
-import { ChatApplicationService, type RuntimeAdapterFactory } from "./chat-application-service.js";
-import type { PiChatExtensionRegistry } from "./extension-registry.js";
-import { PiRuntimeAdapter } from "./pi-runtime-adapter.js";
-import { invalidatePiExtensionCache } from "./pi-extension-cache.js";
-import type { RuntimeAdapter } from "./runtime-adapter.js";
+import { ChatApplicationService, type RuntimeAdapterFactory } from "../application/chat-application-service.js";
+import type { PiChatExtensionRegistry } from "../extensions/extension-registry.js";
+import { PiRuntimeAdapter } from "../runtime/pi/pi-runtime-adapter.js";
+import { invalidatePiExtensionCache } from "../runtime/pi/pi-extension-cache.js";
+import type { RuntimeAdapter } from "../runtime/runtime-adapter.js";
 import type { RestartService } from "./restart-service.js";
-import { WebSocketTransport } from "./websocket-transport.js";
+import { WebSocketTransport } from "../transport/websocket-transport.js";
 
 export interface PiChatServer {
   httpServer: Server;

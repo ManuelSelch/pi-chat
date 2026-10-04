@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { invalidatePiExtensionCache } from "../src/server/pi-extension-cache.js";
+import { invalidatePiExtensionCache } from "../src/server/runtime/pi/pi-extension-cache.js";
 
 it("loads changed extension code after invalidating the real SDK factory cache", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-chat-cache-"));

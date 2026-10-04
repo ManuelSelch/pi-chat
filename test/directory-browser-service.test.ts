@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import * as filesystem from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, parse, resolve } from "node:path";
-import { DirectoryBrowserService } from "../src/server/directory-browser-service.js";
+import { DirectoryBrowserService } from "../src/server/projects/directory-browser-service.js";
 
 let root: string;
 let service: DirectoryBrowserService;

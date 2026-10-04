@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PiRuntimeAdapter } from "../src/server/pi-runtime-adapter.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 
 /**
  * Pi emits `session_start` from `session.bindExtensions`, which only the

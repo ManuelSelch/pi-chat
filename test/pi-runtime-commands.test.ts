@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PiRuntimeAdapter } from "../src/server/pi-runtime-adapter.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 
 function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] = []) {
   const session = {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { offeredModels } from "../src/server/pi-runtime-adapter.js";
+import { offeredModels } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 
 const model = (provider: string, id: string) => ({
   provider,

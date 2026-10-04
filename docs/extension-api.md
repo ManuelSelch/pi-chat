@@ -4,7 +4,7 @@ Pi Chat exposes a small server-side registry for local Pi extensions. The API is
 
 ```ts
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getPiChatExtensionRegistry } from "../src/server/extension-registry.js";
+import { getPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
 
 export default function demo(_pi: ExtensionAPI): void {
   const chat = getPiChatExtensionRegistry();

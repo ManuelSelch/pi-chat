@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 import { basename, dirname, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
-import type { SessionNameSource } from "../shared/protocol.js";
+import type { SessionNameSource } from "../../shared/protocol.js";
 
 const run = promisify(execFile);
 

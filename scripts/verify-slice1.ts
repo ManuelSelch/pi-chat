@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
 import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../src/shared/protocol.js";
-import { PiRuntimeAdapter } from "../src/server/pi-runtime-adapter.js";
-import { createPiChatServer } from "../src/server/server.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
+import { createPiChatServer } from "../src/server/bootstrap/server.js";
 
 const cwd = mkdtempSync(join(tmpdir(), "pi-chat-verify-"));
 const runtime = await PiRuntimeAdapter.create(cwd);

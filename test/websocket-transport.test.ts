@@ -2,9 +2,9 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../src/shared/protocol.js";
-import { createPiChatExtensionRegistry } from "../src/server/extension-registry.js";
-import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
-import { createPiChatServer, type PiChatServer } from "../src/server/server.js";
+import { createPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
+import { FakeRuntimeAdapter } from "../src/server/runtime/runtime-adapter.js";
+import { createPiChatServer, type PiChatServer } from "../src/server/bootstrap/server.js";
 
 /** Waits for one specific message type; connect also pushes snapshots and tabs. */
 function receiveOfType(socket: WebSocket, type: ServerMessage["type"]): Promise<ServerMessage> {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { UiPrompt, UiPromptResult } from "../shared/protocol.js";
+import type { UiPrompt, UiPromptResult } from "../../../shared/protocol.js";
 
 /** A forgotten dialog must not block an extension (or a tool call) forever. */
 export const PROMPT_TIMEOUT_MS = 5 * 60_000;

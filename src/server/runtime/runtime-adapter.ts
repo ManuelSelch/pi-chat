@@ -1,7 +1,7 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { ActionRegistry, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../shared/protocol.js";
-import { UiPromptRegistry } from "./ui-prompt-registry.js";
-import { createWebUiContext } from "./web-ui-context.js";
+import type { ActionRegistry, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../../shared/protocol.js";
+import { UiPromptRegistry } from "../extensions/ui/ui-prompt-registry.js";
+import { createWebUiContext } from "./pi/web-ui-context.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }

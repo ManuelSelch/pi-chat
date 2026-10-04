@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createWebUiContext } from "../src/server/web-ui-context.js";
-import { stripAnsi, WidgetRegistry } from "../src/server/widget-registry.js";
+import { createWebUiContext } from "../src/server/runtime/pi/web-ui-context.js";
+import { stripAnsi, WidgetRegistry } from "../src/server/extensions/ui/widget-registry.js";
 
 function registry() {
   const onChange = vi.fn();

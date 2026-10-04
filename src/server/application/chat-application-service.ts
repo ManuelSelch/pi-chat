@@ -1,11 +1,11 @@
 import { homedir } from "node:os";
-import type { DirectoryBrowse, DirectoryListing } from "../shared/directories.js";
-import { DirectoryBrowserService } from "./directory-browser-service.js";
-import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../shared/protocol.js";
-import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extension-registry.js";
-import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
-import { ProjectSessionService, type ProjectCatalogue } from "./project-session-service.js";
-import type { RestartService } from "./restart-service.js";
+import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
+import { DirectoryBrowserService } from "../projects/directory-browser-service.js";
+import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
+import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
+import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../runtime/runtime-adapter.js";
+import { ProjectSessionService, type ProjectCatalogue } from "../projects/project-session-service.js";
+import type { RestartService } from "../bootstrap/restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {

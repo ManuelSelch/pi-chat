@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { UiPromptRegistry } from "../src/server/ui-prompt-registry.js";
+import { UiPromptRegistry } from "../src/server/extensions/ui/ui-prompt-registry.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

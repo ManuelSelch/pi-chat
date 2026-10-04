@@ -11,17 +11,17 @@ import {
   type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../shared/protocol.js";
+import type { ChatMessage, FooterItem, SlashCommand, ThinkingLevel, ToolCard, UiPromptResult } from "../../../shared/protocol.js";
 
 /** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
 type ModelOverride = Partial<
   Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
 >;
-import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "./runtime-adapter.js";
-import { UiPromptRegistry } from "./ui-prompt-registry.js";
+import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../runtime-adapter.js";
+import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
-import { StatusRegistry } from "./status-registry.js";
-import { WidgetRegistry } from "./widget-registry.js";
+import { StatusRegistry } from "../../extensions/ui/status-registry.js";
+import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
 
 const ARGS_TEXT_MAX = 4_000;
 const OUTPUT_TEXT_MAX = 20_000;
@@ -134,7 +134,7 @@ export function toolMessageId(toolCallId: string): string {
   return `tool:${toolCallId}`;
 }
 
-import { projectEditDiff } from "../shared/edit-diff.js";
+import { projectEditDiff } from "../../../shared/edit-diff.js";
 
 interface ToolCallBlock {
   id: string;

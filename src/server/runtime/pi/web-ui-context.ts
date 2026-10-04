@@ -1,6 +1,6 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { UiPromptResult, WidgetPlacement } from "../shared/protocol.js";
-import type { UiPromptRequest } from "./ui-prompt-registry.js";
+import type { UiPromptResult, WidgetPlacement } from "../../../shared/protocol.js";
+import type { UiPromptRequest } from "../../extensions/ui/ui-prompt-registry.js";
 
 export type NotificationLevel = "info" | "warning" | "error";
 

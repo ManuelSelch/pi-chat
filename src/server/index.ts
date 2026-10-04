@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createRestartService } from "./restart-service.js";
-import { createPiChatServer } from "./server.js";
+import { createRestartService } from "./bootstrap/restart-service.js";
+import { createPiChatServer } from "./bootstrap/server.js";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);

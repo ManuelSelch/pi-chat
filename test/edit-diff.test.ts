@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { projectEditDiff } from "../src/shared/edit-diff.js";
-import { toChatMessages, MessageIdentity } from "../src/server/pi-runtime-adapter.js";
+import { toChatMessages, MessageIdentity } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 
 describe("edit diff projection", () => {
   it("prefers the patch and excludes errors and other tools", () => {

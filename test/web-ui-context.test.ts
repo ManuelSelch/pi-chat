@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { UiPromptResult } from "../src/shared/protocol.js";
-import { createWebUiContext } from "../src/server/web-ui-context.js";
+import { createWebUiContext } from "../src/server/runtime/pi/web-ui-context.js";
 
 function contextAnswering(result: UiPromptResult) {
   const onPrompt = vi.fn(async () => result);

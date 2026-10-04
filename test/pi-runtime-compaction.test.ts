@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PiRuntimeAdapter } from "../src/server/pi-runtime-adapter.js";
-import type { RuntimeEvent } from "../src/server/runtime-adapter.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
+import type { RuntimeEvent } from "../src/server/runtime/runtime-adapter.js";
 
 type SessionEvent =
   | { type: "compaction_start"; reason: "manual" | "threshold" | "overflow" }

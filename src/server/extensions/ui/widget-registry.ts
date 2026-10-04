@@ -1,4 +1,4 @@
-import type { Widget, WidgetPlacement } from "../shared/protocol.js";
+import type { Widget, WidgetPlacement } from "../../../shared/protocol.js";
 
 /**
  * Terminal widgets may carry colour, and the browser renders them as text, so

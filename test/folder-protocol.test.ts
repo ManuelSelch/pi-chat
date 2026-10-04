@@ -5,9 +5,9 @@ import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { serverMessageSchema, parseClientMessage, type ServerMessage } from "../src/shared/protocol.js";
-import { createPiChatServer, type PiChatServer } from "../src/server/server.js";
-import { FakeRuntimeAdapter } from "../src/server/runtime-adapter.js";
-import { ChatApplicationService } from "../src/server/chat-application-service.js";
+import { createPiChatServer, type PiChatServer } from "../src/server/bootstrap/server.js";
+import { FakeRuntimeAdapter } from "../src/server/runtime/runtime-adapter.js";
+import { ChatApplicationService } from "../src/server/application/chat-application-service.js";
 
 let server: PiChatServer | undefined;
 let socket: WebSocket | undefined;

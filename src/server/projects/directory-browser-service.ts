@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import * as filesystem from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, parse, resolve, sep } from "node:path";
-import { directoryBrowseSchema, type DirectoryBrowse, type DirectoryListing } from "../shared/directories.js";
+import { directoryBrowseSchema, type DirectoryBrowse, type DirectoryListing } from "../../shared/directories.js";
 
 /** Read-only server filesystem navigation, independent of Pi session history. */
 export class DirectoryBrowserService {

@@ -41,6 +41,20 @@ which adds three commands to any Pi session:
 
 
 
+## Server organization
+
+`src/server/index.ts` remains the process entry point. Server code is grouped by ownership:
+
+- `bootstrap/`: HTTP server composition and process restart
+- `application/`: chat coordination and open-session registry
+- `transport/`: WebSocket connections and protocol handling
+- `runtime/`: runtime contract and fake; `runtime/pi/` contains the Pi adapter, browser UI bridge and SDK cache workaround
+- `projects/`: session catalogue and directory browsing
+- `extensions/`: web extension registry; `extensions/ui/` contains prompt, widget and status registries
+
+This first grouping changes paths only; responsibility extraction is deferred.
+The old `src/server/extension-registry.ts` import remains a deprecated compatibility re-export of `extensions/extension-registry.ts`.
+
 ## Environment variables
 
 | Variable | Meaning |

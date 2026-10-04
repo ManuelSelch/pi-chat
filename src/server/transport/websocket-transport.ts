@@ -5,9 +5,9 @@ import {
   PROTOCOL_VERSION,
   parseClientMessage,
   type ServerMessage,
-} from "../shared/protocol.js";
-import { ChatApplicationService } from "./chat-application-service.js";
-import type { RuntimeEvent } from "./runtime-adapter.js";
+} from "../../shared/protocol.js";
+import { ChatApplicationService } from "../application/chat-application-service.js";
+import type { RuntimeEvent } from "../runtime/runtime-adapter.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;

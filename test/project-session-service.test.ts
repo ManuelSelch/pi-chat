@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { ProjectSessionService, formatProjectDisplayPath, formatProjectName, readLatestSessionNameInfo } from "../src/server/project-session-service.js";
+import { ProjectSessionService, formatProjectDisplayPath, formatProjectName, readLatestSessionNameInfo } from "../src/server/projects/project-session-service.js";
 
 function info(overrides: Partial<any>) {
   return {

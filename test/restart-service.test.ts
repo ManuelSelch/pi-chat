@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createRestartService, successorPlan, waiterScript } from "../src/server/restart-service.js";
+import { createRestartService, successorPlan, waiterScript } from "../src/server/bootstrap/restart-service.js";
 
 function service(options: { build?: () => Promise<string | undefined> } = {}) {
   const shutdown = vi.fn();
