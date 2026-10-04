@@ -1,7 +1,7 @@
 # Server modularization plan
 
-Status: proposed; no implementation changes.
-Scope: `src/server/` and imports into it, based on the current checkout.
+Status: implementation in progress; slices 1–2 complete. Slice 3 started with session-stat rendering extracted; message/tool mapping and snapshot projection remain next.
+Scope: `src/server/` and imports into it, based on the pre-refactor checkout.
 
 ## Problem and goals
 
