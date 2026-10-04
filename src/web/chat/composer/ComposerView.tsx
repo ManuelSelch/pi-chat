@@ -47,6 +47,7 @@ interface ComposerViewProps {
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
   const { home, connection, connecting, error, busy, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
   const menuOpen = matches.length > 0;
+  const bashInput = input.trimStart().startsWith("!");
 
   if (home) return null;
 
@@ -104,6 +105,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
           p="xs"
           shadow="md"
           className={busy ? "composer-working" : undefined}
+          style={bashInput ? { borderColor: THEME.accent.primary } : undefined}
           aria-busy={busy || undefined}
         >
           <Group gap="xs" align="flex-end" wrap="nowrap">

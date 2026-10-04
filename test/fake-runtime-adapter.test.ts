@@ -3,6 +3,12 @@ import type { RuntimeAdapter } from "../src/server/runtime/contracts.js";
 import { FakeRuntimeAdapter } from "./support/fake-runtime-adapter.js";
 
 describe("FakeRuntimeAdapter test support", () => {
+  it("projects bash without a synthetic model conversation", async () => {
+    const adapter = new FakeRuntimeAdapter();
+    await adapter.prompt("!!pwd");
+    expect(adapter.snapshot().messages).toMatchObject([{ role: "bash", bash: { command: "pwd", excludeFromContext: true } }]);
+    await expect(adapter.prompt("!")).rejects.toThrow(/empty/);
+  });
   it("keeps UI questions pending until a browser response arrives", async () => {
     const adapter: RuntimeAdapter = new FakeRuntimeAdapter("test-session");
     try {
