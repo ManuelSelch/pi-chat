@@ -11,7 +11,7 @@ export const MANTINE_COLOR = {
   success: "green",
   warning: "yellow",
   danger: "red",
-  info: "cyan",
+  info: "teal",
 } as const;
 
 export const THEME = {
@@ -50,7 +50,7 @@ export const THEME = {
     success: "var(--mantine-color-green-6)",
     warning: "var(--mantine-color-yellow-6)",
     error: "var(--mantine-color-red-6)",
-    info: "var(--mantine-color-cyan-6)",
+    info: MANTINE_COLOR.info,
   },
 } as const;
 
