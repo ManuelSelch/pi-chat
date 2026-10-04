@@ -34,7 +34,8 @@ html::-webkit-scrollbar {
   background: none;
   border: 0;
   color: inherit;
-  font: inherit;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
