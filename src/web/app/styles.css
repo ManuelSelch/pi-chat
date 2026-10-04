@@ -28,7 +28,7 @@ html::-webkit-scrollbar {
 }
 /* Notices sit inside a compact alert, so their blocks stay tight. */
 .markdown-notice { font-size: 14px; line-height: 1.5; }
-.markdown-notice pre {
+.markdown.markdown-notice pre {
   margin: 0;
   padding: 0;
   background: none;
