@@ -3,20 +3,13 @@ import {
   createAgentSessionRuntime,
   createAgentSessionServices,
   getAgentDir,
-  resolveCliModel,
-  resolveModelScopeWithDiagnostics,
   SessionManager,
   type AgentSessionRuntime,
-  type AgentSessionServices,
   type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
 
-/** Derived from the SDK so no direct `@earendil-works/pi-ai` dependency is needed. */
-type ModelOverride = Partial<
-  Pick<Parameters<typeof createAgentSessionFromServices>[0], "model" | "thinkingLevel">
->;
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
@@ -27,6 +20,7 @@ import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFrom
 import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
 import { projectFooter, projectSnapshot } from "./snapshot.js";
+import { offeredModels, resolveModelOverride } from "./models.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
@@ -52,34 +46,6 @@ const PI_BUILTIN_COMMANDS = new Set([
   "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
   "compact", "resume", "quit",
 ]);
-
-const modelReference = (model: { provider: string; id: string }): string => `${model.provider}/${model.id}`;
-
-/**
- * The models this host offers, narrowed by Pi's own `enabledModels` setting.
- *
- * That setting is where a shortlist belongs: it is Pi's, not this host's, so
- * the terminal and the browser agree and it survives independently of Pi Chat.
- * Only the terminal resolved it though, so without this the browser kept
- * listing every model from every provider.
- *
- * Patterns are globs (`anthropic/*`, `*sonnet*`) as well as exact references.
- */
-export async function offeredModels(session: AgentSessionRuntime["session"]): Promise<string[]> {
-  const available = (await session.modelRuntime.getAvailable()).map(modelReference).sort();
-  const patterns = session.settingsManager.getEnabledModels();
-  if (!patterns?.length) return available;
-
-  const { scopedModels, diagnostics } = await resolveModelScopeWithDiagnostics(patterns, session.modelRuntime);
-  for (const diagnostic of diagnostics) console.warn(`enabledModels: ${diagnostic.message}`);
-  // A shortlist that matches nothing would otherwise leave no model to pick,
-  // which is worse than ignoring a setting the user mistyped.
-  if (scopedModels.length === 0) {
-    console.warn("enabledModels matched no available model, so every model is offered instead.");
-    return available;
-  }
-  return scopedModels.map((scoped) => modelReference(scoped.model)).sort();
-}
 
 export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
@@ -207,32 +173,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     return this.ui;
   }
 
-  /**
-   * `PI_CHAT_MODEL` overrides the model for this server only, so testing a
-   * specific provider never edits the user's global Pi settings. Accepts the
-   * same spelling as the CLI, e.g. `doppelclaude/claude-opus-5`, optionally
-   * suffixed with a thinking level (`:high`).
-   *
-   * It must resolve against the services' runtime, not a bare `ModelRuntime`:
-   * providers contributed by extensions (doppelclaude among them) only exist
-   * once the resource loader has run.
-   */
-  private static resolveOverride(services: AgentSessionServices): ModelOverride {
-    const requested = process.env.PI_CHAT_MODEL?.trim();
-    if (!requested) return {};
-
-    const resolved = resolveCliModel({ cliModel: requested, modelRuntime: services.modelRuntime });
-    if (resolved.error) throw new Error(`PI_CHAT_MODEL=${requested}: ${resolved.error}`);
-    if (resolved.warning) console.warn(`PI_CHAT_MODEL: ${resolved.warning}`);
-    if (!resolved.model) throw new Error(`PI_CHAT_MODEL=${requested}: no matching model`);
-
-    console.log(`Model: ${resolved.model.provider}/${resolved.model.id}`);
-    return {
-      model: resolved.model,
-      ...(resolved.thinkingLevel ? { thinkingLevel: resolved.thinkingLevel } : {}),
-    };
-  }
-
   static async create(cwd: string): Promise<PiRuntimeAdapter> {
     return PiRuntimeAdapter.fromSessionManager(cwd, SessionManager.continueRecent(cwd));
   }
@@ -250,7 +190,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     const agentDir = getAgentDir();
     const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager, sessionStartEvent }) => {
       const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
-      const override = PiRuntimeAdapter.resolveOverride(services);
+      const override = resolveModelOverride(services);
       return {
         ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent, ...override })),
         services,
