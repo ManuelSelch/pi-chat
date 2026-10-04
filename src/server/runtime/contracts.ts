@@ -1,5 +1,5 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { ActionRegistry, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../../shared/protocol.js";
+import type { ActionRegistry, CommandCompletionItem, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "../../shared/protocol.js";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -58,6 +58,7 @@ export interface RuntimeAdapter {
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
   setModel(model: string): Promise<void>;
   compact(): Promise<void>;
+  completeCommandArguments(commandName: string, argumentPrefix: string): Promise<CommandCompletionItem[]>;
   subscribe(listener: (event: RuntimeEvent) => void): () => void;
   dispose(): Promise<void> | void;
 }

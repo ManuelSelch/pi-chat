@@ -58,6 +58,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   // successor is still in flight.
   const [shown, setShown] = useState<UiPrompt | undefined>(prompt);
   const previous = useRef<UiPrompt | undefined>(undefined);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   // Last real pointer position. Scrolling the list fires mouse events without
@@ -110,6 +111,24 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
     const frame = requestAnimationFrame(() => listRef.current?.focus());
     return () => cancelAnimationFrame(frame);
   }, [shown?.id, shown?.kind, searchable]);
+
+  useEffect(() => {
+    if (!shown) return;
+    // Mantine traps Tab navigation, not arbitrary .focus() calls. Keep the
+    // boundary active during handover too, when there is no live prompt.
+    const containFocus = (event: FocusEvent) => {
+      const dialog = dialogRef.current;
+      const target = event.target;
+      if (!dialog || !(target instanceof HTMLElement) || dialog.contains(target)) return;
+      // A nested/secondary modal may legitimately own focus.
+      if (target.closest('[role="dialog"]')) return;
+      const control = dialog.querySelector<HTMLElement>("[data-autofocus]:not(:disabled)")
+        ?? dialog.querySelector<HTMLElement>("button:not(:disabled)");
+      control?.focus({ preventScroll: true });
+    };
+    document.addEventListener("focusin", containFocus);
+    return () => document.removeEventListener("focusin", containFocus);
+  }, [Boolean(shown)]);
 
   useEffect(() => {
     if (mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
@@ -168,6 +187,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
   return (
     <Modal
+      ref={dialogRef}
       opened
       onClose={cancel}
       // An accidental outside click must not answer a permission gate.
@@ -279,7 +299,7 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
                 {confirmLabel}
               </Button>
             ) : (
-              <Button ref={focusRef} data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>
+              <Button ref={shown.kind === "confirm" ? focusRef : undefined} data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>
                 {confirmLabel}
               </Button>
             )}

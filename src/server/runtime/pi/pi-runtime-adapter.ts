@@ -3,7 +3,8 @@ import {
   type AgentSessionRuntime,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
+import { parseBashInput } from "../../../shared/bash-input.js";
+import { commandCompletionItemSchema, type CommandCompletionItem, type ChatMessage, type SlashCommand, type ThinkingLevel, type UiPromptResult } from "../../../shared/protocol.js";
 
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
@@ -26,6 +27,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
+  private promptPending = false;
+  private bashRunning = false;
+  private compactPending = false;
+  private disposed = false;
   private readonly projectionState = { currentRunId: "", lastError: undefined as string | undefined };
   private boundSessionId = "";
   /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
@@ -161,7 +166,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     const messages = branch
       ? messagesFromBranch(branch, this.identity)
       : mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
-    return projectSnapshot({
+    const snapshot = projectSnapshot({
       session: this.runtime.session,
       cwd: this.runtime.cwd,
       messages,
@@ -173,7 +178,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       widgets: this.widgets.list(),
       statuses: this.statuses.list(),
     });
-
+    return { ...snapshot, isStreaming: snapshot.isStreaming || this.compactPending || this.bashRunning || this.runtime.session.isBashRunning === true };
   }
 
   private currentModel(): string {
@@ -205,6 +210,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     return [...registered, ...NATIVE_COMMANDS, ...templates].sort((left, right) => left.name.localeCompare(right.name));
   }
 
+  async completeCommandArguments(commandName: string, argumentPrefix: string): Promise<CommandCompletionItem[]> {
+    const command = this.runtime.session.extensionRunner.getCommand(commandName);
+    const items = await command?.getArgumentCompletions?.(argumentPrefix);
+    return commandCompletionItemSchema.array().parse(items ?? []);
+  }
+
   async setModel(model: string): Promise<void> {
     const available = await this.runtime.session.modelRuntime.getAvailable();
     const match = available.find((candidate) => `${candidate.provider}/${candidate.id}` === model);
@@ -214,6 +225,22 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async compact(): Promise<void> {
+    if (this.promptPending) throw new Error("Wait for the current run to finish before compacting.");
+    await this.compactSession();
+  }
+
+  private async compactSession(): Promise<void> {
+    if (this.bashRunning || this.compactPending || this.runtime.session.isIdle === false) throw new Error("Wait for the current run to finish before compacting.");
+    this.compactPending = true;
+    try {
+      await this.performCompact();
+    } finally {
+      this.compactPending = false;
+      this.emit({ type: "runtimeStatus", status: "idle" });
+    }
+  }
+
+  private async performCompact(): Promise<void> {
     // Compaction is a long model call. Without this the UI looks idle while Pi
     // is busy, and a prompt sent meanwhile is rejected outright.
     this.emit({ type: "notification", level: "info", message: "Compacting session…" });
@@ -222,10 +249,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     try {
       result = await this.runtime.session.compact();
     } catch (error) {
-      this.emit({ type: "runtimeStatus", status: "idle" });
+      this.projectionState.lastError = error instanceof Error ? error.message : "Compaction failed.";
       throw error;
     }
-    this.emit({ type: "runtimeStatus", status: "idle" });
     const after = result.estimatedTokensAfter;
     this.emit({
       type: "notification",
@@ -244,7 +270,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private async handleNativeCommand(message: string): Promise<boolean> {
     return handleNativeCommand(message, {
       hasExtensionCommand: (name) => Boolean(this.runtime.session.extensionRunner.getCommand(name)),
-      compact: () => this.compact(),
+      compact: () => this.compactSession(),
       refreshModels: () => this.refreshModels(),
       models: () => this.models,
       ask: (request) => this.prompts.ask(request),
@@ -259,21 +285,52 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async prompt(message: string): Promise<void> {
+    if (this.disposed) throw new Error("Session is closed.");
+    const bash = parseBashInput(message);
+    if (bash && !bash.command.trim()) throw new Error("Bash command is empty.");
+    if (bash && (this.promptPending || this.compactPending || this.bashRunning || this.runtime.session.isBashRunning || this.runtime.session.isIdle === false)) {
+      throw new Error("Wait for the current run to finish before submitting another command.");
+    }
+    this.promptPending = true; // Claim before any async preflight.
     this.projectionState.lastError = undefined;
-    // A new run owns the status from here; a watchdog left from the previous
-    // abort would report idle in the middle of it.
     clearInterval(this.abortWatchdog);
     this.abortWatchdog = undefined;
-    if (await this.handleNativeCommand(message.trim())) return;
-    await this.runtime.session.prompt(message);
-    // Extension commands may have changed settings or registered providers.
-    if (message.trim().startsWith("/")) await this.refreshModels();
+    try {
+      if (bash) {
+        this.bashRunning = true;
+        this.emit({ type: "runtimeStatus", status: "running" });
+        const intercepted = await this.runtime.session.extensionRunner.emitUserBash({ type: "user_bash", ...bash, cwd: this.runtime.cwd });
+        if (intercepted?.result) {
+          this.runtime.session.recordBashResult(bash.command, intercepted.result, { excludeFromContext: bash.excludeFromContext });
+        } else {
+          await this.runtime.session.executeBash(bash.command, undefined, { excludeFromContext: bash.excludeFromContext, operations: intercepted?.operations });
+        }
+        return;
+      }
+      if (await this.handleNativeCommand(message.trim())) return;
+      await this.runtime.session.prompt(message);
+      if (message.trim().startsWith("/")) await this.refreshModels();
+    } catch (error) {
+      this.projectionState.lastError = error instanceof Error ? error.message : "Command failed.";
+      throw error;
+    } finally {
+      this.promptPending = false;
+      if (bash) {
+        this.bashRunning = false;
+        if (!this.disposed) this.emit({ type: "runtimeStatus", status: "idle", ...(this.projectionState.lastError ? { error: this.projectionState.lastError } : {}) });
+      }
+    }
   }
 
   async abort(): Promise<void> {
     // A pending dialog would otherwise keep a blocked tool call waiting after
     // the user already asked the run to stop.
     this.prompts.cancelAll();
+    if (this.bashRunning || this.runtime.session.isBashRunning) {
+      this.emit({ type: "runtimeStatus", status: "aborting" });
+      this.runtime.session.abortBash();
+      return;
+    }
     // Only a turn that reached the agent loop ends in `agent_settled`, and that
     // is the single event clearing an "aborting" status. Stopping while the
     // session is between turns — or during compaction, a queued prompt, a run
@@ -344,6 +401,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async dispose(): Promise<void> {
+    this.disposed = true;
     this.unsubscribe?.();
     clearInterval(this.abortWatchdog);
     this.abortWatchdog = undefined;
@@ -375,6 +433,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   private emit(event: RuntimeEvent): void {
+    if (this.disposed) return;
     for (const listener of this.listeners) listener(event);
   }
 }

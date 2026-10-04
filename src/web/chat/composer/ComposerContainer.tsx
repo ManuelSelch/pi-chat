@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
-import type { Tab } from "../../../shared/protocol.js";
+import { argumentContext, applyArgumentCompletion } from "./argument-completion.js";
+import { useArgumentCompletion } from "./use-argument-completion.js";
 import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "./command-menu.js";
 import { atHome, visibleError } from "../../app/state/app-state.js";
 import { useAppController } from "../../app/AppControllerContext.js";
@@ -24,6 +25,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [activeCommand, setActiveCommand] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
+  const [selection, setSelection] = useState({ sessionId: app.activeSessionId, start: 0, end: 0 });
+  const [composing, setComposing] = useState(false);
+  const pendingCaret = useRef<number | undefined>(undefined);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const home = atHome(app);
@@ -57,17 +61,42 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
   const query = menuDismissed ? undefined : commandQuery(input);
-  const matches = query === undefined ? [] : filterCommands(menuItems(sessionActions, state.actions.commands), query);
+  const context = !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
+    ? argumentContext(input, selection.start, selection.end, state.actions.commands)
+    : undefined;
+  const argumentItems = useArgumentCompletion(app.activeSessionId, input, context, chat.completeCommandArguments);
+  const matches: MenuItem[] = query === undefined
+    ? argumentItems.map((item) => ({ ...item, kind: "argument" }))
+    : filterCommands(menuItems(sessionActions, state.actions.commands), query);
+  const activeIndex = Math.min(activeCommand, Math.max(0, matches.length - 1));
 
-  function setInput(value: string): void {
+  function setInput(value: string, caret = value.length): void {
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
+    setSelection({ sessionId: app.activeSessionId, start: caret, end: caret });
+    pendingCaret.current = caret;
   }
 
-  function changeInput(value: string): void {
-    setInput(value);
+  function changeInput(value: string, start = value.length, end = start): void {
+    setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
+    setSelection({ sessionId: app.activeSessionId, start, end });
     setActiveCommand(0);
     setMenuDismissed(false);
   }
+
+  function selectionChanged(): void {
+    const textarea = composerRef.current;
+    if (!textarea) return;
+    if (selection.sessionId === app.activeSessionId && selection.start === textarea.selectionStart && selection.end === textarea.selectionEnd) return;
+    setSelection({ sessionId: app.activeSessionId, start: textarea.selectionStart, end: textarea.selectionEnd });
+    setActiveCommand(0);
+  }
+
+  useLayoutEffect(() => {
+    if (pendingCaret.current === undefined) return;
+    composerRef.current?.focus();
+    composerRef.current?.setSelectionRange(pendingCaret.current, pendingCaret.current);
+    pendingCaret.current = undefined;
+  }, [input, selection]);
 
   function openCommandMenu(): void {
     changeInput("/");
@@ -86,6 +115,14 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   );
 
   function runMenuItem(item: MenuItem): void {
+    if (item.kind === "argument") {
+      if (!context) return;
+      const completed = applyArgumentCompletion(input, context, item.value);
+      setInput(completed.input, completed.caret);
+      setMenuDismissed(true);
+      setActiveCommand(0);
+      return;
+    }
     if (item.kind === "action") {
       setInput("");
       setActiveCommand(0);
@@ -93,6 +130,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
       return;
     }
     setInput(`/${item.name} `);
+    setMenuDismissed(false);
     setActiveCommand(0);
   }
 
@@ -107,6 +145,13 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   }
 
   function keyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (composing || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.shiftKey && (event.key === "Enter" || event.key === "Tab")) return;
+    if (event.key === "Escape" && (matches.length > 0 || context)) {
+      event.preventDefault();
+      setMenuDismissed(true);
+      return;
+    }
     if (matches.length > 0) {
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
@@ -116,12 +161,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
       }
       if (event.key === "Enter" || event.key === "Tab") {
         event.preventDefault();
-        runMenuItem(matches[activeCommand]!);
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setMenuDismissed(true);
+        runMenuItem(matches[activeIndex]!);
         return;
       }
     }
@@ -132,7 +172,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   }
 
   useLayoutEffect(() => {
-    if (home || overlays.anyOpen || state.prompts.length > 0) return;
+    // A prompt can linger during handover after state.prompts becomes empty;
+    // other portalled dialogs (including confirmations) also still own focus.
+    if (home || overlays.anyOpen || state.prompts.length > 0 || document.querySelector('[role="dialog"]')) return;
     composerRef.current?.focus();
   }, [app.activeSessionId, home, overlays.anyOpen, state.prompts.length]);
 
@@ -158,7 +200,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         error: visibleError(app, state),
         busy,
         input,
-        activeCommand,
+        activeCommand: activeIndex,
         matches,
         footerItems,
         widgetsAbove,
@@ -169,6 +211,8 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         takeControl: chat.takeControl,
         dismissError: chat.dismissError,
         changeInput,
+        selectionChanged,
+        compositionChanged: setComposing,
         keyDown,
         submit,
         setActiveCommand,

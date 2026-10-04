@@ -28,8 +28,17 @@ html::-webkit-scrollbar {
 }
 /* Notices sit inside a compact alert, so their blocks stay tight. */
 .markdown-notice { font-size: 14px; line-height: 1.5; }
-.markdown-notice p, .markdown-notice ul { margin: 4px 0; }
-.markdown-notice ul { padding-left: 18px; }
+.markdown.markdown-notice pre {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 /* Reasoning is context, not the answer: smaller and dimmed so the eye skips it
    unless it is looking for it. */
 .markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--mantine-color-dimmed); }

@@ -1,4 +1,4 @@
-import type { SlashCommand } from "../../../shared/protocol.js";
+import type { CommandCompletionItem, SlashCommand } from "../../../shared/protocol.js";
 
 /**
  * A menu row is either a Pi slash command (inserted into the composer) or an
@@ -11,10 +11,10 @@ export interface LocalAction {
   run: () => void;
 }
 
-export type MenuItem = (SlashCommand & { kind: "command" }) | (LocalAction & { kind: "action" });
+export type MenuItem = (SlashCommand & { kind: "command" }) | (LocalAction & { kind: "action" }) | (CommandCompletionItem & { kind: "argument" });
 
 /** Session actions rank first: they are the reason Cmd+K was pressed. */
-export function menuItems(actions: readonly LocalAction[], commands: readonly SlashCommand[]): MenuItem[] {
+export function menuItems(actions: readonly LocalAction[], commands: readonly SlashCommand[]): Exclude<MenuItem, { kind: "argument" }>[] {
   return [
     ...actions.map((action) => ({ ...action, kind: "action" as const })),
     ...commands.map((command) => ({ ...command, kind: "command" as const })),

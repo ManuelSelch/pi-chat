@@ -1,6 +1,6 @@
 import type { ClientMessage, ServerMessage } from "../../../shared/protocol.js";
 
-type FolderReply = Extract<ServerMessage, { requestId: string }>;
+type FolderReply = Extract<ServerMessage, { type: "directoryListing" | "directoryBrowseError" | "sessionOpened" | "sessionOpenError" }>;
 type FolderCommand = Extract<ClientMessage, { type: "newSession" | "browseDirectories" }> & { requestId: string };
 
 /** Request-scoped state stays outside transcript snapshots and is disposed on disconnect. */
@@ -24,7 +24,7 @@ export class FolderRequests {
   }
 
   receive(message: ServerMessage): boolean {
-    if (!("requestId" in message)) return false;
+    if (message.type !== "directoryListing" && message.type !== "directoryBrowseError" && message.type !== "sessionOpened" && message.type !== "sessionOpenError") return false;
     const pending = this.pending.get(message.requestId);
     if (pending) {
       if ("error" in message) pending.reject(new Error(message.error));

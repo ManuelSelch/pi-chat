@@ -16,7 +16,7 @@ function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] =
     resourceLoader: { getSkills: () => ({ skills: [] }) },
     extensionRunner: {
       setUIContext: () => {},
-      getCommand: () => undefined,
+      getCommand: (name: string) => registeredCommands.find((command) => (command as { invocationName: string }).invocationName === name),
       getRegisteredCommands: () => registeredCommands,
     },
     subscribe: () => () => {},
@@ -27,6 +27,34 @@ function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] =
     [],
   );
 }
+
+describe("argument completion", () => {
+  it("forwards the exact prefix to the exact invocation without executing it", async () => {
+    let received = "";
+    const adapter = fakeAdapter([], [{ invocationName: "deploy:2", getArgumentCompletions: async (prefix: string) => {
+      received = prefix;
+      return [{ value: "staging", label: "Staging", description: "Test environment" }];
+    }, handler: () => { throw new Error("Must not execute"); } }]);
+    expect(await adapter.completeCommandArguments("deploy:2", "one  st")).toEqual([
+      { value: "staging", label: "Staging", description: "Test environment" },
+    ]);
+    expect(received).toBe("one  st");
+    expect(await adapter.completeCommandArguments("deploy", "")).toEqual([]);
+  });
+
+  it("supports synchronous, null, missing and rejected providers", async () => {
+    const adapter = fakeAdapter([], [
+      { invocationName: "sync", getArgumentCompletions: () => [{ value: "a", label: "A" }] },
+      { invocationName: "none", getArgumentCompletions: () => null },
+      { invocationName: "missing" },
+      { invocationName: "fail", getArgumentCompletions: () => Promise.reject(new Error("Unavailable")) },
+    ]);
+    expect(await adapter.completeCommandArguments("sync", "")).toEqual([{ value: "a", label: "A" }]);
+    expect(await adapter.completeCommandArguments("none", "")).toEqual([]);
+    expect(await adapter.completeCommandArguments("missing", "")).toEqual([]);
+    await expect(adapter.completeCommandArguments("fail", "")).rejects.toThrow("Unavailable");
+  });
+});
 
 describe("slash command catalogue", () => {
   it("includes prompt templates with argument hints", () => {

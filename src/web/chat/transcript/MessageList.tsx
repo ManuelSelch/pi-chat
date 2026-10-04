@@ -4,6 +4,7 @@ import { Notice } from "../../ui/Notice.js";
 import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
 import { Markdown } from "../markdown/MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
+import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../../app/state/chat-state.js";
@@ -16,6 +17,7 @@ import { THEME } from "../../ui/theme.js";
  */
 const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage }) {
   if (message.role === "tool") return <ToolCard tool={message.tool} />;
+  if (message.role === "bash") return <BashCard bash={message.bash} />;
 
   if (message.role === "notice") {
     return (
@@ -24,9 +26,10 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
         p="xs"
       >
-        {/* Command output such as /session is markdown, and a one-line notice
-            renders the same either way. */}
-        <div className="markdown markdown-notice"><Markdown>{message.text}</Markdown></div>
+        {/* Notices are command output, not model-authored Markdown. Preserve
+            their exact line breaks and indentation (for example, aligned branch
+            listings) instead of letting Markdown collapse whitespace. */}
+        <div className="markdown markdown-notice"><pre>{message.text}</pre></div>
       </Notice>
     );
   }

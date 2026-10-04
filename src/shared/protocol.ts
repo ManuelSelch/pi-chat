@@ -32,7 +32,26 @@ export const toolCardSchema = z.object({
 
 export type ToolCard = z.infer<typeof toolCardSchema>;
 
+export const bashCardSchema = z.object({
+  command: z.string(),
+  output: z.string().max(20_000),
+  status: z.enum(["running", "success", "error", "cancelled"]),
+  exitCode: z.number().int().optional(),
+  excludeFromContext: z.boolean(),
+  truncated: z.boolean(),
+  fullOutputPath: z.string().optional(),
+});
+export type BashCard = z.infer<typeof bashCardSchema>;
+export const bashMessageSchema = z.object({
+  id: z.string().min(1),
+  role: z.literal("bash"),
+  bash: bashCardSchema,
+  timestamp: z.number().optional(),
+});
+export type BashMessage = z.infer<typeof bashMessageSchema>;
+
 export const chatMessageSchema = z.discriminatedUnion("role", [
+  bashMessageSchema,
   z.object({
     id: z.string().min(1),
     role: z.enum(["user", "assistant", "system"]),
@@ -92,6 +111,13 @@ export const chatSessionSummarySchema = z.object({
   messageCount: z.number().int().nonnegative(),
 });
 
+export const chatWorktreeSummarySchema = z.object({
+  branch: z.string().min(1).optional(),
+  commit: z.string().min(1).optional(),
+  detached: z.boolean(),
+  primary: z.boolean(),
+});
+
 export const chatProjectSummarySchema = z.object({
   path: z.string().min(1),
   displayPath: z.string().min(1),
@@ -100,6 +126,9 @@ export const chatProjectSummarySchema = z.object({
   modified: z.number(),
   sessionCount: z.number().int().nonnegative(),
   sessions: z.array(chatSessionSummarySchema),
+  repositoryPath: z.string().min(1).optional(),
+  repositoryName: z.string().min(1).optional(),
+  worktree: chatWorktreeSummarySchema.optional(),
 });
 
 export const projectCatalogueSchema = z.object({ projects: z.array(chatProjectSummarySchema) });
@@ -232,6 +261,13 @@ export const slashCommandSchema = z.object({
 
 export type SlashCommand = z.infer<typeof slashCommandSchema>;
 
+export const commandCompletionItemSchema = z.object({
+  value: z.string(),
+  label: z.string(),
+  description: z.string().optional(),
+});
+export type CommandCompletionItem = z.infer<typeof commandCompletionItemSchema>;
+
 export const actionRegistrySchema = z.object({
   features: z.array(webFeatureSchema),
   commands: z.array(slashCommandSchema).default([]),
@@ -286,6 +322,7 @@ const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 const sessionScoped = { ...baseClientMessage, sessionId: z.string().min(1) };
 
 export const clientMessageSchema = z.union([
+  z.object({ ...sessionScoped, type: z.literal("completeCommandArguments"), requestId: z.string().min(1), commandName: z.string().min(1), argumentPrefix: z.string() }),
   z.object({ ...sessionScoped, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("abort") }),
   z.object({
@@ -319,6 +356,7 @@ const sequenced = {
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
+  z.object({ ...sessionScoped, type: z.literal("commandArgumentCompletions"), requestId: z.string(), items: z.array(commandCompletionItemSchema), error: z.string().optional() }),
   z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),
   z.object({ ...baseClientMessage, type: z.literal("directoryBrowseError"), requestId: z.string(), error: z.string() }),
   z.object({ ...baseClientMessage, type: z.literal("sessionOpened"), requestId: z.string(), sessionId: z.string() }),

@@ -23,12 +23,12 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
   if (commands.length === 0) return null;
 
   return (
-    <Paper withBorder radius="md" shadow="md" mb="xs" p={4} role="listbox" aria-label="Commands">
+    <Paper withBorder radius="md" shadow="md" mb="xs" p={4} role="listbox" aria-label={commands[0]?.kind === "argument" ? "Argument suggestions" : "Commands"}>
       <ScrollArea.Autosize mah={260}>
         <Stack gap={0}>
           {commands.map((command, index) => (
             <UnstyledButton
-              key={command.name}
+              key={command.kind === "argument" ? `${index}:${command.value}` : command.name}
               ref={index === activeIndex ? activeRef : undefined}
               role="option"
               aria-selected={index === activeIndex}
@@ -50,9 +50,9 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               }}
             >
               <Group gap={6} wrap="nowrap">
-                <Text size="sm" fw={600}>{command.kind === "action" ? command.name : `/${command.name}`}</Text>
+                <Text size="sm" fw={600}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.name}`}</Text>
                 {command.kind === "command" && command.argumentHint ? <Text size="xs" c="dimmed">{command.argumentHint}</Text> : null}
-                <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge>
+                {command.kind !== "argument" ? <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge> : null}
               </Group>
               {command.description ? (
                 <Text size="xs" c="dimmed" lineClamp={1}>{command.description}</Text>

@@ -37,6 +37,15 @@ describe("MessageList", () => {
     expect(container.querySelector("article[data-testid='custom-message'] .markdown")).not.toBeNull();
   });
 
+  it("preserves whitespace in multi-line notices", async () => {
+    const text = "   main (primary)\n   feat/simpler-ui\n * fix/exit-worktree (active)";
+    const { container } = renderMessages([{ id: "notice-1", role: "notice", level: "info", text }]);
+
+    const notice = container.querySelector(".markdown-notice");
+    expect(notice?.textContent).toBe(text);
+    expect(notice?.querySelector("pre")?.textContent).toBe(text);
+  });
+
   it("collapses the reasoning of a finished message and leaves the answer visible", async () => {
     renderMessages([{ id: "a", role: "assistant", text: "The answer", thinking: "The reasoning" }]);
     const panel = screen.getByTestId("thinking-panel") as HTMLDetailsElement;

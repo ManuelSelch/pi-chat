@@ -27,7 +27,9 @@ export interface ComposerViewModel {
 export interface ComposerViewActions {
   takeControl(): void;
   dismissError(): void;
-  changeInput(value: string): void;
+  changeInput(value: string, start?: number, end?: number): void;
+  selectionChanged(): void;
+  compositionChanged(composing: boolean): void;
   keyDown(event: KeyboardEvent<HTMLTextAreaElement>): void;
   submit(event?: FormEvent): void;
   setActiveCommand(index: number): void;
@@ -45,6 +47,7 @@ interface ComposerViewProps {
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
   const { home, connection, connecting, error, busy, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
   const menuOpen = matches.length > 0;
+  const bashInput = input.trimStart().startsWith("!");
 
   if (home) return null;
 
@@ -102,6 +105,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
           p="xs"
           shadow="md"
           className={busy ? "composer-working" : undefined}
+          style={bashInput ? { borderColor: THEME.accent.primary } : undefined}
           aria-busy={busy || undefined}
         >
           <Group gap="xs" align="flex-end" wrap="nowrap">
@@ -111,7 +115,12 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
               autosize
               minRows={2}
               maxRows={8}
-              onChange={(event) => actions.changeInput(event.currentTarget.value)}
+              onChange={(event) => actions.changeInput(event.currentTarget.value, event.currentTarget.selectionStart, event.currentTarget.selectionEnd)}
+              onSelect={actions.selectionChanged}
+              onKeyUp={actions.selectionChanged}
+              onClick={actions.selectionChanged}
+              onCompositionStart={() => actions.compositionChanged(true)}
+              onCompositionEnd={() => actions.compositionChanged(false)}
               onKeyDown={actions.keyDown}
               placeholder="Ask Pi anything…"
               value={input}

@@ -13,8 +13,8 @@
   },
   "scripts": {
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
-    "dev:server": "PI_CHAT_DEV=1 tsx watch src/server/index.ts",
-    "dev:web": "vite",
+    "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8789 tsx watch src/server/index.ts",
+    "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8789 PI_CHAT_WEB_PORT=5174 vite",
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
@@ -25,7 +25,6 @@
     "node": ">=22.19"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "0.85.1",
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
     "@tabler/icons-react": "^3.46.0",
@@ -47,7 +46,7 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
-    "remark-gfm": "^4.0.1",
+    "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
@@ -58,8 +57,12 @@
     "zod": "^4.6.4"
   },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.85.1",
     "@earendil-works/pi-agent-core": "0.85.1",
     "@earendil-works/pi-ai": "0.85.1",
     "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
   }
 }

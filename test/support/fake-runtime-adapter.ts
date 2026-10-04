@@ -1,5 +1,6 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { ChatMessage, ThinkingLevel, UiPromptResult } from "../../src/shared/protocol.js";
+import { parseBashInput } from "../../src/shared/bash-input.js";
+import type { ChatMessage, CommandCompletionItem, ThinkingLevel, UiPromptResult } from "../../src/shared/protocol.js";
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../../src/server/runtime/contracts.js";
 import { UiPromptRegistry } from "../../src/server/extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "../../src/server/runtime/pi/web-ui-context.js";
@@ -43,6 +44,12 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   async prompt(message: string): Promise<void> {
     if (this.streaming) throw new Error("The runtime is already streaming");
     const runId = `fake-${++this.run}`;
+    const bash = parseBashInput(message);
+    if (bash) {
+      if (!bash.command.trim()) throw new Error("Bash command is empty.");
+      this.messages.push({ id: runId, role: "bash", bash: { ...bash, output: "Fake bash output\n", status: "success", exitCode: 0, truncated: false } });
+      return;
+    }
     this.messages.push({ id: `${runId}-user`, role: "user", text: message });
     this.streaming = true;
     this.emit({ type: "runtimeStatus", status: "running" });
@@ -58,6 +65,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   async setModel(): Promise<void> {}
 
   async compact(): Promise<void> {}
+  async completeCommandArguments(_commandName: string, _argumentPrefix: string): Promise<CommandCompletionItem[]> { return []; }
 
   /**
    * Built once: a caller may compare the surface it was handed against the

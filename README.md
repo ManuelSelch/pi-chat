@@ -14,7 +14,8 @@
 - streaming assistant text, tool cards, Markdown + KaTeX
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - server folder picker to start sessions in folders without previous Pi history
-- slash commands, a command palette, and quick-open
+- slash commands with Pi extension argument completion, a command palette, and quick-open
+- native `!command` / `!!command` bash execution from the composer (output is shown after completion)
 - extension UI support: `notify`, dialogs, `setWidget` panels, `setStatus` footer labels, and experimental web extension slots/actions/hooks
 
 ## Install
@@ -39,7 +40,22 @@ which adds three commands to any Pi session:
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
 
+Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.
 
+
+
+## Command argument completion
+
+After `/command `, Pi Chat shows suggestions from the extension's existing
+`getArgumentCompletions(prefix)` callback, including async providers. Use arrows
+to navigate, Enter/Tab or the mouse to insert, and Escape to dismiss. Selecting
+an argument does not execute the command; press Enter again to submit.
+
+The prefix is the full first-line argument text before the caret. Selecting a
+suggestion replaces that prefix with its `value`, preserving text after the
+caret. Pi owns filtering and ordering. No Pi Chat-specific extension API is
+needed. Native command dialogs, filesystem completion, and general
+`addAutocompleteProvider()` hooks are not part of this support.
 
 ## Architecture
 

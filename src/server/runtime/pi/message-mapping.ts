@@ -1,4 +1,5 @@
 import type { ChatMessage } from "../../../shared/protocol.js";
+import { bashCardFromMessage } from "./bash-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
 import { clampToolOutput, toolCallsFromContent, toolCardFromCall, toolMessageId } from "./tool-mapping.js";
 
@@ -144,6 +145,10 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
   const value = message as Record<string, unknown>;
   const timestamp = typeof value.timestamp === "number" ? value.timestamp : undefined;
   const stamp = timestamp === undefined ? {} : { timestamp };
+
+  if (value.role === "bashExecution") {
+    return [{ id: identity.idFor(message), role: "bash", bash: bashCardFromMessage(value), ...stamp }];
+  }
 
   if (value.role === "toolResult") {
     if (typeof value.toolCallId !== "string" || value.toolCallId.length === 0) return [];

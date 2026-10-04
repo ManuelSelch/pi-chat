@@ -72,10 +72,11 @@ function Probe() {
 }
 
 function FolderProbe() {
-  const { browseDirectories, startFolderSession, takeControl } = usePiChat();
+  const { browseDirectories, startFolderSession, takeControl, completeCommandArguments } = usePiChat();
   const [result, setResult] = useState("");
   return <>
     <button onClick={takeControl}>Reclaim</button>
+    <button onClick={() => void completeCommandArguments("s", "deploy", "st").then((items) => setResult(items[0]?.value ?? "empty"), (error: Error) => setResult(error.message))}>Complete</button>
     <button onClick={() => void browseDirectories({ path: "~" }).then((listing) => setResult(listing.path), (error: Error) => setResult(error.message))}>Browse</button>
     <button onClick={() => void startFolderSession("/server/fresh").then(setResult, (error: Error) => setResult(error.message))}>Start folder</button>
     <output data-testid="result">{result}</output>
@@ -83,6 +84,20 @@ function FolderProbe() {
 }
 
 describe("usePiChat connection lifecycle", () => {
+  it("routes completion replies separately from folder replies and cancels on disconnect", async () => {
+    render(<FolderProbe />);
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => socket.acceptConnection());
+    act(() => screen.getByText("Complete").click());
+    const request = JSON.parse(socket.sent[0]!);
+    expect(request).toMatchObject({ type: "completeCommandArguments", sessionId: "s", commandName: "deploy", argumentPrefix: "st" });
+    await act(async () => socket.deliver({ version: 1, type: "commandArgumentCompletions", sessionId: "s", requestId: request.requestId, items: [{ value: "staging", label: "Staging" }] }));
+    expect(screen.getByTestId("result").textContent).toBe("staging");
+    act(() => screen.getByText("Complete").click());
+    await act(async () => socket.close());
+    expect(screen.getByTestId("result").textContent).toContain("Connection lost");
+  });
   it("sends correlated folder requests without a session and receives their results", async () => {
     render(<FolderProbe />);
     act(() => void vi.advanceTimersByTime(0));
