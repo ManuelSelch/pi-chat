@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import { BrowserClient } from "./support/pi-chat/browser-client.js";
+import { PiRuntimeAdapter } from "../src/server/runtime/pi/pi-runtime-adapter.js";
 import { PiChatDriver } from "./support/pi-chat/pi-chat-driver.js";
 
 let app: PiChatDriver | undefined;
@@ -49,6 +50,32 @@ it("cleans up the runtime and client if startup cannot obtain a snapshot", async
   expect(dispose).toHaveBeenCalledTimes(1);
   app = await PiChatDriver.start();
   app.Browser.ShouldBeUsable();
+});
+
+it("reports failed tab creation and releases its script reservation for retry", async () => {
+  app = await PiChatDriver.start({ startAtHome: true });
+  vi.spyOn(PiRuntimeAdapter, "fromRuntime").mockImplementationOnce(() => { throw new Error("Injected session creation failure"); });
+  await expect(app.Tabs.Create()).rejects.toThrow(/Tabs.Create:.*Injected session creation failure.*recentMessages/);
+  app.Browser.ShouldBeAtHome();
+  const tab = await app.Tabs.Create({ responses: [{ prompt: "Retry", reply: "Recovered." }] });
+  app.Tabs.ShouldBeActive(tab);
+  await app.Chat.SendPrompt("Retry");
+  await app.Chat.WaitUntilIdle();
+  app.Chat.ShouldHaveAssistantReply("Recovered.");
+  app.Chat.ShouldHaveConsumedResponses();
+});
+
+it("rejects closed handles instead of silently focusing or closing another tab", async () => {
+  app = await PiChatDriver.start({ startAtHome: true });
+  const tab = await app.Tabs.Create();
+  await app.Tabs.Close(tab);
+  await expect(app.Tabs.SwitchTo(tab)).rejects.toThrow(/Tabs.SwitchTo:.*already closed/);
+  await expect(app.Tabs.Close(tab)).rejects.toThrow(/Tabs.Close:.*already closed/);
+  app.Browser.ShouldBeAtHome();
+});
+
+it("rejects home-start scripts that would otherwise be silently discarded", async () => {
+  await expect(PiChatDriver.start({ startAtHome: true, responses: [{ prompt: "Lost", reply: "Unused" }] })).rejects.toThrow(/Supply home-start response scripts to Tabs.Create/);
 });
 
 it("rejects invalid timeout configuration before allocating resources", async () => {

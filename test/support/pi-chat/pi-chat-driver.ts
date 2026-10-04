@@ -1,69 +1,56 @@
 import assert from "node:assert/strict";
-import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
-import { createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
-import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
 import { BrowserClient } from "./browser-client.js";
 import { BrowserDriver } from "./browser-driver.js";
 import { ChatDriver } from "./chat-driver.js";
+import { TabDriver } from "./tab-driver.js";
+import { TestWorld, type AssistantResponse } from "./test-world.js";
 import type { DriverContext } from "./driver-context.js";
 
-async function cleanup(client: BrowserClient | undefined, server: PiChatServer | undefined, runtime: AgentSessionRuntime | undefined, harness: TestSession): Promise<void> {
+async function cleanup(client: BrowserClient | undefined, server: PiChatServer | undefined, world: TestWorld): Promise<void> {
   try { await client?.close(); }
   finally {
     try {
       if (server?.httpServer.listening) await server.close();
-      else { await server?.transport.close(); await runtime?.dispose(); }
-    } finally { harness.dispose(); }
+      else await server?.transport.close();
+    } finally { await world.dispose(); }
   }
 }
 
 export interface PiChatDriverOptions {
-  responses?: readonly { prompt: string; reply: string }[];
+  responses?: readonly AssistantResponse[];
   timeoutMs?: number;
+  /** Start without a conversation; Tabs.Create supplies its own responses. */
+  startAtHome?: boolean;
 }
 
-/** Owns one isolated real Pi session, server, and browser-facing client. */
+/** Owns isolated real Pi sessions, a server, and a browser-facing client. */
 export class PiChatDriver {
   readonly Browser: BrowserDriver;
   readonly Chat: ChatDriver;
+  readonly Tabs: TabDriver;
   private disposal?: Promise<void>;
 
   private constructor(
     private readonly context: DriverContext,
     private readonly server: PiChatServer,
-    private readonly runtime: AgentSessionRuntime,
-    private readonly harness: TestSession,
+    private readonly world: TestWorld,
   ) {
     this.Browser = new BrowserDriver(context);
     this.Chat = new ChatDriver(context);
+    this.Tabs = new TabDriver(context);
   }
 
   static async start(options: PiChatDriverOptions = {}): Promise<PiChatDriver> {
     const timeoutMs = options.timeoutMs ?? 5000;
     assert(Number.isFinite(timeoutMs) && timeoutMs > 0, "timeoutMs must be positive and finite");
-    const harness = await createTestSession();
-    let runtime: AgentSessionRuntime | undefined;
+    assert(!options.startAtHome || !options.responses?.length, "Supply home-start response scripts to Tabs.Create, not PiChatDriver.start");
+    const world = new TestWorld();
     let server: PiChatServer | undefined;
     let client: BrowserClient | undefined;
     try {
-      // Even an empty script installs the mocked model; the domain driver also
-      // rejects unexpected prompts rather than accepting an exhausted playbook.
-      harness.prepare(...(options.responses ?? []).map(({ prompt, reply }) => when(prompt, [says(reply)])));
-      const session = harness.session;
-      const unsupported = async (): Promise<never> => {
-        throw new Error("Session creation/replacement is not implemented by this driver yet");
-      };
-      runtime = new AgentSessionRuntime(session, {
-        cwd: harness.cwd, agentDir: harness.cwd,
-        modelRuntime: session.modelRuntime,
-        settingsManager: session.settingsManager,
-        resourceLoader: session.resourceLoader,
-        diagnostics: [],
-      }, unsupported);
-      server = createPiChatServer(PiRuntimeAdapter.fromRuntime(runtime), undefined, {
-        continueProject: unsupported, openSession: unsupported, newSession: unsupported,
-      });
+      const initial = options.startAtHome ? undefined : await world.create(options.responses ?? []);
+      server = createPiChatServer(initial, undefined, world.factory);
       const listeningServer = server;
       await new Promise<void>((resolve, reject) => {
         listeningServer.httpServer.once("error", reject);
@@ -75,8 +62,10 @@ export class PiChatDriver {
       client = new BrowserClient(server, timeoutMs);
       const context: DriverContext = {
         client,
-        remainingResponses: () => harness.playbook.remaining,
-        nextPrompt: () => options.responses?.[harness.playbook.consumed]?.prompt.trim(),
+        projectPath: world.projectPath,
+        reserveSession: responses => world.reserveSession(responses),
+        remainingResponses: () => world.remainingResponses(context.client.appState.activeSessionId),
+        nextPrompt: () => world.nextPrompt(context.client.appState.activeSessionId),
         async reconnect() {
           await context.client.close();
           // Fresh state requires authoritative snapshots instead of keeping a
@@ -85,12 +74,11 @@ export class PiChatDriver {
           await context.client.ready("Browser.Reconnect");
         },
       };
-      const app = new PiChatDriver(context, server, runtime, harness);
+      const app = new PiChatDriver(context, server, world);
       await client.ready("PiChatDriver.start");
       return app;
     } catch (error) {
-      // Handle partial setup without hiding the original initialization error.
-      try { await cleanup(client, server, runtime, harness); }
+      try { await cleanup(client, server, world); }
       catch (cleanupError) {
         throw new AggregateError([error, cleanupError], "PiChatDriver.start failed, then cleanup failed", { cause: error });
       }
@@ -99,7 +87,7 @@ export class PiChatDriver {
   }
 
   dispose(): Promise<void> {
-    this.disposal ??= cleanup(this.context.client, this.server, this.runtime, this.harness);
+    this.disposal ??= cleanup(this.context.client, this.server, this.world);
     return this.disposal;
   }
 }

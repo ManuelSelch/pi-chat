@@ -2,11 +2,14 @@
 
 ## Status
 
-The first `PiChatDriver` slice is implemented: `Chat` and `Browser` drivers cover
-prompt/reply, reconnect restoration, and repeated identical prompts in the normal
-Vitest suite. Setup, cleanup, response scripts, client reducers, and bounded
-message waits live in shared test support. See [DRIVERS.md](DRIVERS.md). Tabs,
-projects, extensions, and the larger first milestone remain planned.
+The core multi-session `PiChatDriver` milestone is implemented: `Chat`, `Browser`,
+and `Tabs` drivers cover prompt/reply, reconnect restoration, repeated identical
+prompts, creation from home, independent tab transcripts, active/background tab
+closure, and reconnect/recreation at home in the normal Vitest suite. An isolated
+harness-backed factory creates real Pi sessions. Shared support owns cleanup,
+per-session scripts, browser reducers, and bounded event-driven waits.
+See [DRIVERS.md](DRIVERS.md). Projects, extensions, persisted session reopening,
+and controlled streaming/abort remain planned.
 
 The commit-pinned GitHub ManuelSelch fork of
 `@marcfargas/pi-test-harness@0.6.1` now passes a compatibility spike with Pi
@@ -383,13 +386,17 @@ The first milestone is complete when:
 5. **Verified:** the pinned fork fixes the import/auth/stream function mismatches.
    Its real session is wrapped in `AgentSessionRuntime` and attached via
    `PiRuntimeAdapter.fromRuntime()`. This runs in normal integration tests.
-6. **Runtime factory seam:** decide whether the harness-backed runtime is added
-   through the existing `RuntimeAdapterFactory`, a new test-only factory helper,
-   or a small adapter around the harness's `TestSession`.
+6. **Implemented runtime factory seam:** test-only `TestWorld` implements the
+   existing `RuntimeAdapterFactory.newSession` with real harness-created sessions
+   in its temporary project. It owns independent scripts/services and idempotent
+   cleanup, including closed tabs and in-flight creation. Persisted session open/
+   continue and runtime replacement explicitly reject until a later slice.
 7. **Implemented response configuration:**
    `PiChatDriver.start({ responses: [{ prompt, reply }] })` translates domain
-   scripts to harness playbooks internally. Missing/mismatched prompts fail
-   before submission; `Chat.ShouldHaveConsumedResponses()` asserts completion.
+   scripts to harness playbooks internally. `Tabs.Create({ responses })` supplies
+   an independent script to a new conversation. Missing/mismatched prompts fail
+   before submission; `Chat.ShouldHaveConsumedResponses()` asserts completion for
+   the active tab. `startAtHome: true` starts with no conversation.
 8. **Client coverage level:** decide whether the first milestone uses only a
    private browser-facing WebSocket client, or also mounts the React application
    for a small number of DOM-backed user flows. The protocol client should be

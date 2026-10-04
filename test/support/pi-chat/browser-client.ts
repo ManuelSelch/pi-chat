@@ -49,9 +49,12 @@ export class BrowserClient {
   private notify(): void { for (const check of [...this.changed]) check(); }
 
   async ready(operation: string): Promise<void> {
-    await this.wait(operation, "active tab and authoritative session snapshot", () =>
-      this.socket.readyState === WebSocket.OPEN && this.state.tabsKnown &&
-      Boolean(this.state.activeSessionId && this.state.sessions[this.state.activeSessionId]?.sessionId));
+    await this.wait(operation, "tab list and authoritative session snapshots or home catalogue", () => {
+      if (this.socket.readyState !== WebSocket.OPEN || !this.state.tabsKnown) return false;
+      if (!this.state.activeSessionId) return this.state.tabs.length === 0 && this.messages.some(m => m.type === "catalogue");
+      return this.state.tabs.some(tab => tab.sessionId === this.state.activeSessionId) &&
+        this.state.tabs.every(tab => this.state.sessions[tab.sessionId]?.sessionId === tab.sessionId);
+    });
   }
 
   send(message: ClientMessage): void {
@@ -59,8 +62,13 @@ export class BrowserClient {
     this.socket.send(JSON.stringify(clientMessageSchema.parse(message)));
   }
 
-  waitForMessage(operation: string, description: string, after: number, predicate: (m: ServerMessage) => boolean): Promise<void> {
-    return this.wait(operation, description, () => this.messages.slice(after).some(predicate));
+  async waitForMessage(operation: string, description: string, after: number, predicate: (m: ServerMessage) => boolean): Promise<ServerMessage> {
+    let found: ServerMessage | undefined;
+    await this.wait(operation, description, () => {
+      found = this.messages.slice(after).find(predicate);
+      return Boolean(found);
+    });
+    return found!;
   }
 
   wait(operation: string, description: string, predicate: () => boolean): Promise<void> {

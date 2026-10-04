@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { PROTOCOL_VERSION } from "../../../src/shared/protocol.js";
 import { check, requireSession, type DriverContext } from "./driver-context.js";
+import type { BrowserClient } from "./browser-client.js";
 
 export interface ExpectedMessage {
   role: "user" | "assistant" | "system";
@@ -8,7 +9,7 @@ export interface ExpectedMessage {
 }
 
 export class ChatDriver {
-  private pendingTurn?: { sessionId: string; after: number };
+  private readonly pendingTurns = new Map<string, { client: BrowserClient; after: number }>();
 
   constructor(private readonly context: DriverContext) {}
 
@@ -23,7 +24,7 @@ export class ChatDriver {
     });
     const after = client.mark();
     client.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId, message: text });
-    this.pendingTurn = { sessionId, after };
+    this.pendingTurns.set(sessionId, { client, after });
     // There is no command-accepted ACK; the new user final confirms acceptance.
     // A history match must not acknowledge an identical prompt from an old turn.
     await client.waitForMessage("Chat.SendPrompt", "new accepted user message", after, m =>
@@ -32,15 +33,18 @@ export class ChatDriver {
 
   async WaitUntilIdle(): Promise<void> {
     const { client } = this.context;
-    requireSession(this.context, "Chat.WaitUntilIdle");
-    if (this.pendingTurn) {
-      const { sessionId, after } = this.pendingTurn;
+    const sessionId = requireSession(this.context, "Chat.WaitUntilIdle");
+    const pending = this.pendingTurns.get(sessionId);
+    // Bookmarks are local to a connection. After reconnect, the fresh snapshot
+    // (and subsequent events) authoritatively describe whether a turn is idle.
+    if (pending?.client === client) {
+      const { after } = pending;
       await client.waitForMessage("Chat.WaitUntilIdle", "new turn settled", after, m =>
         m.type === "runtimeStatus" && m.sessionId === sessionId && m.status === "idle");
     }
     await client.wait("Chat.WaitUntilIdle", "current conversation idle", () => client.chat.status === "idle");
     check(this.context, "Chat.WaitUntilIdle", () => assert.equal(client.chat.error, undefined, "Runtime failed"));
-    this.pendingTurn = undefined;
+    this.pendingTurns.delete(sessionId);
   }
 
   ShouldContainMessages(expected: readonly ExpectedMessage[]): void {

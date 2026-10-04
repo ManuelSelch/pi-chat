@@ -36,9 +36,10 @@ than allowing npm to select an incompatible newer release.
 - Cleanup of sockets, server, runtime, and harness temporary directory.
 - Event-driven bounded waits without polling or sleeps.
 
-The original spike passed with 69 harness tests and 401 Pi Chat tests. The driver
-slice adds default-suite workflow and infrastructure tests. The dependency graph
-is declared in package.json/package-lock.json.
+The original spike passed with 69 harness tests and 401 Pi Chat tests. The
+Chat/Browser/Tabs driver slices now pass 424 Pi Chat tests across 58 files, plus
+build/typecheck and the spike. The dependency graph is declared in
+package.json/package-lock.json.
 
 ## Implementation seams
 
@@ -50,12 +51,14 @@ retains its automatic consumption assertion. Host-driven callers check
 `PiRuntimeAdapter.fromRuntime(runtime)` attaches to an already-initialized runtime
 and takes ownership of disposal. It does not emit another extension startup event.
 The harness already initializes the session. `AgentSessionRuntime` uses that
-session's model runtime, settings, and resource loader; its replacement factory
-explicitly throws because replacement is outside this spike.
+session's model runtime, settings, and resource loader. `TestWorld` now supplies a
+real isolated session-creation factory for the tab workflows; each runtime's
+replacement factory still explicitly throws because replacement is out of scope.
 
 ## Not yet verified
 
-Tabs/new sessions/runtime replacement, tools driven through Pi Chat, extension UI
-integration, abort/recovery, persisted session reopening, browser React rendering,
-and broader feature drivers are not covered here. The spike restores one live
+Tabs and new sessions are covered by the default integration suite. Runtime
+replacement, tools driven through Pi Chat, extension UI integration, controlled
+abort/recovery, persisted session reopening, browser React rendering, and broader
+feature drivers are not covered yet. The standalone spike restores one live
 session's transcript by reconnecting, not by restarting the application.

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import type { BrowserClient } from "./browser-client.js";
+import type { AssistantResponse } from "./test-world.js";
 
 /** Shared infrastructure, not part of the workflow-test API. */
 export interface DriverContext {
   client: BrowserClient;
+  readonly projectPath: string;
+  reserveSession(responses: readonly AssistantResponse[]): () => void;
   reconnect(): Promise<void>;
   remainingResponses(): number;
   nextPrompt(): string | undefined;
