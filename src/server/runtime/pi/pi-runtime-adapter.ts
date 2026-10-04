@@ -10,38 +10,18 @@ import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { createWebUiContext } from "./web-ui-context.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
-import { sessionStatsMarkdown, type SessionStatsView } from "./session-stats.js";
+import { type SessionStatsView } from "./session-stats.js";
 import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFromBranch, textFromContent, toChatMessage, toChatMessages } from "./message-mapping.js";
 import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
 import { projectFooter, projectSnapshot } from "./snapshot.js";
 import { offeredModels } from "./models.js";
 import { createPiRuntime } from "./runtime-factory.js";
+import { handleNativeCommand, NATIVE_COMMANDS } from "./native-commands.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
 const ABORT_WATCH_TIMEOUT_MS = 15_000;
-
-/** Built-ins this host implements, surfaced in the web command menu. */
-const NATIVE_COMMANDS: SlashCommand[] = [
-  { name: "model", description: "Switch the model for this session", source: "native" },
-  { name: "session", description: "Show session stats, token use, and context window", source: "native" },
-  { name: "thinking", description: "Set the reasoning effort for this session", source: "native" },
-  { name: "compact", description: "Summarise the conversation to free up context", source: "native" },
-];
-
-/**
- * Pi's built-in slash commands. They are implemented by the terminal app, so a
- * web host must either provide its own version or say plainly that it cannot.
- *
- * `reload` is absent on purpose: the chat service implements it by rebuilding
- * this runtime, which an adapter cannot do to itself.
- */
-const PI_BUILTIN_COMMANDS = new Set([
-  "settings", "model", "tree", "thinking", "scoped-models", "export", "import", "share", "copy",
-  "name", "session", "changelog", "hotkeys", "fork", "clone", "trust", "login", "logout", "new",
-  "compact", "resume", "quit",
-]);
 
 export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
@@ -276,44 +256,20 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * the model as literal text like "/compact".
    */
   private async handleNativeCommand(message: string): Promise<boolean> {
-    if (!message.startsWith("/")) return false;
-    const name = message.slice(1).split(/\s+/)[0] ?? "";
-    if (this.runtime.session.extensionRunner.getCommand(name)) return false;
-
-    if (name === "compact") {
-      await this.compact();
-      return true;
-    }
-    if (name === "model") {
-      await this.refreshModels();
-      const result = await this.prompts.ask({ kind: "select", title: "Select a model", options: this.models });
-      if (!result.cancelled) await this.setModel(String(result.value));
-      return true;
-    }
-    if (name === "session") {
-      const stats = this.runtime.session.getSessionStats() as SessionStatsView;
-      this.emit({
-        type: "notification",
-        level: "info",
-        message: sessionStatsMarkdown(stats, this.runtime.session.sessionName, this.currentModel()),
-      });
-      return true;
-    }
-    if (name === "thinking") {
-      const options = this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[];
-      const result = await this.prompts.ask({ kind: "select", title: "Select a thinking level", options });
-      if (!result.cancelled) await this.setThinkingLevel(String(result.value) as ThinkingLevel);
-      return true;
-    }
-    if (PI_BUILTIN_COMMANDS.has(name)) {
-      this.emit({
-        type: "notification",
-        level: "warning",
-        message: `/${name} is a Pi terminal command and is not available in Pi Chat.`,
-      });
-      return true;
-    }
-    return false;
+    return handleNativeCommand(message, {
+      hasExtensionCommand: (name) => Boolean(this.runtime.session.extensionRunner.getCommand(name)),
+      compact: () => this.compact(),
+      refreshModels: () => this.refreshModels(),
+      models: () => this.models,
+      ask: (request) => this.prompts.ask(request),
+      setModel: (model) => this.setModel(model),
+      setThinkingLevel: (level) => this.setThinkingLevel(level),
+      sessionName: this.runtime.session.sessionName,
+      currentModel: this.currentModel(),
+      sessionStats: () => this.runtime.session.getSessionStats() as SessionStatsView,
+      thinkingLevels: this.runtime.session.getAvailableThinkingLevels() as ThinkingLevel[],
+      emit: (event) => this.emit(event),
+    });
   }
 
   async prompt(message: string): Promise<void> {
