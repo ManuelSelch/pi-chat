@@ -8,6 +8,7 @@ import { ProjectSessionService } from "../projects/project-session-service.js";
 import type { ProjectCatalogue } from "../projects/catalogue-types.js";
 import type { RestartService } from "../bootstrap/restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
+import { runFeatureAction } from "./feature-actions.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
   for (const message of snapshot.messages) {
@@ -225,40 +226,12 @@ export class ChatApplicationService {
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
-    // Restart is app-level: it must work from the home screen too, where there
-    // is no session to look up.
-    if (message.type === "runExtensionAction") {
-      // The session is looked up rather than required: an action can be pressed
-      // from the home screen, where there is none and so no modal to open.
-      const ui = this.sessions.has(message.sessionId) ? this.sessions.get(message.sessionId).uiContext() : undefined;
-      await this.extensions.runAction(message.actionId, {
-        sessionId: message.sessionId,
-        notify: (text, level = "info") => this.emit(message.sessionId, { type: "notification", level, message: text }),
-        ...(ui ? { ui } : {}),
-      });
-      return;
-    }
-    if (message.featureId === "app.restart") {
-      if (!this.restartService) throw new Error("This server cannot restart itself.");
-      const failure = await this.restartService.restart();
-      if (failure) throw new Error(`Restart cancelled, the server is still running: ${failure}`);
-      return;
-    }
-    const runtime = this.sessions.get(message.sessionId);
-    if (message.featureId === "session.rename") {
-      await runtime.renameSession(message.input.name);
-      return;
-    }
-    if (message.featureId === "model.select") {
-      await runtime.setModel(message.input.model);
-      return;
-    }
-    if (message.featureId === "session.compact") {
-      await runtime.compact();
-      return;
-    }
-    if (runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before changing controls.");
-    await runtime.setThinkingLevel(message.input.level);
+    await runFeatureAction(message, {
+      sessions: this.sessions,
+      restartService: this.restartService,
+      extensions: this.extensions,
+      notify: (sessionId, text, level) => this.emit(sessionId, { type: "notification", level, message: text }),
+    });
   }
 
   subscribe(listener: (sessionId: string, event: RuntimeEvent) => void): () => void {
