@@ -3,19 +3,14 @@
 Pi Chat is a local React web client backed by a Node.js server running Pi in-process.
 The server owns agent sessions; the browser displays their state and sends commands.
 
-```text
-Browser (React)
-  App + feature containers/views
-  usePiChat + state reducers
-          ⇅ typed JSON over WebSocket /ws
-Node.js server
-  WebSocketTransport
-          ⇅ commands / snapshots / events
-  ChatApplicationService + SessionRegistry
-          ⇅ RuntimeAdapter contract
-  PiRuntimeAdapter
-          ⇅
-  Pi SDK → models, tools, extensions, persistent session files
+```mermaid
+flowchart LR
+    Browser[React web client] <-->|Typed JSON over WebSocket| Transport[WebSocket transport]
+    Transport --> App[Chat application service]
+    App --> Registry[Session registry]
+    Registry --> Runtime[Pi runtime adapter]
+    Runtime --> SDK[Pi SDK]
+    SDK --> Resources[(Models, tools, extensions, session files)]
 ```
 
 ## Web
