@@ -67,6 +67,63 @@ flowchart TD
 
 ## Server
 
+```mermaid
+flowchart TD
+    HTTP[HTTP server / composition root]
+
+    subgraph Transport
+        WebSocket[WebSocket transport]
+        Handler[Command handler]
+        Publisher[Server publisher]
+    end
+
+    subgraph Application
+        Chat[Chat application service]
+        Registry[Session registry]
+        Actions[Feature actions]
+    end
+
+    subgraph Projects
+        Catalogue[Catalogue assembly]
+        Store[Pi session store]
+        Directory[Directory browser]
+    end
+
+    subgraph Extensions
+        ExtensionRegistry[Extension registry]
+        UIRegistries[Prompt, widget, and status registries]
+    end
+
+    subgraph Runtime
+        Adapter[Pi runtime adapter]
+        Factory[Runtime factory]
+        Mapping[Event, message, tool, and snapshot mapping]
+        Pi[Pi SDK runtime]
+    end
+
+    Files[(Session files)]
+
+    HTTP --> WebSocket
+    WebSocket --> Handler
+    Handler --> Chat
+    Chat --> Registry
+    Chat --> Actions
+    Chat --> Catalogue
+    Chat --> Directory
+    Chat --> ExtensionRegistry
+    Chat --> Publisher
+    Publisher --> WebSocket
+    Registry --> Adapter
+    Adapter --> Factory
+    Adapter --> Mapping
+    Factory --> Pi
+    Mapping --> Pi
+    Catalogue --> Store
+    Store --> Files
+    Adapter --> UIRegistries
+    ExtensionRegistry --> Pi
+```
+
 - **`src/server/index.ts` and `bootstrap/`** start and compose the process.
   Express serves `/health` and the built web app; the same HTTP server hosts `/ws`.
 - **`transport/`** validates protocol messages, routes browser commands, and sends
