@@ -1,6 +1,6 @@
 # Server modularization plan
 
-Status: implementation in progress; slices 1–2 complete. Slice 3 complete: session-stat rendering, message/tool mapping, and snapshot projection extracted. Slice 4 started with model resolution/offered-model handling extracted; runtime construction remains next.
+Status: implementation in progress; slices 1–2 complete. Slice 3 complete: session-stat rendering, message/tool mapping, and snapshot projection extracted. Slice 4 complete: model resolution/offered-model handling and SDK runtime construction are extracted; adapter entry points remain delegators.
 Scope: `src/server/` and imports into it, based on the pre-refactor checkout.
 
 ## Problem and goals

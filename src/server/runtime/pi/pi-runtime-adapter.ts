@@ -1,11 +1,6 @@
 import {
-  createAgentSessionFromServices,
-  createAgentSessionRuntime,
-  createAgentSessionServices,
-  getAgentDir,
   SessionManager,
   type AgentSessionRuntime,
-  type CreateAgentSessionRuntimeFactory,
   type ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from "../../../shared/protocol.js";
@@ -20,7 +15,8 @@ import { customMessageFromEntry, MessageIdentity, mergeEntriesById, messagesFrom
 import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
 import { projectFooter, projectSnapshot } from "./snapshot.js";
-import { offeredModels, resolveModelOverride } from "./models.js";
+import { offeredModels } from "./models.js";
+import { createPiRuntime } from "./runtime-factory.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
@@ -187,18 +183,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   private static async fromSessionManager(cwd: string, sessionManager: SessionManager): Promise<PiRuntimeAdapter> {
-    const agentDir = getAgentDir();
-    const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager, sessionStartEvent }) => {
-      const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
-      const override = resolveModelOverride(services);
-      return {
-        ...(await createAgentSessionFromServices({ services, sessionManager, sessionStartEvent, ...override })),
-        services,
-        diagnostics: services.diagnostics,
-      };
-    };
-
-    const runtime = await createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager });
+    const runtime = await createPiRuntime(cwd, sessionManager);
     // session_start can register providers or change defaults: resolve afterwards.
     const adapter = new PiRuntimeAdapter(runtime);
     await adapter.startExtensions();
