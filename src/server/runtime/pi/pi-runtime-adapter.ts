@@ -7,7 +7,7 @@ import type { ChatMessage, SlashCommand, ThinkingLevel, UiPromptResult } from ".
 
 import type { RuntimeAdapter, RuntimeEvent, RuntimeSnapshot } from "../contracts.js";
 import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
-import { createWebUiContext } from "./web-ui-context.js";
+import { bindWebUiContext } from "./extension-bindings.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
 import { type SessionStatsView } from "./session-stats.js";
@@ -101,14 +101,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * `session.bindExtensions`, which would bind the terminal's own mode.
    */
   private bindUi(): void {
-    this.ui = createWebUiContext({
+    this.ui = bindWebUiContext(this.runtime, {
       onNotify: (message, level) => this.emit({ type: "notification", level, message }),
       onPrompt: (request) => this.prompts.ask(request),
       onWidget: (key, lines, placement) => this.widgets.set(key, lines, placement),
       onStatus: (key, text) => this.statuses.set(key, text),
     });
-    // "rpc" rather than "print": this host can answer blocking questions.
-    this.runtime.session.extensionRunner.setUIContext(this.ui, "rpc");
   }
 
   /**
