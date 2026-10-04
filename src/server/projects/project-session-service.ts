@@ -1,13 +1,13 @@
 import { execFile } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { unlink } from "node:fs/promises";
-import os from "node:os";
-import { createInterface } from "node:readline";
-import { basename, dirname, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
-import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister, SessionNameInfo } from "./catalogue-types.js";
+import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
+import { readLatestSessionNameInfo } from "./pi-session-store.js";
+export { readLatestSessionNameInfo } from "./pi-session-store.js";
 export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 
@@ -27,29 +27,6 @@ async function moveToTrash(path: string): Promise<void> {
   }
 }
 
-
-export async function readLatestSessionNameInfo(path: string): Promise<SessionNameInfo> {
-  let latest: SessionNameInfo = { source: "none" };
-  try {
-    const lines = createInterface({ input: createReadStream(path, { encoding: "utf8" }), crlfDelay: Infinity });
-    for await (const line of lines) {
-      let entry: unknown;
-      try {
-        entry = JSON.parse(line);
-      } catch {
-        continue;
-      }
-      if (!entry || typeof entry !== "object") continue;
-      const value = entry as Record<string, unknown>;
-      if (value.type !== "session_info") continue;
-      const name = typeof value.name === "string" ? value.name.trim() : "";
-      latest = name ? { name, source: value.autoTitle === true ? "auto" : "manual" } : { source: "none" };
-    }
-  } catch {
-    return { source: "none" };
-  }
-  return latest;
-}
 
 export class ProjectSessionService {
   constructor(
