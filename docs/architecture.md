@@ -5,15 +5,56 @@ The server owns agent sessions; the browser displays their state and sends comma
 
 ```mermaid
 flowchart LR
-    Browser[React web client] <-->|Typed JSON over WebSocket| Transport[WebSocket transport]
-    Transport --> App[Chat application service]
-    App --> Registry[Session registry]
-    Registry --> Runtime[Pi runtime adapter]
-    Runtime --> SDK[Pi SDK]
-    SDK --> Resources[(Models, tools, extensions, session files)]
+    WebClient[Web Client] <-->|WebSocket| Server[Server]
+    Server --> Pi[Pi]
 ```
 
 ## Web
+
+```mermaid
+flowchart TD
+    subgraph Composition
+        App[App]
+    end
+
+    subgraph Coordination
+        Controller[App controller]
+        Connection[WebSocket connection]
+    end
+
+    subgraph State
+        AppState[App state]
+        ChatState[Chat state per session]
+    end
+
+    subgraph Features
+        Chat[Chat]
+        Sessions[Sessions]
+        Settings[Settings]
+        Extensions[Extensions]
+    end
+
+    subgraph Presentation
+        UI[Shared UI]
+        Preferences[Browser preferences]
+    end
+
+    App --> Controller
+    Controller <--> Connection
+    Controller --> AppState
+    Controller --> ChatState
+
+    App --> Chat
+    App --> Sessions
+    App --> Settings
+    App --> Extensions
+
+    Chat --> UI
+    Sessions --> UI
+    Settings --> UI
+    Extensions --> UI
+    Settings --> Preferences
+```
 
 - **`src/web/app/`** composes the application, shell, overlays and keyboard routing.
   `use-pi-chat.ts` owns the socket and reconnect lifecycle; `state/` projects server
