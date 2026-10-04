@@ -4,7 +4,8 @@ import { DirectoryBrowserService } from "../projects/directory-browser-service.j
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
-import { ProjectSessionService, type ProjectCatalogue } from "../projects/project-session-service.js";
+import { ProjectSessionService } from "../projects/project-session-service.js";
+import type { ProjectCatalogue } from "../projects/catalogue-types.js";
 import type { RestartService } from "../bootstrap/restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
 

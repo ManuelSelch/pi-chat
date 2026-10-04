@@ -5,8 +5,11 @@ import os from "node:os";
 import { createInterface } from "node:readline";
 import { basename, dirname, resolve, sep } from "node:path";
 import { promisify } from "node:util";
-import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
-import type { SessionNameSource } from "../../shared/protocol.js";
+import { SessionManager, getAgentDir } from "@earendil-works/pi-coding-agent";
+import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister, SessionNameInfo } from "./catalogue-types.js";
+import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
+export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
+export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 
 const run = promisify(execFile);
 
@@ -24,76 +27,6 @@ async function moveToTrash(path: string): Promise<void> {
   }
 }
 
-export interface ChatSessionSummary {
-  path: string;
-  id: string;
-  title: string;
-  name?: string;
-  nameSource: SessionNameSource;
-  firstMessage?: string;
-  modified: number;
-  created: number;
-  messageCount: number;
-}
-
-export interface ChatProjectSummary {
-  path: string;
-  displayPath: string;
-  name: string;
-  exists: boolean;
-  modified: number;
-  sessionCount: number;
-  sessions: ChatSessionSummary[];
-}
-
-export interface ProjectCatalogue {
-  projects: ChatProjectSummary[];
-}
-
-export interface ActiveSessionSummary {
-  path?: string;
-  id: string;
-  name?: string;
-  nameSource?: SessionNameSource;
-  cwd: string;
-  messageCount: number;
-  firstMessage?: string;
-}
-
-export interface ProjectSessionLister {
-  listAll(sessionDir?: string): Promise<SessionInfo[]>;
-}
-
-const GENERIC_PROJECT_DIR_NAMES = new Set(["frontend", "backend", "web", "api", "server", "client", "app"]);
-
-export function formatProjectName(projectPath: string): string {
-  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const child = basename(normalizedPath) || normalizedPath;
-  if (!GENERIC_PROJECT_DIR_NAMES.has(child.toLowerCase())) return child;
-
-  const parent = basename(dirname(normalizedPath));
-  return parent ? `${parent}/${child}` : child;
-}
-
-export function formatProjectDisplayPath(projectPath: string, homePath = os.homedir()): string {
-  if (!homePath) return projectPath;
-  const normalizedPath = projectPath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const normalizedHome = homePath.replaceAll("\\", "/").replace(/\/+$/, "");
-  const caseInsensitive = /^[A-Za-z]:\//.test(normalizedPath) || /^[A-Za-z]:\//.test(normalizedHome);
-  const comparisonPath = caseInsensitive ? normalizedPath.toLowerCase() : normalizedPath;
-  const comparisonHome = caseInsensitive ? normalizedHome.toLowerCase() : normalizedHome;
-
-  if (comparisonPath === comparisonHome) return "~";
-  if (comparisonPath.startsWith(`${comparisonHome}/`)) {
-    return `~/${normalizedPath.slice(normalizedHome.length + 1)}`;
-  }
-  return normalizedPath;
-}
-
-export interface SessionNameInfo {
-  name?: string;
-  source: SessionNameSource;
-}
 
 export async function readLatestSessionNameInfo(path: string): Promise<SessionNameInfo> {
   let latest: SessionNameInfo = { source: "none" };
