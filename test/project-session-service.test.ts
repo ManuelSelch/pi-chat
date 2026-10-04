@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { ProjectSessionService, formatProjectDisplayPath, formatProjectName, readLatestSessionNameInfo } from "../src/server/projects/project-session-service.js";
 
+const noWorktrees = { forDirectory: async () => undefined };
+
 function info(overrides: Partial<any>) {
   return {
     path: `/sessions/${overrides.id}.jsonl`,
@@ -85,7 +87,7 @@ describe("ProjectSessionService", () => {
       ],
     };
 
-    const catalogue = await new ProjectSessionService(lister).catalogue();
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue();
 
     expect(catalogue.projects).toHaveLength(1);
     expect(catalogue.projects[0]?.displayPath).toBe(formatProjectDisplayPath(process.cwd()));
@@ -96,16 +98,36 @@ describe("ProjectSessionService", () => {
     expect(catalogue.projects[0]?.sessions[1]?.title).toBe("old chat");
   });
 
+  it("adds registered primary and zero-session linked worktrees", async () => {
+    const lister = { listAll: async () => [info({ id: "feature", cwd: "/repo/feature" })] };
+    const discovery = {
+      forDirectory: async () => ({
+        repositoryPath: "/repo/main",
+        worktrees: [
+          { path: "/repo/main", branch: "main", commit: "abc", detached: false, primary: true },
+          { path: "/repo/feature", branch: "feature", commit: "def", detached: false, primary: false },
+          { path: "/repo/empty", branch: "empty", commit: "ghi", detached: false, primary: false },
+        ],
+      }),
+    };
+
+    const catalogue = await new ProjectSessionService(lister, undefined, discovery).catalogue();
+
+    expect(catalogue.projects.map((project) => project.path)).toEqual(["/repo/feature", "/repo/main", "/repo/empty"]);
+    expect(catalogue.projects.find((project) => project.path === "/repo/feature")).toMatchObject({ repositoryPath: "/repo/main", worktree: { branch: "feature", primary: false }, sessionCount: 1 });
+    expect(catalogue.projects.find((project) => project.path === "/repo/empty")).toMatchObject({ repositoryPath: "/repo/main", worktree: { branch: "empty", primary: false }, sessionCount: 0 });
+  });
+
   it("ignores legacy sessions without a cwd", async () => {
     const lister = { listAll: async () => [info({ id: "legacy", cwd: "" })] };
 
-    await expect(new ProjectSessionService(lister).catalogue()).resolves.toEqual({ projects: [] });
+    await expect(new ProjectSessionService(lister, undefined, noWorktrees).catalogue()).resolves.toEqual({ projects: [] });
   });
 
   it("includes the active empty session even before Pi listAll can see it", async () => {
     const lister = { listAll: async () => [] };
 
-    const catalogue = await new ProjectSessionService(lister).catalogue({
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue({
       id: "fresh",
       path: "/sessions/project/fresh.jsonl",
       cwd: process.cwd(),
@@ -125,7 +147,7 @@ describe("ProjectSessionService", () => {
   it("updates the active session title from active runtime state", async () => {
     const lister = { listAll: async () => [info({ id: "s1", path: "/sessions/project/s1.jsonl", name: "Old name" })] };
 
-    const catalogue = await new ProjectSessionService(lister).catalogue({
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue({
       id: "s1",
       path: "/sessions/project/s1.jsonl",
       name: "New name",

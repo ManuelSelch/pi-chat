@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
+import { WorktreeDiscovery } from "./worktree-discovery.js";
 export { readLatestSessionNameInfo } from "./pi-session-store.js";
 export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
@@ -14,6 +15,7 @@ export class ProjectSessionService {
   constructor(
     private readonly lister: ProjectSessionLister = new PiSessionStore(),
     sessionsRoot?: string,
+    private readonly discovery: Pick<WorktreeDiscovery, "forDirectory"> = new WorktreeDiscovery(),
   ) {
     this.store = new PiSessionStore(sessionsRoot);
   }
@@ -65,6 +67,7 @@ export class ProjectSessionService {
     }
 
     if (active) this.includeActiveSession(byProject, active);
+    await this.includeRegisteredWorktrees(byProject);
 
     const projects = [...byProject.values()]
       .map((project) => ({
@@ -74,6 +77,48 @@ export class ProjectSessionService {
       .sort((a, b) => b.modified - a.modified);
 
     return { projects };
+  }
+
+  private async includeRegisteredWorktrees(byProject: Map<string, ChatProjectSummary>): Promise<void> {
+    const repositories = new Map<string, Awaited<ReturnType<WorktreeDiscovery["forDirectory"]>>>();
+    const checkedPaths = new Set<string>();
+    for (const path of byProject.keys()) {
+      if (checkedPaths.has(path)) continue;
+      const repository = await this.discovery.forDirectory(path);
+      if (repository) {
+        repositories.set(repository.repositoryPath, repository);
+        checkedPaths.add(repository.repositoryPath);
+        repository.worktrees.forEach((worktree) => checkedPaths.add(resolve(worktree.path)));
+      }
+    }
+
+    for (const repository of repositories.values()) {
+      if (!repository) continue;
+      for (const worktree of repository.worktrees) {
+        const projectPath = resolve(worktree.path);
+        let project = byProject.get(projectPath);
+        if (!project) {
+          project = {
+            path: projectPath,
+            displayPath: formatProjectDisplayPath(projectPath),
+            name: formatProjectName(projectPath),
+            exists: existsSync(projectPath),
+            modified: 0,
+            sessionCount: 0,
+            sessions: [],
+          };
+          byProject.set(projectPath, project);
+        }
+        project.repositoryPath = repository.repositoryPath;
+        project.repositoryName = formatProjectName(repository.repositoryPath);
+        project.worktree = {
+          ...(worktree.branch ? { branch: worktree.branch } : {}),
+          ...(worktree.commit ? { commit: worktree.commit } : {}),
+          detached: worktree.detached,
+          primary: worktree.primary,
+        };
+      }
+    }
   }
 
   private includeActiveSession(byProject: Map<string, ChatProjectSummary>, active: ActiveSessionSummary): void {
