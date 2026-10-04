@@ -3,13 +3,13 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Widget } from "../src/shared/protocol.js";
+import { WidgetPanel } from "../src/web/extensions/widgets/WidgetPanel.js";
 import {
-  placeWidgets,
   WidgetDock,
-  WidgetPanel,
   WIDGET_DOCK_MAX_WIDTH,
   WIDGET_DOCK_TOP,
-} from "../src/web/extensions/widgets/WidgetPanel.js";
+} from "../src/web/extensions/widgets/WidgetDock.js";
+import { placeWidgets } from "../src/web/extensions/widgets/widget-placement.js";
 
 afterEach(cleanup);
 
@@ -123,6 +123,18 @@ describe("WidgetDock", () => {
     expect(panel.style.maxHeight).toContain("100vh");
   });
 
+  it("collapses and expands a docked panel independently", () => {
+    dock([todo, below]);
+
+    fireEvent.click(screen.getByRole("button", { name: "todo", expanded: true }));
+
+    expect([...document.querySelectorAll("pre")].map((block) => block.textContent)).toEqual(["42k tokens"]);
+    expect(screen.getByText("3 lines")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /todo/, expanded: false }));
+    expect(document.querySelectorAll("pre")).toHaveLength(2);
+  });
+
   it("renders the lines the same way the composer panel does", () => {
     dock([todo, below]);
 
@@ -150,6 +162,13 @@ describe("choosing where the panels go", () => {
     expect(placed.above).toEqual([]);
     expect(placed.below).toEqual([]);
     expect(placed.docked.map((widget) => widget.key)).toEqual(["todo", "usage"]);
+  });
+
+  it("does not mutate the incoming widget order when sorting for the dock", () => {
+    const widgets = [under, above];
+
+    expect(placeWidgets(widgets, true).docked.map((widget) => widget.key)).toEqual(["todo", "usage"]);
+    expect(widgets.map((widget) => widget.key)).toEqual(["usage", "todo"]);
   });
 
   it("does not reorder panels that share a placement", () => {

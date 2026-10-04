@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; steps 1, 2, 3, 5, and 6 are complete. Step 4 file moves are complete; widget splitting and final app composition (step 7) remain.
+Status: partially implemented; steps 1 through 6 are complete. Final app composition (step 7) remains.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -59,6 +59,16 @@ Implemented step 4's move-only stage:
 - Preserved prompt focus, responsive widget placement, footer order, and component mount behavior. Widget rendering/docking/placement are still together until the next stage.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only stage.
+
+Completed step 4's widget split in a separate stage:
+
+- `WidgetPanel.tsx` owns widget rendering; WidgetBlock is exported only for reuse by the local dock module.
+- `WidgetDock.tsx` owns docking JSX/geometry. The current header offset and width constants are retained; shell-offset parameterization remains an optional follow-up.
+- `widget-placement.ts` owns the pure placement algorithm and responsive breakpoint; App and composer import it directly.
+- Updated tests to target the new modules and added coverage for independent dock collapse/expand and non-mutating placement order.
+- Verified extension presentation only depends on other extension modules, shared UI, and shared protocol types. Rendering, placement algorithm, and dock geometry match their pre-extraction implementations.
+
+Verification: all 49 test files / 392 tests pass, TypeScript and production build pass, and whitespace checks pass. No browser smoke was run for this extraction; DOM tests cover rendering, collapse/expand, dock layout, and wide/narrow placement policy.
 
 ## Problem and goals
 
@@ -288,7 +298,7 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, session navigation, and settings preferences. Steps 4 and 7 remain proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, session navigation, settings preferences, and extension presentation. Step 7 remains proposed.
 - Retain the `settings/preferences/` folder as explicitly requested; chime playback helpers are colocated with the browser preference they implement.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.
