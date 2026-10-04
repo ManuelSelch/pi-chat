@@ -1,4 +1,4 @@
-import type { Tab, TabStatus } from "../../shared/protocol.js";
+import type { Tab, TabStatus } from "../../../shared/protocol.js";
 
 /**
  * Two beeps do not justify a dependency. Howler and friends exist to schedule

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Tab, TabStatus } from "../src/shared/protocol.js";
-import { ChimePlayer, chimesFor, statusMap } from "../src/web/app/chime.js";
+import { ChimePlayer, chimesFor, statusMap } from "../src/web/settings/preferences/chime.js";
 
 const tab = (sessionId: string, status: TabStatus): Tab => ({
   sessionId,

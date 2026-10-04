@@ -1,6 +1,6 @@
 # Frontend grouping plan
 
-Status: partially implemented; shared UI ownership (step 1), application services (step 2), session navigation (step 3), and chat presentation grouping (step 5) are complete.
+Status: partially implemented; steps 1, 2, 3, 5, and 6 are complete. Extension presentation (step 4) and final app composition (step 7) remain.
 Scope: `src/web/` in the current checkout.
 
 ## Completed scope
@@ -42,6 +42,15 @@ Implemented step 3 at the user's request:
 - Removed the empty top-level `home/`, `projects/`, `quickopen/`, and `tabs/` directories. All 13 file moves and consumer/test updates preserve implementation apart from import paths.
 
 Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Existing tests cover Home/session selection, folder browsing/creation, quick-open ranking/mouse interaction, project session browsing, and optimistic tab state. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
+
+Implemented step 6 at the user's request, retaining `preferences/`:
+
+- Moved chime playback/transition helpers, the chime hook, and the path-display hook into `settings/preferences/`.
+- Updated settings, project browser, and test imports; no compatibility copies remain in `app/`.
+- Preserved local-storage keys, defaults, audio preview/unlock behavior, background-tab transition handling, and hook cleanup.
+- App composition is unchanged: SettingsContainer remains mounted while its drawer is closed, so chime playback remains active.
+
+Verification: all 49 test files / 390 tests pass, TypeScript and production build pass, and whitespace checks pass. Source/test changes are file moves and import-path updates only. Production CSS, Markdown, and main bundle hashes match the baseline. No browser smoke was run for this move-only step.
 
 ## Problem and goals
 
@@ -271,6 +280,7 @@ Each step should be independently reviewable. Move existing files with `git mv`,
 
 ## Assumptions and open decisions
 
-- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, and session navigation. Steps 4, 6, and 7 remain proposed.
+- The user approved and completed chat presentation grouping first, then shared UI ownership, application services with revised folder naming, session navigation, and settings preferences. Steps 4 and 7 remain proposed.
+- Retain the `settings/preferences/` folder as explicitly requested; chime playback helpers are colocated with the browser preference they implement.
 - Six top-level responsibility folders are preferred over a `features/` wrapper: the codebase is small enough that an extra directory level adds little value.
 - Current container/view boundaries are retained; additional controller selectors, action abstractions, CSS splitting, and lint tooling are optional follow-ups, not prerequisites.

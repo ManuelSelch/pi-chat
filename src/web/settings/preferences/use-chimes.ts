@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useLocalStorage } from "@mantine/hooks";
-import type { Tab } from "../../shared/protocol.js";
+import type { Tab } from "../../../shared/protocol.js";
 import { ChimePlayer, chimesFor, statusMap } from "./chime.js";
 
 export const CHIME_STORAGE_KEY = "pi-chat:chimes";

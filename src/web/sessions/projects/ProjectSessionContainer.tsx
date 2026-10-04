@@ -1,5 +1,5 @@
 import { useAppController } from "../../app/AppControllerContext.js";
-import { useDisplayPath } from "../../app/use-display-path.js";
+import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { ProjectSessionDrawer } from "./ProjectSessionDrawer.js";
 

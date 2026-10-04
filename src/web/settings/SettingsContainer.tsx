@@ -2,8 +2,8 @@ import { useCallback } from "react";
 import { useAppController } from "../app/AppControllerContext.js";
 import { useOverlays } from "../app/overlays/OverlayController.js";
 import { useConfirmDialog } from "../ui/confirm/ConfirmDialogProvider.js";
-import { useChimes } from "../app/use-chimes.js";
-import { useDisplayPath } from "../app/use-display-path.js";
+import { useChimes } from "./preferences/use-chimes.js";
+import { useDisplayPath } from "./preferences/use-display-path.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 
 export function SettingsContainer() {
