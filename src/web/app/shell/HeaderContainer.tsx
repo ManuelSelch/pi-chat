@@ -1,6 +1,6 @@
-import { atHome, visibleTabs } from "../app/state/app-state.js";
-import { useAppController } from "../app/AppControllerContext.js";
-import { useOverlays } from "../app/overlays/OverlayController.js";
+import { atHome, visibleTabs } from "../state/app-state.js";
+import { useAppController } from "../AppControllerContext.js";
+import { useOverlays } from "../overlays/OverlayController.js";
 import { HeaderView } from "./HeaderView.js";
 
 export function HeaderContainer() {

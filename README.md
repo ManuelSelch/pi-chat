@@ -55,6 +55,31 @@ which adds three commands to any Pi session:
 The test fake lives in `test/support/fake-runtime-adapter.ts`, separate from production contracts. Runtime implementation extraction is deferred.
 The old `src/server/extension-registry.ts` import remains a deprecated compatibility re-export of `extensions/extension-registry.ts`.
 
+## Frontend organization
+
+`src/web/` has six responsibility owners:
+
+- `app/`: startup, composition, state/transport, shell, overlays, and global keyboard routing.
+- `chat/`: transcript, Markdown, tool results, and composer.
+- `sessions/`: Home, tabs, project/folder browsing, quick-open, and session dialogs.
+- `settings/`: settings controls and persistent browser preferences.
+- `extensions/`: runtime slots, prompts, widgets, and footer metadata.
+- `ui/`: application-independent primitives, theme, and generic confirmation.
+
+Application services depend on shared types and other services, not presentation.
+Feature containers may consume app context/state and overlay coordination; views
+stay prop-driven. Only app composition imports the shell and `AppOverlays`.
+Shared UI has no app/feature dependencies; extension views do not import chat or
+shell components. Use direct file imports, including type-only imports, without
+barrels or compatibility shims.
+
+`AppOverlays` assembles overlays in their existing order; providers remain in
+`App`. Settings stays mounted while closed to preserve chime playback. App owns
+Home/transcript selection, composer height, and widget docking.
+
+See [the grouping plan and verification record](docs/web-organization/REQUIREMENTS.md)
+for detailed boundaries and migration history.
+
 ## Environment variables
 
 | Variable | Meaning |
