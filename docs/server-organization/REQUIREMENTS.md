@@ -1,6 +1,6 @@
 # Server modularization plan
 
-Status: implementation in progress; slices 1–2 complete. Slice 3 complete: session-stat rendering, message/tool mapping, and snapshot projection extracted. Slice 4 complete: model resolution/offered-model handling and SDK runtime construction are extracted; adapter entry points remain delegators. Slice 5 complete: native command dispatch, extension UI/command bindings, and shared ANSI normalization are extracted. Slice 6 started with SDK event translation extracted; adapter subscription and watchdog ownership remain in place.
+Status: implementation in progress; slices 1–2 complete. Slice 3 complete: session-stat rendering, message/tool mapping, and snapshot projection extracted. Slice 4 complete: model resolution/offered-model handling and SDK runtime construction are extracted; adapter entry points remain delegators. Slice 5 complete: native command dispatch, extension UI/command bindings, and shared ANSI normalization are extracted. Slice 6 complete: SDK event translation uses explicit adapter-owned projection state; subscription and watchdog ownership remain in the adapter.
 Scope: `src/server/` and imports into it, based on the pre-refactor checkout.
 
 ## Problem and goals
