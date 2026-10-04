@@ -26,9 +26,10 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         icon={message.level === "info" ? <IconInfoCircle size={16} /> : <IconAlertTriangle size={16} />}
         p="xs"
       >
-        {/* Command output such as /session is markdown, and a one-line notice
-            renders the same either way. */}
-        <div className="markdown markdown-notice"><Markdown>{message.text}</Markdown></div>
+        {/* Notices are command output, not model-authored Markdown. Preserve
+            their exact line breaks and indentation (for example, aligned branch
+            listings) instead of letting Markdown collapse whitespace. */}
+        <div className="markdown markdown-notice"><pre>{message.text}</pre></div>
       </Notice>
     );
   }
