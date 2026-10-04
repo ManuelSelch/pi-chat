@@ -131,6 +131,15 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     return this.ui;
   }
 
+  /**
+   * Attach the web projection to an already-initialized runtime. The caller
+   * owns extension startup before attaching; this adapter owns runtime disposal.
+   * Useful for hosts that construct isolated SDK services themselves.
+   */
+  static fromRuntime(runtime: AgentSessionRuntime): PiRuntimeAdapter {
+    return new PiRuntimeAdapter(runtime);
+  }
+
   static async create(cwd: string): Promise<PiRuntimeAdapter> {
     return PiRuntimeAdapter.fromSessionManager(cwd, SessionManager.continueRecent(cwd));
   }
