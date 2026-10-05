@@ -12,7 +12,7 @@ export class ServerPublisher {
   ) {}
 
   publish(sessionId: string, event: RuntimeEvent): void {
-    if (event.type === "sessionSwitch") {
+    if (event.type === "sessionSwitch" || event.type === "sessionMetadataChanged") {
       void this.sendSnapshot(sessionId);
       this.sendTabs();
       void this.sendCatalogue();
