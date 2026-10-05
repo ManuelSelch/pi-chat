@@ -1,6 +1,6 @@
 # Typed file capabilities
 
-Status: implementation started. Step 1 (typed contracts and shared link parsing) is implemented; server dispatch/opener and browser request tracking remain pending. The existing shell-based click action stays in place until the replacement works end to end.
+Status: steps 1–2 implemented (typed contracts, shared link parsing, session-aware file service, macOS opener, and requester-only transport). Browser request tracking/stable actions and end-to-end UI verification remain pending. The existing shell-based click action stays in place until the replacement works end to end.
 
 ## Goal
 
@@ -72,6 +72,7 @@ Use the existing protocol/version and controller policy. Add concrete messages, 
 - Pass an absolute path to the macOS opener as a separate argument, without shell interpolation. Do not use `prompt`, `executeBash`, `exec(string)`, or a shell.
 - Keep OS invocation injectable so tests cannot launch real user applications.
 - Bound opener completion with a deadline, capture failures without unbounded output, and clean up the child on timeout. Never retry an open automatically.
+- The macOS implementation uses `/usr/bin/open` with a separate absolute-path argument, a 5-second timeout, `SIGKILL` on timeout, and an 8 KiB output limit. Automated tests inject/mock the opener; they never launch user applications.
 - Missing files, permissions, unsupported OS, opener failures, and a file disappearing after validation produce recoverable errors.
 - Validation is not a guarantee against filesystem races; report failures rather than claiming transactional file access.
 - This is a privileged user action: continue enforcing the existing controller boundary. Bind to loopback under the existing server model; do not weaken access policy or expose a new unauthenticated HTTP endpoint.

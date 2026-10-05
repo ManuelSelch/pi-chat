@@ -2,6 +2,7 @@ import { WebSocket } from "ws";
 import { PROTOCOL_VERSION, type ClientMessage } from "../../shared/protocol.js";
 import type { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
+import { fileOpenFailure } from "../files/file-open-error.js";
 
 export interface CommandHandlerDependencies {
   chat: ChatApplicationService;
@@ -14,7 +15,13 @@ export interface CommandHandlerDependencies {
 export function handleClientCommand(socket: WebSocket, command: ClientMessage, dependencies: CommandHandlerDependencies): void {
   if (!dependencies.isController(socket)) return;
   const { chat, publisher } = dependencies;
-  if (command.type === "completeCommandArguments") {
+  if (command.type === "openFile") {
+    // Even synchronous lookup failures must remain requester-scoped replies.
+    Promise.resolve().then(() => chat.openFile(command.sessionId, command.path)).then(
+      (result) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "fileOpenResult", sessionId: command.sessionId, requestId: command.requestId, result }),
+      () => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "fileOpenResult", sessionId: command.sessionId, requestId: command.requestId, result: fileOpenFailure("openFailed", "Unable to open this file on the server.") }),
+    );
+  } else if (command.type === "completeCommandArguments") {
     // Start in a promise so a missing/closed session is also a correlated error.
     Promise.resolve().then(() => chat.completeCommandArguments(command.sessionId, command.commandName, command.argumentPrefix)).then(
       (items) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "commandArgumentCompletions", sessionId: command.sessionId, requestId: command.requestId, items }),

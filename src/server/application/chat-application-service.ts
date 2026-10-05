@@ -1,6 +1,9 @@
 import { homedir } from "node:os";
 import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
 import { DirectoryBrowserService } from "../projects/directory-browser-service.js";
+import type { FileOpenResult } from "../../shared/files.js";
+import { FileService } from "../files/file-service.js";
+import { fileOpenFailure } from "../files/file-open-error.js";
 import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
@@ -36,6 +39,7 @@ export class ChatApplicationService {
     private readonly restartService?: RestartService,
     private readonly extensions: PiChatExtensionRegistry = getPiChatExtensionRegistry(),
     private readonly directories = new DirectoryBrowserService(),
+    private readonly files = new FileService(),
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
     if (initialRuntime) this.sessions.add(initialRuntime);
@@ -148,6 +152,17 @@ export class ChatApplicationService {
 
   completeCommandArguments(sessionId: string, commandName: string, argumentPrefix: string) {
     return this.sessions.get(sessionId).completeCommandArguments(commandName, argumentPrefix);
+  }
+
+  async openFile(sessionId: string, path: string): Promise<FileOpenResult> {
+    let projectPath: string;
+    try {
+      // Read the named session only; do not invoke the app snapshot/catalogue path.
+      projectPath = this.sessions.get(sessionId).snapshot().projectPath;
+    } catch {
+      return fileOpenFailure("sessionUnavailable", "This session is no longer available on the server.");
+    }
+    return this.files.open(projectPath, path);
   }
 
   abort(sessionId: string): Promise<void> {
