@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
+import { fileOpenRequestSchema, fileOpenResultSchema, fileRequestIdSchema } from "./files.js";
 
 export const PROTOCOL_VERSION = 1 as const;
 
@@ -314,6 +315,7 @@ const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
 const sessionScoped = { ...baseClientMessage, sessionId: z.string().min(1) };
 
 export const clientMessageSchema = z.union([
+  fileOpenRequestSchema.extend({ ...baseClientMessage, type: z.literal("openFile") }),
   z.object({ ...sessionScoped, type: z.literal("completeCommandArguments"), requestId: z.string().min(1), commandName: z.string().min(1), argumentPrefix: z.string() }),
   z.object({ ...sessionScoped, type: z.literal("prompt"), message: z.string().trim().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("abort") }),
@@ -347,6 +349,7 @@ const sequenced = {
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
+  z.object({ ...baseClientMessage, type: z.literal("fileOpenResult"), sessionId: fileRequestIdSchema, requestId: fileRequestIdSchema, result: fileOpenResultSchema }),
   z.object({ ...sessionScoped, type: z.literal("commandArgumentCompletions"), requestId: z.string(), items: z.array(commandCompletionItemSchema), error: z.string().optional() }),
   z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),
   z.object({ ...baseClientMessage, type: z.literal("directoryBrowseError"), requestId: z.string(), error: z.string() }),

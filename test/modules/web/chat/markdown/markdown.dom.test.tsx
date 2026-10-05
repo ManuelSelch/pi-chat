@@ -94,6 +94,30 @@ describe("Markdown rendering", () => {
     expect(onLocalLink).toHaveBeenCalledWith("/tmp/README.md");
   });
 
+  it("preserves same-document anchors without a file action or a new tab", () => {
+    const onLocalLink = vi.fn();
+    const { container } = render(<Markdown onLocalLink={onLocalLink}>{"[section](#section)"}</Markdown>);
+    const link = container.querySelector("a")!;
+    expect(link.getAttribute("href")).toBe("#section");
+    expect(link.getAttribute("target")).toBeNull();
+    fireEvent.click(link);
+    expect(onLocalLink).not.toHaveBeenCalled();
+  });
+
+  it.each(["FILE:///tmp/README.md", "file://localhost/tmp/README.md"])("keeps local URI %s actionable", (href) => {
+    const onLocalLink = vi.fn();
+    const { container } = render(<Markdown onLocalLink={onLocalLink}>{`[README](${href})`}</Markdown>);
+    fireEvent.click(container.querySelector("a")!);
+    expect(onLocalLink).toHaveBeenCalledWith("/tmp/README.md");
+  });
+
+  it.each(["./bad%00.pdf", "./bad%ZZ.pdf", "file://host/tmp/report.pdf"])("does not turn rejected file href %s into browser navigation", (href) => {
+    const onLocalLink = vi.fn();
+    const { container } = render(<Markdown onLocalLink={onLocalLink}>{`[report](${href})`}</Markdown>);
+    expect(container.querySelector("a")).toBeNull();
+    expect(onLocalLink).not.toHaveBeenCalled();
+  });
+
   it("drops unsafe link protocols and opens external links safely", () => {
     const { container } = render(
       <Markdown>{"[ok](https://example.com) [bad](javascript:alert(1)) [also-bad](data:text/html,<script>alert(1)</script>)"}</Markdown>,

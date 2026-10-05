@@ -25,9 +25,12 @@ function SafeLink({ href, children, onLocalLink, ...rest }: AnchorHTMLAttributes
     return <a href={href} onClick={handleClick} {...rest}>{children}</a>;
   }
 
+  if (href?.startsWith("#")) return <a href={href} {...rest}>{children}</a>;
+
   let url: URL | undefined;
   try {
-    url = href ? new URL(href, "https://invalid.invalid") : undefined;
+    // Rejected local destinations must not fall back to browser-relative navigation.
+    url = href ? new URL(href) : undefined;
   } catch {
     url = undefined;
   }
@@ -55,7 +58,7 @@ export const Markdown = memo(function Markdown({ children, disableImages = false
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath]}
       rehypePlugins={[rehypeKatex, rehypeHighlight]}
-      urlTransform={(url) => url.startsWith("file:") ? url : defaultUrlTransform(url)}
+      urlTransform={(url) => /^file:/i.test(url) ? url : defaultUrlTransform(url)}
       components={{ a: (props) => <SafeLink {...props} onLocalLink={onLocalLink} />, ...(disableImages ? { img: ({ alt }: { alt?: string }) => <span>{alt ?? ""}</span> } : {}) }}
     >
       {children}

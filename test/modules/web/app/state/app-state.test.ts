@@ -16,6 +16,13 @@ const snapshot = (sessionId: string, text: string): ServerMessage => ({
 const textOf = (message?: ChatMessage): string => (message && "text" in message ? message.text : "");
 
 describe("app state", () => {
+  it("ignores file results without touching transcripts, runtime errors, or tabs", () => {
+    const state = { ...reduceAppMessage(initialAppState, snapshot("a", "first")), error: "Existing runtime error" };
+    for (const result of [{ ok: true } as const, { ok: false, error: { code: "notFound", message: "File not found." } } as const]) {
+      expect(reduceAppMessage(state, { version: PROTOCOL_VERSION, type: "fileOpenResult", sessionId: "closed-session", requestId: "file-1", result })).toBe(state);
+    }
+  });
+
   it("keeps one transcript per session", () => {
     let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
     state = reduceAppMessage(state, snapshot("b", "second"));

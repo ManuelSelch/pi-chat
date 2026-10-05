@@ -1,6 +1,6 @@
 # Typed file capabilities
 
-Status: planned. Documentation only; implementation requires a separate task.
+Status: implementation started. Step 1 (typed contracts and shared link parsing) is implemented; server dispatch/opener and browser request tracking remain pending. The existing shell-based click action stays in place until the replacement works end to end.
 
 ## Goal
 
@@ -57,6 +57,8 @@ Use the existing protocol/version and controller policy. Add concrete messages, 
 - Success means the OS opener accepted the request; it does not prove the application displayed the file.
 - Errors use bounded user-readable messages and stable codes such as `invalidPath`, `sessionUnavailable`, `notFound`, `notFile`, `permissionDenied`, `unsupported`, and `openFailed`.
 - Validate request identifiers and nonempty bounded path strings at the wire boundary; reject NUL/control characters before filesystem/OS access.
+- Step 1 limits: session/request identifiers are at most 128 characters, extracted paths at most 4096, and error messages at most 512. Identifiers/paths must not be whitespace-only; preserve literal path spelling rather than trimming or decoding wire paths.
+- The shared parser decodes Markdown URI paths once after removing query/fragment metadata. Wire paths preserve literal `%`, `#`, and `?`; URL schemes and network-path prefixes are rejected.
 - Reply only to the requesting controller socket. Never broadcast file-open results.
 - Unknown/closed sessions must yield correlated errors, including synchronous lookup failures.
 - File requests/results never enter transcript reducers or trigger snapshots, catalogue scans, tab changes, runtime status changes, or model turns.
@@ -151,11 +153,11 @@ Acceptance: user activation sends `openFile`, never a prompt; pending/errors cle
 - Add `revealFile` only when wanted, using the same file service boundary.
 - A future desktop shell can implement client-machine OS actions behind a narrow platform bridge; do not silently change server-path semantics.
 
-## Assumptions to confirm before implementation
+## Confirmed assumptions
 
 - Click continues to mean **open externally**, not inline preview.
 - Readable files outside the project remain allowed.
 - macOS-only external opening is sufficient for the first slice; unsupported platforms get a clear error.
 - No executable/application launching capability is intended.
 
-If these assumptions change, update this plan before implementing; do not expand this slice into a file browser or preview framework.
+Confirmed by the user's instruction to keep the plan and start implementation. If these assumptions change, update this plan before proceeding; do not expand this slice into a file browser or preview framework.
