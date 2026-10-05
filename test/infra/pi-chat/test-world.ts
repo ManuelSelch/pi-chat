@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentSessionRuntime, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
+import { AgentSessionRuntime, SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import type { RuntimeAdapterFactory } from "../../../src/server/runtime/contracts.js";
@@ -25,6 +25,7 @@ interface OwnedSession {
 export class TestWorld {
   readonly projectPath = realpathSync(mkdtempSync(join(tmpdir(), "pi-chat-driver-")));
   private readonly sessions = new Map<string, OwnedSession>();
+  readonly sessionDir = join(this.projectPath, ".pi-sessions");
   private readonly controlledResponses = new Map<string, () => void>();
   private readonly creating = new Set<Promise<PiRuntimeAdapter>>();
   private reservation?: { responses: readonly AssistantResponse[]; started: boolean };
@@ -48,7 +49,15 @@ export class TestWorld {
       return this.create(reservation.responses);
     },
     continueProject: async () => { throw new Error("Continuing a persisted project is not supported by this driver yet"); },
-    openSession: async () => { throw new Error("Reopening persisted sessions is not supported by this driver yet"); },
+    openSession: async path => {
+      assert(!this.disposed, "Test world is disposed");
+      assert(path.startsWith(`${this.sessionDir}/`), "Only isolated test sessions may be opened");
+      const reservation = this.reservation;
+      assert(reservation, "No response script reserved for session opening");
+      assert(!reservation.started, "Session opening is already in progress");
+      reservation.started = true;
+      return this.create(reservation.responses, path);
+    },
   };
 
   reserveSession(responses: readonly AssistantResponse[]): () => void {
@@ -59,22 +68,26 @@ export class TestWorld {
     return () => { if (this.reservation === reservation) this.reservation = undefined; };
   }
 
-  create(responses: readonly AssistantResponse[]): Promise<PiRuntimeAdapter> {
+  create(responses: readonly AssistantResponse[], sessionPath?: string): Promise<PiRuntimeAdapter> {
     assert(!this.disposed, "Test world is disposed");
-    const task = this.build(responses.map(response => ({ ...response })));
+    const task = this.build(responses.map(response => ({ ...response })), sessionPath);
     this.creating.add(task);
     // Use both callbacks to avoid an unhandled rejected cleanup promise.
     void task.then(() => this.creating.delete(task), () => this.creating.delete(task));
     return task;
   }
 
-  private async build(responses: readonly AssistantResponse[]): Promise<PiRuntimeAdapter> {
+  private async build(responses: readonly AssistantResponse[], sessionPath?: string): Promise<PiRuntimeAdapter> {
     const harness = await createTestSession({ cwd: this.projectPath, extensionFactories: [...this.extensions] });
     let runtime: AgentSessionRuntime | undefined;
     try {
       assert(!this.disposed, "Test world was disposed during session creation");
       harness.prepare(...responses.map(({ prompt, reply }) => when(prompt, [says(reply)])));
       const session = harness.session;
+      const sessionManager = sessionPath
+        ? SessionManager.open(sessionPath, this.sessionDir, this.projectPath)
+        : SessionManager.create(this.projectPath, this.sessionDir);
+      (session as unknown as { sessionManager: SessionManager }).sessionManager = sessionManager;
       runtime = new AgentSessionRuntime(session, {
         cwd: harness.cwd, agentDir: harness.cwd,
         modelRuntime: session.modelRuntime,

@@ -8,6 +8,7 @@ const handleBrand = Symbol("PiChatTab");
 /** Opaque product handle; tests never need a session id or a socket. */
 export interface TabHandle { readonly [handleBrand]: true }
 export interface CreateTabOptions { responses?: readonly AssistantResponse[] }
+export interface OpenTabOptions { responses?: readonly AssistantResponse[] }
 
 export class TabDriver {
   private readonly ids = new WeakMap<TabHandle, string>();
@@ -68,6 +69,34 @@ export class TabDriver {
 
   Active(): TabHandle {
     return this.handle(requireSession(this.context, "Tabs.Active"));
+  }
+
+  SessionPath(tab: TabHandle = this.Active()): string {
+    const id = this.id(tab, "Tabs.SessionPath");
+    const path = this.context.client.appState.sessions[id]?.sessionPath;
+    check(this.context, "Tabs.SessionPath", () => assert(path, "Session has not been persisted yet"));
+    return path!;
+  }
+
+  async Open(sessionPath: string, options: OpenTabOptions = {}): Promise<TabHandle> {
+    return this.change("Tabs.Open", async () => {
+      const { client } = this.context;
+      let release!: () => void;
+      check(this.context, "Tabs.Open", () => { release = this.context.reserveSession(options.responses ?? []); });
+      try {
+        const previousActive = client.appState.activeSessionId;
+        const after = client.mark();
+        client.send({ version: PROTOCOL_VERSION, type: "openSession", path: sessionPath });
+        await client.waitForMessage("Tabs.Open", "opened session tab", after, message =>
+          message.type === "tabs" && message.activeSessionId !== previousActive);
+        const id = client.appState.activeSessionId;
+        assert(id, "Opened session did not become active");
+        await client.ready("Tabs.Open");
+        return this.handle(id);
+      } finally {
+        release();
+      }
+    });
   }
 
   async SwitchTo(tab: TabHandle): Promise<void> {
