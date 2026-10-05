@@ -73,7 +73,7 @@ src/server/
       ansi.ts                     # ANSI stripping shared by status/widgets
 
 test/
-  support/
+  infra/
     fake-runtime-adapter.ts
 ```
 
@@ -184,7 +184,7 @@ Acceptance: same exports and behavior; entry point works; full test suite and bu
 
 ### 2. Separate contracts and test support
 
-Create runtime/contracts.ts from existing runtime types plus RuntimeAdapterFactory. Move fake into test/support. Application/bootstrap/test imports target contracts or the fake directly. Remove the old runtime-adapter implementation file.
+Create runtime/contracts.ts from existing runtime types plus RuntimeAdapterFactory. Move fake into test/infra. Application/bootstrap/test imports target contracts or the fake directly. Remove the old runtime-adapter implementation file.
 
 Acceptance: contracts import no registries, fake or concrete Pi implementation; integration tests still exercise real prompt lifetimes.
 

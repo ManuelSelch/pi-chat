@@ -1,10 +1,10 @@
 # Pi Chat integration drivers
 
-`test/support/pi-chat/pi-chat-driver.ts` is the test-only application root. Use
+`test/infra/pi-chat/pi-chat-driver.ts` is the test-only application root. Use
 ordinary imperative TypeScript workflows, with the driver named `app`:
 
 ```ts
-import { PiChatDriver } from "../../test/support/pi-chat/pi-chat-driver.js";
+import { PiChatDriver } from "../../test/infra/pi-chat/pi-chat-driver.js";
 
 const app = await PiChatDriver.start({
   responses: [{ prompt: "Hello", reply: "Hello from Pi Chat." }],
@@ -28,7 +28,7 @@ try {
 ```
 
 In Vitest, register each successfully started driver for `afterEach` cleanup, as
-shown in `test/pi-chat-integration.test.ts`. Startup also cleans up partial setup;
+shown in `test/scenarios/chat/prompt-reply.test.ts`. Startup also cleans up partial setup;
 `dispose()` is idempotent. Pair response consumption assertions with transcript
 assertions: consuming a scripted action alone does not prove delivery to a client.
 
@@ -72,10 +72,17 @@ try {
   reconnecting or submitting the next prompt in this slice.
 - `Chat.ShouldContainMessages(expected)`: ordered containment, not exact equality.
   Pair with `ShouldHaveMessageCount(count)` for an exact transcript.
-- `Chat.ShouldHaveAssistantReply(text)`, `ShouldHaveNoDuplicateMessages()`, and
-  `ShouldHaveConsumedResponses()` (for the active conversation).
+- `Chat.ShouldHaveAssistantReply(text)`, `ShouldNotHaveAssistantReply(text)`,
+  `ShouldHaveNoDuplicateMessages()`, and `ShouldHaveConsumedResponses()` (for
+  the active conversation).
+- `Chat.Abort()` waits for the active run to settle without a late assistant
+  response. Controlled test responses can be held with `hold: true` and released
+  through `Chat.ReleaseControlledResponse()`.
 - `Browser.Reconnect()`: closes the prior client, creates a fresh client/state,
   waits for all open tab snapshots (or the home catalogue), and checks active identity.
+- `Browser.TakeControl()`: opens a second browser connection, waits for its
+  authoritative state, and verifies that the previous controller is replaced
+  without changing the active conversation.
 - `Browser.ShouldBeUsable()` / `ShouldBeAtHome()`: checks connected, loaded state.
 - `Tabs.Create({ responses? })`: creates a real isolated session via a correlated
   server command, then waits for its tab and snapshot. Returns an opaque tab handle.
@@ -84,6 +91,13 @@ try {
   acknowledgements, including same-tab focus; closing the last tab awaits a new
   home catalogue. Handles survive reconnect but reject closed/foreign tabs.
   Tab operations must be awaited sequentially.
+- `Projects.Browse(path?)`: browses a server folder through the correlated folder
+  protocol and returns its validated directory listing.
+- `Projects.Open(path?)`: opens a valid server folder as a new conversation and
+  waits for its tab and authoritative snapshot. Failed opens reject with the
+  recoverable server error without changing the active project.
+- `Projects.ShouldRemainAtHome()` and `ShouldBeOpen(path?)`: semantic project
+  state assertions.
 
 Feature drivers share a narrow internal context. The private client validates
 protocol schemas and uses the **production browser reducers** to reconstruct the
@@ -103,31 +117,37 @@ are in-memory and never write to it. React rendering is not exercised here.
 ```sh
 npm ci
 npm test
-npm test -- test/pi-chat-integration.test.ts test/pi-chat-tabs.test.ts
+npm test -- test/scenarios
+npm test -- test/infra-tests
+npm test -- test/modules
 npm run test:spike
 ```
 
 The default suite includes prompt/reply, reconnect restoration, and repeated
 identical prompts before and after reconnect, creation from home, independent
 multi-tab transcripts, active/background tab closure, and reconnect/recreation
-from home. Driver/client/world tests cover script validation, semantic diagnostics,
-bounded waits, server rejection, pending-wait cancellation, failed creation and
-retry, closed handles, isolated paths, concurrent creation guards, idempotent
-disposal, partial-startup cleanup, and cleanup during in-flight creation.
+from home, valid folder browsing/opening, invalid-folder recovery, controlled
+active-response abort without transcript corruption, and controller takeover with
+conversation restoration. Driver/client/world tests cover script validation,
+semantic diagnostics, bounded waits, server rejection, pending-wait cancellation,
+failed creation and retry, closed handles, isolated paths, concurrent creation
+guards, idempotent disposal, partial-startup cleanup, and cleanup during
+in-flight creation.
 
-Latest verification: 58 test files / 424 tests passed; build/typecheck and spike passed.
+Latest verification: 70 test files / 482 tests passed; build and spike verification passed.
 
 The standalone spike now delegates to the same driver, rather than duplicating
 setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md](SPIKE.md).
 
 ## Next slice
 
-The core multi-session milestone is covered. `Projects`, `Extensions`, abort,
-controller takeover, persisted `Tabs.Open()`, and controlled active-turn reconnect
-are not covered yet. Continuing/reopening persisted sessions and replacing a
-runtime explicitly reject unsupported operations rather than falling back to
-production settings or providers. Tab creation currently uses the world's
-isolated default project, not arbitrary external folders.
+The core multi-session and project selection/error milestones are covered.
+`Extensions`, persisted `Tabs.Open()`, and controlled active-turn reconnect
+remain. Continuing/reopening persisted sessions
+and replacing a runtime explicitly reject unsupported operations rather than
+falling back to production settings or providers. Folder workflows currently
+allow the world's isolated project only; arbitrary external folders are still
+rejected by the test factory.
 
-Next: project selection/error flows or controlled streaming/abort scenarios; see
+Next: extension UI flows or persisted-session reopening; see
 [REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

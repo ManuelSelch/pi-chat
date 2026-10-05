@@ -307,7 +307,7 @@ Write ordinary Vitest tests using the drivers. Suggested first scenarios:
    - keep the public API imperative and product-oriented.
 2. **Extract the protocol client**
    - move reusable connection/message waiting code from
-     `test/websocket-transport.test.ts` into test support;
+     `test/modules/server/transport/websocket-transport.test.ts` into test support;
    - retain existing low-level tests and avoid changing production protocol.
 3. **Implement test world and root application driver**
    - start/stop isolated `PiChatServer` instances;
