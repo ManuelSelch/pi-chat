@@ -1,5 +1,5 @@
 import { memo, type AnchorHTMLAttributes, type MouseEvent, type ReactNode } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
@@ -55,6 +55,7 @@ export const Markdown = memo(function Markdown({ children, disableImages = false
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath]}
       rehypePlugins={[rehypeKatex, rehypeHighlight]}
+      urlTransform={(url) => url.startsWith("file:") ? url : defaultUrlTransform(url)}
       components={{ a: (props) => <SafeLink {...props} onLocalLink={onLocalLink} />, ...(disableImages ? { img: ({ alt }: { alt?: string }) => <span>{alt ?? ""}</span> } : {}) }}
     >
       {children}

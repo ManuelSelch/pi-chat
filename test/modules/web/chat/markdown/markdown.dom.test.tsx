@@ -84,6 +84,16 @@ describe("Markdown rendering", () => {
     expect(onLocalLink).toHaveBeenCalledWith("./report.pdf");
   });
 
+  it("keeps file links clickable after URL sanitization", () => {
+    const onLocalLink = vi.fn();
+    const { container } = render(<Markdown onLocalLink={onLocalLink}>{"[README](file:///tmp/README.md)"}</Markdown>);
+    const link = container.querySelector("a");
+    expect(link).not.toBeNull();
+    expect(link?.getAttribute("href")).toBe("file:///tmp/README.md");
+    fireEvent.click(link!);
+    expect(onLocalLink).toHaveBeenCalledWith("/tmp/README.md");
+  });
+
   it("drops unsafe link protocols and opens external links safely", () => {
     const { container } = render(
       <Markdown>{"[ok](https://example.com) [bad](javascript:alert(1)) [also-bad](data:text/html,<script>alert(1)</script>)"}</Markdown>,
