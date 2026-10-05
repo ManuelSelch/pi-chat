@@ -19,6 +19,10 @@ export class BrowserChatDriver {
     await expect(this.page.getByText(text, { exact: true })).toBeVisible();
   }
 
+  async ShouldNotShowMessage(text: string): Promise<void> {
+    await expect(this.page.getByText(text, { exact: true })).not.toBeVisible();
+  }
+
   async ShouldBeIdle(): Promise<void> {
     await expect(this.composer).not.toHaveAttribute("aria-busy", "true");
   }
