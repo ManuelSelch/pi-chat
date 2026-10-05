@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { PiChatDriver } from "../../support/pi-chat/pi-chat-driver.js";
+import { PiChatDriver } from "../../infra/pi-chat/pi-chat-driver.js";
 
 const apps: PiChatDriver[] = [];
 

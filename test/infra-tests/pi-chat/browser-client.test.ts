@@ -1,6 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
-import { BrowserClient } from "../../support/pi-chat/browser-client.js";
+import { BrowserClient } from "../../infra/pi-chat/browser-client.js";
 import { PROTOCOL_VERSION } from "../../../src/shared/protocol.js";
 
 let server: PiChatServer | undefined;

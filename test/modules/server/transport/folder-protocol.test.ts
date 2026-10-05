@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { serverMessageSchema, parseClientMessage, type ServerMessage } from "../../../../src/shared/protocol.js";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
-import { FakeRuntimeAdapter } from "../../../support/fake-runtime-adapter.js";
+import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 import { ChatApplicationService } from "../../../../src/server/application/chat-application-service.js";
 
 let server: PiChatServer | undefined;

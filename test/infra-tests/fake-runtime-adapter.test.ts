@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RuntimeAdapter } from "../../src/server/runtime/contracts.js";
-import { FakeRuntimeAdapter } from "../support/fake-runtime-adapter.js";
+import { FakeRuntimeAdapter } from "../infra/fake-runtime-adapter.js";
 
 describe("FakeRuntimeAdapter test support", () => {
   it("projects bash without a synthetic model conversation", async () => {

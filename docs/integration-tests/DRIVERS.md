@@ -1,10 +1,10 @@
 # Pi Chat integration drivers
 
-`test/support/pi-chat/pi-chat-driver.ts` is the test-only application root. Use
+`test/infra/pi-chat/pi-chat-driver.ts` is the test-only application root. Use
 ordinary imperative TypeScript workflows, with the driver named `app`:
 
 ```ts
-import { PiChatDriver } from "../../test/support/pi-chat/pi-chat-driver.js";
+import { PiChatDriver } from "../../test/infra/pi-chat/pi-chat-driver.js";
 
 const app = await PiChatDriver.start({
   responses: [{ prompt: "Hello", reply: "Hello from Pi Chat." }],
@@ -118,7 +118,7 @@ are in-memory and never write to it. React rendering is not exercised here.
 npm ci
 npm test
 npm test -- test/scenarios
-npm test -- test/infrastructure
+npm test -- test/infra-tests
 npm test -- test/modules
 npm run test:spike
 ```

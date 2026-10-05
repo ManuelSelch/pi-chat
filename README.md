@@ -73,9 +73,9 @@ data flow, and ownership boundaries.
 - `projects/`: session catalogue and directory browsing
 - `extensions/`: web extension registry; `extensions/ui/` contains prompt, widget and status registries
 
-The test fake lives in `test/support/fake-runtime-adapter.ts`, separate from production contracts. Runtime implementation extraction is deferred.
+The test fake lives in `test/infra/fake-runtime-adapter.ts`, separate from production contracts. Runtime implementation extraction is deferred.
 
-Tests are grouped under `test/modules/` (production modules), `test/scenarios/` (user workflows), and `test/infrastructure/` (test machinery). See [test/README.md](test/README.md) for placement rules and focused commands.
+Tests are grouped under `test/modules/` (production modules), `test/scenarios/` (user workflows), and `test/infra-tests/` (tests of reusable machinery). The reusable machinery itself lives under `test/infra/`. See [test/README.md](test/README.md) for placement rules and focused commands.
 The old `src/server/extension-registry.ts` import remains a deprecated compatibility re-export of `extensions/extension-registry.ts`.
 
 ## Frontend organization

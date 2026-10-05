@@ -103,7 +103,7 @@ Sources: Pi README editor section, `docs/sdk.md`, `docs/session-format.md`, and 
    - Add a small prefix parser and route inside `src/server/runtime/pi/pi-runtime-adapter.ts` before normal prompt handling.
    - Implement `user_bash`, extension-result recording, and `executeBash()` delegation.
    - Add adapter tests using SDK stubs; confirm no model call and exactly one persisted result per command.
-   - Update `test/support/fake-runtime-adapter.ts` so end-to-end tests can exercise the same behavior deterministically.
+   - Update `test/infra/fake-runtime-adapter.ts` so end-to-end tests can exercise the same behavior deterministically.
 
 3. **Busy state and cancellation**
    - Keep the adapter busy while `executeBash()` is pending and reject overlapping prompts.
