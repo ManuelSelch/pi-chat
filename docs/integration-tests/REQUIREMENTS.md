@@ -8,8 +8,16 @@ prompts, creation from home, independent tab transcripts, active/background tab
 closure, and reconnect/recreation at home in the normal Vitest suite. An isolated
 harness-backed factory creates real Pi sessions. Shared support owns cleanup,
 per-session scripts, browser reducers, and bounded event-driven waits.
-See [DRIVERS.md](DRIVERS.md). Projects, extensions, persisted session reopening,
-and controlled streaming/abort remain planned.
+Follow-up slices cover project folder browsing/opening and errors, controlled
+response abort, controller takeover, and real Pi extension confirmation UI.
+The `Extensions` driver covers registered commands, confirmation/cancellation,
+notifications, widgets, pending-prompt reconnect, and per-session isolation.
+Scenarios live under `test/scenarios/`; reusable drivers and their tests are
+separate under `test/infra/` and `test/infra-tests/`. See [DRIVERS.md](DRIVERS.md).
+Persisted session reopening, active-model-turn reconnect, and broader extension
+actions/reload remain planned. Current verification uses root Pi SDK 1.0.2.
+
+### Initial harness spike
 
 The commit-pinned GitHub ManuelSelch fork of
 `@marcfargas/pi-test-harness@0.6.1` now passes a compatibility spike with Pi
@@ -19,8 +27,8 @@ server. Prompt/reply and reconnect transcript restoration pass. The fork adds
 `prepare()` to configure responses without directly submitting prompts.
 See [SPIKE.md](SPIKE.md) and `scripts/spikes/pi-test-harness.ts` for reproduction
 and scope. The fork is a declared dev dependency pinned to commit
-`7ade82c6c7de2ae85f69df1c442a515b63c6dadc`, with Pi AI/agent-core peers pinned
-to 0.85.1. `npm ci && npm run test:spike` reproduces it without a local checkout.
+`7ade82c6c7de2ae85f69df1c442a515b63c6dadc`, with Pi AI/agent-core peers initially pinned
+to 0.85.1 (the root SDK dependencies have since been upgraded to 1.0.2). `npm ci && npm run test:spike` reproduces it without a local checkout.
 
 This plan follows the driver pattern already used in the BlueFlow
 integration tests: integration tests obtain an application-level driver/context,

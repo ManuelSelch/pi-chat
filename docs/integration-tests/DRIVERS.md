@@ -60,7 +60,7 @@ try {
 
 ## Implemented slices
 
-- `PiChatDriver.start({ responses?, timeoutMs?, startAtHome? })`: a loopback server
+- `PiChatDriver.start({ responses?, timeoutMs?, startAtHome?, extensions? })`: a loopback server
   and isolated temporary project with a harness-backed real session factory.
   Default startup opens one session for backward compatibility; `startAtHome: true`
   starts with no sessions. Supply each new conversation's responses to `Tabs.Create`.
@@ -98,6 +98,23 @@ try {
   recoverable server error without changing the active project.
 - `Projects.ShouldRemainAtHome()` and `ShouldBeOpen(path?)`: semantic project
   state assertions.
+- `Extensions.RunCommand(name)`: dispatches a registered extension slash command
+  and awaits its first fresh prompt, widget, or notification. It does not wait
+  for a blocked command to finish; respond to its prompt explicitly.
+- `Extensions.WaitForPrompt(title)` returns an opaque handle that survives
+  reconnect; `RespondToPrompt(handle, result)` waits for removal. Foreign,
+  wrong-conversation, and already-answered handles are rejected.
+- `Extensions.WaitForNotification(text, level?)` waits for fresh command output;
+  `ShouldShowNotification`, `ShouldShowPrompt`, `ShouldHaveNoPrompts`,
+  `ShouldShowWidget`, and `ShouldNotShowWidget` assert browser-projected state.
+
+Inline Pi extension factories are explicit via `start({ extensions: [factory] })`.
+Each session independently loads them through the harness's real resource loader.
+The adapter binds the actual browser UI; confirmations are answered over the
+server protocol, not by the harness's mock UI. See
+`test/scenarios/extensions/confirmation.test.ts` and
+`test/infra/pi-chat/fixtures/confirmation-extension.ts`. This slice covers
+extension commands, not declarative web-extension actions or reload.
 
 Feature drivers share a narrow internal context. The private client validates
 protocol schemas and uses the **production browser reducers** to reconstruct the
@@ -128,26 +145,29 @@ identical prompts before and after reconnect, creation from home, independent
 multi-tab transcripts, active/background tab closure, and reconnect/recreation
 from home, valid folder browsing/opening, invalid-folder recovery, controlled
 active-response abort without transcript corruption, and controller takeover with
-conversation restoration. Driver/client/world tests cover script validation,
+conversation restoration, extension confirmation/cancellation, pending-prompt
+reconnect, widget restoration, and per-tab extension isolation.
+Driver/client/world tests cover script validation,
 semantic diagnostics, bounded waits, server rejection, pending-wait cancellation,
 failed creation and retry, closed handles, isolated paths, concurrent creation
 guards, idempotent disposal, partial-startup cleanup, and cleanup during
 in-flight creation.
 
-Latest verification: 70 test files / 482 tests passed; build and spike verification passed.
+Latest verification: 73 test files / 497 tests passed with `--maxWorkers=4`;
+build/typecheck and spike passed with the root Pi SDK dependencies at 1.0.2.
 
 The standalone spike now delegates to the same driver, rather than duplicating
 setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md](SPIKE.md).
 
 ## Next slice
 
-The core multi-session and project selection/error milestones are covered.
-`Extensions`, persisted `Tabs.Open()`, and controlled active-turn reconnect
-remain. Continuing/reopening persisted sessions
+The core multi-session, project selection/error, and extension confirmation UI
+slices are covered. Persisted `Tabs.Open()`, controlled active-turn reconnect,
+and broader extension actions/reload remain. Continuing/reopening persisted sessions
 and replacing a runtime explicitly reject unsupported operations rather than
 falling back to production settings or providers. Folder workflows currently
 allow the world's isolated project only; arbitrary external folders are still
 rejected by the test factory.
 
-Next: extension UI flows or persisted-session reopening; see
+Next: controlled active-turn reconnect or persisted-session reopening; see
 [REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

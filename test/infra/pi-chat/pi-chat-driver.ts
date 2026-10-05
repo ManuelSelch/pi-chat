@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
 import { BrowserClient } from "./browser-client.js";
 import { BrowserDriver } from "./browser-driver.js";
 import { ChatDriver } from "./chat-driver.js";
+import { ExtensionDriver } from "./extension-driver.js";
 import { ProjectDriver } from "./project-driver.js";
 import { TabDriver } from "./tab-driver.js";
 import { TestWorld, type AssistantResponse } from "./test-world.js";
@@ -23,6 +25,8 @@ export interface PiChatDriverOptions {
   timeoutMs?: number;
   /** Start without a conversation; Tabs.Create supplies its own responses. */
   startAtHome?: boolean;
+  /** Explicit inline Pi extensions, loaded independently in each test session. */
+  extensions?: readonly ExtensionFactory[];
 }
 
 /** Owns isolated real Pi sessions, a server, and a browser-facing client. */
@@ -31,6 +35,7 @@ export class PiChatDriver {
   readonly Chat: ChatDriver;
   readonly Tabs: TabDriver;
   readonly Projects: ProjectDriver;
+  readonly Extensions: ExtensionDriver;
   private disposal?: Promise<void>;
 
   private constructor(
@@ -42,13 +47,14 @@ export class PiChatDriver {
     this.Chat = new ChatDriver(context);
     this.Tabs = new TabDriver(context);
     this.Projects = new ProjectDriver(context);
+    this.Extensions = new ExtensionDriver(context);
   }
 
   static async start(options: PiChatDriverOptions = {}): Promise<PiChatDriver> {
     const timeoutMs = options.timeoutMs ?? 5000;
     assert(Number.isFinite(timeoutMs) && timeoutMs > 0, "timeoutMs must be positive and finite");
     assert(!options.startAtHome || !options.responses?.length, "Supply home-start response scripts to Tabs.Create, not PiChatDriver.start");
-    const world = new TestWorld();
+    const world = new TestWorld(options.extensions);
     let server: PiChatServer | undefined;
     let client: BrowserClient | undefined;
     try {
