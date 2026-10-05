@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localPathFromHref, openLocalLinkCommand, shellQuote } from "../../../../../src/web/chat/markdown/local-link.js";
+import { localPathFromHref } from "../../../../../src/web/chat/markdown/local-link.js";
 
 describe("local Markdown links", () => {
   it.each(["report.pdf", "./report.pdf", "../report.pdf", "/tmp/report.pdf", "file:///tmp/report.pdf"])("recognizes %s", (href) => {
@@ -35,8 +35,4 @@ describe("local Markdown links", () => {
     expect(localPathFromHref(href)).toBeUndefined();
   });
 
-  it("quotes apostrophes for bash", () => {
-    expect(shellQuote("a'b.pdf")).toBe(`'a'"'"'b.pdf'`);
-    expect(openLocalLinkCommand("report.pdf")).toBe("!!open -- 'report.pdf'");
-  });
 });

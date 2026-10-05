@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { MantineProvider } from "@mantine/core";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../../../../src/shared/protocol.js";
@@ -90,6 +90,55 @@ function FolderProbe() {
 }
 
 describe("usePiChat connection lifecycle", () => {
+  it("keeps file actions stable, session-scoped and separate from runtime errors", async () => {
+    const { result } = renderHook(() => usePiChat());
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => {
+      socket.acceptConnection();
+      socket.deliver({ version: 1, type: "snapshot", sessionId: "s", sequence: 0, throughSequence: 0, projectPath: "/project", messages: [], isStreaming: true, lastError: "Model failed" });
+    });
+    const open = result.current.openFile;
+    const pending = open("s", "report.pdf");
+    expect(open("s", "report.pdf")).toBe(pending);
+    expect(socket.sent.map((message) => JSON.parse(message).type)).toEqual(["openFile"]);
+    const request = JSON.parse(socket.sent[0]!);
+    act(() => {
+      socket.deliver({ version: 1, type: "assistantDelta", sessionId: "s", sequence: 1, runId: "r", delta: "token" });
+      socket.deliver({ version: 1, type: "tabs", activeSessionId: "other", tabs: ["s", "other"].map((sessionId) => ({ sessionId, title: sessionId, projectPath: "/project", projectName: "project", status: "running" })) });
+    });
+    expect(result.current.openFile).toBe(open);
+    const rejected = expect(pending).rejects.toThrow("File not found");
+    await act(async () => socket.deliver({ version: 1, type: "fileOpenResult", sessionId: "s", requestId: request.requestId, result: { ok: false, error: { code: "notFound", message: "File not found" } } }));
+    await rejected;
+    expect(result.current.app.sessions.s?.error).toBe("Model failed");
+    expect(result.current.app.sessions.s?.messages).toEqual([]);
+  });
+
+  it("cancels file waits on closure/disconnect and never replays after reconnect", async () => {
+    const { result, unmount } = renderHook(() => usePiChat());
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => socket.acceptConnection());
+    const first = result.current.openFile("s", "report.pdf");
+    const cancelled = expect(first).rejects.toMatchObject({ name: "AbortError" });
+    await act(async () => result.current.closeTab("s"));
+    await cancelled;
+    const second = result.current.openFile("other", "report.pdf");
+    const disconnected = expect(second).rejects.toMatchObject({ name: "AbortError" });
+    await act(async () => socket.close());
+    await disconnected;
+    act(() => void vi.advanceTimersByTime(250));
+    const next = FakeWebSocket.instances[1]!;
+    act(() => next.acceptConnection());
+    expect(next.sent).toEqual([]);
+    const third = result.current.openFile("other", "report.pdf");
+    const disposed = expect(third).rejects.toMatchObject({ name: "AbortError" });
+    await act(async () => unmount());
+    await disposed;
+  });
+
+
   it("dismisses the active session error when the composer close button is clicked", () => {
     Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
     render(

@@ -1,6 +1,6 @@
 # Typed file capabilities
 
-Status: steps 1–2 implemented (typed contracts, shared link parsing, session-aware file service, macOS opener, and requester-only transport). Browser request tracking/stable actions and end-to-end UI verification remain pending. The existing shell-based click action stays in place until the replacement works end to end.
+Status: steps 1–3 implemented. File links use typed requests end to end, with session-aware server validation/opening, stable browser actions, and ephemeral feedback. The shell-based link action is removed; normal user-entered `!`/`!!` commands are unchanged. Step 4's real-browser and controlled macOS smoke checks remain pending; automated rendering/lifecycle regression coverage is in place.
 
 ## Goal
 
@@ -84,8 +84,10 @@ Use the existing protocol/version and controller policy. Add concrete messages, 
 - Each request captures its session; switching tabs cannot retarget it.
 - Consume only file-result messages so folder and completion replies continue working.
 - Bound pending-request lifetime. Disconnect, socket replacement, session closure, or UI disposal removes pending state; late results are ignored.
+- Browser requests expire after 10 seconds, allow at most 32 concurrent opens, and deduplicate by session/path. Switching focus preserves the original request's session; closing it cancels the browser wait.
 - Cancellation/timeout means the browser stopped waiting, not that an already accepted OS open was undone. Never replay on reconnect.
 - Show failures as ephemeral feedback outside chat history, identified by file/session, without replacing Pi runtime errors. Avoid a success toast for every normal click.
+- Feature-local feedback keeps at most three dismissible file/session failures for eight seconds, coalesces repeated failures for the same target, and suppresses success/cancellation notices.
 - Keep link action identity stable across token/footer/widget/catalogue updates. A stable callback cannot depend on an unstable `prompt` function.
 - Prefer a feature-local file action boundary rather than threading arbitrary controller objects into Markdown rows. Reuse existing component boundaries; no global callback registry is needed.
 - File actions must not cause unchanged historical Markdown to reparse on each streamed token.

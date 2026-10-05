@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { usePiChat } from "./use-pi-chat.js";
+import { FileActionsProvider } from "../chat/markdown/FileActions.js";
 
 export type AppController = ReturnType<typeof usePiChat>;
 
@@ -10,7 +11,7 @@ export function AppControllerProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppControllerContext.Provider value={controller}>
-      {children}
+      <FileActionsProvider openFile={controller.openFile}>{children}</FileActionsProvider>
     </AppControllerContext.Provider>
   );
 }
