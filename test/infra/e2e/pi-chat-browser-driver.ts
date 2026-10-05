@@ -3,14 +3,14 @@ import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
 import { TestWorld } from "../pi-chat/test-world.js";
+import { BrowserBrowserDriver } from "./browser-browser-driver.js";
 import { BrowserChatDriver } from "./browser-chat-driver.js";
 import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 
-export interface PiChatBrowserDriverOptions {}
-
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
+  readonly Browser: BrowserBrowserDriver;
   readonly Chat: BrowserChatDriver;
   readonly Home: BrowserHomeDriver;
   readonly Tabs: BrowserTabsDriver;
@@ -23,12 +23,13 @@ export class PiChatBrowserDriver {
     private readonly cleanup: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
+    this.Browser = new BrowserBrowserDriver(page);
     this.Chat = new BrowserChatDriver(page, this.composer);
     this.Home = new BrowserHomeDriver(page);
     this.Tabs = new BrowserTabsDriver(page, world);
   }
 
-  static async start(page: Page, _options: PiChatBrowserDriverOptions = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page): Promise<PiChatBrowserDriver> {
     const world = new TestWorld([], true);
     let server: PiChatServer | undefined;
     try {
