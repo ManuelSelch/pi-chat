@@ -4,6 +4,7 @@
 - **`scenarios/`** — user workflows grouped by feature, using `app.*` drivers.
 - **`infra/`** — reusable drivers, fixtures, clients, and fakes.
 - **`infra-tests/`** — tests of that reusable machinery.
+- **`e2e/`** — visible Chromium workflows driven through Playwright.
 - **`setup.ts`** — shared Vitest setup.
 
 Keep test cases out of the root folder. Separate scenario phases with blank lines.
@@ -16,5 +17,7 @@ npm test                         # All tests
 npm test -- test/modules         # Module tests
 npm test -- test/scenarios       # User workflows
 npm test -- test/infra-tests     # Test machinery
+npx playwright install chromium  # Once per machine
+npm run test:e2e                 # Build and run Playwright E2E tests
 npm run build                   # Typecheck and build
 ```
