@@ -28,7 +28,7 @@ try {
 ```
 
 In Vitest, register each successfully started driver for `afterEach` cleanup, as
-shown in `test/pi-chat-integration.test.ts`. Startup also cleans up partial setup;
+shown in `test/scenarios/chat/prompt-reply.test.ts`. Startup also cleans up partial setup;
 `dispose()` is idempotent. Pair response consumption assertions with transcript
 assertions: consuming a scripted action alone does not prove delivery to a client.
 
@@ -117,7 +117,9 @@ are in-memory and never write to it. React rendering is not exercised here.
 ```sh
 npm ci
 npm test
-npm test -- test/pi-chat-integration.test.ts test/pi-chat-tabs.test.ts
+npm test -- test/scenarios
+npm test -- test/infrastructure
+npm test -- test/modules
 npm run test:spike
 ```
 
@@ -132,7 +134,7 @@ failed creation and retry, closed handles, isolated paths, concurrent creation
 guards, idempotent disposal, partial-startup cleanup, and cleanup during
 in-flight creation.
 
-Latest verification: 67 test files / 480 tests passed; build and spike verification passed.
+Latest verification: 70 test files / 482 tests passed; build and spike verification passed.
 
 The standalone spike now delegates to the same driver, rather than duplicating
 setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md](SPIKE.md).
