@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { AgentSessionRuntime, SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
@@ -32,15 +32,18 @@ export class TestWorld {
   private disposed = false;
   private disposal?: Promise<void>;
   private readonly extensions: readonly ExtensionFactory[];
+  private readonly allowHomeSession: boolean;
 
-  constructor(extensions: readonly ExtensionFactory[] = []) {
+  constructor(extensions: readonly ExtensionFactory[] = [], allowHomeSession = false) {
     this.extensions = [...extensions];
+    this.allowHomeSession = allowHomeSession;
   }
 
   readonly factory: RuntimeAdapterFactory = {
     newSession: async path => {
       assert(!this.disposed, "Test world is disposed");
-      assert.equal(realpathSync(path), this.projectPath, "Only the isolated test project may be opened");
+      const canonicalPath = realpathSync(path);
+      assert(canonicalPath === this.projectPath || (this.allowHomeSession && canonicalPath === realpathSync(homedir())), "Only the isolated test project may be opened");
       const reservation = this.reservation;
       assert(reservation, "No response script reserved for session creation");
       assert(!reservation.started, "Session creation is already in progress");

@@ -2,33 +2,37 @@ import { resolve } from "node:path";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
-import { TestWorld, type AssistantResponse } from "../pi-chat/test-world.js";
+import { TestWorld } from "../pi-chat/test-world.js";
 import { BrowserChatDriver } from "./browser-chat-driver.js";
+import { BrowserHomeDriver } from "./browser-home-driver.js";
+import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 
-export interface PiChatBrowserDriverOptions {
-  responses: readonly AssistantResponse[];
-}
+export interface PiChatBrowserDriverOptions {}
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
   readonly Chat: BrowserChatDriver;
+  readonly Home: BrowserHomeDriver;
+  readonly Tabs: BrowserTabsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
   private constructor(
     private readonly page: Page,
+    private readonly world: TestWorld,
     private readonly cleanup: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
     this.Chat = new BrowserChatDriver(page, this.composer);
+    this.Home = new BrowserHomeDriver(page);
+    this.Tabs = new BrowserTabsDriver(page, world);
   }
 
-  static async start(page: Page, options: PiChatBrowserDriverOptions): Promise<PiChatBrowserDriver> {
-    const world = new TestWorld();
+  static async start(page: Page, _options: PiChatBrowserDriverOptions = {}): Promise<PiChatBrowserDriver> {
+    const world = new TestWorld([], true);
     let server: PiChatServer | undefined;
     try {
-      const initial = await world.create(options.responses);
-      server = createPiChatServer(initial, resolve("dist/web"), world.factory);
+      server = createPiChatServer(undefined, resolve("dist/web"), world.factory);
       await new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
         server!.httpServer.listen(0, "127.0.0.1", () => {
@@ -38,11 +42,11 @@ export class PiChatBrowserDriver {
       });
       const port = (server.httpServer.address() as AddressInfo).port;
       await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
-      const driver = new PiChatBrowserDriver(page, async () => {
+      const driver = new PiChatBrowserDriver(page, world, async () => {
         await server!.close();
         await world.dispose();
       });
-      await driver.WaitUntilReady();
+      await driver.Home.ShouldBeVisible();
       return driver;
     } catch (error) {
       await server?.close().catch(() => undefined);
