@@ -86,6 +86,11 @@ try {
 - `Browser.ShouldBeUsable()` / `ShouldBeAtHome()`: checks connected, loaded state.
 - `Tabs.Create({ responses? })`: creates a real isolated session via a correlated
   server command, then waits for its tab and snapshot. Returns an opaque tab handle.
+- `Tabs.SessionPath(tab?)` returns the persisted path after a conversation has
+  produced a message.
+- `Tabs.Open(sessionPath, { responses? })` reopens an isolated persisted session,
+  waits for its fresh tab state, and restores its transcript. Missing paths fail
+  without creating a tab.
 - `Tabs.Active()`, `SwitchTo(tab)`, `Close(tab)`, `ShouldBeActive(tab)`,
   `ShouldContain(tabs)`, and `ShouldHaveCount(count)`. Focus and close await fresh
   acknowledgements, including same-tab focus; closing the last tab awaits a new
@@ -152,7 +157,7 @@ failed creation and retry, closed handles, isolated paths, concurrent creation
 guards, idempotent disposal, partial-startup cleanup, and cleanup during
 in-flight creation.
 
-Latest verification: 73 test files / 497 tests passed with `--maxWorkers=4`;
+Latest verification: 74 test files / 499 tests passed with `--maxWorkers=4`;
 build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
 
 ## Harness setup
@@ -174,13 +179,13 @@ are covered by the normal scenarios. Run `npm test -- test/scenarios` instead.
 
 ## Next slice
 
-The core multi-session, project selection/error, and extension confirmation UI
-slices are covered. Persisted `Tabs.Open()`, controlled active-turn reconnect,
+The core multi-session, project selection/error, extension confirmation UI, and
+persisted-session reopening slices are covered. Controlled active-turn reconnect
 and broader extension actions/reload remain. Continuing/reopening persisted sessions
 and replacing a runtime explicitly reject unsupported operations rather than
 falling back to production settings or providers. Folder workflows currently
 allow the world's isolated project only; arbitrary external folders are still
 rejected by the test factory.
 
-Next: controlled active-turn reconnect or persisted-session reopening; see
+Next: controlled active-turn reconnect; see
 [REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

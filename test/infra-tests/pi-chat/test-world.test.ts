@@ -38,7 +38,7 @@ it("never falls back to real project/session loading outside the test world", as
   release();
   await expect(world.factory.newSession(world.projectPath)).rejects.toThrow(/No response script reserved/);
   await expect(world.factory.continueProject(tmpdir())).rejects.toThrow(/not supported/);
-  await expect(world.factory.openSession("outside.jsonl")).rejects.toThrow(/not supported/);
+  await expect(world.factory.openSession("outside.jsonl")).rejects.toThrow(/Only isolated test sessions/);
 });
 
 it("waits for an in-flight creation to clean up before deleting the project", async () => {
