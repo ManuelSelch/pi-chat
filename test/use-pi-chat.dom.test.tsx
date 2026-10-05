@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../src/shared/protocol.js";
 import { usePiChat } from "../src/web/app/use-pi-chat.js";
+import { AppControllerProvider } from "../src/web/app/AppControllerContext.js";
+import { ComposerContainer } from "../src/web/chat/composer/ComposerContainer.js";
+
+vi.mock("../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
+vi.mock("../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
 
 /** Minimal stand-in for the browser WebSocket, recording every instance. */
 class FakeWebSocket {
@@ -84,6 +90,35 @@ function FolderProbe() {
 }
 
 describe("usePiChat connection lifecycle", () => {
+  it("dismisses the active session error when the composer close button is clicked", () => {
+    Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
+    render(
+      <MantineProvider>
+        <AppControllerProvider>
+          <ComposerContainer onHeightChange={() => {}} />
+        </AppControllerProvider>
+      </MantineProvider>,
+    );
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => {
+      socket.acceptConnection();
+      socket.deliver({
+        version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
+        sessionId: "session", projectPath: "/project", messages: [], isStreaming: false,
+        lastError: "Model request failed",
+      });
+      socket.deliver({
+        version: PROTOCOL_VERSION, type: "tabs", activeSessionId: "session",
+        tabs: [{ sessionId: "session", title: "Test session", projectPath: "/project", projectName: "project", status: "idle" }],
+      });
+    });
+
+    expect(screen.getByRole("alert").textContent).toContain("Model request failed");
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it("routes completion replies separately from folder replies and cancels on disconnect", async () => {
     render(<FolderProbe />);
     act(() => void vi.advanceTimersByTime(0));

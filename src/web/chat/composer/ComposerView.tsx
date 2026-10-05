@@ -78,7 +78,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
             role="alert"
             withCloseButton
             closeButtonLabel="Dismiss error"
-            onClose={actions.dismissError}
+            onClose={() => actions.dismissError()}
             styles={{ message: { whiteSpace: "pre-wrap", wordBreak: "break-word" } }}
           >
             {error}
