@@ -137,7 +137,6 @@ npm test
 npm test -- test/scenarios
 npm test -- test/infra-tests
 npm test -- test/modules
-npm run test:spike
 ```
 
 The default suite includes prompt/reply, reconnect restoration, and repeated
@@ -154,10 +153,24 @@ guards, idempotent disposal, partial-startup cleanup, and cleanup during
 in-flight creation.
 
 Latest verification: 73 test files / 497 tests passed with `--maxWorkers=4`;
-build/typecheck and spike passed with the root Pi SDK dependencies at 1.0.2.
+build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
 
-The standalone spike now delegates to the same driver, rather than duplicating
-setup or low-level WebSocket code. Its dependency/build details are in [SPIKE.md](SPIKE.md).
+## Harness setup
+
+The dev dependency is pinned to the ManuelSelch harness fork at commit
+`7ade82c6c7de2ae85f69df1c442a515b63c6dadc`. `npm ci` installs it directly
+from GitHub; no local checkout or tarball is required. Git/network access and
+the fork's `prepare` install script are needed to build its exported JavaScript.
+Root Pi SDK dependencies are pinned to 1.0.2 in `package.json`/`package-lock.json`.
+
+`TestSession.prepare(...turns)` installs model playbooks without sending prompts.
+The drivers submit prompts through Pi Chat and assert response consumption.
+`PiRuntimeAdapter.fromRuntime(runtime)` attaches to the harness-initialized session
+without another extension startup event and owns runtime disposal. Each runtime
+uses its session's model runtime, settings, and resource loader.
+
+The standalone compatibility spike was removed because prompt/reply and reconnect
+are covered by the normal scenarios. Run `npm test -- test/scenarios` instead.
 
 ## Next slice
 

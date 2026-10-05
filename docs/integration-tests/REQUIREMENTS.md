@@ -17,18 +17,15 @@ separate under `test/infra/` and `test/infra-tests/`. See [DRIVERS.md](DRIVERS.m
 Persisted session reopening, active-model-turn reconnect, and broader extension
 actions/reload remain planned. Current verification uses root Pi SDK 1.0.2.
 
-### Initial harness spike
+### Harness compatibility
 
-The commit-pinned GitHub ManuelSelch fork of
-`@marcfargas/pi-test-harness@0.6.1` now passes a compatibility spike with Pi
-0.85.1: a real SDK session wrapped in `AgentSessionRuntime`, attached through
-`PiRuntimeAdapter.fromRuntime`, and driven over the real Pi Chat WebSocket
-server. Prompt/reply and reconnect transcript restoration pass. The fork adds
-`prepare()` to configure responses without directly submitting prompts.
-See [SPIKE.md](SPIKE.md) and `scripts/spikes/pi-test-harness.ts` for reproduction
-and scope. The fork is a declared dev dependency pinned to commit
-`7ade82c6c7de2ae85f69df1c442a515b63c6dadc`, with Pi AI/agent-core peers initially pinned
-to 0.85.1 (the root SDK dependencies have since been upgraded to 1.0.2). `npm ci && npm run test:spike` reproduces it without a local checkout.
+The commit-pinned ManuelSelch fork of `@marcfargas/pi-test-harness@0.6.1`
+provides real SDK sessions wrapped in `AgentSessionRuntime` and attached through
+`PiRuntimeAdapter.fromRuntime`. Its `prepare()` configures model responses without
+submitting prompts, so the scenarios drive the real Pi Chat server themselves.
+Compatibility is verified by the normal scenario suite, replacing the standalone
+spike. Run `npm ci && npm test -- test/scenarios`.
+See [DRIVERS.md](DRIVERS.md#harness-setup) for installation and runtime seams.
 
 This plan follows the driver pattern already used in the BlueFlow
 integration tests: integration tests obtain an application-level driver/context,
