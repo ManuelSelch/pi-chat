@@ -75,9 +75,10 @@ try {
 - `Chat.ShouldHaveAssistantReply(text)`, `ShouldNotHaveAssistantReply(text)`,
   `ShouldHaveNoDuplicateMessages()`, and `ShouldHaveConsumedResponses()` (for
   the active conversation).
-- `Chat.Abort()` waits for the active run to settle without a late assistant
-  response. Controlled test responses can be held with `hold: true` and released
-  through `Chat.ReleaseControlledResponse()`.
+- `Chat.WaitUntilStreaming()` waits for an active model turn; `Chat.Abort()`
+  waits for the active run to settle without a late assistant response.
+  Controlled test responses can be held with `hold: true` and released through
+  `Chat.ReleaseControlledResponse()`.
 - `Browser.Reconnect()`: closes the prior client, creates a fresh client/state,
   waits for all open tab snapshots (or the home catalogue), and checks active identity.
 - `Browser.TakeControl()`: opens a second browser connection, waits for its
@@ -157,7 +158,7 @@ failed creation and retry, closed handles, isolated paths, concurrent creation
 guards, idempotent disposal, partial-startup cleanup, and cleanup during
 in-flight creation.
 
-Latest verification: 74 test files / 499 tests passed with `--maxWorkers=4`;
+Latest verification: 75 test files / 500 tests passed with `--maxWorkers=4`;
 build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
 
 ## Harness setup
@@ -179,13 +180,13 @@ are covered by the normal scenarios. Run `npm test -- test/scenarios` instead.
 
 ## Next slice
 
-The core multi-session, project selection/error, extension confirmation UI, and
-persisted-session reopening slices are covered. Controlled active-turn reconnect
-and broader extension actions/reload remain. Continuing/reopening persisted sessions
+The core multi-session, project selection/error, extension confirmation UI,
+persisted-session reopening, and controlled active-turn reconnect slices are
+covered. Broader extension actions/reload remain. Continuing/reopening persisted sessions
 and replacing a runtime explicitly reject unsupported operations rather than
 falling back to production settings or providers. Folder workflows currently
 allow the world's isolated project only; arbitrary external folders are still
 rejected by the test factory.
 
-Next: controlled active-turn reconnect; see
+Next: broader extension actions/reload; see
 [REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.

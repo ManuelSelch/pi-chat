@@ -31,6 +31,12 @@ export class ChatDriver {
       m.type === "messageFinal" && m.sessionId === sessionId && m.message.role === "user" && m.message.text === text.trim());
   }
 
+  async WaitUntilStreaming(): Promise<void> {
+    const { client } = this.context;
+    requireSession(this.context, "Chat.WaitUntilStreaming");
+    await client.wait("Chat.WaitUntilStreaming", "conversation streaming", () => client.chat.status === "running" || client.chat.status === "aborting");
+  }
+
   async Abort(): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.Abort");
