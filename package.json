@@ -18,6 +18,7 @@
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
     "test:watch": "vitest"
   },
   "engines": {
@@ -59,7 +60,8 @@
     "@earendil-works/pi-agent-core": "1.0.2",
     "@earendil-works/pi-ai": "1.0.2",
     "@earendil-works/pi-coding-agent": "1.0.2",
-    "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc"
+    "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc",
+    "@playwright/test": "^1.63.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
