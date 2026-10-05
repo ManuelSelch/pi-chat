@@ -55,7 +55,6 @@ export interface RuntimeAdapter {
   /** Called when no browser controls the session, and when one takes over again. */
   suspendPrompts(): void;
   resumePrompts(): void;
-  renameSession(name: string): Promise<void> | void;
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
   setModel(model: string): Promise<void>;
   compact(): Promise<void>;

@@ -68,14 +68,6 @@ export function projectSnapshot(input: SnapshotProjectionInput): RuntimeSnapshot
     actions: {
       features: [
         {
-          id: "session.rename",
-          group: "session",
-          kind: "form",
-          title: "Rename session",
-          description: "Set the display name shown in Pi session lists.",
-          state: { name: input.session.sessionName ?? "" },
-        },
-        {
           id: "thinking.level",
           group: "model",
           kind: "select",

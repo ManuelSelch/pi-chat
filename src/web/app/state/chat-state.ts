@@ -19,6 +19,8 @@ export interface ChatState {
   status: "connecting" | "idle" | "running" | "aborting" | "superseded";
   error?: string;
   sessionId: string;
+  /** Current Pi-owned display name, independent of available actions. */
+  sessionName?: string;
   projectPath: string;
   /** The session's file on disk. Absent until Pi has written it. */
   sessionPath?: string;
@@ -122,6 +124,7 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
       messages: mergeNotices(message.messages, state.messages),
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
+      sessionName: message.sessionName,
       projectPath: message.projectPath,
       sessionPath: message.sessionPath,
       catalogue: message.catalogue ?? state.catalogue,

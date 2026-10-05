@@ -8,7 +8,7 @@ export function HeaderContainer() {
   const overlays = useOverlays();
   const { app, state } = chat;
   const home = atHome(app);
-  const sessionName = state.actions.features.find((feature) => feature.id === "session.rename")?.state.name?.trim();
+  const sessionName = state.sessionName?.trim();
   const title = home ? "No session open" : state.projectPath ? sessionName || "New session" : "Connecting…";
 
   return (

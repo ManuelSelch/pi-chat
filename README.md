@@ -36,7 +36,7 @@ which adds three commands to any Pi session:
 | --- | --- |
 | `⌘⇧O` / `Ctrl+Shift+O` | Quick-open: type a session or project name |
 | `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
-| `⌘K` / `Ctrl+K` | Session actions (new, rename, delete, close tab) plus every Pi slash command |
+| `⌘K` / `Ctrl+K` | Session actions (new, delete, close tab) plus every Pi slash command |
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
 

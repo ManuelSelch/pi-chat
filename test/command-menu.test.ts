@@ -47,7 +47,7 @@ describe("filterCommands", () => {
 
 describe("session actions in the menu", () => {
   const actions = [
-    { name: "Rename session", description: "Set the display name", run: () => {} },
+    { name: "New session", description: "Open a session", run: () => {} },
     { name: "Close tab", description: "Close this tab", run: () => {} },
   ];
 
@@ -55,13 +55,13 @@ describe("session actions in the menu", () => {
     const items = menuItems(actions, commands);
 
     expect(items.map((item) => item.kind)).toEqual(["action", "action", "command", "command", "command"]);
-    expect(items[0]!.name).toBe("Rename session");
+    expect(items[0]!.name).toBe("New session");
   });
 
   it("filters actions and commands together", () => {
     const items = menuItems(actions, commands);
 
-    expect(filterCommands(items, "ren").map((item) => item.name)).toEqual(["Rename session"]);
+    expect(filterCommands(items, "new").map((item) => item.name)).toEqual(["New session"]);
     expect(filterCommands(items, "c").map((item) => item.name)).toEqual(["Close tab", "compact"]);
   });
 
@@ -78,12 +78,12 @@ describe("session actions in the menu", () => {
 describe("ordering between actions and commands", () => {
   it("keeps a session action above an equally-matching command", () => {
     const items = menuItems(
-      [{ name: "Rename session", description: "", run: () => {} }],
+      [{ name: "Restart server", description: "", run: () => {} }],
       [{ name: "readonly" }, { name: "resume" }],
     );
 
     // Both start with "r"; the action is what Cmd+K was pressed for.
-    expect(filterCommands(items, "r").map((item) => item.name)).toEqual(["Rename session", "readonly", "resume"]);
+    expect(filterCommands(items, "r").map((item) => item.name)).toEqual(["Restart server", "readonly", "resume"]);
   });
 
   it("still puts prefix matches above substring matches", () => {
@@ -94,7 +94,7 @@ describe("ordering between actions and commands", () => {
 describe("new session action", () => {
   const actions = [
     { name: "New session", description: "Open a new session in this project", run: () => {} },
-    { name: "Rename session", description: "Set the display name", run: () => {} },
+    { name: "Close tab", description: "Close this tab", run: () => {} },
   ];
 
   it("is reachable by typing /new", () => {

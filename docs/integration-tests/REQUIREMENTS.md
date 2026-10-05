@@ -102,7 +102,7 @@ copying WinForms concepts literally.
 ```text
 PiChatDriver
 ├── Browser          # launch/reload/reconnect/take control at user level
-├── Tabs             # create/open/close/switch/rename tabs
+├── Tabs             # create/open/close/switch tabs
 ├── Chat             # prompt, abort, streaming, transcript and runtime state
 ├── Projects         # folder browsing, opening folders, path/error assertions
 ├── Extensions       # actions, notifications, widgets, prompts and reload
@@ -162,7 +162,6 @@ Owns user-visible tab operations, not session-registry internals:
 - `Open(sessionPath)`;
 - `SwitchTo(tab)`;
 - `Close(tab)`;
-- `Rename(name)`;
 - `ShouldBeActive(tab)`;
 - `ShouldContain(expected)`;
 - `ShouldHaveName(name)`.

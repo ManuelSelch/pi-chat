@@ -9,7 +9,7 @@ export interface DialogActionsProps {
   cancelProps?: ButtonProps;
 }
 
-/** Consistent action row for confirmation, rename, and other dialogs. */
+/** Consistent action row for confirmation and other dialogs. */
 export function DialogActions({
   cancelLabel = "Cancel",
   confirmLabel,

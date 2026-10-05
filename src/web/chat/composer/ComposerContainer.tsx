@@ -34,12 +34,11 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const input = drafts[app.activeSessionId] ?? "";
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
-  const sessionName = state.actions.features.find((feature) => feature.id === "session.rename")?.state.name?.trim();
+  const sessionName = state.sessionName?.trim();
   const sessionPath = state.sessionPath;
   const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
   const sessionActions: LocalAction[] = [
     { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
-    { name: "Rename session", description: "Set the display name for this session", run: () => overlays.requestRename(sessionName ?? "") },
     { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
     ...(sessionPath && !busy ? [{ name: "Delete session", description: "Move this session to the trash and close its tab", run: () => {
       void confirm({ title: "Delete session?", body: `“${sessionName || "This session"}” moves to the trash and its tab closes.`, confirmLabel: "Delete" }).then((yes) => {

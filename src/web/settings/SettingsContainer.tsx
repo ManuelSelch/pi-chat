@@ -29,7 +29,6 @@ export function SettingsContainer() {
       onClose={() => overlays.close("settings")}
       state={state}
       busy={busy}
-      renameSession={chat.renameSession}
       setThinkingLevel={chat.setThinkingLevel}
       setModel={chat.setModel}
       compactSession={chat.compactSession}

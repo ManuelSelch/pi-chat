@@ -168,8 +168,6 @@ export function usePiChat() {
       dispatch({ type: "closePending", sessionId });
       send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId });
     },
-    renameSession: (name: string) =>
-      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.rename", input: { name } }),
     setModel: (model: string) =>
       send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "model.select", input: { model } }),
     compactSession: () =>

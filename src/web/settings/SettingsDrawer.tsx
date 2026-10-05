@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { ActionIcon, Button, Drawer, Group, Select, Stack, Switch, Text, TextInput, Tooltip } from "@mantine/core";
+import { Button, Drawer, Select, Stack, Switch, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../ui/theme.js";
-import { IconArchive, IconBell, IconBrain, IconCpu, IconDeviceFloppy, IconFolder, IconPencil, IconPuzzle, IconRefresh } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
@@ -13,7 +12,6 @@ interface SettingsDrawerProps {
   onClose: () => void;
   state: ChatState;
   busy: boolean;
-  renameSession: (name: string) => void;
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
@@ -27,19 +25,12 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, renameSession, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, runExtensionAction }: SettingsDrawerProps) {
-  const [sessionNameInput, setSessionNameInput] = useState<string | undefined>();
-  const renameFeature = state.actions.features.find((feature) => feature.id === "session.rename");
+export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, runExtensionAction }: SettingsDrawerProps) {
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
   // At home there is no session snapshot, so app-level features arrive separately.
   const restartFeature = [...state.actions.features, ...appFeatures].find((feature) => feature.id === "app.restart");
-  const currentName = renameFeature?.state.name ?? "";
-  const sessionName = sessionNameInput ?? currentName;
-  // Renaming to the name it already has is a no-op, so the control stays inert
-  // until the field actually differs.
-  const nameChanged = sessionName.trim().length > 0 && sessionName.trim() !== currentName.trim();
   // Extensions place their own controls here, so the section only exists once one registered something.
   const hasExtensionControls =
     state.extensions.buttons.some((button) => button.slot === "settings.section") ||
@@ -65,32 +56,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, renameSession, se
             label="Show folder path in projects panel"
           />
         </Panel>
-        {renameFeature ? (
-          <Panel>
-            <SectionHeader icon={<IconPencil size={16} />}>{renameFeature.title}</SectionHeader>
-            <Group gap="xs" align="flex-end" wrap="nowrap">
-              <TextInput
-                aria-label="Session name"
-                placeholder="Session name"
-                value={sessionName}
-                onChange={(event) => setSessionNameInput(event.currentTarget.value)}
-                flex={1}
-              />
-              <Tooltip label="Save session name">
-                <ActionIcon
-                  size="lg"
-                  variant={nameChanged ? "filled" : "default"}
-                  color={nameChanged ? undefined : "gray"}
-                  aria-label="Save session name"
-                  disabled={busy || !nameChanged}
-                  onClick={() => { renameSession(sessionName.trim()); setSessionNameInput(undefined); }}
-                >
-                  <IconDeviceFloppy size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          </Panel>
-        ) : null}
         {thinkingFeature ? (
           <Panel>
             <SectionHeader icon={<IconBrain size={16} />}>{thinkingFeature.title}</SectionHeader>

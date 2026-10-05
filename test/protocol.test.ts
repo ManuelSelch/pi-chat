@@ -33,12 +33,11 @@ describe("client protocol", () => {
     ).toBe(true);
   });
 
+  it("rejects the removed custom rename action", () => {
+    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "session.rename", input: { name: "Study" } })).toThrow();
+  });
+
   it("accepts native feature actions", () => {
-    expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "session.rename", input: { name: "Study" } })).toMatchObject({
-      type: "runFeature",
-      featureId: "session.rename",
-      input: { name: "Study" },
-    });
     expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "thinking.level", input: { level: "high" } })).toMatchObject({
       type: "runFeature",
       featureId: "thinking.level",

@@ -386,10 +386,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     this.prompts.resume();
   }
 
-  renameSession(name: string): void {
-    this.runtime.session.setSessionName(name);
-  }
-
   setThinkingLevel(level: ThinkingLevel): void {
     this.runtime.session.setThinkingLevel(level);
     this.emit({ type: "notification", level: "info", message: `Thinking level set to ${level}` });

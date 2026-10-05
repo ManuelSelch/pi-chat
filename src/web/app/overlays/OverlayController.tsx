@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import type { Tab } from "../../../shared/protocol.js";
 
-export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab" | "renamingSession";
+export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab";
 
 export interface OverlayState {
   projects: boolean;
@@ -9,14 +9,12 @@ export interface OverlayState {
   settings: boolean;
   quickOpen: boolean;
   closingTab?: Tab;
-  renamingSession?: string;
 }
 
 interface OverlayAction {
-  type: "open" | "close" | "toggle" | "closeAll" | "requestCloseTab" | "requestRename";
+  type: "open" | "close" | "toggle" | "closeAll" | "requestCloseTab";
   name?: OverlayName;
   tab?: Tab;
-  value?: string;
 }
 
 const initialState: OverlayState = {
@@ -29,13 +27,12 @@ const initialState: OverlayState = {
 function reduce(state: OverlayState, action: OverlayAction): OverlayState {
   if (action.type === "closeAll") return initialState;
   if (action.type === "requestCloseTab") return { ...state, closingTab: action.tab };
-  if (action.type === "requestRename") return { ...state, renamingSession: action.value };
   if (!action.name) return state;
   if (action.type === "open") {
-    if (action.name === "closingTab" || action.name === "renamingSession") return state;
+    if (action.name === "closingTab") return state;
     return { ...state, [action.name]: true } as OverlayState;
   }
-  if (action.type === "close") return { ...state, [action.name]: action.name === "closingTab" || action.name === "renamingSession" ? undefined : false };
+  if (action.type === "close") return { ...state, [action.name]: action.name === "closingTab" ? undefined : false };
   return { ...state, [action.name]: !state[action.name] } as OverlayState;
 }
 
@@ -46,7 +43,6 @@ interface OverlayControllerValue {
   close(name: OverlayName): void;
   toggle(name: OverlayName): void;
   requestCloseTab(tab: Tab): void;
-  requestRename(value: string): void;
   closeAll(): void;
 }
 
@@ -56,12 +52,11 @@ export function OverlayController({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reduce, initialState);
   const value = useMemo<OverlayControllerValue>(() => ({
     state,
-    anyOpen: state.projects || state.folderPicker || state.settings || state.quickOpen || state.closingTab !== undefined || state.renamingSession !== undefined,
+    anyOpen: state.projects || state.folderPicker || state.settings || state.quickOpen || state.closingTab !== undefined,
     open: (name) => dispatch({ type: "open", name }),
     close: (name) => dispatch({ type: "close", name }),
     toggle: (name) => dispatch({ type: "toggle", name }),
     requestCloseTab: (tab) => dispatch({ type: "requestCloseTab", tab }),
-    requestRename: (value) => dispatch({ type: "requestRename", value }),
     closeAll: () => dispatch({ type: "closeAll" }),
   }), [state]);
 

@@ -38,10 +38,6 @@ export async function runFeatureAction(
   }
 
   const runtime = dependencies.sessions.get(message.sessionId);
-  if (message.featureId === "session.rename") {
-    await runtime.renameSession(message.input.name);
-    return;
-  }
   if (message.featureId === "model.select") {
     await runtime.setModel(message.input.model);
     return;

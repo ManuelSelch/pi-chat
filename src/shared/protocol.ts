@@ -142,14 +142,6 @@ export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>;
 // Discriminated by id, not kind: several features share the "select" shape.
 export const webFeatureSchema = z.discriminatedUnion("id", [
   z.object({
-    id: z.literal("session.rename"),
-    group: z.literal("session"),
-    kind: z.literal("form"),
-    title: z.string(),
-    description: z.string().optional(),
-    state: z.object({ name: z.string() }),
-  }),
-  z.object({
     id: z.literal("thinking.level"),
     group: z.literal("model"),
     kind: z.literal("select"),
@@ -338,7 +330,6 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("deleteSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
-  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.rename"), input: z.object({ name: z.string().trim().min(1) }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
@@ -365,6 +356,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     ...sequenced,
     type: z.literal("snapshot"),
     throughSequence: z.number().int().nonnegative(),
+    sessionName: z.string().optional(),
     sessionPath: z.string().optional(),
     projectPath: z.string(),
     messages: z.array(chatMessageSchema),

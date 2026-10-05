@@ -8,12 +8,13 @@ import type { CommandCompletionItem } from "../src/shared/protocol.js";
 
 const chat = {
   app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [] },
-  state: { ...initialChatState, status: "idle" as const, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
+  state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as const, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),
   prompt: vi.fn(),
 };
 vi.mock("../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
-vi.mock("../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
+const confirm = vi.fn();
+vi.mock("../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm }) }));
 vi.mock("../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
 
 function mount() {
@@ -29,9 +30,30 @@ beforeEach(() => {
   chat.app.activeSessionId = "s1";
   chat.app.connection = "open";
   vi.clearAllMocks();
+  chat.state.sessionName = undefined;
+  chat.state.sessionPath = undefined;
+  confirm.mockResolvedValue(false);
   chat.completeCommandArguments.mockResolvedValue([{ value: "staging", label: "Staging", description: "Test environment" }]);
 });
 afterEach(cleanup);
+
+describe("composer session actions", () => {
+  it("omits custom rename and uses the Pi title in the delete confirmation", () => {
+    chat.state.sessionName = "Pi-generated title";
+    chat.state.sessionPath = "/sessions/s1.jsonl";
+    mount();
+    const textarea = type("/");
+    expect(screen.queryByRole("option", { name: /Rename session/ })).toBeNull();
+    expect(screen.getByRole("option", { name: /New session/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Close tab/ })).toBeTruthy();
+    type("/delete");
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Delete session?",
+      body: "“Pi-generated title” moves to the trash and its tab closes.",
+    }));
+  });
+});
 
 describe("composer argument completion", () => {
   it("shows Pi items and inserts without executing, preserving the suffix and caret", async () => {

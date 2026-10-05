@@ -15,9 +15,8 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
       <SettingsDrawer
         opened
         onClose={noop}
-        state={{ ...initialChatState, extensions }}
+        state={{ ...initialChatState, sessionName: "Pi-generated title", extensions }}
         busy={false}
-        renameSession={noop}
         setThinkingLevel={noop}
         setModel={noop}
         compactSession={noop}
@@ -36,6 +35,14 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
 }
 
 describe("SettingsDrawer extension section", () => {
+  it("has no custom name editor and retains other settings", () => {
+    renderDrawer(initialChatState.extensions);
+    expect(screen.queryByRole("textbox", { name: "Session name" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
+    expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
+  });
+
   it("renders settings.section buttons and dispatches their action", () => {
     const runExtensionAction = renderDrawer({
       buttons: [
