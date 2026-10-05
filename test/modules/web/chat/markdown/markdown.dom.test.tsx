@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MantineProvider } from "@mantine/core";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Markdown } from "../../../../../src/web/chat/markdown/Markdown.js";
 
 function withMantine(children: ReactNode) {
@@ -73,6 +73,15 @@ describe("Markdown rendering", () => {
     expect(container.querySelector("b")).toBeNull();
     expect((window as unknown as Record<string, unknown>).__pwned).toBeUndefined();
     expect((window as unknown as Record<string, unknown>).__pwned2).toBeUndefined();
+  });
+
+  it("turns local links into open actions", () => {
+    const onLocalLink = vi.fn();
+    const { container } = render(<Markdown onLocalLink={onLocalLink}>{"[report](./report.pdf)"}</Markdown>);
+    const link = container.querySelector("a");
+    expect(link).not.toBeNull();
+    fireEvent.click(link!);
+    expect(onLocalLink).toHaveBeenCalledWith("./report.pdf");
   });
 
   it("drops unsafe link protocols and opens external links safely", () => {

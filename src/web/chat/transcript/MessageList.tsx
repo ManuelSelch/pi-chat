@@ -15,7 +15,7 @@ import { THEME } from "../../ui/theme.js";
  * holds hundreds of entries. Each row is memoised so typing in the composer or
  * receiving a streaming delta only re-renders what actually changed.
  */
-const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage }) {
+const MessageRow = memo(function MessageRow({ message, onLocalLink }: { message: ChatMessage; onLocalLink?: (path: string) => void }) {
   if (message.role === "tool") return <ToolCard tool={message.tool} />;
   if (message.role === "bash") return <BashCard bash={message.bash} />;
 
@@ -50,7 +50,7 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         <Text size="xs" fw={650} tt="uppercase" lts={1} mb={4} c={THEME.accent.primary}>
           {message.customType}
         </Text>
-        <div className="markdown"><Markdown>{message.text}</Markdown></div>
+        <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
       </Box>
     );
   }
@@ -61,16 +61,16 @@ const MessageRow = memo(function MessageRow({ message }: { message: ChatMessage 
         <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
       ) : null}
       {message.role === "assistant" && message.thinking ? (
-        <ThinkingPanel thinking={message.thinking} streaming={false} />
+        <ThinkingPanel thinking={message.thinking} streaming={false} onLocalLink={onLocalLink} />
       ) : null}
       {/* A turn can be reasoning plus a tool call and no prose at all; the
           panel above is then the whole message. */}
       {message.role === "assistant" && message.text === "" ? null : message.role === "user" ? (
         <Paper bg={THEME.surface.panelHover} radius="lg" p="sm" px="md" ml="auto" maw="82%">
-          <div className="markdown"><Markdown>{message.text}</Markdown></div>
+          <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
         </Paper>
       ) : (
-        <div className="markdown"><Markdown>{message.text}</Markdown></div>
+        <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
       )}
     </Box>
   );
@@ -87,9 +87,10 @@ const OLDER_STEP = 100;
 interface MessageListProps {
   messages: ChatState["messages"];
   draft: ChatState["draft"];
+  onLocalLink?: (path: string) => void;
 }
 
-export const MessageList = memo(function MessageList({ messages, draft }: MessageListProps) {
+export const MessageList = memo(function MessageList({ messages, draft, onLocalLink }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
   const shown = messages.length > visible ? messages.slice(-visible) : messages;
   const hidden = messages.length - shown.length;
@@ -113,7 +114,7 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
             Show earlier messages ({hidden})
           </Button>
         ) : null}
-        {shown.map((message) => <MessageRow key={message.id} message={message} />)}
+        {shown.map((message) => <MessageRow key={message.id} message={message} onLocalLink={onLocalLink} />)}
         {draft ? (
           <Box component="article">
             <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
@@ -121,10 +122,10 @@ export const MessageList = memo(function MessageList({ messages, draft }: Messag
               // Still "streaming" once prose starts arriving is deliberate: the
               // panel only settles when the turn does, so it does not collapse
               // out from under a reader mid-sentence.
-              <ThinkingPanel thinking={draft.thinking} streaming />
+              <ThinkingPanel thinking={draft.thinking} streaming onLocalLink={onLocalLink} />
             ) : null}
             <div className="markdown">
-              <Markdown>{draft.text}</Markdown>
+              <Markdown onLocalLink={onLocalLink}>{draft.text}</Markdown>
               <span className="stream-cursor" />
             </div>
           </Box>

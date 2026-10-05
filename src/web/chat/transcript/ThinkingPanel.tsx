@@ -16,7 +16,7 @@ import { THEME } from "../../ui/theme.js";
  * Native details/summary keeps it keyboard-operable and searchable by the
  * browser's own find when open.
  */
-export function ThinkingPanel({ thinking, streaming }: { thinking: string; streaming: boolean }) {
+export function ThinkingPanel({ thinking, streaming, onLocalLink }: { thinking: string; streaming: boolean; onLocalLink?: (path: string) => void }) {
   const [open, setOpen] = useState(streaming);
   const touched = useRef(false);
   const body = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ export function ThinkingPanel({ thinking, streaming }: { thinking: string; strea
           borderLeft: `2px solid ${THEME.border.default}`,
         }}
       >
-        <Markdown>{thinking}</Markdown>
+        <Markdown onLocalLink={onLocalLink}>{thinking}</Markdown>
       </Box>
     </Box>
   );
