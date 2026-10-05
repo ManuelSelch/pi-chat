@@ -1,7 +1,7 @@
 /** Run with: npm run test:spike
  * Uses the same real-Pi domain driver as the normal Vitest workflows.
  */
-import { PiChatDriver } from "../../test/support/pi-chat/pi-chat-driver.js";
+import { PiChatDriver } from "../../test/infra/pi-chat/pi-chat-driver.js";
 
 const app = await PiChatDriver.start({
   responses: [{ prompt: "Hello", reply: "Hello from the real Pi runtime." }],
