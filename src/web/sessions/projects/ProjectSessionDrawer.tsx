@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Button, Drawer, Group, Modal, NavLink, ScrollArea, Stack, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
@@ -6,12 +6,12 @@ import { DialogActions } from "../../ui/DialogActions.js";
 import { IconChevronDown, IconChevronRight, IconFolder, IconFolderOff, IconGitFork, IconPlus } from "@tabler/icons-react";
 import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
 import { SessionRow } from "./SessionRow.js";
-import type { ChatState } from "../../app/state/chat-state.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;
   onClose: () => void;
-  state: ChatState;
+  currentSessionId: string;
+  currentProjectPath: string;
   catalogue: ProjectCatalogue;
   /** A run only blocks deleting the session it is writing to; every other
    *  action opens its own tab and is safe to use meanwhile. */
@@ -76,12 +76,12 @@ function checkoutLabel(project: ChatProjectSummary): string {
   return project.name;
 }
 
-export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, showDisplayPath, openSession, newSession, deleteSession, onOpenFolder }: ProjectSessionDrawerProps) {
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, deleteSession, onOpenFolder }: ProjectSessionDrawerProps) {
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
-  const groups = projectGroups(catalogue.projects);
-  const activeProject = catalogue.projects.find((project) => project.path === (selectedProject ?? state.projectPath)) ?? catalogue.projects[0];
+  const groups = useMemo(() => projectGroups(catalogue.projects), [catalogue.projects]);
+  const activeProject = catalogue.projects.find((project) => project.path === (selectedProject ?? currentProjectPath)) ?? catalogue.projects[0];
 
   return (
     <Drawer
@@ -112,9 +112,9 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
           <Stack gap={4}>
             {groups.map((group) => {
               const nested = group.projects.length > 1;
-              const open = expanded[group.key] ?? group.projects.some((project) => project.path === state.projectPath);
+              const open = expanded[group.key] ?? group.projects.some((project) => project.path === currentProjectPath);
               const count = group.projects.reduce((total, project) => total + project.sessionCount, 0);
-              const current = group.projects.some((project) => project.path === state.projectPath);
+              const current = group.projects.some((project) => project.path === currentProjectPath);
               if (!nested) {
                 const project = group.projects[0]!;
                 return (
@@ -125,7 +125,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                     label={project.name}
                     leftSection={project.exists ? <IconFolder size={16} /> : <IconFolderOff size={16} />}
                     description={showDisplayPath ? project.displayPath : undefined}
-                    rightSection={<Group gap={4} wrap="nowrap">{project.path === state.projectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{project.sessionCount}</StatusBadge></Group>}
+                    rightSection={<Group gap={4} wrap="nowrap">{project.path === currentProjectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{project.sessionCount}</StatusBadge></Group>}
                     onClick={() => setSelectedProject(project.path)}
                   />
                 );
@@ -143,7 +143,7 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                       key={project.path}
                       active={project.path === activeProject?.path}
                       disabled={!project.exists}
-                      label={<Group gap={6} wrap="nowrap">{project.path === state.projectPath ? <Text component="span" c="blue" size="sm" fw={700} aria-label="current checkout">●</Text> : null}<Text size="sm" truncate>{checkoutLabel(project)}</Text>{project.worktree?.primary ? <StatusBadge>primary</StatusBadge> : null}</Group>}
+                      label={<Group gap={6} wrap="nowrap">{project.path === currentProjectPath ? <Text component="span" c="blue" size="sm" fw={700} aria-label="current checkout">●</Text> : null}<Text size="sm" truncate>{checkoutLabel(project)}</Text>{project.worktree?.primary ? <StatusBadge>primary</StatusBadge> : null}</Group>}
                       leftSection={project.worktree?.primary ? <IconFolder size={16} /> : <IconGitFork size={16} />}
                       rightSection={<StatusBadge>{project.sessionCount}</StatusBadge>}
                       pl="xl"
@@ -166,9 +166,9 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
                 <SessionRow
                   key={session.path}
                   session={session}
-                  active={session.id === state.sessionId}
+                  active={session.id === currentSessionId}
                   disabled={!activeProject.exists}
-                  deleteDisabled={busy && session.id === state.sessionId}
+                  deleteDisabled={busy && session.id === currentSessionId}
                   onOpen={() => { openSession(session.path); onClose(); }}
                   onDelete={() => setPendingDelete(session)}
                 />
@@ -179,4 +179,4 @@ export function ProjectSessionDrawer({ opened, onClose, state, catalogue, busy, 
       </Group>
     </Drawer>
   );
-}
+});

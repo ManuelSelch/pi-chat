@@ -3,7 +3,6 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
-import { initialChatState } from "../../../../../src/web/app/state/chat-state.js";
 import { ProjectSessionDrawer } from "../../../../../src/web/sessions/projects/ProjectSessionDrawer.js";
 
 const catalogue: ProjectCatalogue = {
@@ -50,7 +49,8 @@ function show(busy: boolean) {
       <ProjectSessionDrawer
         opened
         onClose={vi.fn()}
-        state={{ ...initialChatState, status: busy ? "running" : "idle", sessionId: "current", projectPath: "/work/current" }}
+        currentSessionId="current"
+        currentProjectPath="/work/current"
         catalogue={catalogue}
         busy={busy}
         showDisplayPath={true}
@@ -76,7 +76,8 @@ describe("ProjectSessionDrawer", () => {
         <ProjectSessionDrawer
           opened
           onClose={vi.fn()}
-          state={{ ...initialChatState, status: "idle", sessionId: "current", projectPath: "/work/pi-chat-feature" }}
+          currentSessionId="current"
+          currentProjectPath="/work/pi-chat-feature"
           catalogue={groupedCatalogue}
           busy={false}
           showDisplayPath={true}

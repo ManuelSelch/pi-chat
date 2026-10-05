@@ -151,6 +151,18 @@ export function usePiChat() {
     });
   }, []);
 
+  const openSession = useCallback((path: string) => {
+    dispatch({ type: "openPending" });
+    send({ version: PROTOCOL_VERSION, type: "openSession", path });
+  }, [send]);
+  const newSession = useCallback((path?: string) => {
+    dispatch({ type: "openPending" });
+    send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) });
+  }, [send]);
+  const deleteSession = useCallback((path: string) => {
+    send({ version: PROTOCOL_VERSION, type: "deleteSession", path });
+  }, [send]);
+
   // Commands act on the tab the user is looking at unless one is named.
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
@@ -171,16 +183,10 @@ export function usePiChat() {
       dispatch({ type: "openPending" });
       send({ version: PROTOCOL_VERSION, type: "openProject", path });
     },
-    openSession: (path: string) => {
-      dispatch({ type: "openPending" });
-      send({ version: PROTOCOL_VERSION, type: "openSession", path });
-    },
-    newSession: (path?: string) => {
-      dispatch({ type: "openPending" });
-      send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) });
-    },
+    openSession,
+    newSession,
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
-    deleteSession: (path: string) => send({ version: PROTOCOL_VERSION, type: "deleteSession", path }),
+    deleteSession,
     closeTab: (sessionId: string) => {
       fileRequests.current.closeSession(sessionId);
       dispatch({ type: "closePending", sessionId });

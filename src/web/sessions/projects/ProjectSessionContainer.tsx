@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
@@ -9,19 +10,22 @@ export function ProjectSessionContainer() {
   const { app, state } = chat;
   const displayPath = useDisplayPath();
   const busy = state.status === "running" || state.status === "aborting";
+  const onClose = useCallback(() => overlays.close("projects"), [overlays.close]);
+  const onOpenFolder = useCallback(() => overlays.open("folderPicker"), [overlays.open]);
 
   return (
     <ProjectSessionDrawer
       opened={overlays.state.projects}
-      onClose={() => overlays.close("projects")}
-      state={state}
+      onClose={onClose}
+      currentSessionId={state.sessionId}
+      currentProjectPath={state.projectPath}
       catalogue={app.catalogue}
       busy={busy}
       showDisplayPath={displayPath.show}
       openSession={chat.openSession}
       newSession={chat.newSession}
       deleteSession={chat.deleteSession}
-      onOpenFolder={() => overlays.open("folderPicker")}
+      onOpenFolder={onOpenFolder}
     />
   );
 }
