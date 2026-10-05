@@ -18,7 +18,6 @@
     "build": "tsc --noEmit && vite build",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
-    "test:spike": "tsx scripts/spikes/pi-test-harness.ts",
     "test:watch": "vitest"
   },
   "engines": {

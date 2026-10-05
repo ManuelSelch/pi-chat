@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
+import { AgentSessionRuntime, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import type { RuntimeAdapterFactory } from "../../../src/server/runtime/contracts.js";
@@ -30,6 +30,11 @@ export class TestWorld {
   private reservation?: { responses: readonly AssistantResponse[]; started: boolean };
   private disposed = false;
   private disposal?: Promise<void>;
+  private readonly extensions: readonly ExtensionFactory[];
+
+  constructor(extensions: readonly ExtensionFactory[] = []) {
+    this.extensions = [...extensions];
+  }
 
   readonly factory: RuntimeAdapterFactory = {
     newSession: async path => {
@@ -64,7 +69,7 @@ export class TestWorld {
   }
 
   private async build(responses: readonly AssistantResponse[]): Promise<PiRuntimeAdapter> {
-    const harness = await createTestSession({ cwd: this.projectPath });
+    const harness = await createTestSession({ cwd: this.projectPath, extensionFactories: [...this.extensions] });
     let runtime: AgentSessionRuntime | undefined;
     try {
       assert(!this.disposed, "Test world was disposed during session creation");

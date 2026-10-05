@@ -17,5 +17,4 @@ npm test -- test/modules         # Module tests
 npm test -- test/scenarios       # User workflows
 npm test -- test/infra-tests     # Test machinery
 npm run build                   # Typecheck and build
-npm run test:spike               # Harness compatibility
 ```
