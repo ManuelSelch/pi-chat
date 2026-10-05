@@ -2,10 +2,16 @@ import { resolve } from "node:path";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
-import { TestWorld } from "../pi-chat/test-world.js";
+import { TestWorld, type AssistantResponse } from "../pi-chat/test-world.js";
+import { BrowserChatDriver } from "./browser-chat-driver.js";
 
-/** Visible-browser driver. Playwright types and selectors stay behind this API. */
+export interface PiChatBrowserDriverOptions {
+  responses: readonly AssistantResponse[];
+}
+
+/** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
+  readonly Chat: BrowserChatDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -14,15 +20,14 @@ export class PiChatBrowserDriver {
     private readonly cleanup: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
+    this.Chat = new BrowserChatDriver(page, this.composer);
   }
 
-  static async start(page: Page): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: PiChatBrowserDriverOptions): Promise<PiChatBrowserDriver> {
     const world = new TestWorld();
     let server: PiChatServer | undefined;
     try {
-      const initial = await world.create([
-        { prompt: "Hello", reply: "Hello from the visible Pi Chat app." },
-      ]);
+      const initial = await world.create(options.responses);
       server = createPiChatServer(initial, resolve("dist/web"), world.factory);
       await new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
@@ -49,23 +54,6 @@ export class PiChatBrowserDriver {
   async WaitUntilReady(): Promise<void> {
     await expect(this.composer).toBeVisible();
     await expect(this.composer).toBeEnabled();
-  }
-
-  async SendPrompt(text: string): Promise<void> {
-    await this.composer.fill(text);
-    await this.composer.press("Enter");
-  }
-
-  async ShouldShowAssistantReply(text: string): Promise<void> {
-    await expect(this.page.getByText(text, { exact: true })).toBeVisible();
-  }
-
-  async ShouldShowUserMessage(text: string): Promise<void> {
-    await expect(this.page.getByText(text, { exact: true })).toBeVisible();
-  }
-
-  async ShouldBeIdle(): Promise<void> {
-    await expect(this.composer).not.toHaveAttribute("aria-busy", "true");
   }
 
   dispose(): Promise<void> {
