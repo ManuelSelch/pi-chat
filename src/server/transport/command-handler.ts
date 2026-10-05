@@ -45,7 +45,10 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
     publisher.sendTabs();
   } else if (command.type === "deleteSession") {
     chat.deleteSession(command.path)
-      .then(() => publisher.sendCatalogue())
+      .then(() => {
+        publisher.sendTabs();
+        return publisher.sendCatalogue();
+      })
       .catch((error: unknown) => publisher.publishError(chat.activeSessionId(), error));
   } else if (command.type === "closeTab") {
     chat.closeTab(command.sessionId)
