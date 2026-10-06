@@ -21,7 +21,7 @@ Example: `/deploy st` offers `staging`. Selecting it inserts `/deploy staging` w
 - Pass the entire argument prefix unchanged, matching Pi's API—not just the last token. Pi's callback owns filtering and ordering.
 - Support synchronous and async callbacks. Missing callbacks, `null`, and empty arrays mean no suggestions.
 - Show each item's `label` and optional `description` in the existing menu. Insert its `value` verbatim.
-- Replace the argument prefix before the caret, preserving text after it. Do not add whitespace or execute the command.
+- Replace the entire argument prefix before the caret, matching Pi—not just the last token or quoted segment. Providers own earlier arguments, separators, and quotes in the returned value. Preserve text after the caret. Do not add whitespace or execute the command.
 - Reuse arrows, Enter/Tab acceptance, Escape dismissal, and pointer selection. Preserve Shift+Enter, Shift+Tab, and IME input.
 - Only request for a leading slash command with the caret in its first-line arguments and no active text selection.
 - Ignore late responses after the draft/caret changes, dismissal, submission, tab switching, or disconnect. Keep completion state local to the composer, outside transcript snapshots.

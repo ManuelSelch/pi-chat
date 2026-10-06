@@ -8,8 +8,8 @@ export interface ArgumentContext {
 }
 
 /**
- * Find the argument currently being edited while keeping the complete prefix
- * for Pi's context-aware completion callback.
+ * Pi's callback receives and replaces the entire argument prefix, not just
+ * the current token. Keep the replacement range identical to that prefix.
  */
 export function argumentContext(input: string, start: number, end: number, commands: readonly SlashCommand[]): ArgumentContext | undefined {
   if (!input.startsWith("/") || start !== end) return undefined;
@@ -20,36 +20,8 @@ export function argumentContext(input: string, start: number, end: number, comma
   const commandName = beforeCaret.slice(1, separator);
   if (!commands.some((command) => command.name === commandName && command.source === "extension")) return undefined;
 
-  let argumentStart = separator + 1;
-  let replacementStart = argumentStart;
-  let quote: string | undefined;
-  let escaped = false;
-  for (let index = argumentStart; index < start; index += 1) {
-    const character = input[index]!;
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (character === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (quote) {
-      if (character === quote) quote = undefined;
-      continue;
-    }
-    if (character === "'" || character === '"') {
-      quote = character;
-      if (index === argumentStart || replacementStart === argumentStart) replacementStart = index + 1;
-      continue;
-    }
-    if (/\s/.test(character)) {
-      argumentStart = index + 1;
-      replacementStart = argumentStart;
-    }
-  }
-
-  return { commandName, argumentPrefix: beforeCaret.slice(separator + 1), start: replacementStart, end: start };
+  const argumentStart = separator + 1;
+  return { commandName, argumentPrefix: beforeCaret.slice(argumentStart), start: argumentStart, end: start };
 }
 
 export function applyArgumentCompletion(input: string, context: ArgumentContext, value: string): { input: string; caret: number } {

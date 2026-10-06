@@ -68,6 +68,20 @@ describe("composer argument completion", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
+  it("replaces all arguments with the provider value, not just the last token", async () => {
+    chat.completeCommandArguments.mockResolvedValue([{ value: "first staging", label: "Staging" }]);
+    mount();
+    const draft = "/deploy first st --flag\nnotes";
+    const caret = draft.indexOf(" --flag");
+    const textarea = type(draft, caret);
+    await screen.findByRole("option", { name: /Staging/ });
+    expect(chat.completeCommandArguments).toHaveBeenCalledWith("s1", "deploy", "first st", expect.any(AbortSignal));
+    fireEvent.keyDown(textarea, { key: "Tab" });
+    expect(textarea.value).toBe("/deploy first staging --flag\nnotes");
+    expect(textarea.selectionStart).toBe("/deploy first staging".length);
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
   it("requests an empty prefix after command selection and keeps focus on pointer acceptance", async () => {
     mount();
     const textarea = type("/dep");
