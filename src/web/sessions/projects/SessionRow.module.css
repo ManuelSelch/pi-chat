@@ -54,18 +54,21 @@
   white-space: nowrap;
 }
 
-.action {
+.row .action {
   flex: 0 0 auto;
-  opacity: 0.55;
+  opacity: 0;
+  pointer-events: none;
   transition: opacity 100ms ease;
 }
 
 .row:hover .action,
 .row:focus-within .action {
   opacity: 1;
+  pointer-events: auto;
 }
 
-.action:disabled {
+.row:hover .action:disabled,
+.row:focus-within .action:disabled {
   opacity: 0.35;
 }
 
