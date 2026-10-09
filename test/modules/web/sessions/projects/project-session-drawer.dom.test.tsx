@@ -137,6 +137,44 @@ describe("ProjectSessionDrawer", () => {
     expect(openSession).toHaveBeenCalledWith("/sessions/other.jsonl");
   });
 
+  it("always shows Quick Chats first and offers New chat without a pin control", () => {
+    const quickChatsCatalogue: ProjectCatalogue = {
+      projects: [
+        { path: "/home/me", displayPath: "~", name: "Quick Chats", exists: true, modified: 0, sessionCount: 0, sessions: [], quickChats: true },
+        ...catalogue.projects,
+      ],
+    };
+    render(
+      <MantineProvider>
+        <ProjectSessionDrawer
+          opened
+          onClose={vi.fn()}
+          currentSessionId="current"
+          currentProjectPath="/work/current"
+          catalogue={quickChatsCatalogue}
+          busy={false}
+          showDisplayPath={true}
+          openSession={openSession}
+          newSession={vi.fn()}
+          deleteSession={vi.fn()}
+          onOpenFolder={onOpenFolder}
+          pinProject={vi.fn(async () => undefined)}
+        />
+      </MantineProvider>,
+    );
+
+    const quickChats = screen.getByText("Quick Chats").closest("a")!;
+    expect(quickChats.querySelector("svg")).toBeTruthy();
+    expect(quickChats.getAttribute("data-active")).toBeNull();
+
+    fireEvent.click(screen.getByText("Quick Chats"));
+
+    expect(screen.getAllByText("Quick Chats").length).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: "New chat" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Pin project" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Unpin project" })).toBeNull();
+  });
+
   it("only blocks archiving the session the run is writing to", async () => {
     show(true);
 

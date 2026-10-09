@@ -28,6 +28,7 @@ export interface ChatProjectSummary {
   modified: number;
   sessionCount: number;
   pinned?: boolean;
+  quickChats?: boolean;
   sessions: ChatSessionSummary[];
   repositoryPath?: string;
   repositoryName?: string;

@@ -15,7 +15,7 @@ async function setup() {
   const metadata = new ProjectMetadataStore(join(root, "metadata.json"));
   const lister = { listAll: async () => [{ path, id: "one", cwd, created: new Date(0), modified: new Date(1), messageCount: 1, firstMessage: "Hello" }] };
   const discovery = { forDirectory: async () => undefined };
-  return { root, path, content, cwd, metadata, service: new ProjectSessionService(lister, sessionsRoot, discovery, metadata), lister, discovery, sessionsRoot };
+  return { root, path, content, cwd, metadata, service: new ProjectSessionService(lister, sessionsRoot, discovery, metadata, ""), lister, discovery, sessionsRoot };
 }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 describe("project archives", () => {
@@ -32,7 +32,7 @@ describe("project archives", () => {
   it("keeps a pinned project with no session history across service recreation", async () => {
     const { service, cwd, sessionsRoot, discovery, metadata } = await setup();
     await service.pin(cwd, true);
-    const restarted = new ProjectSessionService({ listAll: async () => [] }, sessionsRoot, discovery, new ProjectMetadataStore(metadata.path));
+    const restarted = new ProjectSessionService({ listAll: async () => [] }, sessionsRoot, discovery, new ProjectMetadataStore(metadata.path), "");
     expect((await restarted.catalogue()).projects).toEqual([expect.objectContaining({ path: cwd, pinned: true, sessionCount: 0, sessions: [] })]);
     await restarted.pin(cwd, false);
     expect((await restarted.catalogue()).projects).toEqual([]);
@@ -48,7 +48,7 @@ describe("project archives", () => {
     const { cwd, sessionsRoot, lister, metadata } = await setup();
     const main = join(cwd, "main"); await mkdir(main);
     const discovery = { forDirectory: async () => ({ repositoryPath: main, worktrees: [{ path: main, primary: true, detached: false }, { path: cwd, primary: false, detached: false }] }) };
-    const service = new ProjectSessionService(lister, sessionsRoot, discovery, metadata);
+    const service = new ProjectSessionService(lister, sessionsRoot, discovery, metadata, "");
     await service.pin(cwd, true);
     expect((await metadata.read()).pins).toEqual([main]);
   });
