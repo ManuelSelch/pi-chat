@@ -74,7 +74,7 @@ describe("project/session drawer rendering", () => {
     act(() => void vi.advanceTimersByTime(500));
     expect(screen.getByRole("button", { name: "Archive Chat 1-0" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("Chat 1-0").closest('button')?.getAttribute("aria-current")).toBe("page");
-    fireEvent.click(screen.getByRole("button", { name: "New session" }));
+    fireEvent.click(screen.getByRole("button", { name: "New session in Project 1" }));
     expect(socket.sent.at(-1)).toEqual({ version: 1, type: "newSession", path: "/project-1" });
   });
 });

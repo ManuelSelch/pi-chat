@@ -1,9 +1,9 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   min-width: 0;
-  padding: 8px 7px;
+  padding: 5px 7px;
   border-radius: var(--mantine-radius-sm);
   cursor: pointer;
   transition: background-color 100ms ease;
@@ -23,11 +23,6 @@
   background: var(--mantine-primary-color-light);
 }
 
-.icon {
-  flex: 0 0 auto;
-  color: var(--mantine-color-dimmed);
-}
-
 .content {
   min-width: 0;
   flex: 1 1 auto;
@@ -45,13 +40,10 @@
   white-space: nowrap;
 }
 
-.meta {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.meta > * {
-  white-space: nowrap;
+.branch {
+  vertical-align: -2px;
+  margin-right: 5px;
+  color: var(--mantine-color-dimmed);
 }
 
 .row .action {

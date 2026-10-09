@@ -1,0 +1,139 @@
+.filter {
+  margin-bottom: 8px;
+}
+
+.list {
+  padding-bottom: 6px;
+}
+
+.sectionLabel {
+  padding: 2px 8px 6px;
+}
+
+.groupRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--mantine-radius-sm);
+  transition: background-color 100ms ease;
+}
+
+.groupRow:hover,
+.groupRow:focus-within {
+  background: var(--mantine-color-default-hover);
+}
+
+.groupRowActive {
+  background: var(--mantine-primary-color-light);
+}
+
+.groupMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  text-align: left;
+  color: inherit;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.groupMain:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.groupChevron {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dimmed);
+  transition: transform 120ms ease;
+}
+
+.groupChevronOpen {
+  transform: rotate(90deg);
+}
+
+.groupIcon {
+  flex: 0 0 auto;
+  color: var(--mantine-color-dimmed);
+}
+
+.groupText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.groupName {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupPath {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding-right: 4px;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.groupRow:hover .groupActions,
+.groupRow:focus-within .groupActions {
+  opacity: 1;
+}
+
+.groupCount {
+  flex: 0 0 auto;
+  margin-left: 4px;
+}
+
+.sessions {
+  padding: 0 0 4px;
+}
+
+.empty {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  padding: 6px 8px;
+}
+
+.archivedToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--mantine-radius-sm);
+  background: transparent;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  cursor: pointer;
+  text-align: left;
+}
+
+.archivedToggle:hover {
+  background: var(--mantine-color-default-hover);
+  color: var(--mantine-color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .groupRow,
+  .groupChevron,
+  .groupActions {
+    transition: none;
+  }
+}

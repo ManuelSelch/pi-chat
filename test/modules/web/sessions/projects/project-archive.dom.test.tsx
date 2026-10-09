@@ -14,17 +14,16 @@ const catalogue: ProjectCatalogue = { projects: [
 ] };
 function show(archiveSession = vi.fn(async () => {})) {
   const pinProject = vi.fn(async () => {}), openSession = vi.fn(), newSession = vi.fn();
-  render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath openSession={openSession} newSession={newSession} deleteSession={vi.fn()} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
+  render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath openSession={openSession} newSession={newSession} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
   return { archiveSession, pinProject, openSession, newSession };
 }
 describe("archive panel", () => {
   it("starts the archive section collapsed and opens archived sessions normally", () => {
     const { openSession } = show();
-    const summary = screen.getByText("Archived").closest("summary")!;
-    const details = summary.closest("details")!;
-    expect(details.open).toBe(false);
-    fireEvent.click(summary);
-    expect(details.open).toBe(true);
+    const toggle = screen.getByRole("button", { name: /Archived/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(screen.getByText("Old conversation"));
     expect(openSession).toHaveBeenCalledWith("/archived.jsonl");
   });
@@ -41,7 +40,7 @@ describe("archive panel", () => {
     await waitFor(() => expect(screen.getByText("disk full")).toBeTruthy());
     expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
-  it("keeps pinned projects together before recent projects regardless of name or session count", () => {
+  it("keeps pinned projects before recent projects without duplicating group headings", () => {
     const projects: ProjectCatalogue = { projects: [
       { ...catalogue.projects[0]!, name: "A pinned" },
       { ...catalogue.projects[0]!, path: "/recent", name: "M recent", pinned: false },
@@ -49,23 +48,23 @@ describe("archive panel", () => {
       { ...catalogue.projects[1]!, path: "/repo", name: "Repository", repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "main", detached: false, primary: true } },
       { ...catalogue.projects[0]!, path: "/feature", name: "Feature", pinned: false, repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "feature", detached: false, primary: false } },
     ] };
-    render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={projects} busy={false} showDisplayPath openSession={vi.fn()} newSession={vi.fn()} deleteSession={vi.fn()} onOpenFolder={vi.fn()} /></MantineProvider>);
-    expect(screen.getAllByText("Pinned projects")).toHaveLength(1);
-    expect(screen.getAllByText("Recent projects")).toHaveLength(1);
-    const pinned = screen.getByText("Pinned projects");
-    const recent = screen.getByText("Recent projects");
-    for (const name of ["A pinned", "Z empty pinned", "Repository"]) {
-      const row = screen.getAllByText(name)[0]!;
-      expect(pinned.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(row.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={projects} busy={false} showDisplayPath openSession={vi.fn()} newSession={vi.fn()} onOpenFolder={vi.fn()} /></MantineProvider>);
+    expect(screen.queryByText("Pinned projects")).toBeNull();
+    expect(screen.queryByText("Recent projects")).toBeNull();
+    for (const pinned of ["A pinned", "Z empty pinned", "Repository"]) {
+      for (const recent of ["M recent"]) {
+        const pinnedRow = screen.getAllByText(pinned)[0]!;
+        const recentRow = screen.getAllByText(recent)[0]!;
+        expect(pinnedRow.compareDocumentPosition(recentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      }
     }
   });
   it("keeps empty pinned projects selectable and offers New session", () => {
     const { newSession, pinProject } = show();
     fireEvent.click(screen.getByText("Empty pinned"));
-    fireEvent.click(screen.getByRole("button", { name: "New session" }));
+    fireEvent.click(screen.getByRole("button", { name: "New session in Empty pinned" }));
     expect(newSession).toHaveBeenCalledWith("/empty");
-    fireEvent.click(screen.getByRole("button", { name: "Unpin project" }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin Empty pinned" }));
     expect(pinProject).toHaveBeenCalledWith("/empty", false);
   });
 });
