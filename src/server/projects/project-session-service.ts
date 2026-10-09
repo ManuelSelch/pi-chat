@@ -1,5 +1,7 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { realpath } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { ProjectMetadataStore } from "./project-metadata-store.js";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
@@ -9,6 +11,10 @@ export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, Proj
 export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 
 
+async function canonicalPath(path: string): Promise<string> {
+  return realpath(path).catch(() => resolve(path));
+}
+
 export class ProjectSessionService {
   private readonly store: PiSessionStore;
 
@@ -16,6 +22,7 @@ export class ProjectSessionService {
     private readonly lister: ProjectSessionLister = new PiSessionStore(),
     sessionsRoot?: string,
     private readonly discovery: Pick<WorktreeDiscovery, "forDirectory"> = new WorktreeDiscovery(),
+    private readonly metadata = new ProjectMetadataStore(sessionsRoot ? resolve(dirname(sessionsRoot), "pi-chat", "projects.json") : undefined),
   ) {
     this.store = new PiSessionStore(sessionsRoot);
   }
@@ -25,18 +32,48 @@ export class ProjectSessionService {
    * checked against the Pi session folder instead of being trusted.
    */
   async delete(sessionPath: string): Promise<void> {
-    await this.store.delete(sessionPath);
+    const canonical = await this.store.validatePath(sessionPath);
+    await this.store.delete(canonical);
+    await this.metadata.forgetSession(canonical);
+  }
+
+  async archive(sessionPath: string, archived: boolean): Promise<void> {
+    const session = await this.store.describe(sessionPath);
+    const repository = archived ? await this.discovery.forDirectory(session.cwd) : undefined;
+    const checkout = repository?.worktrees.find(worktree => resolve(worktree.path) === session.cwd);
+    await this.metadata.archive({
+      ...session,
+      ...(repository ? { repositoryPath: repository.repositoryPath, repositoryName: formatProjectName(repository.repositoryPath) } : {}),
+      ...(checkout?.branch ? { branch: checkout.branch } : {}),
+    }, archived);
+  }
+
+  async restoreIfArchived(sessionPath: string): Promise<void> {
+    const data = await this.metadata.read();
+    const canonical = await canonicalPath(sessionPath);
+    if (!data.archives.some(session => session.path === canonical)) return;
+    await this.archive(sessionPath, false);
+  }
+
+  async pin(projectPath: string, pinned: boolean): Promise<void> {
+    let path = pinned ? await realpath(projectPath) : await canonicalPath(projectPath);
+    const repository = await this.discovery.forDirectory(path);
+    if (repository) {
+      const checkouts = await Promise.all(repository.worktrees.map(worktree => canonicalPath(worktree.path)));
+      if (checkouts.includes(path)) path = await canonicalPath(repository.repositoryPath);
+    }
+    await this.metadata.pin(path, pinned);
   }
 
   async catalogue(active?: ActiveSessionSummary): Promise<ProjectCatalogue> {
-    const sessions = await this.lister.listAll();
+    const [sessions, metadata] = await Promise.all([this.lister.listAll(), this.metadata.read()]);
     const byProject = new Map<string, ChatProjectSummary>();
 
     for (const session of sessions) {
       const nameInfo = await readLatestSessionNameInfo(session.path);
       const cwd = session.cwd?.trim();
       if (!cwd) continue;
-      const projectPath = resolve(cwd);
+      const projectPath = await canonicalPath(cwd);
       const modified = session.modified.getTime();
       let project = byProject.get(projectPath);
       if (!project) {
@@ -54,7 +91,7 @@ export class ProjectSessionService {
       project.modified = Math.max(project.modified, modified);
       project.sessionCount += 1;
       project.sessions.push({
-        path: session.path,
+        path: await canonicalPath(session.path),
         id: session.id,
         title: nameInfo.name || session.firstMessage || "Untitled session",
         ...(nameInfo.name ? { name: nameInfo.name } : {}),
@@ -66,15 +103,37 @@ export class ProjectSessionService {
       });
     }
 
-    if (active) this.includeActiveSession(byProject, active);
+    if (active) this.includeActiveSession(byProject, { ...active, cwd: await canonicalPath(active.cwd), ...(active.path ? { path: await canonicalPath(active.path) } : {}) });
+    for (const path of metadata.pins) {
+      const project = byProject.get(path) ?? {
+        path, displayPath: formatProjectDisplayPath(path), name: formatProjectName(path),
+        exists: existsSync(path), modified: 0, sessionCount: 0, sessions: [],
+      };
+      project.pinned = true;
+      byProject.set(path, project);
+    }
     await this.includeRegisteredWorktrees(byProject);
+    const archived = new Map(metadata.archives.map(session => [`${session.path}\0${session.id}`, session]));
+    for (const project of byProject.values()) {
+      for (const session of project.sessions) {
+        const record = archived.get(`${resolve(session.path)}\0${session.id}`);
+        if (!record) continue;
+        session.archivedAt = record.archivedAt;
+        if (!project.repositoryPath && record.repositoryPath) {
+          project.repositoryPath = record.repositoryPath;
+          project.repositoryName = record.repositoryName;
+          project.worktree = { detached: false, primary: project.path === record.repositoryPath, ...(record.branch ? { branch: record.branch } : {}) };
+        }
+      }
+      project.sessionCount = project.sessions.filter(session => session.archivedAt === undefined).length;
+    }
 
     const projects = [...byProject.values()]
       .map((project) => ({
         ...project,
         sessions: project.sessions.sort((a, b) => b.modified - a.modified),
       }))
-      .sort((a, b) => b.modified - a.modified);
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.modified - a.modified);
 
     return { projects };
   }

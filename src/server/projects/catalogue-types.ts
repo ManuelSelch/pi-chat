@@ -10,6 +10,7 @@ export interface ChatSessionSummary {
   modified: number;
   created: number;
   messageCount: number;
+  archivedAt?: number;
 }
 
 export interface ChatWorktreeSummary {
@@ -26,6 +27,7 @@ export interface ChatProjectSummary {
   exists: boolean;
   modified: number;
   sessionCount: number;
+  pinned?: boolean;
   sessions: ChatSessionSummary[];
   repositoryPath?: string;
   repositoryName?: string;

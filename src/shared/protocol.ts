@@ -110,6 +110,7 @@ export const chatSessionSummarySchema = z.object({
   modified: z.number(),
   created: z.number(),
   messageCount: z.number().int().nonnegative(),
+  archivedAt: z.number().finite().nonnegative().optional(),
 });
 
 export const chatWorktreeSummarySchema = z.object({
@@ -126,6 +127,7 @@ export const chatProjectSummarySchema = z.object({
   exists: z.boolean(),
   modified: z.number(),
   sessionCount: z.number().int().nonnegative(),
+  pinned: z.boolean().optional(),
   sessions: z.array(chatSessionSummarySchema),
   repositoryPath: z.string().min(1).optional(),
   repositoryName: z.string().min(1).optional(),

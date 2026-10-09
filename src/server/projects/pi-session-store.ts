@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { existsSync, createReadStream } from "node:fs";
-import { unlink } from "node:fs/promises";
+import { open, realpath, unlink } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { resolve, sep } from "node:path";
 import { promisify } from "node:util";
@@ -35,13 +35,37 @@ export class PiSessionStore {
     }));
   }
 
-  async delete(sessionPath: string): Promise<void> {
+  async validatePath(sessionPath: string): Promise<string> {
     const target = resolve(sessionPath);
-    if (!target.endsWith(".jsonl") || !target.startsWith(this.sessionsRoot + sep)) {
-      throw new Error("Refusing to delete a path outside the Pi session folder.");
+    if (!target.endsWith(".jsonl")) {
+      throw new Error("Refusing a path outside the Pi session folder.");
     }
     if (!existsSync(target)) throw new Error("That session file no longer exists.");
-    await moveToTrash(target);
+    const [canonical, root] = await Promise.all([realpath(target), realpath(this.sessionsRoot).catch(() => { throw new Error("Refusing a path outside the Pi session folder."); })]);
+    if (!canonical.startsWith(root + sep) || !canonical.endsWith(".jsonl")) {
+      throw new Error("Refusing a path outside the Pi session folder.");
+    }
+    return canonical;
+  }
+
+  async describe(sessionPath: string): Promise<{ path: string; id: string; cwd: string }> {
+    const path = await this.validatePath(sessionPath);
+    const file = await open(path, "r");
+    try {
+      // Only the header is needed. Do not read a potentially huge transcript.
+      const buffer = Buffer.alloc(64 * 1024);
+      const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+      const header = JSON.parse(buffer.toString("utf8", 0, bytesRead).split("\n")[0]!);
+      if (header.type !== "session" || typeof header.id !== "string" || !header.id || typeof header.cwd !== "string" || !header.cwd) {
+        throw new Error("Invalid session header.");
+      }
+      return { path, id: header.id, cwd: resolve(header.cwd) };
+    } catch (error) { throw new Error("That file has no valid Pi session header.", { cause: error }); }
+    finally { await file.close(); }
+  }
+
+  async delete(sessionPath: string): Promise<void> {
+    await moveToTrash(await this.validatePath(sessionPath));
   }
 }
 

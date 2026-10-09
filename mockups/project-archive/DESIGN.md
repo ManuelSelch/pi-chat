@@ -1,6 +1,6 @@
 # Project archive panel — revision 1
 
-Review status: in review. No user approval yet; no production implementation authorized.
+Review status: approved. Revision 1 is approved for production implementation.
 
 ## Goal and layout
 
@@ -37,4 +37,4 @@ All data and changes are in memory and reset on reload. No backend, persistence,
 
 Browser-reviewed expanded layout at 1280×720 in light mode and inside a 390×690 iframe in dark mode. Exercised archive (counts update and tab closes), Undo, opening an archived session, simulated send restoring Active, and the empty-active pinned project state. No browser console errors or failed requests observed. Mockup dependency audit reports zero vulnerabilities. Production tests were not run because production files are unchanged.
 
-Approval evidence: none.
+Approval evidence: user said “sounds good. implement it” after reviewing revision 1. Approved scope includes the existing tabs/drawer layout, project pins, collapsed Archived section, and the demonstrated archive/restore and restore-on-send flow.
