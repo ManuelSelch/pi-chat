@@ -58,6 +58,7 @@ function show(busy: boolean) {
         newSession={vi.fn()}
         deleteSession={vi.fn()}
         onOpenFolder={onOpenFolder}
+        archiveSession={vi.fn(async () => undefined)}
       />
     </MantineProvider>,
   );
@@ -136,14 +137,14 @@ describe("ProjectSessionDrawer", () => {
     expect(openSession).toHaveBeenCalledWith("/sessions/other.jsonl");
   });
 
-  it("only blocks deleting the session the run is writing to", async () => {
+  it("only blocks archiving the session the run is writing to", async () => {
     show(true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Session actions for Current chat" }));
-    expect((await screen.findByRole("menuitem", { name: "Delete Current chat" })).hasAttribute("data-disabled")).toBe(true);
+    const currentArchive = screen.getByRole("button", { name: "Archive Current chat" });
+    expect(currentArchive.hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getByText("other"));
-    fireEvent.click(screen.getByRole("button", { name: "Session actions for Other chat" }));
-    expect((await screen.findByRole("menuitem", { name: "Delete Other chat" })).hasAttribute("data-disabled")).toBe(false);
+    const otherArchive = screen.getByRole("button", { name: "Archive Other chat" });
+    expect(otherArchive.hasAttribute("disabled")).toBe(false);
   });
 });
