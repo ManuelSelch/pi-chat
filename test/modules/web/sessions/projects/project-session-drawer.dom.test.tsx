@@ -136,13 +136,14 @@ describe("ProjectSessionDrawer", () => {
     expect(openSession).toHaveBeenCalledWith("/sessions/other.jsonl");
   });
 
-  it("only blocks deleting the session the run is writing to", () => {
+  it("only blocks deleting the session the run is writing to", async () => {
     show(true);
 
-    expect(screen.getByRole("button", { name: "Delete Current chat" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Session actions for Current chat" }));
+    expect((await screen.findByRole("menuitem", { name: "Delete Current chat" })).hasAttribute("data-disabled")).toBe(true);
 
     fireEvent.click(screen.getByText("other"));
-
-    expect(screen.getByRole("button", { name: "Delete Other chat" }).hasAttribute("disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Session actions for Other chat" }));
+    expect((await screen.findByRole("menuitem", { name: "Delete Other chat" })).hasAttribute("data-disabled")).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories
 import { FolderRequests } from "./connection/folder-requests.js";
 import { CompletionRequests } from "./connection/completion-requests.js";
 import { FileRequests } from "./connection/file-requests.js";
+import { ProjectRequests } from "./connection/project-requests.js";
 
 const FIRST_RETRY_MS = 250;
 const MAX_RETRY_MS = 5_000;
@@ -30,6 +31,8 @@ export function usePiChat() {
   const completionSequence = useRef(0);
   const fileRequests = useRef(new FileRequests());
   const fileSequence = useRef(0);
+  const projectRequests = useRef(new ProjectRequests());
+  const projectSequence = useRef(0);
   // Bumping this re-runs the effect, which is how a superseded tab takes the
   // controller slot back on an explicit user action.
   const [claim, setClaim] = useState(0);
@@ -60,7 +63,7 @@ export function usePiChat() {
         const parsed = serverMessageSchema.safeParse(value);
         if (parsed.success) {
           if (parsed.data.type === "tabs") fileRequests.current.retainSessions(parsed.data.tabs.map((tab) => tab.sessionId));
-          if (!fileRequests.current.receive(parsed.data) && !folderRequests.current.receive(parsed.data) && !completionRequests.current.receive(parsed.data)) dispatch(parsed.data);
+          if (!projectRequests.current.receive(parsed.data) && !fileRequests.current.receive(parsed.data) && !folderRequests.current.receive(parsed.data) && !completionRequests.current.receive(parsed.data)) dispatch(parsed.data);
         }
       });
 
@@ -74,6 +77,7 @@ export function usePiChat() {
         folderRequests.current.disconnect();
         completionRequests.current.disconnect();
         fileRequests.current.disconnect();
+        projectRequests.current.disconnect();
         if (event.code === CONTROLLER_REPLACED_CODE) {
           dispatch({ type: "superseded" });
           return;
@@ -96,6 +100,7 @@ export function usePiChat() {
       folderRequests.current.disconnect();
       completionRequests.current.disconnect();
       fileRequests.current.disconnect();
+      projectRequests.current.disconnect();
       socketRef.current?.close();
       socketRef.current = undefined;
     };
@@ -151,6 +156,16 @@ export function usePiChat() {
     });
   }, []);
 
+  const projectMutation = useCallback((command: Omit<Extract<ClientMessage, { type: "setSessionArchived" }>, "requestId" | "version"> | Omit<Extract<ClientMessage, { type: "pinProject" }>, "requestId" | "version">) => {
+    return projectRequests.current.request({ ...command, version: PROTOCOL_VERSION, requestId: `project-${++projectSequence.current}` }, (message) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
+      socket.send(JSON.stringify(message));
+    });
+  }, []);
+  const archiveSession = useCallback((path: string, archived: boolean) => projectMutation({ type: "setSessionArchived", path, archived }), [projectMutation]);
+  const pinProject = useCallback((path: string, pinned: boolean) => projectMutation({ type: "pinProject", path, pinned }), [projectMutation]);
+
   const openSession = useCallback((path: string) => {
     dispatch({ type: "openPending" });
     send({ version: PROTOCOL_VERSION, type: "openSession", path });
@@ -187,6 +202,8 @@ export function usePiChat() {
     newSession,
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
     deleteSession,
+    archiveSession,
+    pinProject,
     closeTab: (sessionId: string) => {
       fileRequests.current.closeSession(sessionId);
       dispatch({ type: "closePending", sessionId });
