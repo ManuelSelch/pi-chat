@@ -21,7 +21,9 @@ Pi does not provide session archiving. The user approved Pi Chat-owned archive m
 
 **Confirmed:** archive state belongs to Pi Chat metadata, not a new Pi JSONL entry or a moved session file. Include explicit project pins. Archived sessions are not inherently read-only; users may continue them when their working directory is available.
 
-**Proposed for review:** a persistent desktop, thread-first sidebar with project filtering and a collapsed finished-session shelf, plus archive-aware cleanup integration. The sidebar redesign is not yet individually confirmed.
+**Confirmed navigation:** retain compact tabs for open sessions and the on-demand Projects and sessions panel. The user normally has no more than four sessions running and uses `/new` for a new session in an already-open project. Project pins are saved entries inside the panel, not a pinned/permanent panel.
+
+**Proposed for review:** a collapsed archived-session section inside the existing panel's session list, restore-on-new-work behavior, and archive-aware cleanup integration.
 
 Do not interpret this plan as permission to implement every proposed feature or modify the personal extensions repository automatically.
 
@@ -45,19 +47,20 @@ Existing worktree requirements in `docs/worktree-projects/REQUIREMENTS.md` remai
 - **Checkout:** the original directory in which a session ran.
 - **Running session:** a live runtime executing model/tool/bash work; distinct from Active.
 
-## T3 Code comparison and proposed layout
+## T3 Code comparison and retained layout
 
 T3's [thread documentation](https://github.com/pingdotgg/t3code/blob/main/docs/user/thread-sidebar.md) and [sidebar logic](https://github.com/pingdotgg/t3code/blob/main/apps/web/src/components/Sidebar.logic.ts) distinguish **Settled** from **Archived**. Settled threads occupy a lower sidebar shelf and can be un-settled into active work. Archived threads are filtered out of the normal sidebar. Its thread pins are also different from the project pins requested here.
 
-For Pi Chat, propose only two session states initially: Active and Archived. Our collapsed finished-session shelf would hold Archived sessions, borrowing T3's settled-shelf presentation without adding a third state.
+For Pi Chat, keep only two session states initially: Active and Archived. Borrow the collapsed finished-history presentation, not T3's permanent sidebar layout.
 
-- On desktop, show a left sidebar by default instead of requiring the Projects and sessions drawer for everyday navigation. Keep a hide/show control; use an overlay on narrow screens.
-- Put pinned-project shortcuts and an All projects selector/filter above a single session list. Project selection filters threads; it does not open a second session-navigation pane.
-- List active sessions directly, with compact project/branch context to disambiguate them. A project filter applies consistently to active and archived lists.
-- Place a collapsed `Archived (N)` shelf below active sessions. Expanding it exposes finished sessions in the same navigation column.
-- Keep New session's target explicit (selected project/checkout); an All projects view must not imply an ambiguous creation directory.
-- Retain checkout-specific session ownership and worktree discovery. Repository grouping remains useful inside project/checkout selection, not as a mandatory second navigation pane.
-- Do not add thread pinning, Settled as a third state, automatic settlement, or drag-and-drop ordering in this scope.
+- Retain tabs as the primary navigation for open sessions; do not replace them with a thread sidebar.
+- Keep Projects and sessions as an on-demand drawer with its existing project/checkout selection and session pane. It is primarily used to open another project or retrieve history.
+- Show pinned projects first inside the panel, including those with zero active sessions. Pinning a project does not keep the panel open.
+- Propose a collapsed `Archived (N)` section below active sessions in the selected checkout's session pane. Opening a session focuses its existing tab or opens a new tab, preserving current deduplication behavior.
+- Preserve `/new` for new sessions in the current project and the selected-checkout New session action. Do not require the panel for everyday same-project session creation.
+- Closing a tab only releases that open session runtime; it does not archive or delete the conversation. Archive is a distinct completed-work action that also closes its tab.
+- Retain repository grouping, checkout-specific session ownership, worktree discovery, and the path-display preference.
+- Do not add a permanent sidebar, thread pinning, Settled as a third state, automatic settlement, or drag-and-drop ordering in this scope.
 
 ## 1. Durable metadata
 
@@ -74,7 +77,7 @@ For Pi Chat, propose only two session states initially: Active and Archived. Our
 ## 2. Persistent project navigation
 
 1. Add Pin/Unpin to project navigation. Pinning persists across reload/restart and retains a selectable project with zero sessions.
-2. Show Pinned projects first in project selection, then unpinned projects with active sessions ordered by existing activity rules. An entry appears only once. In the proposed sidebar, project shortcuts/filtering and the thread list have separate purposes; do not mix project rows into the session lifecycle sections.
+2. Show Pinned projects first in the panel's project selection, then unpinned projects with active sessions ordered by existing activity rules. An entry appears only once. Keep project navigation separate from the selected checkout's session list.
 3. Unpinning does not delete sessions or files. An empty unpinned entry may disappear from the default list.
 4. For Git checkout roots, pin the stable primary repository entry rather than a disposable linked worktree. Store resolved repository context while it is available. Preserve the current rule that subdirectory sessions are not silently reassigned to checkout-root sessions.
 5. For non-Git directories, pin the canonical directory. Never group projects by basename or remote URL.
@@ -99,7 +102,7 @@ For Pi Chat, propose only two session states initially: Active and Archived. Our
 
 ## 4. Browse and continue retained conversations
 
-1. Default navigation shows active sessions. In the proposed sidebar, archives occupy a collapsed lower shelf rather than a separate Active/Archived pane. Active counts exclude archived sessions; archive counts are labeled separately. No double-counting at repository level.
+1. The panel's session pane shows active sessions, with a proposed collapsed Archived section beneath them for the selected checkout. Active counts exclude archived sessions; archive counts are labeled separately. No double-counting at repository level. Tabs represent open sessions, not the entire active-session catalogue.
 2. Archived sessions are ordered by archive time, with stable tie-breaking. Active ordering remains based on conversation activity.
 3. Selecting an archived session with an available checkout opens the usual conversation UI and allows continuation. Normal runtime/extension initialization may occur; do not build a separate mandatory read-only viewer for these sessions.
 4. History access must still work when the original checkout no longer exists. In that case, render a transcript-only fallback without initializing a runtime against a missing directory; explain why continuation is unavailable. Keep original path/branch as historical metadata, subject to the existing path-display preference; do not add unconditional full-path tooltips.
@@ -137,7 +140,7 @@ Each slice starts with focused tests, remains independently reviewable, and does
 2. **Add a durable metadata store.** Cover missing/corrupt files, schema versions, serialized writes, atomic persistence, canonical identity checks, and stale references with temporary-directory tests.
 3. **Add persistent project pins.** Merge saved project seeds into the catalogue, preserve worktree discovery/grouping, and add Pin/Unpin and empty-project UI. Verify persistence independently of archives.
 4. **Add archive/restore application operations.** Extend typed protocol and lifecycle handling, enforce per-session running guards, preserve session files, and refresh all relevant catalogue consumers. Test failures and idempotency.
-5. **Add archive navigation and the approved layout.** Update rows, counts, filters, Undo, empty states, Home/Quick Open behavior, and archive-only project access. If the sidebar proposal is approved, deliver the persistent desktop sidebar and collapsed archive shelf as an independently reviewable UI change.
+5. **Add archive navigation inside the existing panel.** Update rows, counts, the collapsed archive section if approved, Undo, empty states, Home/Quick Open behavior, and archive-only project access. Preserve compact tabs, the on-demand drawer, `/new`, and existing open-session deduplication.
 6. **Enable archive browsing and continuation.** Reuse normal conversation UI for available checkouts, implement the agreed restore-on-work behavior, and provide validated no-runtime transcript fallback for removed worktrees and missing-file handling.
 7. **Integrate retention safeguards.** Coordinate the separate cleanup-extension change, test dry-run/deletion exclusions and fail-closed metadata errors. Until done, label retention support incomplete.
 8. **Verify end to end and document.** Run full Vitest suite, TypeScript, production build, and whitespace checks. Browser-test pinning, archive/restore/Undo, reload, removed worktrees, deletion, and last-tab handling; record evidence. Commit only task-owned changes.
@@ -156,13 +159,14 @@ Each slice starts with focused tests, remains independently reviewable, and does
 - Delete an archived transcript: after successful deletion it disappears from archive results; failed deletion preserves its metadata.
 - Reload/reconnect or a second connected browser receives authoritative archive/pin state; stale selections recover without changing valid browsed checkout state.
 - Open an archived session with an available checkout: the normal conversation UI is usable; reading alone leaves archive state unchanged, while accepted new work restores Active if that proposed rule is approved.
-- If approved, the desktop sidebar lists sessions directly, project filtering affects both sections, and the archive shelf starts collapsed; narrow screens retain accessible overlay navigation.
+- Compact tabs remain the main open-session navigation; closing one does not archive it. `/new` still starts a session in the current project without opening the project panel.
+- The panel stays on demand, with pinned project entries surviving zero active sessions. If approved, the selected checkout's Archived section starts collapsed and opening an archived session focuses/creates a tab rather than a new permanent sidebar.
 - Archive-aware cleanup dry-run and deletion preserve archived files; unreadable protection metadata does not trigger their deletion.
 - Existing session opening, active session ordering, worktree grouping, path preference, and unrelated user files remain unchanged.
 
 ## Open questions before implementation
 
-1. Approve replacing the two-pane project/session drawer workflow with the persistent desktop, thread-first sidebar and collapsed Archived shelf described above?
+1. Approve a collapsed Archived section beneath active sessions in the existing project panel? Tabs and the on-demand two-pane panel are confirmed; a permanent sidebar is excluded.
 2. Should sending new work automatically restore an archived session to Active while merely opening/reading leaves it archived? Recommended. Final UI wording remains open: Archived versus Finished; do not introduce both as separate states.
 3. Should Include archived search match titles/first messages initially (existing search scope), with full transcript search deferred? Recommended to keep the first slice small.
 4. May the personal session-cleanup extension be changed in a separately verified commit/repository, or should cleanup be disabled manually until integration is ready?
