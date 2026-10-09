@@ -29,6 +29,7 @@ interface ProjectSessionDrawerProps {
 interface ProjectGroup {
   key: string;
   name: string;
+  primaryProject?: ChatProjectSummary;
   projects: ChatProjectSummary[];
 }
 
@@ -64,11 +65,21 @@ function projectGroups(projects: ChatProjectSummary[], currentPath: string, show
     });
     // A repository with only one known checkout keeps the original flat row.
     if (sorted.length === 1) standalone.push(sorted[0]!);
-    else groups.push({ key: repositoryPath, name: sorted[0]?.repositoryName ?? sorted[0]?.name ?? repositoryPath, projects: sorted });
+    else {
+      const primaryProject = sorted.find((project) => project.worktree?.primary) ?? sorted[0]!;
+      groups.push({
+        key: repositoryPath,
+        name: primaryProject.repositoryName ?? primaryProject.name ?? repositoryPath,
+        primaryProject,
+        projects: sorted.filter((project) => project.path !== primaryProject.path),
+      });
+    }
   }
 
   for (const project of standalone) groups.push({ key: project.path, name: project.name, projects: [project] });
-  return groups.sort((a, b) => Number(groupPinned(b)) - Number(groupPinned(a)) || groupModified(b) - groupModified(a) || a.name.localeCompare(b.name));
+  const pinGroup = groups.filter(group => groupPinned(group));
+  const regularGroups = groups.filter(group => !groupPinned(group));
+  return [...pinGroup, ...regularGroups].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function groupPinned(group: ProjectGroup): boolean {
@@ -89,21 +100,19 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
-  const [showAll, setShowAll] = useState(false);
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
-  const [undoArchive, setUndoArchive] = useState<ChatSessionSummary>();
-  const groups = useMemo(() => projectGroups(catalogue.projects, currentProjectPath, showAll).filter(group => !query.trim() || `${group.name} ${group.projects.map(project => project.displayPath).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())), [catalogue.projects, currentProjectPath, showAll, query]);
+  const groups = useMemo(() => projectGroups(catalogue.projects, currentProjectPath, false).filter(group => !query.trim() || `${group.name} ${group.projects.map(project => project.displayPath).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())), [catalogue.projects, currentProjectPath, query]);
   const visibleProjects = groups.flatMap(group => group.projects);
-  const activeProject = visibleProjects.find(project => project.path === selectedProject) ?? visibleProjects.find(project => project.path === currentProjectPath) ?? visibleProjects[0];
+  const activeProject = catalogue.projects.find(project => project.path === selectedProject) ?? catalogue.projects.find(project => project.path === currentProjectPath) ?? visibleProjects[0];
   const pinPath = activeProject?.repositoryPath ?? activeProject?.path;
   const pinned = catalogue.projects.some(project => project.path === pinPath && project.pinned);
   const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
 
   async function mutate(operation: () => Promise<void>, success?: () => void): Promise<void> {
     if (pending) return;
-    setPending(true); setError(undefined); setUndoArchive(undefined);
+    setPending(true); setError(undefined);
     try { await operation(); success?.(); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to update project metadata."); }
     finally { setPending(false); }
@@ -111,7 +120,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
 
   function archive(session: ChatSessionSummary, archived: boolean): void {
     if (!archiveSession) return;
-    void mutate(() => archiveSession(session.path, archived), () => { if (archived) setUndoArchive(session); });
+    void mutate(() => archiveSession(session.path, archived));
   }
 
   return (
@@ -139,20 +148,20 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
       </Modal>
 
       {error ? <Alert color="red" mb="sm" role="alert">{error}</Alert> : null}
-      {undoArchive ? <Alert mb="sm" role="status"><Group justify="space-between" gap="xs"><Text size="sm">Session archived. History kept.</Text><Button variant="subtle" size="compact-xs" disabled={pending} onClick={() => archive(undoArchive, false)}>Undo</Button></Group></Alert> : null}
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
-            {showAll ? <TextInput size="xs" aria-label="Search projects" placeholder="Search projects" value={query} onChange={event => setQuery(event.currentTarget.value)} mb="xs" /> : null}
+            <TextInput size="xs" aria-label="Search projects" placeholder="Search projects" value={query} onChange={event => setQuery(event.currentTarget.value)} mb="xs" />
             {groups.map((group, index) => {
-              const nested = group.projects.length > 1;
-              const open = expanded[group.key] ?? group.projects.some((project) => project.path === currentProjectPath);
-              const count = group.projects.reduce((total, project) => total + project.sessionCount, 0);
-              const current = group.projects.some((project) => project.path === currentProjectPath);
+              const repoProjects = group.primaryProject ? [group.primaryProject, ...group.projects] : group.projects;
+              const nested = Boolean(group.primaryProject) || group.projects.length > 1;
+              const open = expanded[group.key] ?? repoProjects.some((project) => project.path === currentProjectPath);
+              const count = repoProjects.reduce((total, project) => total + project.sessionCount, 0);
+              const current = repoProjects.some((project) => project.path === currentProjectPath);
               const heading = index === 0 || groupPinned(groups[index - 1]!) !== groupPinned(group)
-                ? <Text size="xs" c="dimmed" fw={600} mt={index ? "md" : 0} mb={6}>{groupPinned(group) ? "Pinned projects" : showAll ? "Other projects" : "Recent projects"}</Text> : null;
+                ? <Text size="xs" c="dimmed" fw={600} mt={index ? "md" : 0} mb={6}>{groupPinned(group) ? "Pinned projects" : "Recent projects"}</Text> : null;
               if (!nested) {
-                const project = group.projects[0]!;
+                const project = repoProjects[0]!;
                 return (
                   <Fragment key={group.key}>{heading}<NavLink
                     active={project.path === activeProject?.path}
@@ -164,20 +173,22 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
                   /></Fragment>
                 );
               }
+              const primaryProject = group.primaryProject ?? repoProjects[0]!;
               return (
                 <Stack key={group.key} gap={0}>
                   {heading}<NavLink
                     label={group.name}
                     leftSection={open ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
                     rightSection={<Group gap={4} wrap="nowrap">{current ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{count}</StatusBadge></Group>}
-                    onClick={() => setExpanded((value) => ({ ...value, [group.key]: !open }))}
+                    active={primaryProject.path === activeProject?.path}
+                    onClick={() => { setSelectedProject(primaryProject.path); setExpanded((value) => ({ ...value, [group.key]: !open })); }}
                   />
-                  {open ? group.projects.map((project) => (
+                  {open ? repoProjects.filter((project) => project.path !== primaryProject.path).map((project) => (
                     <NavLink
                       key={project.path}
                       active={project.path === activeProject?.path}
                       label={<Group gap={6} wrap="nowrap">{project.path === currentProjectPath ? <Text component="span" c="blue" size="sm" fw={700} aria-label="current checkout">●</Text> : null}<Text size="sm" truncate>{checkoutLabel(project)}</Text>{project.worktree?.primary ? <StatusBadge>primary</StatusBadge> : null}</Group>}
-                      leftSection={project.worktree?.primary ? <IconFolder size={16} /> : <IconGitFork size={16} />}
+                      leftSection={<IconGitFork size={16} />}
                       rightSection={<StatusBadge>{project.sessionCount}</StatusBadge>}
                       pl="xl"
                       onClick={() => setSelectedProject(project.path)}
@@ -186,7 +197,6 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
                 </Stack>
               );
             })}
-            <Button variant="subtle" size="xs" onClick={() => { setShowAll(value => !value); setQuery(""); }}>{showAll ? "Pinned and recent" : "All projects"}</Button>
             <Button variant="default" leftSection={<IconFolder size={16} />} mb="sm" onClick={() => { onClose(); onOpenFolder(); }}>Open folder</Button>
           </Stack>
         </ScrollArea>

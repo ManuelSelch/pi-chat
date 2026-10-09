@@ -28,13 +28,11 @@ describe("archive panel", () => {
     fireEvent.click(screen.getByText("Old conversation"));
     expect(openSession).toHaveBeenCalledWith("/archived.jsonl");
   });
-  it("archives through the server and offers Undo only after success", async () => {
+  it("archives through the server without an inline success banner", async () => {
     const { archiveSession } = show();
     fireEvent.click(screen.getByRole("button", { name: "Archive Active conversation" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy());
-    expect(archiveSession).toHaveBeenCalledWith("/active.jsonl", true);
-    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(archiveSession).toHaveBeenCalledWith("/active.jsonl", false));
+    await waitFor(() => expect(archiveSession).toHaveBeenCalledWith("/active.jsonl", true));
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
   it("reports persistence failure without offering Undo", async () => {
     const archiveSession = vi.fn(async () => { throw new Error("disk full"); });
