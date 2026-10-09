@@ -1,6 +1,7 @@
 import { Box, Text } from "@mantine/core";
 import type { ToolCard } from "../../../shared/protocol.js";
 import { THEME } from "../../ui/theme.js";
+import { FileCode } from "./FileContent.js";
 
 type Row = { kind: "addition" | "removal" | "context" | "header"; text: string; old?: number; next?: number; marker?: string };
 
@@ -35,7 +36,7 @@ export function diffRows(diff: NonNullable<ToolCard["editDiff"]>): Row[] {
   });
 }
 
-export function EditDiff({ diff }: { diff: NonNullable<ToolCard["editDiff"]> }) {
+export function EditDiff({ diff, path, highlight = false }: { diff: NonNullable<ToolCard["editDiff"]>; path?: string; highlight?: boolean }) {
   const rows = diffRows(diff);
   const truncated = diff.truncated || diff.text.split("\n").length > 2001;
   return <>
@@ -46,7 +47,7 @@ export function EditDiff({ diff }: { diff: NonNullable<ToolCard["editDiff"]> }) 
           <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.old ?? ""}</span>
           <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.next ?? ""}</span>
           <span style={{ width: "3ch", flexShrink: 0, textAlign: "center" }}>{row.marker ?? " "}</span>
-          <span style={{ paddingRight: 12 }}>{row.text || " "}</span>
+          <span style={{ paddingRight: 12 }}>{highlight && row.kind !== "header" ? <FileCode path={path}>{row.text || " "}</FileCode> : row.text || " "}</span>
         </div>)}
       </Box>
     </Box>

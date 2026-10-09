@@ -3,6 +3,7 @@ import type { ToolCard as ToolCardState } from "../../../shared/protocol.js";
 import { EditDiff } from "./EditDiff.js";
 import { useState } from "react";
 import { WriteContent } from "./WriteContent.js";
+import { ReadContent } from "./FileContent.js";
 import { MANTINE_COLOR, THEME } from "../../ui/theme.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
@@ -83,13 +84,27 @@ export function toolSubject(tool: ToolCardState): string | undefined {
   return line.length > MAX_SUBJECT ? `${line.slice(0, MAX_SUBJECT - 1)}…` : line;
 }
 
+/** Unabridged filename, including when argsText ends mid-JSON. */
+export function toolFilePath(tool: ToolCardState): string | undefined {
+  if (!tool.argsText) return undefined;
+  try {
+    const args: unknown = JSON.parse(tool.argsText);
+    if (!args || typeof args !== "object") return undefined;
+    const path = (args as Record<string, unknown>).path;
+    return typeof path === "string" ? path : undefined;
+  } catch {
+    return partialStringValue(tool.argsText, ["path"]);
+  }
+}
+
 /**
  * One tool call, collapsed by default so tools never dominate the transcript.
- * Native details/summary keeps it keyboard-operable. Write previews mount only
- * when opened; arguments and result output remain literal text.
+ * Native details/summary keeps it keyboard-operable. File previews/highlighting
+ * load only when opened; arguments and non-file results remain literal text.
  */
 export function ToolCard({ tool }: { tool: ToolCardState }) {
   const subject = toolSubject(tool);
+  const path = toolFilePath(tool);
   const [opened, setOpened] = useState(false);
   const content = tool.name === "write" ? tool.writeContent : undefined;
   const diff = tool.name === "edit" && tool.status === "success" ? tool.editDiff : undefined;
@@ -138,8 +153,8 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
       </Box>
       {diff || content || tool.argsText !== undefined || tool.outputText !== undefined ? (
         <Box px="sm" pb="sm" style={{ borderTop: `1px solid ${THEME.border.default}` }}>
-          {diff ? <EditDiff diff={diff} /> : null}
-          {content && opened ? <WriteContent content={content} status={tool.status} /> : null}
+          {diff ? <EditDiff diff={diff} path={path} highlight={opened} /> : null}
+          {content && opened ? <WriteContent content={content} status={tool.status} path={path} /> : null}
           {tool.argsText !== undefined ? (
             diff || content ? <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Arguments</summary><ToolPre>{tool.argsText}</ToolPre></details> : <>
               <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mt="sm" mb={4}>Arguments</Text>
@@ -151,7 +166,9 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
               <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mt="sm" mb={4}>
                 {tool.status === "running" ? "Output so far" : "Result"}
               </Text>
-              <ToolPre>{tool.outputText}</ToolPre>
+              {tool.name === "read" && tool.status === "success" && opened ? (
+                <Box style={{ maxHeight: 420, overflow: "auto" }}><ReadContent path={path}>{tool.outputText}</ReadContent></Box>
+              ) : <ToolPre>{tool.outputText}</ToolPre>}
             </>
           ) : null}
         </Box>

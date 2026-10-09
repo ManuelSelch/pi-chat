@@ -6,7 +6,7 @@ import { ToolCard } from "../../../../../src/web/chat/tools/ToolCard.js";
 import type { ToolCard as Card } from "../../../../../src/shared/protocol.js";
 afterEach(cleanup);
 function show(text: string, status: Card["status"] = "success", truncated = false) {
-  return render(<MantineProvider><ToolCard tool={{ toolCallId: "w", name: "write", status, argsText: "{}", outputText: "Result text", writeContent: { text, truncated } }} /></MantineProvider>);
+  return render(<MantineProvider><ToolCard tool={{ toolCallId: "w", name: "write", status, argsText: '{"path":"document.md"}', outputText: "Result text", writeContent: { text, truncated } }} /></MantineProvider>);
 }
 function open() {
   const card = screen.getByTestId("tool-card") as HTMLDetailsElement;

@@ -101,7 +101,7 @@ html::-webkit-scrollbar {
   --hljs-builtin: #f69d50;
   --hljs-attr: #6cb6ff;
 }
-.markdown pre code.hljs { background: none; color: var(--hljs-text); }
+.markdown pre code.hljs, .tool-card code.hljs { background: none; color: var(--hljs-text); }
 .hljs-comment, .hljs-quote { color: var(--hljs-comment); font-style: italic; }
 .hljs-keyword, .hljs-selector-tag, .hljs-type { color: var(--hljs-keyword); }
 .hljs-string, .hljs-regexp, .hljs-addition { color: var(--hljs-string); }

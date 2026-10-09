@@ -12,6 +12,7 @@
 ## Features
 
 - streaming assistant text, tool cards, Markdown + KaTeX
+- filename-based syntax highlighting for read/write previews and edit diffs, with rendered Markdown previews
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - server folder picker to start sessions in folders without previous Pi history
 - slash commands with Pi extension argument completion, a command palette, and quick-open
@@ -56,6 +57,16 @@ suggestion replaces that prefix with its `value`, preserving text after the
 caret. Pi owns filtering and ordering. No Pi Chat-specific extension API is
 needed. Native command dialogs, filesystem completion, and general
 `addAutocompleteProvider()` hooks are not part of this support.
+
+## File content previews
+
+Expanded `read` and `write` cards render `.md`/`.markdown` files as Markdown
+(with remote images disabled) and highlight common source/config formats using
+the filename extension. Unknown formats stay literal text. Edit diffs retain
+line numbers and red/green backgrounds with syntax colours on the code lines;
+line-by-line highlighting may not capture multiline strings/comments fully.
+Arguments, errors, and non-file tool results remain plain text. Highlighting is
+loaded on demand and uses the same light/dark palette as Markdown code fences.
 
 ## Architecture
 
