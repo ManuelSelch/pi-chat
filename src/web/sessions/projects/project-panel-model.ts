@@ -139,10 +139,3 @@ export function buildPanelGroups(catalogue: ProjectCatalogue, currentPath: strin
 
   return groups;
 }
-
-export function matchesGroup(group: PanelGroup, rawQuery: string): boolean {
-  const query = rawQuery.trim().toLowerCase();
-  if (!query) return true;
-  if (group.name.toLowerCase().includes(query)) return true;
-  return group.sessions.some(entry => entry.session.title.toLowerCase().includes(query) || entry.branch?.toLowerCase().includes(query));
-}

@@ -144,7 +144,6 @@ function render() {
 
   const chunks = [];
   if (quick && (matches(quick.name) || active('quick').some(s => matches(s.title)) || archived('quick').some(s => matches(s.title)))) {
-    chunks.push('<div class="section-label">Chats</div>');
     chunks.push(projectRow(quick));
     chunks.push('<hr class="divider">');
   }
@@ -208,7 +207,6 @@ $('list').addEventListener('click', event => {
     render();
   }
 });
-$('filter').addEventListener('input', event => { query = event.target.value.trim().toLowerCase(); render(); });
 $('open-panel').onclick = () => panel(true);
 $('close-panel').onclick = $('backdrop').onclick = () => panel(false);
 $('theme').onclick = () => { document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; };

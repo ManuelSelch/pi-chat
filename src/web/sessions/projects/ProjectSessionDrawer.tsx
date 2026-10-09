@@ -1,10 +1,10 @@
 import { memo, useMemo, useState } from "react";
-import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Text, TextInput, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
-import { buildPanelGroups, matchesGroup, type PanelGroup, type PanelSession } from "./project-panel-model.js";
+import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
 import styles from "./ProjectSessionDrawer.module.css";
 
@@ -34,16 +34,14 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
 
 export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, onOpenFolder, archiveSession, pinProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
   const [selected, setSelected] = useState<string>();
-  const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [expandedArchive, setExpandedArchive] = useState<Record<string, boolean>>({});
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
 
   const groups = useMemo(() => buildPanelGroups(catalogue, currentProjectPath), [catalogue, currentProjectPath]);
-  const visible = useMemo(() => groups.filter(group => matchesGroup(group, filter)), [groups, filter]);
-  const quickChats = visible.find(group => group.quickChats);
-  const projects = visible.filter(group => !group.quickChats);
+  const quickChats = groups.find(group => group.quickChats);
+  const projects = groups.filter(group => !group.quickChats);
   const pinned = projects.filter(group => group.pinned);
   const recent = projects.filter(group => !group.pinned);
   const currentKey = groupKeyForPath(catalogue, currentProjectPath);
@@ -53,7 +51,6 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const isOpen = (group: PanelGroup): boolean => {
     const explicit = expanded[group.key];
     if (explicit !== undefined) return explicit;
-    if (filter.trim()) return true;
     return group.key === currentKey;
   };
 
@@ -146,19 +143,13 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
       }}
     >
       {error ? <Alert color="red" mb="sm" role="alert">{error}</Alert> : null}
-      <TextInput className={styles.filter} placeholder="Filter projects and sessions" aria-label="Filter projects and sessions"
-        value={filter} onChange={event => setFilter(event.currentTarget.value)} />
       <ScrollArea flex={1} style={{ minHeight: 0 }}>
         <Stack gap={2} className={styles.list}>
-          {quickChats ? <>
-            <Text className={styles.sectionLabel} size="xs" c="dimmed" fw={600}>Chats</Text>
-            {groupRow(quickChats)}
-            <Divider my="xs" />
-          </> : null}
+          {quickChats ? <>{groupRow(quickChats)}<Divider my="xs" /></> : null}
           {pinned.map(groupRow)}
           {pinned.length && recent.length ? <Divider my="xs" /> : null}
           {recent.map(groupRow)}
-          {!visible.length ? <div className={styles.empty}>Nothing matches that filter.</div> : null}
+          {!groups.length ? <div className={styles.empty}>No sessions found yet.</div> : null}
         </Stack>
       </ScrollArea>
       <Button variant="default" leftSection={<IconFolder size={16} />} mt="sm" onClick={() => { onClose(); onOpenFolder(); }}>Open folder</Button>

@@ -1,7 +1,8 @@
 # Projects panel redesign — single column
 
-- Revision: 2
-- Status: approved for implementation (revision 2).
+- Revision: 3
+- Status: approved and implemented; revision 3 removes the filter input and the "Chats" label at the user's request after implementation.
+- Revision 2 was the revision approved for implementation.
 - Approval evidence: user said “looks good. implement it” after reviewing revision 2 (single column, filter, inline worktree-labelled sessions, no session borders, no date/message meta, left-aligned sessions).
 - Goal: make the projects panel readable at a glance by removing the second sessions pane and the duplicated project grouping, following the model of the GitHub Copilot app and T3 Code: a folder/repository is stable, and a worktree/branch is a property of a session.
 
@@ -19,8 +20,8 @@ Single column. Sessions are shown inline under their project; worktrees are no l
 
 ### Layout
 
-- Header “Projects”, one filter input, one scrolling list, “Open folder” at the bottom. Drawer width 400px; full width on narrow screens.
-- One labeled section, `Chats`, for the home folder (Quick Chats, speech-bubble icon). Quick Chats is permanent and has no pin control.
+- Header “Projects”, one scrolling list, “Open folder” at the bottom. Drawer width 400px; full width on narrow screens.
+- Quick Chats is the first row (speech-bubble icon), with no section label, filter, or pin control.
 - `Projects` are one row per folder/repository. There are **no** “Pinned projects” / “Recent projects” headings: pinned projects show a filled pin glyph, sort to the top, and a hairline divider separates them from the rest.
 - A project row is: chevron, folder icon, name, session count (only when > 0), then hover actions: pin/unpin and New session. The full path is the row tooltip, not a visible line.
 - Clicking a project expands its sessions **inline**, left-aligned with the project rows and without indent, guide line, or per-row border. One session therefore reads as a single row in one list.
@@ -35,7 +36,6 @@ Single column. Sessions are shown inline under their project; worktrees are no l
 - Session click opens it (sets the current tab) and closes the panel.
 - Hover `+` starts a new session (or chat, for Quick Chats) directly in that project.
 - Pin toggles `pinned`; the row moves between the pinned block and the rest.
-- Filter matches project names and session titles; matching projects expand automatically.
 - Keyboard: native buttons, visible focus, dialog focus containment, Escape closes and returns focus to Projects. Reduced-motion is honored. No added animation beyond the 120ms chevron rotation.
 
 ## Review states

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../../../src/shared/protocol.js";
-import { buildPanelGroups, matchesGroup } from "../../../../../src/web/sessions/projects/project-panel-model.js";
+import { buildPanelGroups } from "../../../../../src/web/sessions/projects/project-panel-model.js";
 
 let next = 0;
 function session(overrides: Partial<ChatSessionSummary> = {}): ChatSessionSummary {
@@ -65,17 +65,5 @@ describe("buildPanelGroups", () => {
     const groups = buildPanelGroups(catalogue(empty, primary, feature, pinned), "/work/pinned");
 
     expect(groups.map(group => group.name)).toEqual(["pinned", "repo"]);
-  });
-
-  it("filters by project name, session title, and branch", () => {
-    const group = project({ path: "/repo", name: "pi-chat", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ title: "Rename panel" })], sessionCount: 1 });
-
-    const [built] = buildPanelGroups(catalogue(group), "/repo");
-
-    expect(matchesGroup(built!, "")).toBe(true);
-    expect(matchesGroup(built!, "PI-CHAT")).toBe(true);
-    expect(matchesGroup(built!, "rename")).toBe(true);
-    expect(matchesGroup(built!, "feat/x")).toBe(true);
-    expect(matchesGroup(built!, "nope")).toBe(false);
   });
 });
