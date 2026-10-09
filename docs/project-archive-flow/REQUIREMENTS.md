@@ -19,9 +19,9 @@ Pi does not provide session archiving. The user approved Pi Chat-owned archive m
 
 ## Scope and confirmation
 
-**Confirmed:** archive state belongs to Pi Chat metadata, not a new Pi JSONL entry or a moved session file.
+**Confirmed:** archive state belongs to Pi Chat metadata, not a new Pi JSONL entry or a moved session file. Include explicit project pins. Archived sessions are not inherently read-only; users may continue them when their working directory is available.
 
-**Proposed for review:** explicit project pins, Active/Archived session views, read-only archive browsing, and archive-aware cleanup integration. These follow the earlier UX recommendation but have not been individually confirmed.
+**Proposed for review:** a persistent desktop, thread-first sidebar with project filtering and a collapsed finished-session shelf, plus archive-aware cleanup integration. The sidebar redesign is not yet individually confirmed.
 
 Do not interpret this plan as permission to implement every proposed feature or modify the personal extensions repository automatically.
 
@@ -45,10 +45,24 @@ Existing worktree requirements in `docs/worktree-projects/REQUIREMENTS.md` remai
 - **Checkout:** the original directory in which a session ran.
 - **Running session:** a live runtime executing model/tool/bash work; distinct from Active.
 
+## T3 Code comparison and proposed layout
+
+T3's [thread documentation](https://github.com/pingdotgg/t3code/blob/main/docs/user/thread-sidebar.md) and [sidebar logic](https://github.com/pingdotgg/t3code/blob/main/apps/web/src/components/Sidebar.logic.ts) distinguish **Settled** from **Archived**. Settled threads occupy a lower sidebar shelf and can be un-settled into active work. Archived threads are filtered out of the normal sidebar. Its thread pins are also different from the project pins requested here.
+
+For Pi Chat, propose only two session states initially: Active and Archived. Our collapsed finished-session shelf would hold Archived sessions, borrowing T3's settled-shelf presentation without adding a third state.
+
+- On desktop, show a left sidebar by default instead of requiring the Projects and sessions drawer for everyday navigation. Keep a hide/show control; use an overlay on narrow screens.
+- Put pinned-project shortcuts and an All projects selector/filter above a single session list. Project selection filters threads; it does not open a second session-navigation pane.
+- List active sessions directly, with compact project/branch context to disambiguate them. A project filter applies consistently to active and archived lists.
+- Place a collapsed `Archived (N)` shelf below active sessions. Expanding it exposes finished sessions in the same navigation column.
+- Keep New session's target explicit (selected project/checkout); an All projects view must not imply an ambiguous creation directory.
+- Retain checkout-specific session ownership and worktree discovery. Repository grouping remains useful inside project/checkout selection, not as a mandatory second navigation pane.
+- Do not add thread pinning, Settled as a third state, automatic settlement, or drag-and-drop ordering in this scope.
+
 ## 1. Durable metadata
 
 1. Store Pi Chat-owned metadata on the server, scoped to the configured Pi agent directory. Do not use browser localStorage as the authoritative store.
-2. Keep a versioned schema containing session archive state and, if approved, project pins. Choose the exact file name during the first implementation slice and document it before cleanup integration.
+2. Keep a versioned schema containing session archive state and project pins. Choose the exact file name during the first implementation slice and document it before cleanup integration.
 3. Session archive records contain a validated durable session identity, `archivedAt`, and enough original checkout/repository context to associate history after a worktree disappears. Prefer validated session-header identity over trusting a client-provided ID; disambiguate duplicate/copied IDs rather than sharing their archive flag accidentally.
 4. Read metadata once per catalogue operation, not once per session. Serialize mutations and use atomic file replacement to avoid partial writes and lost concurrent updates within the server.
 5. A missing metadata file means no archives or pins. A malformed or unsupported file must surface an actionable error; never silently overwrite it with empty metadata.
@@ -57,10 +71,10 @@ Existing worktree requirements in `docs/worktree-projects/REQUIREMENTS.md` remai
 8. Failed persistence must not report success or publish an archived catalogue state. Lifecycle side effects already completed, such as closing a tab, must be reported honestly rather than claiming full rollback.
 9. Missing session files must not produce fake transcript results. Stale metadata reconciliation must not delete unrelated pins or overwrite recoverable archive context.
 
-## 2. Persistent project navigation — proposed
+## 2. Persistent project navigation
 
 1. Add Pin/Unpin to project navigation. Pinning persists across reload/restart and retains a selectable project with zero sessions.
-2. Show Pinned projects first, then unpinned projects with active sessions ordered by existing activity rules. An entry appears only once.
+2. Show Pinned projects first in project selection, then unpinned projects with active sessions ordered by existing activity rules. An entry appears only once. In the proposed sidebar, project shortcuts/filtering and the thread list have separate purposes; do not mix project rows into the session lifecycle sections.
 3. Unpinning does not delete sessions or files. An empty unpinned entry may disappear from the default list.
 4. For Git checkout roots, pin the stable primary repository entry rather than a disposable linked worktree. Store resolved repository context while it is available. Preserve the current rule that subdirectory sessions are not silently reassigned to checkout-root sessions.
 5. For non-Git directories, pin the canonical directory. Never group projects by basename or remote URL.
@@ -80,14 +94,15 @@ Existing worktree requirements in `docs/worktree-projects/REQUIREMENTS.md` remai
 7. Show Undo after archive; Undo restores visibility without needing to reopen a runtime. Do not require an archive confirmation dialog.
 8. Delete works for active and archived sessions. Remove archive metadata only after successful file deletion; a failed deletion preserves archive state.
 9. Archive/restore never merge, remove, recreate, or switch a worktree or branch.
-10. Opening an archived session through normal runtime-resume paths must not silently bypass archive state. Require explicit restore before continuation.
+10. Opening an archived session may use the normal session runtime when its original directory exists; it must not automatically send a prompt. Archive state is not a read-only permission.
+11. Proposed continuation rule: reading/opening alone leaves it archived; successfully submitting new user work restores it to Active. Enforce this at the application boundary for every work-submission path, not only the composer. Keep explicit Restore available. Confirm this rule before implementation.
 
-## 4. Browse retained conversations — proposed
+## 4. Browse and continue retained conversations
 
-1. The project session pane defaults to Active and provides an Archived view. Active counts exclude archived sessions; archive counts are labeled separately. No double-counting at repository level.
+1. Default navigation shows active sessions. In the proposed sidebar, archives occupy a collapsed lower shelf rather than a separate Active/Archived pane. Active counts exclude archived sessions; archive counts are labeled separately. No double-counting at repository level.
 2. Archived sessions are ordered by archive time, with stable tie-breaking. Active ordering remains based on conversation activity.
-3. Selecting an archived session opens a read-only transcript without creating an agent runtime, offering a composer, or running extension session-start hooks.
-4. Read-only transcript access must work when the original checkout no longer exists. Keep original path/branch as historical metadata, subject to the existing path-display preference; do not add unconditional full-path tooltips.
+3. Selecting an archived session with an available checkout opens the usual conversation UI and allows continuation. Normal runtime/extension initialization may occur; do not build a separate mandatory read-only viewer for these sessions.
+4. History access must still work when the original checkout no longer exists. In that case, render a transcript-only fallback without initializing a runtime against a missing directory; explain why continuation is unavailable. Keep original path/branch as historical metadata, subject to the existing path-display preference; do not add unconditional full-path tooltips.
 5. Restore remains possible with a missing checkout, but Resume stays unavailable until a valid working directory exists. Do not rewrite the original session's working directory silently.
 6. Search may include archives through an explicit Include archived option and must display an archive badge. Default Home/Quick Open resume results exclude archives.
 7. A global archive/project search entry provides access when the project is unpinned and has no active sessions.
@@ -120,10 +135,10 @@ Each slice starts with focused tests, remains independently reviewable, and does
 
 1. **Confirm scope and metadata contract.** Resolve the questions below, choose/document metadata location and session identity rules, and agree on cleanup ownership. No runtime behavior changes.
 2. **Add a durable metadata store.** Cover missing/corrupt files, schema versions, serialized writes, atomic persistence, canonical identity checks, and stale references with temporary-directory tests.
-3. **Add persistent project pins.** If approved, merge saved project seeds into the catalogue, preserve worktree discovery/grouping, and add Pin/Unpin and empty-project UI. Verify persistence independently of archives.
+3. **Add persistent project pins.** Merge saved project seeds into the catalogue, preserve worktree discovery/grouping, and add Pin/Unpin and empty-project UI. Verify persistence independently of archives.
 4. **Add archive/restore application operations.** Extend typed protocol and lifecycle handling, enforce per-session running guards, preserve session files, and refresh all relevant catalogue consumers. Test failures and idempotency.
-5. **Add Active/Archived navigation.** Update rows, counts, filters, Undo, empty states, Home/Quick Open behavior, and archive-only project access. No silent runtime resume.
-6. **Add read-only archive browsing.** Implement validated server transcript reads and a no-runtime browser view, including removed-worktree scenarios and missing-file handling.
+5. **Add archive navigation and the approved layout.** Update rows, counts, filters, Undo, empty states, Home/Quick Open behavior, and archive-only project access. If the sidebar proposal is approved, deliver the persistent desktop sidebar and collapsed archive shelf as an independently reviewable UI change.
+6. **Enable archive browsing and continuation.** Reuse normal conversation UI for available checkouts, implement the agreed restore-on-work behavior, and provide validated no-runtime transcript fallback for removed worktrees and missing-file handling.
 7. **Integrate retention safeguards.** Coordinate the separate cleanup-extension change, test dry-run/deletion exclusions and fail-closed metadata errors. Until done, label retention support incomplete.
 8. **Verify end to end and document.** Run full Vitest suite, TypeScript, production build, and whitespace checks. Browser-test pinning, archive/restore/Undo, reload, removed worktrees, deletion, and last-tab handling; record evidence. Commit only task-owned changes.
 
@@ -140,13 +155,15 @@ Each slice starts with focused tests, remains independently reviewable, and does
 - Metadata write failure or corruption: an actionable error appears; no misleading successful archive or destructive metadata reset occurs.
 - Delete an archived transcript: after successful deletion it disappears from archive results; failed deletion preserves its metadata.
 - Reload/reconnect or a second connected browser receives authoritative archive/pin state; stale selections recover without changing valid browsed checkout state.
+- Open an archived session with an available checkout: the normal conversation UI is usable; reading alone leaves archive state unchanged, while accepted new work restores Active if that proposed rule is approved.
+- If approved, the desktop sidebar lists sessions directly, project filtering affects both sections, and the archive shelf starts collapsed; narrow screens retain accessible overlay navigation.
 - Archive-aware cleanup dry-run and deletion preserve archived files; unreadable protection metadata does not trigger their deletion.
 - Existing session opening, active session ordering, worktree grouping, path preference, and unrelated user files remain unchanged.
 
 ## Open questions before implementation
 
-1. Approve project pins plus All projects access for the first delivery, or implement archiving alone first?
-2. Approve read-only archive browsing in the first archive delivery? Recommended, because learning/history access must survive worktree deletion.
+1. Approve replacing the two-pane project/session drawer workflow with the persistent desktop, thread-first sidebar and collapsed Archived shelf described above?
+2. Should sending new work automatically restore an archived session to Active while merely opening/reading leaves it archived? Recommended. Final UI wording remains open: Archived versus Finished; do not introduce both as separate states.
 3. Should Include archived search match titles/first messages initially (existing search scope), with full transcript search deferred? Recommended to keep the first slice small.
 4. May the personal session-cleanup extension be changed in a separately verified commit/repository, or should cleanup be disabled manually until integration is ready?
 5. Confirm the proposed single-writer metadata limitation, or require simultaneous Pi Chat servers sharing the same agent directory?
