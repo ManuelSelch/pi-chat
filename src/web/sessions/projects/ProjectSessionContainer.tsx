@@ -25,7 +25,6 @@ export function ProjectSessionContainer() {
       showDisplayPath={displayPath.show}
       openSession={chat.openSession}
       newSession={chat.newSession}
-      deleteSession={chat.deleteSession}
       archiveSession={chat.archiveSession}
       pinProject={chat.pinProject}
       busySessionIds={busySessionIds}

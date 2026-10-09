@@ -1,0 +1,96 @@
+:root{color-scheme:light;--bg:#fff;--surface:#f8f9fa;--text:#24262b;--muted:#868e96;--border:#e9ecef;--hover:#f1f3f5;--blue:#228be6;--selected:#e7f5ff;--shade:rgba(0,0,0,.28)}
+:root[data-theme=dark]{color-scheme:dark;--bg:#242424;--surface:#2e2e2e;--text:#c9c9c9;--muted:#909296;--border:#424242;--hover:#333;--blue:#74c0fc;--selected:#193b50;--shade:rgba(0,0,0,.55)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--border);background:var(--bg);border-radius:5px;padding:6px 11px}
+button:hover{background:var(--hover)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+h1{font-size:24px;font-weight:600;margin:6px 0 32px}
+h2{font-size:16px;font-weight:500}
+.eyebrow{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.025em}
+.app-header{height:58px;display:flex;align-items:center;gap:20px;border-bottom:1px solid var(--border);padding:0 24px}
+.mock-label{color:var(--muted);font-size:12px;margin-left:auto}
+#tabs{display:flex;gap:6px;padding:12px 24px;border-bottom:1px solid var(--border);overflow-x:auto;min-height:0}
+#tabs:empty{display:none}
+.tab{white-space:nowrap;font-size:12px;padding:5px 9px;display:flex;align-items:center;gap:8px}
+.tab.current{border-color:var(--blue);background:var(--selected)}
+.conversation{max-width:800px;margin:60px auto;padding:0 24px}
+.message{margin-bottom:28px}
+.message p{margin-top:7px;max-width:620px}
+.fine{font-size:11px;color:var(--muted);line-height:1.6;margin-top:8px}
+.backdrop{position:fixed;inset:0;background:var(--shade);z-index:2}
+.drawer{position:fixed;inset:0 auto 0 0;width:400px;max-width:100vw;background:var(--bg);z-index:3;box-shadow:4px 0 24px #0002;display:flex;flex-direction:column}
+.drawer-header{height:65px;padding:18px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.icon{border:0;background:transparent;padding:4px 7px;color:var(--muted);font-size:18px;line-height:1.2}
+.icon:hover{color:var(--text)}
+.panel-body{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 12px 16px}
+.filter{display:block;margin-bottom:8px}
+.filter input{display:block;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px}
+.list{flex:1;min-height:0;overflow:auto;padding-bottom:8px}
+
+/* Section label is used once, for the home "Chats" area. Projects get no
+   duplicate Pinned/Recent headings; pins float to the top instead. */
+.section-label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.025em;padding:2px 8px 6px}
+.divider{border:0;border-top:1px solid var(--border);margin:8px 4px}
+
+/* Rows */
+.row{width:100%;display:flex;align-items:center;text-align:left;gap:8px;border:0;background:transparent;border-radius:6px;padding:7px 8px;min-height:36px}
+.row:hover{background:var(--hover)}
+.row.selected{background:var(--selected);color:var(--blue)}
+.row.current .row-title{font-weight:650}
+.row-icon{width:16px;height:16px;flex-shrink:0;color:var(--muted)}
+.row.selected .row-icon{color:var(--blue)}
+.row-chevron{width:12px;flex-shrink:0;color:var(--muted);font-size:14px;transition:transform .12s ease}
+.row[aria-expanded="true"] .row-chevron{transform:rotate(90deg)}
+.row-main{flex:1;min-width:0}
+.row-title{display:block;font-size:13px;font-weight:500;overflow-wrap:anywhere;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.selected .row-sub{color:var(--blue);opacity:.8}
+.count{display:inline-flex;align-items:center;justify-content:center;background:var(--surface);border-radius:4px;font-size:10px;font-weight:500;color:var(--muted);padding:1px 6px;min-width:19px}
+.row.selected .count{background:#fff;color:var(--blue)}
+.pin{width:14px;height:14px;color:var(--muted);flex-shrink:0}
+
+/* Hover-only row actions keep the list quiet. */
+.row-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;opacity:0}
+.row:hover .row-actions,.row:focus-within .row-actions{opacity:1}
+.row-actions button{border:0;background:transparent;padding:3px;color:var(--muted);font-size:15px;line-height:1;border-radius:4px}
+.row-actions button:hover{color:var(--blue);background:var(--selected)}
+
+/* Sessions live inline under their project. Kept tight so long session
+   titles get the full row width. */
+.sessions{padding:0 0 3px}
+.session-row{position:relative;display:flex;align-items:center;gap:2px;width:100%;text-align:left;border:0;background:transparent;border-radius:6px;padding:4px 8px 4px 30px;min-height:30px}
+/* Actions overlay the row instead of reserving width, so a long title can
+   reach the full width until the row is hovered. */
+.session-row .row-actions{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:var(--hover);border-radius:5px;padding:0 2px}
+.session-row.current .row-actions{background:var(--selected)}
+.session-row:hover{background:var(--hover)}
+.session-row.current{background:var(--selected)}
+.session-main{flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left}
+.session-title{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.session-title svg{vertical-align:-2px;margin-right:5px;color:var(--muted)}
+.session-meta{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.branch{display:inline-flex;align-items:center;gap:3px;color:var(--muted)}
+.worktree-mark{color:var(--muted);font-size:12px}
+.session-row .row-actions{opacity:0}
+.session-row:hover .row-actions,.session-row:focus-within .row-actions{opacity:1}
+.archived-toggle{border:0;background:transparent;color:var(--muted);font-size:11px;padding:5px 8px;border-radius:5px;display:flex;align-items:center;gap:5px}
+.archived-toggle:hover{background:var(--hover);color:var(--text)}
+.session-row.archived .session-title{font-weight:400;color:var(--muted)}
+
+.wide{display:block;width:100%;text-align:center;font-size:12px;padding:7px 10px;margin-top:8px}
+.outline{background:transparent}
+.empty{font-size:12px;color:var(--muted);padding:6px 8px}
+.empty strong{display:block;color:var(--text);font-weight:500;margin-bottom:2px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:5;border:1px solid var(--border);border-radius:7px;background:var(--bg);box-shadow:0 4px 18px #0003;padding:9px 12px;font-size:12px}
+[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(max-width:520px){
+  .drawer{width:100vw}
+  .app-header{padding:0 12px;gap:12px}
+  .mock-label{display:none}
+  .conversation{margin-top:32px}
+}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi Chat · Projects panel redesign mockup</title><link rel="stylesheet" href="./styles.css"></head>
+<body>
+  <header class="app-header"><strong>Pi Chat</strong><button id="open-panel">Projects</button><span class="mock-label">Design preview · fake data</span><button id="theme" aria-label="Toggle color theme">◐</button></header>
+  <nav id="tabs" aria-label="Open sessions"></nav>
+  <main class="conversation"><span class="eyebrow" id="conversation-project">pi-chat</span><h1 id="conversation-title">Session</h1><div class="message"><span class="eyebrow">You</span><p>Continue working in this checkout.</p></div><div class="message"><span class="eyebrow">Assistant</span><p>Ready. This mockup only simulates opening sessions.</p></div><p class="fine">Mockup only. No real sessions are opened or saved.</p></main>
+
+  <div class="backdrop" id="backdrop"></div>
+  <section class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+    <header class="drawer-header"><h2 id="panel-title">Projects</h2><button class="icon" id="close-panel" aria-label="Close project panel">×</button></header>
+    <div class="panel-body">
+      <div class="list" id="list"></div>
+      <button id="folder" class="wide outline">＋ Open folder</button>
+    </div>
+  </section>
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
