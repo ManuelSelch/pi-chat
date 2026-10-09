@@ -11,7 +11,6 @@ interface Props {
   busySessionIds: readonly string[];
   pending: boolean;
   openSession: (path: string) => void;
-  onDelete: (session: ChatSessionSummary) => void;
   onArchive?: (session: ChatSessionSummary, archived: boolean) => void;
 }
 
@@ -20,8 +19,8 @@ export function ProjectSessionList({ project, currentSessionId, busySessionIds, 
   const archived = project.sessions.filter(session => session.archivedAt !== undefined).sort((a, b) => b.archivedAt! - a.archivedAt! || a.path.localeCompare(b.path));
   const row = (session: ChatSessionSummary) => (
     <SessionRow key={session.path} session={session} active={session.id === currentSessionId} disabled={!project.exists}
-      deleteDisabled={pending || busySessionIds.includes(session.id)} archiveDisabled={pending || busySessionIds.includes(session.id)}
-      onOpen={() => openSession(session.path)} onDelete={() => onDelete(session)}
+      archiveDisabled={pending || busySessionIds.includes(session.id)}
+      onOpen={() => openSession(session.path)}
       onArchive={onArchive ? () => onArchive(session, session.archivedAt === undefined) : undefined} />
   );
   return <>
