@@ -332,6 +332,8 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional(), requestId: z.string().min(1).max(128).optional() }),
   directoryBrowseSchema.extend({ ...baseClientMessage, type: z.literal("browseDirectories"), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("deleteSession"), path: z.string().min(1) }),
+  z.object({ ...baseClientMessage, type: z.literal("setSessionArchived"), path: z.string().min(1), archived: z.boolean(), requestId: z.string().min(1).max(128) }),
+  z.object({ ...baseClientMessage, type: z.literal("pinProject"), path: z.string().min(1), pinned: z.boolean(), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
@@ -351,6 +353,7 @@ const sequenced = {
 };
 
 export const serverMessageSchema = z.discriminatedUnion("type", [
+  z.object({ ...baseClientMessage, type: z.literal("projectMutationResult"), requestId: z.string(), error: z.string().optional() }),
   z.object({ ...baseClientMessage, type: z.literal("fileOpenResult"), sessionId: fileRequestIdSchema, requestId: fileRequestIdSchema, result: fileOpenResultSchema }),
   z.object({ ...sessionScoped, type: z.literal("commandArgumentCompletions"), requestId: z.string(), items: z.array(commandCompletionItemSchema), error: z.string().optional() }),
   z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),

@@ -50,6 +50,16 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
   } else if (command.type === "focusTab") {
     chat.focusTab(command.sessionId);
     publisher.sendTabs();
+  } else if (command.type === "setSessionArchived" || command.type === "pinProject") {
+    Promise.resolve().then(() => command.type === "setSessionArchived"
+      ? chat.archiveSession(command.path, command.archived)
+      : chat.pinProject(command.path, command.pinned))
+      .then(async () => {
+        publisher.sendTabs();
+        await publisher.sendCatalogue();
+        publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId });
+      })
+      .catch((error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId, error: publisher.errorText(error) }));
   } else if (command.type === "deleteSession") {
     chat.deleteSession(command.path)
       .then(() => {

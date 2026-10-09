@@ -1,4 +1,9 @@
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
+import { realpathSync } from "node:fs";
+
+function sessionPathKey(path: string): string {
+  try { return realpathSync(path); } catch { return resolve(path); }
+}
 import type { Tab, TabStatus } from "../../shared/protocol.js";
 import { firstUserMessage, sessionTitle } from "../../shared/session-title.js";
 import type { RuntimeAdapter, RuntimeEvent } from "../runtime/contracts.js";
@@ -92,7 +97,11 @@ export class SessionRegistry {
   }
 
   findByPath(sessionPath: string): OpenSession | undefined {
-    return this.entries.find((entry) => entry.adapter.snapshot().sessionPath === sessionPath);
+    const key = sessionPathKey(sessionPath);
+    return this.entries.find((entry) => {
+      const path = entry.adapter.snapshot().sessionPath;
+      return path !== undefined && sessionPathKey(path) === key;
+    });
   }
 
   list(): OpenSession[] {
