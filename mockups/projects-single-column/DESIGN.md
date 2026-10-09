@@ -1,7 +1,8 @@
 # Projects panel redesign — single column
 
-- Revision: 3
-- Status: approved and implemented; revision 3 removes the filter input and the "Chats" label at the user's request after implementation.
+- Revision: 4
+- Status: approved and implemented; revision 4 makes session titles non-bold and indents session rows on the left at the user's request.
+- Revision 3 removed the filter input and the "Chats" label.
 - Revision 2 was the revision approved for implementation.
 - Approval evidence: user said “looks good. implement it” after reviewing revision 2 (single column, filter, inline worktree-labelled sessions, no session borders, no date/message meta, left-aligned sessions).
 - Goal: make the projects panel readable at a glance by removing the second sessions pane and the duplicated project grouping, following the model of the GitHub Copilot app and T3 Code: a folder/repository is stable, and a worktree/branch is a property of a session.
@@ -24,8 +25,8 @@ Single column. Sessions are shown inline under their project; worktrees are no l
 - Quick Chats is the first row (speech-bubble icon), with no section label, filter, or pin control.
 - `Projects` are one row per folder/repository. There are **no** “Pinned projects” / “Recent projects” headings: pinned projects show a filled pin glyph, sort to the top, and a hairline divider separates them from the rest.
 - A project row is: chevron, folder icon, name, session count (only when > 0), then hover actions: pin/unpin and New session. The full path is the row tooltip, not a visible line.
-- Clicking a project expands its sessions **inline**, left-aligned with the project rows and without indent, guide line, or per-row border. One session therefore reads as a single row in one list.
-- A session row is: title and hover archive/restore. There is no separator line; date and message count are not shown. The only meta ever rendered is the branch chip when several sessions share one worktree.
+- Clicking a project expands its sessions **inline**, indented on the left, with no guide line or per-row border. One session therefore reads as a single row in one list.
+- A session row is: title (regular weight, never bold) and hover archive/restore. There is no separator line; date and message count are not shown. The only meta ever rendered is the branch chip when several sessions share one worktree.
 - **Worktree sessions**: when exactly one session runs in a worktree, its row is labeled with the **branch (worktree) name** and the session title is hidden — the worktree is what the user navigates by. Only when several sessions share one worktree do the rows show session titles, with the branch as a chip in the meta line.
 - Archived sessions stay in the project but behind a small `Archived (n)` toggle at the bottom of the expanded project.
 - No separate “Manage sessions” view: archive/restore stays on the session row.

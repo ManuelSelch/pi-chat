@@ -61,7 +61,7 @@ h2{font-size:16px;font-weight:500}
 /* Sessions live inline under their project. Kept tight so long session
    titles get the full row width. */
 .sessions{padding:0 0 3px}
-.session-row{position:relative;display:flex;align-items:center;gap:2px;width:100%;text-align:left;border:0;background:transparent;border-radius:6px;padding:4px 8px;min-height:30px}
+.session-row{position:relative;display:flex;align-items:center;gap:2px;width:100%;text-align:left;border:0;background:transparent;border-radius:6px;padding:4px 8px 4px 30px;min-height:30px}
 /* Actions overlay the row instead of reserving width, so a long title can
    reach the full width until the row is hovered. */
 .session-row .row-actions{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:var(--hover);border-radius:5px;padding:0 2px}
@@ -70,7 +70,6 @@ h2{font-size:16px;font-weight:500}
 .session-row.current{background:var(--selected)}
 .session-main{flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left}
 .session-title{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.session-row.current .session-title{font-weight:650}
 .session-title svg{vertical-align:-2px;margin-right:5px;color:var(--muted)}
 .session-meta{display:block;font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .branch{display:inline-flex;align-items:center;gap:3px;color:var(--muted)}
