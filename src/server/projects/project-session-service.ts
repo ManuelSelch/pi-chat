@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { realpath } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { ProjectMetadataStore } from "./project-metadata-store.js";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
@@ -15,6 +16,10 @@ async function canonicalPath(path: string): Promise<string> {
   return realpath(path).catch(() => resolve(path));
 }
 
+/** The user's home folder is always presented as Quick Chats, never as a
+ *  generic project, and is not user-managed. */
+export const QUICK_CHATS_NAME = "Quick Chats";
+
 export class ProjectSessionService {
   private readonly store: PiSessionStore;
 
@@ -23,6 +28,7 @@ export class ProjectSessionService {
     sessionsRoot?: string,
     private readonly discovery: Pick<WorktreeDiscovery, "forDirectory"> = new WorktreeDiscovery(),
     private readonly metadata = new ProjectMetadataStore(sessionsRoot ? resolve(dirname(sessionsRoot), "pi-chat", "projects.json") : undefined),
+    private readonly homePath: string | undefined = homedir(),
   ) {
     this.store = new PiSessionStore(sessionsRoot);
   }
@@ -113,6 +119,7 @@ export class ProjectSessionService {
       byProject.set(path, project);
     }
     await this.includeRegisteredWorktrees(byProject);
+    await this.includeQuickChats(byProject);
     const archived = new Map(metadata.archives.map(session => [`${session.path}\0${session.id}`, session]));
     for (const project of byProject.values()) {
       for (const session of project.sessions) {
@@ -133,9 +140,29 @@ export class ProjectSessionService {
         ...project,
         sessions: project.sessions.sort((a, b) => b.modified - a.modified),
       }))
-      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.modified - a.modified);
+      .sort((a, b) => Number(Boolean(b.quickChats)) - Number(Boolean(a.quickChats)) || Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.modified - a.modified);
 
     return { projects };
+  }
+
+  /** Quick Chats is the home folder. It must stay visible with zero sessions
+   *  and is never folded into the pin or worktree groups. */
+  private async includeQuickChats(byProject: Map<string, ChatProjectSummary>): Promise<void> {
+    if (!this.homePath) return;
+    const path = await canonicalPath(this.homePath);
+    const project = byProject.get(path) ?? {
+      path,
+      displayPath: formatProjectDisplayPath(path, path),
+      name: QUICK_CHATS_NAME,
+      exists: existsSync(path),
+      modified: 0,
+      sessionCount: 0,
+      sessions: [],
+    };
+    project.quickChats = true;
+    project.name = QUICK_CHATS_NAME;
+    project.displayPath = formatProjectDisplayPath(path, path);
+    byProject.set(path, project);
   }
 
   private async includeRegisteredWorktrees(byProject: Map<string, ChatProjectSummary>): Promise<void> {

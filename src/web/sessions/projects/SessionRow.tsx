@@ -8,10 +8,8 @@ interface SessionRowProps {
   session: ChatSessionSummary;
   active: boolean;
   disabled: boolean;
-  deleteDisabled: boolean;
   archiveDisabled?: boolean;
   onOpen: () => void;
-  onDelete: () => void;
   onArchive?: () => void;
 }
 

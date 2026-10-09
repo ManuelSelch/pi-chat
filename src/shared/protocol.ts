@@ -128,6 +128,7 @@ export const chatProjectSummarySchema = z.object({
   modified: z.number(),
   sessionCount: z.number().int().nonnegative(),
   pinned: z.boolean().optional(),
+  quickChats: z.boolean().optional(),
   sessions: z.array(chatSessionSummarySchema),
   repositoryPath: z.string().min(1).optional(),
   repositoryName: z.string().min(1).optional(),

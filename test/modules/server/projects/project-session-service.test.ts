@@ -1,11 +1,15 @@
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
+import { ProjectMetadataStore } from "../../../../src/server/projects/project-metadata-store.js";
 import { ProjectSessionService, formatProjectDisplayPath, formatProjectName, readLatestSessionNameInfo } from "../../../../src/server/projects/project-session-service.js";
 
 const noWorktrees = { forDirectory: async () => undefined };
+// Empty home disables the always-present Quick Chats project for focused tests.
+const noQuickChats = "";
+const isolatedMetadata = () => new ProjectMetadataStore(join(tmpdir(), `pi-chat-meta-${crypto.randomUUID()}.json`));
 
 function info(overrides: Partial<any>) {
   return {
@@ -87,7 +91,7 @@ describe("ProjectSessionService", () => {
       ],
     };
 
-    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue();
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), noQuickChats).catalogue();
 
     expect(catalogue.projects).toHaveLength(1);
     expect(catalogue.projects[0]?.displayPath).toBe(formatProjectDisplayPath(process.cwd()));
@@ -111,7 +115,7 @@ describe("ProjectSessionService", () => {
       }),
     };
 
-    const catalogue = await new ProjectSessionService(lister, undefined, discovery).catalogue();
+    const catalogue = await new ProjectSessionService(lister, undefined, discovery, isolatedMetadata(), noQuickChats).catalogue();
 
     expect(catalogue.projects.map((project) => project.path)).toEqual(["/repo/feature", "/repo/main", "/repo/empty"]);
     expect(catalogue.projects.find((project) => project.path === "/repo/feature")).toMatchObject({ repositoryPath: "/repo/main", worktree: { branch: "feature", primary: false }, sessionCount: 1 });
@@ -121,13 +125,13 @@ describe("ProjectSessionService", () => {
   it("ignores legacy sessions without a cwd", async () => {
     const lister = { listAll: async () => [info({ id: "legacy", cwd: "" })] };
 
-    await expect(new ProjectSessionService(lister, undefined, noWorktrees).catalogue()).resolves.toEqual({ projects: [] });
+    await expect(new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), noQuickChats).catalogue()).resolves.toEqual({ projects: [] });
   });
 
   it("includes the active empty session even before Pi listAll can see it", async () => {
     const lister = { listAll: async () => [] };
 
-    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue({
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), noQuickChats).catalogue({
       id: "fresh",
       path: "/sessions/project/fresh.jsonl",
       cwd: process.cwd(),
@@ -147,7 +151,7 @@ describe("ProjectSessionService", () => {
   it("updates the active session title from active runtime state", async () => {
     const lister = { listAll: async () => [info({ id: "s1", path: "/sessions/project/s1.jsonl", name: "Old name" })] };
 
-    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees).catalogue({
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), noQuickChats).catalogue({
       id: "s1",
       path: "/sessions/project/s1.jsonl",
       name: "New name",
@@ -157,6 +161,29 @@ describe("ProjectSessionService", () => {
     });
 
     expect(catalogue.projects[0]?.sessions[0]).toMatchObject({ title: "New name", name: "New name", nameSource: "manual", messageCount: 2 });
+  });
+});
+
+describe("quick chats", () => {
+  it("always includes the home folder first as Quick Chats", async () => {
+    const home = await mkdtemp(join(tmpdir(), "pi-chat-home-"));
+    const lister = { listAll: async () => [info({ id: "work", cwd: "/work/project" })] };
+
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), home).catalogue();
+
+    expect(catalogue.projects[0]).toMatchObject({ path: await realpath(home), name: "Quick Chats", quickChats: true, sessionCount: 0, displayPath: "~" });
+    expect(catalogue.projects.filter(project => project.quickChats)).toHaveLength(1);
+  });
+
+  it("labels home sessions as Quick Chats instead of a project", async () => {
+    const home = await mkdtemp(join(tmpdir(), "pi-chat-home-"));
+    const lister = { listAll: async () => [info({ id: "chat", cwd: home, firstMessage: "plan a trip" })] };
+
+    const catalogue = await new ProjectSessionService(lister, undefined, noWorktrees, isolatedMetadata(), home).catalogue();
+
+    expect(catalogue.projects).toHaveLength(1);
+    expect(catalogue.projects[0]).toMatchObject({ path: await realpath(home), name: "Quick Chats", quickChats: true, sessionCount: 1 });
+    expect(catalogue.projects[0]!.sessions[0]!.title).toBe("plan a trip");
   });
 });
 

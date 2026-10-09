@@ -14,7 +14,7 @@ interface Props {
   onArchive?: (session: ChatSessionSummary, archived: boolean) => void;
 }
 
-export function ProjectSessionList({ project, currentSessionId, busySessionIds, pending, openSession, onDelete, onArchive }: Props) {
+export function ProjectSessionList({ project, currentSessionId, busySessionIds, pending, openSession, onArchive }: Props) {
   const active = project.sessions.filter(session => session.archivedAt === undefined);
   const archived = project.sessions.filter(session => session.archivedAt !== undefined).sort((a, b) => b.archivedAt! - a.archivedAt! || a.path.localeCompare(b.path));
   const row = (session: ChatSessionSummary) => (

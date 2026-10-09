@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Drawer, Group, Modal, NavLink, ScrollArea, S
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
 import { DialogActions } from "../../ui/DialogActions.js";
-import { IconChevronDown, IconChevronRight, IconFolder, IconFolderOff, IconGitFork, IconPin, IconPinnedOff, IconPlus } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronRight, IconFolder, IconFolderOff, IconGitFork, IconMessage, IconPin, IconPinnedOff, IconPlus } from "@tabler/icons-react";
 import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
 import { ProjectSessionList } from "./ProjectSessionList.js";
 
@@ -40,6 +40,8 @@ function projectGroups(projects: ChatProjectSummary[], currentPath: string, show
   // remains visible when the repository has linked worktrees, so the
   // repository still has a stable "main" entry.
   const visibleProjects = projects.filter((project) => {
+    // Quick Chats is rendered as its own permanent row, outside pin/worktree grouping.
+    if (project.quickChats) return false;
     if (project.pinned || project.path === currentPath) return true;
     if (!project.worktree) return showAll || project.sessionCount > 0;
     if (project.sessions.length > 0 && (showAll || project.sessionCount > 0)) return true;
@@ -103,8 +105,9 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const groups = useMemo(() => projectGroups(catalogue.projects, currentProjectPath, false), [catalogue.projects, currentProjectPath]);
+  const quickChats = catalogue.projects.find(project => project.quickChats);
   const visibleProjects = groups.flatMap(group => group.projects);
-  const activeProject = catalogue.projects.find(project => project.path === selectedProject) ?? catalogue.projects.find(project => project.path === currentProjectPath) ?? visibleProjects[0];
+  const activeProject = catalogue.projects.find(project => project.path === selectedProject) ?? catalogue.projects.find(project => project.path === currentProjectPath) ?? quickChats ?? visibleProjects[0];
   const pinPath = activeProject?.repositoryPath ?? activeProject?.path;
   const pinned = catalogue.projects.some(project => project.path === pinPath && project.pinned);
   const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
@@ -150,6 +153,14 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
+            {quickChats ? <NavLink
+              active={quickChats.path === activeProject?.path}
+              label={quickChats.name}
+              leftSection={<IconMessage size={16} />}
+              description={showDisplayPath ? quickChats.displayPath : undefined}
+              rightSection={<Group gap={4} wrap="nowrap">{quickChats.path === currentProjectPath ? <StatusBadge tone="primary">current</StatusBadge> : null}<StatusBadge>{quickChats.sessionCount}</StatusBadge></Group>}
+              onClick={() => setSelectedProject(quickChats.path)}
+            /> : null}
             {groups.map((group, index) => {
               const repoProjects = group.primaryProject ? [group.primaryProject, ...group.projects] : group.projects;
               const nested = Boolean(group.primaryProject) || group.projects.length > 1;
@@ -201,11 +212,11 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
         <ScrollArea h="100%" flex={1}>
           {activeProject ? (
             <Stack gap="xs">
-              <Group justify="space-between" wrap="nowrap"><Text fw={650}>{activeProject.name}</Text>{pinProject && pinPath ? <Tooltip label={pinned ? "Unpin project" : "Pin project"}><ActionIcon variant="subtle" color="gray" aria-label={pinned ? "Unpin project" : "Pin project"} disabled={pending || (!activeProject.exists && !pinned)} onClick={() => { void mutate(() => pinProject(pinPath, !pinned)); }}>{pinned ? <IconPinnedOff size={16} /> : <IconPin size={16} />}</ActionIcon></Tooltip> : null}</Group>
+              <Group justify="space-between" wrap="nowrap"><Text fw={650}>{activeProject.name}</Text>{pinProject && pinPath && !activeProject.quickChats ? <Tooltip label={pinned ? "Unpin project" : "Pin project"}><ActionIcon variant="subtle" color="gray" aria-label={pinned ? "Unpin project" : "Pin project"} disabled={pending || (!activeProject.exists && !pinned)} onClick={() => { void mutate(() => pinProject(pinPath, !pinned)); }}>{pinned ? <IconPinnedOff size={16} /> : <IconPin size={16} />}</ActionIcon></Tooltip> : null}</Group>
               {showDisplayPath ? <Text size="xs" c="dimmed">{activeProject.displayPath}</Text> : null}
-              <Button variant="default" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>New session</Button>
+              <Button variant="default" leftSection={<IconPlus size={14} />} disabled={!activeProject.exists} onClick={() => { newSession(activeProject.path); onClose(); }}>{activeProject.quickChats ? "New chat" : "New session"}</Button>
               <ProjectSessionList project={activeProject} currentSessionId={currentSessionId} busySessionIds={running} pending={pending}
-                openSession={path => { openSession(path); onClose(); }} onDelete={setPendingDelete} onArchive={archiveSession ? archive : undefined} />
+                openSession={path => { openSession(path); onClose(); }} onArchive={archiveSession ? archive : undefined} />
             </Stack>
           ) : <Text c="dimmed">No Pi sessions found yet.</Text>}
         </ScrollArea>
