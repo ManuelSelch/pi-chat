@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi Chat · Archive mockup</title><link rel="stylesheet" href="./styles.css"></head>
+<body>
+  <header class="app-header"><strong>Pi Chat</strong><button id="open-panel">Projects</button><span class="mock-label">Design preview · fake data</span><button id="theme" aria-label="Toggle color theme">◐</button></header>
+  <nav id="tabs" aria-label="Open sessions"></nav>
+  <main class="conversation"><span class="eyebrow" id="conversation-project">pi-chat · main</span><h1 id="conversation-title">Project archive flow</h1><div class="message"><span class="eyebrow">You</span><p>Keep my projects easy to find, without keeping every finished session open.</p></div><div class="message"><span class="eyebrow">Assistant</span><p>Pin the projects you return to. Archive finished conversations to keep your working list small, while preserving their history.</p></div><div id="archive-notice" hidden>This session is archived. Sending a message will return it to Active.</div><form id="composer"><label class="sr-only" for="prompt">Message</label><textarea id="prompt" placeholder="Message… or /new" rows="3"></textarea><button type="submit" class="primary">Send</button></form><p class="fine">Mockup only. Messages and changes are not saved.</p></main>
+  <div class="backdrop" id="backdrop"></div>
+  <section class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+    <header class="drawer-header"><h2 id="panel-title">Projects and sessions</h2><button class="icon" id="close-panel" aria-label="Close project panel">×</button></header>
+    <div class="panel-grid"><aside class="projects"><div class="section-label">Pinned projects</div><div id="pinned-projects"></div><div class="section-label recent-label">Recent projects</div><div id="recent-projects"></div><button id="folder" class="wide outline">＋ Open folder</button><p class="fine project-hint">Pinned projects stay here,<br>even with no active sessions.</p></aside>
+      <div class="sessions"><div class="project-heading"><h3 id="project-title"></h3><button class="icon" id="pin-project" aria-label="Unpin project" title="Unpin project"></button></div><p class="path" id="project-path"></p><button class="wide outline" id="new-session">＋ New session</button><div class="section-label active-heading">Active <span id="active-count" class="count"></span></div><div id="active-sessions"></div><details id="archive"><summary><span class="chevron">›</span><span class="archive-symbol" aria-hidden="true">▤</span><span>Archived</span><span id="archive-count" class="count"></span></summary><div class="archive-content"><p class="fine archive-hint">Finished work, kept for later.</p><div id="archived-sessions"></div></div></details></div>
+    </div>
+  </section>
+  <div id="toast" role="status" hidden><span id="toast-text"></span><button id="undo">Undo</button></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
