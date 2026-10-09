@@ -79,11 +79,11 @@ function projectGroups(projects: ChatProjectSummary[], currentPath: string, show
   for (const project of standalone) groups.push({ key: project.path, name: project.name, projects: [project] });
   const pinGroup = groups.filter(group => groupPinned(group));
   const regularGroups = groups.filter(group => !groupPinned(group));
-  return [...pinGroup, ...regularGroups].sort((a, b) => a.name.localeCompare(b.name));
+  return [...pinGroup.sort((a, b) => a.name.localeCompare(b.name)), ...regularGroups.sort((a, b) => a.name.localeCompare(b.name))];
 }
 
 function groupPinned(group: ProjectGroup): boolean {
-  return group.projects.some(project => project.pinned);
+  return Boolean(group.primaryProject?.pinned) || group.projects.some(project => project.pinned);
 }
 
 function groupModified(group: ProjectGroup): number {
@@ -100,10 +100,9 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const [selectedProject, setSelectedProject] = useState<string | undefined>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pendingDelete, setPendingDelete] = useState<ChatSessionSummary | undefined>();
-  const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
-  const groups = useMemo(() => projectGroups(catalogue.projects, currentProjectPath, false).filter(group => !query.trim() || `${group.name} ${group.projects.map(project => project.displayPath).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())), [catalogue.projects, currentProjectPath, query]);
+  const groups = useMemo(() => projectGroups(catalogue.projects, currentProjectPath, false), [catalogue.projects, currentProjectPath]);
   const visibleProjects = groups.flatMap(group => group.projects);
   const activeProject = catalogue.projects.find(project => project.path === selectedProject) ?? catalogue.projects.find(project => project.path === currentProjectPath) ?? visibleProjects[0];
   const pinPath = activeProject?.repositoryPath ?? activeProject?.path;
@@ -151,7 +150,6 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
       <Group align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
         <ScrollArea h="100%" flex={1}>
           <Stack gap={4}>
-            <TextInput size="xs" aria-label="Search projects" placeholder="Search projects" value={query} onChange={event => setQuery(event.currentTarget.value)} mb="xs" />
             {groups.map((group, index) => {
               const repoProjects = group.primaryProject ? [group.primaryProject, ...group.projects] : group.projects;
               const nested = Boolean(group.primaryProject) || group.projects.length > 1;

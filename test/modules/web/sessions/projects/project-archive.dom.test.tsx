@@ -41,6 +41,25 @@ describe("archive panel", () => {
     await waitFor(() => expect(screen.getByText("disk full")).toBeTruthy());
     expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
   });
+  it("keeps pinned projects together before recent projects regardless of name or session count", () => {
+    const projects: ProjectCatalogue = { projects: [
+      { ...catalogue.projects[0]!, name: "A pinned" },
+      { ...catalogue.projects[0]!, path: "/recent", name: "M recent", pinned: false },
+      { ...catalogue.projects[1]!, name: "Z empty pinned" },
+      { ...catalogue.projects[1]!, path: "/repo", name: "Repository", repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "main", detached: false, primary: true } },
+      { ...catalogue.projects[0]!, path: "/feature", name: "Feature", pinned: false, repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "feature", detached: false, primary: false } },
+    ] };
+    render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={projects} busy={false} showDisplayPath openSession={vi.fn()} newSession={vi.fn()} deleteSession={vi.fn()} onOpenFolder={vi.fn()} /></MantineProvider>);
+    expect(screen.getAllByText("Pinned projects")).toHaveLength(1);
+    expect(screen.getAllByText("Recent projects")).toHaveLength(1);
+    const pinned = screen.getByText("Pinned projects");
+    const recent = screen.getByText("Recent projects");
+    for (const name of ["A pinned", "Z empty pinned", "Repository"]) {
+      const row = screen.getAllByText(name)[0]!;
+      expect(pinned.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(row.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
   it("keeps empty pinned projects selectable and offers New session", () => {
     const { newSession, pinProject } = show();
     fireEvent.click(screen.getByText("Empty pinned"));
