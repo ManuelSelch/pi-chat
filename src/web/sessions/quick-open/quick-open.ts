@@ -36,6 +36,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
       modified: project.modified,
     });
     for (const session of project.sessions) {
+      if (session.archivedAt !== undefined) continue;
       sessions.push({
         kind: "session",
         path: session.path,

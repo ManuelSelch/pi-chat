@@ -55,11 +55,11 @@ describe("project/session drawer rendering", () => {
     expect(rowRenders).not.toHaveBeenCalled();
   });
 
-  it("still updates deletion availability, catalogue data and active session targeting", () => {
+  it("still updates archive availability, catalogue data and active session targeting", () => {
     const socket = start();
-    expect(screen.getByRole("button", { name: "Delete Chat 0-0" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Archive Chat 0-0" }).hasAttribute("disabled")).toBe(true);
     act(() => socket.deliver({ type: "runtimeStatus", sessionId: "s-0-0", sequence: 1, status: "idle" }));
-    expect(screen.getByRole("button", { name: "Delete Chat 0-0" }).hasAttribute("disabled")).toBe(false);
+    expect(screen.getByRole("button", { name: "Archive Chat 0-0" }).hasAttribute("disabled")).toBe(false);
     const updated = { projects: catalogue.projects.map((project, index) => index ? project : { ...project, sessions: project.sessions.map((session, sessionIndex) => sessionIndex ? session : { ...session, title: "Renamed chat" }) }) };
     act(() => socket.deliver({ type: "catalogue", catalogue: updated }));
     expect(screen.getByText("Renamed chat")).not.toBeNull();
@@ -72,8 +72,8 @@ describe("project/session drawer rendering", () => {
     });
     fireEvent.click(screen.getByText("Show projects"));
     act(() => void vi.advanceTimersByTime(500));
-    expect(screen.getByRole("button", { name: "Delete Chat 1-0" }).hasAttribute("disabled")).toBe(true);
-    expect(screen.getByText("Chat 1-0").closest('[role="button"]')?.getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "Archive Chat 1-0" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("Chat 1-0").closest('button')?.getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("button", { name: "New session" }));
     expect(socket.sent.at(-1)).toEqual({ version: 1, type: "newSession", path: "/project-1" });
   });

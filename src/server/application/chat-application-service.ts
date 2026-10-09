@@ -31,6 +31,8 @@ export class ChatApplicationService {
   private readonly listeners = new Set<(sessionId: string, event: RuntimeEvent) => void>();
   private readonly sessions: SessionRegistry;
   private catalogueCache?: ProjectCatalogue;
+  private readonly sessionMutations = new Set<string>();
+  private readonly pendingWork = new Map<string, number>();
 
   constructor(
     initialRuntime: RuntimeAdapter | undefined,
@@ -101,17 +103,30 @@ export class ChatApplicationService {
   }
 
   async prompt(sessionId: string, message: string): Promise<string> {
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted. Try again when it finishes.");
     // /reload rebuilds the runtime itself, which only the registry can do, so it
     // is caught here instead of inside the adapter it replaces.
     if (this.isReloadCommand(sessionId, message)) {
       await this.reloadSession(sessionId);
       return sessionId;
     }
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted. Try again when it finishes.");
     const adapter = this.sessions.get(sessionId);
-    await adapter.prompt(message);
-    const nextSessionId = adapter.snapshot().sessionId;
-    if (nextSessionId !== sessionId) this.sessions.rekey(sessionId, nextSessionId);
-    return nextSessionId;
+    const path = adapter.snapshot().sessionPath;
+    this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
+    try {
+      await adapter.prompt(message);
+      const nextSessionId = adapter.snapshot().sessionId;
+      if (nextSessionId !== sessionId) this.sessions.rekey(sessionId, nextSessionId);
+      // Informational slash commands and /new do not resume the old task.
+      if (path && !message.trim().startsWith("/")) await this.projectSessions.restoreIfArchived?.(path);
+      this.catalogueCache = undefined;
+      return nextSessionId;
+    } finally {
+      const count = (this.pendingWork.get(sessionId) ?? 1) - 1;
+      if (count) this.pendingWork.set(sessionId, count);
+      else this.pendingWork.delete(sessionId);
+    }
   }
 
   /** An extension that registers its own /reload keeps it; ours is the fallback. */
@@ -133,21 +148,24 @@ export class ChatApplicationService {
    */
   async reloadSession(sessionId: string): Promise<void> {
     const snapshot = this.sessions.get(sessionId).snapshot();
-    if (snapshot.isStreaming) throw new Error("Wait for the current run to finish before reloading.");
+    if (snapshot.isStreaming || this.pendingWork.has(sessionId) || this.sessionMutations.has(sessionId)) throw new Error("Wait for the current run or session change to finish before reloading.");
     // Without a file on disk there is nothing to reopen: the replacement would
     // start empty and the transcript would be lost.
     if (!snapshot.sessionPath) throw new Error("This session has no file on disk yet, so it cannot be reloaded.");
 
-    // New SDK resource loaders otherwise reuse process-wide cached factories.
-    await this.factory.invalidateExtensionCache?.();
-    const replacement = await this.factory.openSession(snapshot.sessionPath);
-    await this.sessions.replace(sessionId, replacement);
-    this.catalogueCache = undefined;
-    this.emit(sessionId, {
-      type: "notification",
-      level: "info",
-      message: "Session reloaded: extensions, commands, and settings were read again.",
-    });
+    this.sessionMutations.add(sessionId);
+    try {
+      // New SDK resource loaders otherwise reuse process-wide cached factories.
+      await this.factory.invalidateExtensionCache?.();
+      const replacement = await this.factory.openSession(snapshot.sessionPath);
+      await this.sessions.replace(sessionId, replacement);
+      this.catalogueCache = undefined;
+      this.emit(sessionId, {
+        type: "notification",
+        level: "info",
+        message: "Session reloaded: extensions, commands, and settings were read again.",
+      });
+    } finally { this.sessionMutations.delete(sessionId); }
   }
 
   completeCommandArguments(sessionId: string, commandName: string, argumentPrefix: string) {
@@ -195,6 +213,7 @@ export class ChatApplicationService {
   async openSession(path: string): Promise<string> {
     const open = this.sessions.findByPath(path);
     if (open) {
+      if (this.sessionMutations.has(open.sessionId)) throw new Error("That session is being archived or deleted.");
       this.sessions.focus(open.sessionId);
       return open.sessionId;
     }
@@ -229,28 +248,67 @@ export class ChatApplicationService {
   async deleteSession(path: string): Promise<void> {
     const open = this.sessions.findByPath(path);
     if (open) {
-      if (this.sessions.get(open.sessionId).snapshot().isStreaming) {
+      if (this.sessions.get(open.sessionId).snapshot().isStreaming || this.pendingWork.has(open.sessionId) || this.sessionMutations.has(open.sessionId)) {
         throw new Error("That session is still running. Stop it before deleting it.");
       }
-      await this.closeTab(open.sessionId);
+      this.sessionMutations.add(open.sessionId);
     }
-    await this.projectSessions.delete(path);
+    try {
+      if (open) await this.sessions.close(open.sessionId);
+      await this.projectSessions.delete(path);
+      this.catalogueCache = undefined;
+    } finally { if (open) this.sessionMutations.delete(open.sessionId); }
+  }
+
+  async pinProject(path: string, pinned: boolean): Promise<void> {
+    const target = pinned ? await this.directories.validate(path) : path;
+    await this.projectSessions.pin(target, pinned);
     this.catalogueCache = undefined;
+  }
+
+  async archiveSession(path: string, archived: boolean): Promise<void> {
+    const open = this.sessions.findByPath(path);
+    const sessionId = open?.sessionId;
+    if (sessionId && (this.sessionMutations.has(sessionId) || this.pendingWork.has(sessionId) || this.sessions.get(sessionId).snapshot().isStreaming)) {
+      throw new Error("That session is still running or changing. Stop it before archiving it.");
+    }
+    if (sessionId) this.sessionMutations.add(sessionId);
+    try {
+      // Persist first: a failed write must not close the user's tab.
+      await this.projectSessions.archive(path, archived);
+      if (archived && sessionId) await this.sessions.close(sessionId);
+      this.catalogueCache = undefined;
+    } finally { if (sessionId) this.sessionMutations.delete(sessionId); }
   }
 
   /** Closing the last tab is allowed: the browser falls back to the home screen. */
   async closeTab(sessionId: string): Promise<void> {
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted.");
     await this.sessions.close(sessionId);
     this.catalogueCache = undefined;
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
-    await runFeatureAction(message, {
-      sessions: this.sessions,
-      restartService: this.restartService,
-      extensions: this.extensions,
-      notify: (sessionId, text, level) => this.emit(sessionId, { type: "notification", level, message: text }),
-    });
+    const sessionId = message.sessionId;
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted.");
+    const path = this.sessions.has(sessionId) ? this.sessions.get(sessionId).snapshot().sessionPath : undefined;
+    this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
+    try {
+      await runFeatureAction(message, {
+        sessions: this.sessions,
+        restartService: this.restartService,
+        extensions: this.extensions,
+        notify: (id, text, level) => this.emit(id, { type: "notification", level, message: text }),
+      });
+      if (path && (message.type === "runExtensionAction" || message.featureId === "session.compact")) {
+        await this.projectSessions.restoreIfArchived?.(path);
+        this.catalogueCache = undefined;
+      }
+    } finally {
+      const count = (this.pendingWork.get(sessionId) ?? 1) - 1;
+      if (count) this.pendingWork.set(sessionId, count);
+      else this.pendingWork.delete(sessionId);
+    }
   }
 
   subscribe(listener: (sessionId: string, event: RuntimeEvent) => void): () => void {

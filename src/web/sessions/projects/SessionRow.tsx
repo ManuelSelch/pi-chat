@@ -1,9 +1,7 @@
-import type { KeyboardEvent } from "react";
-import { ActionIcon, Group, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { IconArchive, IconArchiveOff } from "@tabler/icons-react";
 import styles from "./SessionRow.module.css";
-import { IconMessage, IconTrash } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
-import { StatusBadge } from "../../ui/StatusBadge.js";
 import type { ChatSessionSummary } from "../../../shared/protocol.js";
 
 interface SessionRowProps {
@@ -11,64 +9,38 @@ interface SessionRowProps {
   active: boolean;
   disabled: boolean;
   deleteDisabled: boolean;
+  archiveDisabled?: boolean;
   onOpen: () => void;
   onDelete: () => void;
+  onArchive?: () => void;
 }
 
-function formatSessionDate(value: string | number): string {
+function formatSessionDate(value: number): string {
   const date = new Date(value);
   const now = new Date();
-  const sameDay = date.toDateString() === now.toDateString();
-  if (sameDay) return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) {
-    return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
+  if (date.toDateString() === now.toDateString()) return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   return date.toLocaleDateString([], { month: "short", day: "numeric", year: date.getFullYear() === now.getFullYear() ? undefined : "numeric" });
 }
 
-export function SessionRow({ session, active, disabled, deleteDisabled, onOpen, onDelete }: SessionRowProps) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onOpen();
-    }
-  };
-
+export function SessionRow({ session, active, disabled, archiveDisabled, onOpen, onArchive }: SessionRowProps) {
+  const archived = session.archivedAt !== undefined;
   return (
-    <div
-      className={`${styles.row}${active ? ` ${styles.active}` : ""}`}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-current={active ? "page" : undefined}
-      aria-disabled={disabled || undefined}
-      onClick={disabled ? undefined : onOpen}
-      onKeyDown={disabled ? undefined : handleKeyDown}
-    >
-      <div className={styles.content}>
-        <Text className={styles.title} fw={600} size="sm" title={session.title}>
-          {session.title}
-        </Text>
+    <div className={`${styles.row}${active ? ` ${styles.active}` : ""}`}>
+      <UnstyledButton className={styles.content} disabled={disabled} aria-current={active ? "page" : undefined} onClick={onOpen}>
+        <Text className={styles.title} fw={archived ? 500 : 600} size="sm" title={session.title}>{session.title}</Text>
         <Group className={styles.meta} gap={5} wrap="nowrap">
-          <Text size="xs" c="dimmed">{formatSessionDate(session.modified)}</Text>
+          <Text size="xs" c="dimmed">{archived ? "Archived " : ""}{formatSessionDate(session.archivedAt ?? session.modified)}</Text>
           <Text size="xs" c="dimmed" aria-hidden="true">·</Text>
           <Text size="xs" c="dimmed">{session.messageCount} messages</Text>
         </Group>
-      </div>
-      <Tooltip label="Delete session">
-        <ActionIcon
-          className={styles.delete}
-          size="sm"
-          variant="subtle"
-          color={MANTINE_COLOR.neutral}
-          disabled={deleteDisabled}
-          aria-label={`Delete ${session.title}`}
-          onClick={(event) => { event.stopPropagation(); onDelete(); }}
-        >
-          <IconTrash size={14} />
+      </UnstyledButton>
+      {onArchive ? <Tooltip label={archived ? "Restore session" : "Archive session"}>
+        <ActionIcon className={styles.action} size="sm" variant="subtle" color={MANTINE_COLOR.neutral} disabled={archiveDisabled} aria-label={`${archived ? "Restore" : "Archive"} ${session.title}`} onClick={onArchive}>
+          {archived ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
         </ActionIcon>
-      </Tooltip>
+      </Tooltip> : null}
     </div>
   );
 }

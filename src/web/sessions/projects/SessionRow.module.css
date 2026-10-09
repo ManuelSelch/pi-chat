@@ -31,6 +31,12 @@
 .content {
   min-width: 0;
   flex: 1 1 auto;
+  text-align: left;
+}
+
+.content:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
 }
 
 .title {
@@ -48,17 +54,21 @@
   white-space: nowrap;
 }
 
-.delete {
+.action {
   flex: 0 0 auto;
-  opacity: 0;
+  opacity: 0.55;
   transition: opacity 100ms ease;
 }
 
-.row:hover .delete,
-.row:focus-within .delete {
+.row:hover .action,
+.row:focus-within .action {
   opacity: 1;
 }
 
-.delete:disabled {
+.action:disabled {
   opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row, .action { transition: none; }
 }

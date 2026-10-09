@@ -69,7 +69,7 @@ export function activeSession(state: AppState): ChatState {
 
 export function reduceAppMessage(state: AppState, message: AppAction): AppState {
   // Request-scoped replies belong to connection trackers, never transcripts.
-  if (message.type === "commandArgumentCompletions" || message.type === "fileOpenResult") return state;
+  if (message.type === "commandArgumentCompletions" || message.type === "fileOpenResult" || message.type === "projectMutationResult") return state;
   if (message.type === "directoryListing" || message.type === "directoryBrowseError" || message.type === "sessionOpened" || message.type === "sessionOpenError") return state;
   if (message.type === "openPending") {
     return { ...state, openingTabs: state.openingTabs + 1 };

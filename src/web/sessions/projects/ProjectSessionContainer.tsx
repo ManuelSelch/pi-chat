@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
@@ -10,6 +10,7 @@ export function ProjectSessionContainer() {
   const { app, state } = chat;
   const displayPath = useDisplayPath();
   const busy = state.status === "running" || state.status === "aborting";
+  const busySessionIds = useMemo(() => app.tabs.filter(tab => tab.status === "running" || tab.status === "blocked").map(tab => tab.sessionId), [app.tabs]);
   const onClose = useCallback(() => overlays.close("projects"), [overlays.close]);
   const onOpenFolder = useCallback(() => overlays.open("folderPicker"), [overlays.open]);
 
@@ -25,6 +26,9 @@ export function ProjectSessionContainer() {
       openSession={chat.openSession}
       newSession={chat.newSession}
       deleteSession={chat.deleteSession}
+      archiveSession={chat.archiveSession}
+      pinProject={chat.pinProject}
+      busySessionIds={busySessionIds}
       onOpenFolder={onOpenFolder}
     />
   );
