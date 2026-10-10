@@ -17,7 +17,7 @@ import { projectFooter, projectSnapshot } from "./snapshot.js";
 import { offeredModels } from "./models.js";
 import { createPiRuntime } from "./runtime-factory.js";
 import { handleNativeCommand, NATIVE_COMMANDS } from "./native-commands.js";
-import { bindExtensionCommandContext, bindWebUiContext } from "./extension-bindings.js";
+import { bindExtensionCommandContext, bindWebUiContext, extensionCommandContextActions } from "./extension-bindings.js";
 
 /** How often, and for how long, an abort is checked against the session. */
 const ABORT_WATCH_INTERVAL_MS = 250;
@@ -69,7 +69,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       this.bindSession();
       this.bindUi();
       this.bindCommandContext();
-      await this.startExtensions("resume");
+      await this.startExtensions();
       this.emit({ type: "sessionSwitch", previousSessionId, sessionId: this.runtime.session.sessionId });
     });
     this.bindSession();
@@ -77,19 +77,13 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     this.bindCommandContext();
   }
 
-  /**
-   * `session_start` is otherwise never emitted in this host: Pi fires it from
-   * `session.bindExtensions`, which the terminal modes call and this host does
-   * not. Extensions that capture their dialog surface from that event — the
-   * documented way to reach `ctx.ui`, since the extension factory is not given
-   * one — were left without it and could not ask a question at all.
-   *
-   * Emitted after `bindUi`, so the surface handed out is this host's browser
-   * modal rather than the no-op one it replaces, and exactly once per adapter:
-   * a second `session_start` would look like a session change to an extension.
-   */
-  private async startExtensions(reason: "startup" | "resume" = "startup"): Promise<void> {
-    await this.runtime.session.extensionRunner.emit({ type: "session_start", reason });
+  /** Persist browser bindings in Pi so native reload restores them before session_start. */
+  private async startExtensions(): Promise<void> {
+    await this.runtime.session.bindExtensions({
+      uiContext: this.ui,
+      mode: "rpc",
+      commandContextActions: extensionCommandContextActions(this.runtime, () => this.reloadResources()),
+    });
     await this.refreshModels();
   }
 
@@ -120,7 +114,7 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
    * nothing.
    */
   private bindCommandContext(): void {
-    bindExtensionCommandContext(this.runtime);
+    bindExtensionCommandContext(this.runtime, () => this.reloadResources());
   }
 
   /**
@@ -223,6 +217,27 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     if (!match) throw new Error(`Unknown model: ${model}`);
     await this.runtime.session.setModel(match);
     this.emit({ type: "notification", level: "info", message: `Model set to ${model}` });
+  }
+
+  async reload(): Promise<void> {
+    if (this.disposed) throw new Error("Session is closed.");
+    if (this.promptPending || this.abortPending || this.bashRunning || this.compactPending || this.runtime.session.isIdle === false) {
+      throw new Error("Wait for the current run to finish before reloading.");
+    }
+    await this.reloadResources();
+  }
+
+  private async reloadResources(): Promise<void> {
+    await this.runtime.session.reload({
+      beforeSessionStart: async () => {
+        this.prompts.cancelAll();
+        this.widgets.clear();
+        this.statuses.clear();
+        this.bindUi();
+        this.bindCommandContext();
+      },
+    });
+    await this.refreshModels();
   }
 
   async compact(): Promise<void> {

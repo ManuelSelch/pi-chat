@@ -61,6 +61,7 @@ export interface RuntimeAdapter {
   setThinkingLevel(level: ThinkingLevel): Promise<void> | void;
   setModel(model: string): Promise<void>;
   compact(): Promise<void>;
+  reload(): Promise<void>;
   completeCommandArguments(commandName: string, argumentPrefix: string): Promise<CommandCompletionItem[]>;
   subscribe(listener: (event: RuntimeEvent) => void): () => void;
   dispose(): Promise<void> | void;
@@ -70,5 +71,4 @@ export interface RuntimeAdapterFactory {
   continueProject(path: string): Promise<RuntimeAdapter>;
   openSession(path: string): Promise<RuntimeAdapter>;
   newSession(path: string): Promise<RuntimeAdapter>;
-  invalidateExtensionCache?(): Promise<void>;
 }

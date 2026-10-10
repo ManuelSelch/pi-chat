@@ -29,6 +29,7 @@ function fakeRuntime() {
         calls.push(`emit:${event.type}`);
       },
     },
+    bindExtensions: async () => { calls.push("emit:session_start"); },
     subscribe: () => () => {},
   };
 

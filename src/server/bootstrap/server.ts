@@ -6,7 +6,6 @@ import type { PiChatExtensionRegistry } from "../extensions/extension-registry.j
 import { PiRuntimeAdapter } from "../runtime/pi/pi-runtime-adapter.js";
 import { ProjectSessionService } from "../projects/project-session-service.js";
 import { PiSessionStore } from "../projects/pi-session-store.js";
-import { invalidatePiExtensionCache } from "../runtime/pi/pi-extension-cache.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory } from "../runtime/contracts.js";
 import type { RestartService } from "./restart-service.js";
 import { WebSocketTransport } from "../transport/websocket-transport.js";
@@ -25,7 +24,6 @@ export function createPiChatServer(
     continueProject: (path) => PiRuntimeAdapter.create(path),
     openSession: (path) => PiRuntimeAdapter.openSession(path),
     newSession: (path) => PiRuntimeAdapter.newSession(path),
-    invalidateExtensionCache: invalidatePiExtensionCache,
   },
   restart?: RestartService,
   extensions?: PiChatExtensionRegistry,

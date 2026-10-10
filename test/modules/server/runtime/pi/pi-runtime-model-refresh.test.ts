@@ -11,6 +11,7 @@ function fixture() {
     getAvailableThinkingLevels: () => ["off"], supportsThinking: () => false,
     subscribe: () => () => {},
     prompt: vi.fn(async (_message: string) => {}),
+    bindExtensions: async () => { await session.extensionRunner.emit(); },
     modelRuntime: {
       getAvailable: async () => catalogue,
       getAvailableSnapshot: () => catalogue,

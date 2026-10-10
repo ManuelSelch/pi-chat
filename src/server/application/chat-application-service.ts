@@ -75,8 +75,8 @@ export class ChatApplicationService {
    * renders. Restart only appears when a server can genuinely replace itself,
    * so the button is never offered by a server that would stay down.
    *
-   * /reload is added the same way: the session cannot list a command that
-   * replaces the very runtime it belongs to. An extension of the same name wins,
+   * /reload is added the same way as an application-dispatched command.
+   * An extension of the same name wins,
    * because that one is what the session would actually dispatch.
    */
   private withAppActions(actions: RuntimeSnapshot["actions"]): RuntimeSnapshot["actions"] {
@@ -104,8 +104,7 @@ export class ChatApplicationService {
 
   async prompt(sessionId: string, message: string): Promise<string> {
     if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived. Try again when it finishes.");
-    // /reload rebuilds the runtime itself, which only the registry can do, so it
-    // is caught here instead of inside the adapter it replaces.
+    // Catch the fallback command here to serialize reload with session changes.
     if (this.isReloadCommand(sessionId, message)) {
       await this.reloadSession(sessionId);
       return sessionId;
@@ -137,28 +136,13 @@ export class ChatApplicationService {
     return !registered.some((command) => command.name === RELOAD_COMMAND.name);
   }
 
-  /**
-   * Rebuilds one session's Pi runtime from its session file, leaving the server
-   * and every other tab alone.
-   *
-   * This is what picks up a changed extension: extensions are loaded when the
-   * runtime is created, so a new one is the only way to see them short of
-   * restarting the whole server. The transcript survives because it lives in the
-   * session file, which the replacement reopens.
-   */
+  /** Reload resources in place, preserving the session and every other tab. */
   async reloadSession(sessionId: string): Promise<void> {
     const snapshot = this.sessions.get(sessionId).snapshot();
     if (snapshot.isStreaming || this.pendingWork.has(sessionId) || this.sessionMutations.has(sessionId)) throw new Error("Wait for the current run or session change to finish before reloading.");
-    // Without a file on disk there is nothing to reopen: the replacement would
-    // start empty and the transcript would be lost.
-    if (!snapshot.sessionPath) throw new Error("This session has no file on disk yet, so it cannot be reloaded.");
-
     this.sessionMutations.add(sessionId);
     try {
-      // New SDK resource loaders otherwise reuse process-wide cached factories.
-      await this.factory.invalidateExtensionCache?.();
-      const replacement = await this.factory.openSession(snapshot.sessionPath);
-      await this.sessions.replace(sessionId, replacement);
+      await this.sessions.get(sessionId).reload();
       this.catalogueCache = undefined;
       this.emit(sessionId, {
         type: "notification",

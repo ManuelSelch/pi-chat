@@ -64,6 +64,7 @@ export class FakeRuntimeAdapter implements RuntimeAdapter {
   async setModel(): Promise<void> {}
 
   async compact(): Promise<void> {}
+  async reload(): Promise<void> {}
   async completeCommandArguments(_commandName: string, _argumentPrefix: string): Promise<CommandCompletionItem[]> { return []; }
 
   /**
