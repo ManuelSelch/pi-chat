@@ -14,6 +14,7 @@ export type ChatAction =
 
 export interface ChatState {
   messages: ChatMessage[];
+  steeringMessages: string[];
   /** The run in flight: `thinking` is the reasoning streamed ahead of `text`. */
   draft?: { runId: string; text: string; thinking: string };
   status: "connecting" | "idle" | "running" | "aborting" | "superseded";
@@ -39,6 +40,7 @@ export interface ChatState {
 
 export const initialChatState: ChatState = {
   messages: [],
+  steeringMessages: [],
   status: "connecting",
   sessionId: "",
   projectPath: "",
@@ -122,6 +124,10 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
     // would otherwise erase the output of the command that triggered it.
     return {
       messages: mergeNotices(message.messages, state.messages),
+      steeringMessages: message.steeringMessages ?? [],
+      // Queuing input returns immediately and triggers a snapshot while the
+      // original answer is still streaming; it must not erase that answer.
+      draft: message.isStreaming && message.sessionId === state.sessionId ? state.draft : undefined,
       status: message.isStreaming ? "running" : "idle",
       sessionId: message.sessionId,
       sessionName: message.sessionName,
@@ -211,6 +217,9 @@ export function reduceServerMessage(state: ChatState, message: ChatAction): Chat
   }
   if (message.type === "prompts") {
     return { ...state, sequence: message.sequence, prompts: message.prompts };
+  }
+  if (message.type === "steeringQueue") {
+    return { ...state, sequence: message.sequence, steeringMessages: message.messages };
   }
   if (message.type === "widgets") {
     return { ...state, sequence: message.sequence, widgets: message.widgets };

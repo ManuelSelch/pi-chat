@@ -3,6 +3,31 @@ import { PROTOCOL_VERSION, type ServerMessage } from "../../../../../src/shared/
 import { initialChatState, reduceServerMessage, type ChatState } from "../../../../../src/web/app/state/chat-state.js";
 
 describe("chat state", () => {
+  it("restores steering on reconnect and accepts only fresh queue updates", () => {
+    const restored = reduceServerMessage(initialChatState, {
+      version: PROTOCOL_VERSION, type: "snapshot", sequence: 5, throughSequence: 5,
+      sessionId: "session", projectPath: "/project", messages: [], isStreaming: true,
+      steeringMessages: ["Native queued text"],
+    });
+    expect(restored.steeringMessages).toEqual(["Native queued text"]);
+    const consumed = reduceServerMessage(restored, {
+      version: PROTOCOL_VERSION, type: "steeringQueue", sessionId: "session", sequence: 6, messages: [],
+    });
+    expect(consumed.steeringMessages).toEqual([]);
+    expect(reduceServerMessage(consumed, {
+      version: PROTOCOL_VERSION, type: "steeringQueue", sessionId: "session", sequence: 5, messages: ["Stale"],
+    })).toBe(consumed);
+  });
+
+  it("keeps the streamed answer when a queued prompt refreshes a running snapshot", () => {
+    const state = { ...initialChatState, sessionId: "session", status: "running" as const, draft: { runId: "run", text: "Partial answer", thinking: "Reasoning" } };
+    const next = reduceServerMessage(state, {
+      version: PROTOCOL_VERSION, type: "snapshot", sequence: 5, throughSequence: 5,
+      sessionId: "session", projectPath: "/project", messages: [], isStreaming: true,
+      steeringMessages: ["Change direction"],
+    });
+    expect(next.draft).toEqual(state.draft);
+  });
   it("replaces projected state with an authoritative snapshot", () => {
     const dirty = { ...initialChatState, messages: [{ id: "old", role: "user" as const, text: "old" }], sequence: 8 };
     const next = reduceServerMessage(dirty, {

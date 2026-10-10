@@ -1,4 +1,7 @@
 node_modules/
 .preview.pid
 .preview.log
+.steering-vite.pid
+.steering-vite.log
+.steering-runtime.json
 screenshots/

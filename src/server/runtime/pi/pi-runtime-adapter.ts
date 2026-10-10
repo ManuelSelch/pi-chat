@@ -27,7 +27,8 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly listeners = new Set<(event: RuntimeEvent) => void>();
   private readonly identity = new MessageIdentity();
   private unsubscribe?: () => void;
-  private promptPending = false;
+  private promptPending = 0;
+  private abortPending = false;
   private bashRunning = false;
   private compactPending = false;
   private disposed = false;
@@ -288,10 +289,15 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     if (this.disposed) throw new Error("Session is closed.");
     const bash = parseBashInput(message);
     if (bash && !bash.command.trim()) throw new Error("Bash command is empty.");
-    if (bash && (this.promptPending || this.compactPending || this.bashRunning || this.runtime.session.isBashRunning || this.runtime.session.isIdle === false)) {
+    const session = this.runtime.session;
+    const busy = this.promptPending > 0 || session.isIdle === false;
+    // Only ordinary text can steer a live agent. Never run shell/session
+    // commands concurrently or start a second run during asynchronous preflight.
+    if (this.abortPending || (this.abortWatchdog && !session.isIdle) || this.compactPending || session.isCompacting || this.bashRunning || session.isBashRunning
+      || (busy && (bash || message.trimStart().startsWith("/") || !session.isStreaming))) {
       throw new Error("Wait for the current run to finish before submitting another command.");
     }
-    this.promptPending = true; // Claim before any async preflight.
+    this.promptPending++; // Count concurrent steering preflights as well as the original run.
     this.projectionState.lastError = undefined;
     clearInterval(this.abortWatchdog);
     this.abortWatchdog = undefined;
@@ -308,13 +314,13 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         return;
       }
       if (await this.handleNativeCommand(message.trim())) return;
-      await this.runtime.session.prompt(message);
+      await this.runtime.session.prompt(message, { streamingBehavior: "steer" });
       if (message.trim().startsWith("/")) await this.refreshModels();
     } catch (error) {
       this.projectionState.lastError = error instanceof Error ? error.message : "Command failed.";
       throw error;
     } finally {
-      this.promptPending = false;
+      this.promptPending--;
       if (bash) {
         this.bashRunning = false;
         if (!this.disposed) this.emit({ type: "runtimeStatus", status: "idle", ...(this.projectionState.lastError ? { error: this.projectionState.lastError } : {}) });
@@ -342,9 +348,11 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
       return;
     }
     this.emit({ type: "runtimeStatus", status: "aborting" });
+    this.abortPending = true;
     try {
       await this.runtime.session.abort();
     } finally {
+      this.abortPending = false;
       this.watchAbort();
     }
   }

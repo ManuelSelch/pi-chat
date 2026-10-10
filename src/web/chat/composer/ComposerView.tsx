@@ -15,6 +15,8 @@ export interface ComposerViewModel {
   connecting: boolean;
   error?: string;
   busy: boolean;
+  steering: boolean;
+  steeringMessages: string[];
   input: string;
   activeCommand: number;
   matches: MenuItem[];
@@ -45,7 +47,7 @@ interface ComposerViewProps {
 }
 
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
-  const { home, connection, connecting, error, busy, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
+  const { home, connection, connecting, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
   const menuOpen = matches.length > 0;
   const bashInput = input.trimStart().startsWith("!");
 
@@ -85,6 +87,16 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
           </Notice>
         ) : null}
 
+        {steeringMessages.length > 0 ? (
+          <Paper component="section" role="region" aria-label="Queued steering" aria-live="polite" withBorder radius="md" p="sm" mb="xs">
+            <Text size="xs" c="dimmed">Queued steering</Text>
+            <Box component="ul" mt={6} mb={0} pl="md" style={{ overflowWrap: "anywhere" }}>
+              {steeringMessages.map((message, index) => (
+                <Text component="li" key={index} size="sm" style={{ whiteSpace: "pre-wrap" }}>{message}</Text>
+              ))}
+            </Box>
+          </Paper>
+        ) : null}
         <WidgetPanel widgets={widgetsAbove} />
         {menuOpen ? (
           <div data-command-menu>
@@ -122,7 +134,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
               onCompositionStart={() => actions.compositionChanged(true)}
               onCompositionEnd={() => actions.compositionChanged(false)}
               onKeyDown={actions.keyDown}
-              placeholder="Ask Pi anything…"
+              placeholder={steering ? "Steer Pi…" : "Ask Pi anything…"}
               value={input}
               variant="unstyled"
               flex={1}

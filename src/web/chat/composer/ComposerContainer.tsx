@@ -59,8 +59,8 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const query = menuDismissed ? undefined : commandQuery(input);
-  const context = !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
+  const query = menuDismissed || busy ? undefined : commandQuery(input);
+  const context = !busy && !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
     ? argumentContext(input, selection.start, selection.end, state.actions.commands)
     : undefined;
   const argumentItems = useArgumentCompletion(app.activeSessionId, input, context, chat.completeCommandArguments);
@@ -136,7 +136,8 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   function submit(event?: FormEvent): void {
     event?.preventDefault();
     const message = input.trim();
-    if (!message || state.status !== "idle") return;
+    if (!message || app.connection !== "open" || (state.status !== "idle" && state.status !== "running")) return;
+    if (state.status === "running" && /^[!/]/.test(message)) return;
     chat.prompt(message);
     setInput("");
     setActiveCommand(0);
@@ -198,6 +199,8 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         connecting,
         error: visibleError(app, state),
         busy,
+        steering: state.status === "running",
+        steeringMessages: state.steeringMessages,
         input,
         activeCommand: activeIndex,
         matches,

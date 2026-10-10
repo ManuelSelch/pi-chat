@@ -12,6 +12,7 @@
 ## Features
 
 - streaming assistant text, tool cards, Markdown + KaTeX
+- native Pi steering: send directions during a run, with reconnect-safe queued messages
 - filename-based syntax highlighting for read/write previews and edit diffs, with rendered Markdown previews
 - multiple tabs over persistent Pi sessions, with project/session browsing
 - server folder picker to start sessions in folders without previous Pi history
@@ -44,6 +45,15 @@ which adds three commands to any Pi session:
 Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.
 
 
+
+## Steering
+
+Press Enter with ordinary text while Pi is running to steer the ongoing task.
+Pi receives it after the current assistant turn and its tool calls, without
+aborting the run. Pending messages appear above the composer until Pi consumes
+them, and survive browser reconnects/reloads through the native Pi queue.
+Shift+Enter still inserts a newline; Escape stops the run. Bash and slash
+commands wait until idle. Follow-up queuing is not exposed.
 
 ## Command argument completion
 

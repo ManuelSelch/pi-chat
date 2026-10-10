@@ -123,6 +123,8 @@ describe("stopping a run always ends the stopping state", () => {
     runtime.state.isStreaming = true;
     await runtime.adapter.abort();
 
+    // A new run is accepted once Pi is idle, even before the watchdog polls.
+    runtime.state.isStreaming = false;
     await runtime.adapter.prompt("again");
     runtime.state.isStreaming = true;
     await vi.advanceTimersByTimeAsync(20_000);

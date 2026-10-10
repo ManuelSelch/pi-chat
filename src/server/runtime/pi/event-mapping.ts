@@ -25,6 +25,10 @@ export interface EventMappingDependencies {
 /** Translate SDK events while keeping mutable projection state explicit. */
 export function createSessionEventHandler(dependencies: EventMappingDependencies): (event: SessionEvent) => void {
   return (event) => {
+    if (event.type === "queue_update") {
+      dependencies.emit({ type: "steeringQueue", messages: [...event.steering] });
+      return;
+    }
     if (event.type === "session_info_changed") {
       dependencies.emit({ type: "sessionMetadataChanged" });
       return;

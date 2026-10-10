@@ -57,7 +57,10 @@ export class ServerPublisher {
 
   publishError(sessionId: string, error: unknown): void {
     const text = error instanceof Error ? error.message : "Unknown runtime error";
-    this.publish(sessionId, { type: "runtimeStatus", status: "idle", error: text });
+    // A rejected steering/command submission does not settle the ongoing run.
+    const tab = this.chat.tabs().find((entry) => entry.sessionId === sessionId);
+    const status = tab && tab.status !== "idle" ? "running" : "idle";
+    this.publish(sessionId, { type: "runtimeStatus", status, error: text });
   }
 
   replyTo(socket: WebSocket, message: ServerMessage): void {

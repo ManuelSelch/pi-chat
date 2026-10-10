@@ -370,6 +370,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
     projectPath: z.string(),
     messages: z.array(chatMessageSchema),
     isStreaming: z.boolean(),
+    steeringMessages: z.array(z.string()).optional(),
     /** How the last turn failed; absent once a new run starts. */
     lastError: z.string().optional(),
     catalogue: projectCatalogueSchema.optional(),
@@ -381,6 +382,7 @@ export const serverMessageSchema = z.discriminatedUnion("type", [
   }),
   z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
   z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
+  z.object({ ...sequenced, type: z.literal("steeringQueue"), messages: z.array(z.string()) }),
   z.object({ ...sequenced, type: z.literal("footer"), footer: z.array(footerItemSchema) }),
   z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
   z.object({ ...sequenced, type: z.literal("thinkingDelta"), runId: z.string(), delta: z.string() }),

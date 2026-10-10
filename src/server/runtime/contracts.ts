@@ -9,6 +9,7 @@ export type RuntimeEvent =
   | { type: "notification"; level: "info" | "warning" | "error"; message: string }
   | { type: "prompts"; prompts: UiPrompt[] }
   | { type: "widgets"; widgets: Widget[] }
+  | { type: "steeringQueue"; messages: string[] }
   | { type: "footer"; footer: FooterItem[] }
   | { type: "runtimeStatus"; status: "idle" | "running" | "aborting"; error?: string }
   | { type: "sessionMetadataChanged" }
@@ -21,6 +22,8 @@ export interface RuntimeSnapshot {
   projectPath: string;
   messages: ChatMessage[];
   isStreaming: boolean;
+  /** Pi-owned pending steering, separate from the finalized transcript. */
+  steeringMessages?: string[];
   actions: ActionRegistry;
   prompts: UiPrompt[];
   /** Extension panels from `ctx.ui.setWidget`, rendered around the composer. */

@@ -31,6 +31,20 @@ export class ChatDriver {
       m.type === "messageFinal" && m.sessionId === sessionId && m.message.role === "user" && m.message.text === text.trim());
   }
 
+  async Steer(text: string): Promise<void> {
+    const { client } = this.context;
+    const sessionId = requireSession(this.context, "Chat.Steer");
+    check(this.context, "Chat.Steer", () => assert.equal(client.chat.status, "running", "Conversation must be running to steer"));
+    const after = client.mark();
+    client.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId, message: text });
+    await client.waitForMessage("Chat.Steer", "native steering queued", after, message =>
+      message.type === "steeringQueue" && message.sessionId === sessionId && message.messages.includes(text));
+  }
+
+  ShouldHaveQueuedSteering(messages: readonly string[]): void {
+    check(this.context, "Chat.ShouldHaveQueuedSteering", () => assert.deepEqual(this.context.client.chat.steeringMessages, messages));
+  }
+
   async WaitUntilStreaming(): Promise<void> {
     const { client } = this.context;
     requireSession(this.context, "Chat.WaitUntilStreaming");

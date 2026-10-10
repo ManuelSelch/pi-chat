@@ -64,6 +64,7 @@ export function projectSnapshot(input: SnapshotProjectionInput): RuntimeSnapshot
     projectPath: input.cwd,
     messages,
     isStreaming: !input.session.isIdle,
+    steeringMessages: [...(input.session.getSteeringMessages?.() ?? [])],
     ...(input.lastError ? { lastError: input.lastError } : {}),
     actions: {
       features: [

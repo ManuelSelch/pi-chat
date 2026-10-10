@@ -49,7 +49,7 @@ describe("native user bash", () => {
   it("leaves embedded exclamation marks as ordinary prompts", async () => {
     const { adapter, session } = runtime();
     await adapter.prompt("Hello! Run !pwd please");
-    expect(session.prompt).toHaveBeenCalledExactlyOnceWith("Hello! Run !pwd please");
+    expect(session.prompt).toHaveBeenCalledExactlyOnceWith("Hello! Run !pwd please", { streamingBehavior: "steer" });
   });
 
   it("records extension-provided results without executing", async () => {
