@@ -1,22 +1,9 @@
-import { execFile } from "node:child_process";
 import { existsSync, createReadStream } from "node:fs";
-import { open, realpath, unlink } from "node:fs/promises";
+import { open, realpath } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { resolve, sep } from "node:path";
-import { promisify } from "node:util";
 import { SessionManager, getAgentDir, type SessionInfo } from "@earendil-works/pi-coding-agent";
 import type { PersistedSessionRecord, SessionNameInfo } from "./catalogue-types.js";
-
-const run = promisify(execFile);
-
-async function moveToTrash(path: string): Promise<void> {
-  try {
-    await run("trash", [path]);
-    return;
-  } catch {
-    await unlink(path);
-  }
-}
 
 /** Persistence-specific access to Pi session files. */
 export class PiSessionStore {
@@ -62,10 +49,6 @@ export class PiSessionStore {
       return { path, id: header.id, cwd: resolve(header.cwd) };
     } catch (error) { throw new Error("That file has no valid Pi session header.", { cause: error }); }
     finally { await file.close(); }
-  }
-
-  async delete(sessionPath: string): Promise<void> {
-    await moveToTrash(await this.validatePath(sessionPath));
   }
 }
 

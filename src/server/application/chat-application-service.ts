@@ -103,14 +103,14 @@ export class ChatApplicationService {
   }
 
   async prompt(sessionId: string, message: string): Promise<string> {
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted. Try again when it finishes.");
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived. Try again when it finishes.");
     // /reload rebuilds the runtime itself, which only the registry can do, so it
     // is caught here instead of inside the adapter it replaces.
     if (this.isReloadCommand(sessionId, message)) {
       await this.reloadSession(sessionId);
       return sessionId;
     }
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted. Try again when it finishes.");
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived. Try again when it finishes.");
     const adapter = this.sessions.get(sessionId);
     const path = adapter.snapshot().sessionPath;
     this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
@@ -213,7 +213,7 @@ export class ChatApplicationService {
   async openSession(path: string): Promise<string> {
     const open = this.sessions.findByPath(path);
     if (open) {
-      if (this.sessionMutations.has(open.sessionId)) throw new Error("That session is being archived or deleted.");
+      if (this.sessionMutations.has(open.sessionId)) throw new Error("That session is being archived.");
       this.sessions.focus(open.sessionId);
       return open.sessionId;
     }
@@ -240,26 +240,6 @@ export class ChatApplicationService {
     this.sessions.focus(sessionId);
   }
 
-  /**
-   * Deleting a session whose runtime is still live would leave a tab pointing at
-   * a file that no longer exists, so the tab is closed first. A streaming run is
-   * still writing to that file, so it has to finish or be stopped.
-   */
-  async deleteSession(path: string): Promise<void> {
-    const open = this.sessions.findByPath(path);
-    if (open) {
-      if (this.sessions.get(open.sessionId).snapshot().isStreaming || this.pendingWork.has(open.sessionId) || this.sessionMutations.has(open.sessionId)) {
-        throw new Error("That session is still running. Stop it before deleting it.");
-      }
-      this.sessionMutations.add(open.sessionId);
-    }
-    try {
-      if (open) await this.sessions.close(open.sessionId);
-      await this.projectSessions.delete(path);
-      this.catalogueCache = undefined;
-    } finally { if (open) this.sessionMutations.delete(open.sessionId); }
-  }
-
   async pinProject(path: string, pinned: boolean): Promise<void> {
     const target = pinned ? await this.directories.validate(path) : path;
     await this.projectSessions.pin(target, pinned);
@@ -283,14 +263,14 @@ export class ChatApplicationService {
 
   /** Closing the last tab is allowed: the browser falls back to the home screen. */
   async closeTab(sessionId: string): Promise<void> {
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted.");
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
     await this.sessions.close(sessionId);
     this.catalogueCache = undefined;
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
     const sessionId = message.sessionId;
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived or deleted.");
+    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
     const path = this.sessions.has(sessionId) ? this.sessions.get(sessionId).snapshot().sessionPath : undefined;
     this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
     try {

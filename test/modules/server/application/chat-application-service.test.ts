@@ -4,7 +4,7 @@ import { ChatApplicationService } from "../../../../src/server/application/chat-
 import { createPiChatExtensionRegistry } from "../../../../src/server/extensions/extension-registry.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
-function service(deleteSpy = vi.fn(async () => {})) {
+function service(archiveSpy = vi.fn(async () => {})) {
   const runtime = new FakeRuntimeAdapter();
   const newSessionSpy = vi.fn(async () => new FakeRuntimeAdapter());
   const factory = {
@@ -12,8 +12,8 @@ function service(deleteSpy = vi.fn(async () => {})) {
     openSession: async () => new FakeRuntimeAdapter(),
     newSession: newSessionSpy,
   };
-  const projectSessions = { catalogue: async () => ({ projects: [] }), delete: deleteSpy } as any;
-  return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, deleteSpy, newSessionSpy };
+  const projectSessions = { catalogue: async () => ({ projects: [] }), archive: archiveSpy } as any;
+  return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, archiveSpy, newSessionSpy };
 }
 
 describe("command argument completion", () => {
@@ -34,35 +34,12 @@ describe("command argument completion", () => {
   });
 });
 
-describe("deleting sessions", () => {
-  it("closes the tab of an idle session before deleting it", async () => {
-    const { chat, runtime, deleteSpy } = service();
-    const openPath = runtime.snapshot().sessionPath!;
-
-    await chat.deleteSession(openPath);
-
-    expect(deleteSpy).toHaveBeenCalledWith(openPath);
-    // The tab must be gone: it would otherwise point at a deleted file.
-    expect(chat.tabs()).toHaveLength(0);
-  });
-
-  it("refuses to delete a session that is still running", async () => {
-    const { chat, runtime, deleteSpy } = service();
-    const openPath = runtime.snapshot().sessionPath!;
-    // The fake finishes a prompt synchronously, so streaming is staged directly.
-    vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
-
-    await expect(chat.deleteSession(openPath)).rejects.toThrow(/still running/);
-    expect(deleteSpy).not.toHaveBeenCalled();
+describe("archiving closed sessions", () => {
+  it("archives a session that no tab holds without closing another tab", async () => {
+    const { chat, archiveSpy } = service();
+    await chat.archiveSession("/sessions/project/other.jsonl", true);
+    expect(archiveSpy).toHaveBeenCalledWith("/sessions/project/other.jsonl", true);
     expect(chat.tabs()).toHaveLength(1);
-  });
-
-  it("deletes a session that no tab holds", async () => {
-    const { chat, deleteSpy } = service();
-
-    await chat.deleteSession("/sessions/project/other.jsonl");
-
-    expect(deleteSpy).toHaveBeenCalledWith("/sessions/project/other.jsonl");
   });
 });
 

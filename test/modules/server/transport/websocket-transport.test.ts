@@ -4,7 +4,7 @@ import WebSocket from "ws";
 import { PROTOCOL_VERSION, serverMessageSchema, type ServerMessage } from "../../../../src/shared/protocol.js";
 import { createPiChatExtensionRegistry } from "../../../../src/server/extensions/extension-registry.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
-import { PiSessionStore } from "../../../../src/server/projects/pi-session-store.js";
+import { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 
 /** Waits for one specific message type; connect also pushes snapshots and tabs. */
@@ -73,23 +73,25 @@ describe("WebSocket transport", () => {
     expect(await failure).toMatchObject({ requestId: "c2", items: [], error: "Provider unavailable" });
   });
 
-  it("publishes the closed tab immediately after deleting the current session", async () => {
-    const deleteSession = vi.spyOn(PiSessionStore.prototype, "delete").mockResolvedValue(undefined);
+  it("publishes the closed tab and acknowledges archiving the current session", async () => {
+    const archiveSession = vi.spyOn(ProjectSessionService.prototype, "archive").mockResolvedValue(undefined);
     try {
       server = createPiChatServer(new FakeRuntimeAdapter());
       await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
       const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
       socket = connected.socket;
-      // Drain the initial publication before listening for the delete response.
+      // Drain the initial publication before listening for the archive response.
       await receiveOfType(socket, "catalogue");
       const tabs = receiveOfType(socket, "tabs");
       const catalogue = receiveOfType(socket, "catalogue");
-      socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "deleteSession", path: "fake-session.jsonl" }));
+      const reply = receiveOfType(socket, "projectMutationResult");
+      socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "setSessionArchived", path: "fake-session.jsonl", archived: true, requestId: "archive-1" }));
       await catalogue;
-      expect(deleteSession).toHaveBeenCalledWith("fake-session.jsonl");
+      expect(await reply).toMatchObject({ type: "projectMutationResult", requestId: "archive-1" });
+      expect(archiveSession).toHaveBeenCalledWith("fake-session.jsonl", true);
       expect(await tabs).toMatchObject({ type: "tabs", tabs: [], activeSessionId: "" });
     } finally {
-      deleteSession.mockRestore();
+      archiveSession.mockRestore();
     }
   });
 

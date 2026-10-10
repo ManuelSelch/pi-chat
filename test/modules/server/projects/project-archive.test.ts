@@ -59,14 +59,16 @@ describe("project archives", () => {
     const link = join(sessionsRoot, "link.jsonl"); await symlink(outside, link);
     await expect(service.archive(link, true)).rejects.toThrow(/outside/);
   });
-  it("rejects non-session JSONL and removes metadata after successful deletion", async () => {
+  it("rejects non-session JSONL and removes archive metadata on restoration", async () => {
     const { service, path, metadata } = await setup();
     await writeFile(path, '{}');
     await expect(service.archive(path, true)).rejects.toThrow(/session/);
     // A valid header is needed, not a name trusted from the browser.
     await writeFile(path, JSON.stringify({ type: "session", id: "one", cwd: "/work" }));
     await service.archive(path, true);
-    await service.delete(path);
+    const content = await readFile(path, "utf8");
+    await service.archive(path, false);
     expect((await metadata.read()).archives).toEqual([]);
+    expect(await readFile(path, "utf8")).toBe(content);
   });
 });
