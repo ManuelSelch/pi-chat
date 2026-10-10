@@ -60,13 +60,6 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
         publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId });
       })
       .catch((error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId, error: publisher.errorText(error) }));
-  } else if (command.type === "deleteSession") {
-    chat.deleteSession(command.path)
-      .then(() => {
-        publisher.sendTabs();
-        return publisher.sendCatalogue();
-      })
-      .catch((error: unknown) => publisher.publishError(chat.activeSessionId(), error));
   } else if (command.type === "closeTab") {
     chat.closeTab(command.sessionId)
       .then(() => {

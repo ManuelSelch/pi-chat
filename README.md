@@ -37,9 +37,11 @@ which adds three commands to any Pi session:
 | --- | --- |
 | `⌘⇧O` / `Ctrl+Shift+O` | Quick-open: type a session or project name |
 | `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
-| `⌘K` / `Ctrl+K` | Session actions (new, delete, close tab) plus every Pi slash command |
+| `⌘K` / `Ctrl+K` | Session actions (new, archive, close tab) plus every Pi slash command |
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
+
+Type `/archive` to archive the current idle session and close its tab without deleting its transcript. Archived sessions remain available under **Archived** in Projects, where they can be restored. The delete-session command is no longer available.
 
 Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.
 

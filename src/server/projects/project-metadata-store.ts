@@ -39,10 +39,6 @@ export class ProjectMetadataStore {
     });
   }
 
-  forgetSession(path: string): Promise<void> {
-    return this.update(data => { data.archives = data.archives.filter(a => a.path !== path); });
-  }
-
   private async load(): Promise<ProjectMetadata> {
     let content: string;
     try { content = await readFile(this.path, "utf8"); }

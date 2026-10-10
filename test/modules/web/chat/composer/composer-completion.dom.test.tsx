@@ -8,9 +8,10 @@ import type { CommandCompletionItem } from "../../../../../src/shared/protocol.j
 
 const chat = {
   app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [] },
-  state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as const, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
+  state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as typeof initialChatState.status, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),
   prompt: vi.fn(),
+  archiveSession: vi.fn().mockResolvedValue(undefined),
 };
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 const confirm = vi.fn();
@@ -32,13 +33,15 @@ beforeEach(() => {
   vi.clearAllMocks();
   chat.state.sessionName = undefined;
   chat.state.sessionPath = undefined;
+  chat.state.status = "idle";
+  chat.archiveSession.mockResolvedValue(undefined);
   confirm.mockResolvedValue(false);
   chat.completeCommandArguments.mockResolvedValue([{ value: "staging", label: "Staging", description: "Test environment" }]);
 });
 afterEach(cleanup);
 
 describe("composer session actions", () => {
-  it("omits custom rename and uses the Pi title in the delete confirmation", () => {
+  it("offers /archive instead of deletion and preserves the transcript without confirmation", async () => {
     chat.state.sessionName = "Pi-generated title";
     chat.state.sessionPath = "/sessions/s1.jsonl";
     mount();
@@ -46,12 +49,44 @@ describe("composer session actions", () => {
     expect(screen.queryByRole("option", { name: /Rename session/ })).toBeNull();
     expect(screen.getByRole("option", { name: /New session/ })).toBeTruthy();
     expect(screen.getByRole("option", { name: /Close tab/ })).toBeTruthy();
-    type("/delete");
+    expect(screen.queryByRole("option", { name: /Delete session/ })).toBeNull();
+    type("/archive");
     fireEvent.keyDown(textarea, { key: "Enter" });
-    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({
-      title: "Delete session?",
-      body: "“Pi-generated title” moves to the trash and its tab closes.",
-    }));
+    await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledWith("/sessions/s1.jsonl", true));
+    expect(confirm).not.toHaveBeenCalled();
+    expect(chat.prompt).not.toHaveBeenCalled();
+    expect(textarea.value).toBe("");
+  });
+
+  it("handles an exact /archive submission after dismissing completion", async () => {
+    chat.state.sessionPath = "/sessions/s1.jsonl";
+    mount();
+    const textarea = type("/archive");
+    fireEvent.keyDown(textarea, { key: "Escape" });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledWith("/sessions/s1.jsonl", true));
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
+  it("shows archive failures without prompting the agent", async () => {
+    chat.state.sessionPath = "/sessions/s1.jsonl";
+    chat.archiveSession.mockRejectedValueOnce(new Error("Cannot save archive metadata"));
+    mount();
+    const textarea = type("/archive");
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    expect(await screen.findByText("Cannot save archive metadata")).toBeTruthy();
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
+  it("does not offer or execute archive while the session is running", () => {
+    chat.state.sessionPath = "/sessions/s1.jsonl";
+    chat.state.status = "running";
+    mount();
+    const textarea = type("/archive");
+    expect(screen.queryByRole("option", { name: /Archive session/ })).toBeNull();
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    expect(chat.archiveSession).not.toHaveBeenCalled();
+    expect(chat.prompt).not.toHaveBeenCalled();
   });
 });
 

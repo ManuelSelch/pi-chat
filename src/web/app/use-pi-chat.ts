@@ -174,9 +174,6 @@ export function usePiChat() {
     dispatch({ type: "openPending" });
     send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) });
   }, [send]);
-  const deleteSession = useCallback((path: string) => {
-    send({ version: PROTOCOL_VERSION, type: "deleteSession", path });
-  }, [send]);
 
   // Commands act on the tab the user is looking at unless one is named.
   const session = activeSession(app);
@@ -201,7 +198,6 @@ export function usePiChat() {
     openSession,
     newSession,
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
-    deleteSession,
     archiveSession,
     pinProject,
     closeTab: (sessionId: string) => {

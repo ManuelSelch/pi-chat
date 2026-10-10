@@ -187,18 +187,18 @@ describe("quick chats", () => {
   });
 });
 
-describe("deleting a session", () => {
-  it("removes the file from the session folder", async () => {
+describe("archiving a session", () => {
+  it("keeps the file in the session folder", async () => {
     const root = await mkdtemp(join(tmpdir(), "pi-chat-delete-"));
     const sessions = join(root, "sessions", "project");
     await mkdir(sessions, { recursive: true });
     const target = join(sessions, "one.jsonl");
-    await writeFile(target, "{}");
+    await writeFile(target, JSON.stringify({ type: "session", id: "one", cwd: root }));
 
     const service = new ProjectSessionService({ listAll: async () => [] }, join(root, "sessions"));
-    await service.delete(target);
+    await service.archive(target, true);
 
-    expect(existsSync(target)).toBe(false);
+    expect(existsSync(target)).toBe(true);
   });
 
   it("refuses a path outside the session folder", async () => {
@@ -208,7 +208,7 @@ describe("deleting a session", () => {
 
     const service = new ProjectSessionService({ listAll: async () => [] }, join(root, "sessions"));
 
-    await expect(service.delete(outsider)).rejects.toThrow(/outside the Pi session folder/);
+    await expect(service.archive(outsider, true)).rejects.toThrow(/outside the Pi session folder/);
     expect(existsSync(outsider)).toBe(true);
   });
 
@@ -221,7 +221,7 @@ describe("deleting a session", () => {
 
     const service = new ProjectSessionService({ listAll: async () => [] }, sessions);
 
-    await expect(service.delete(settings)).rejects.toThrow(/outside the Pi session folder/);
+    await expect(service.archive(settings, true)).rejects.toThrow(/outside the Pi session folder/);
     expect(existsSync(settings)).toBe(true);
   });
 
@@ -232,6 +232,6 @@ describe("deleting a session", () => {
 
     const service = new ProjectSessionService({ listAll: async () => [] }, sessions);
 
-    await expect(service.delete(join(sessions, "missing.jsonl"))).rejects.toThrow(/no longer exists/);
+    await expect(service.archive(join(sessions, "missing.jsonl"), true)).rejects.toThrow(/no longer exists/);
   });
 });

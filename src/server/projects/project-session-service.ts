@@ -33,16 +33,6 @@ export class ProjectSessionService {
     this.store = new PiSessionStore(sessionsRoot);
   }
 
-  /**
-   * Deletes one session file. The path arrives from the browser, so it is
-   * checked against the Pi session folder instead of being trusted.
-   */
-  async delete(sessionPath: string): Promise<void> {
-    const canonical = await this.store.validatePath(sessionPath);
-    await this.store.delete(canonical);
-    await this.metadata.forgetSession(canonical);
-  }
-
   async archive(sessionPath: string, archived: boolean): Promise<void> {
     const session = await this.store.describe(sessionPath);
     const repository = archived ? await this.discovery.forDirectory(session.cwd) : undefined;

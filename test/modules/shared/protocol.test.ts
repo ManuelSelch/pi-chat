@@ -76,10 +76,11 @@ describe("native built-in features", () => {
   });
 });
 
-describe("session deletion", () => {
-  it("accepts a session path and rejects an empty one", () => {
-    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "/sessions/a.jsonl" }))
-      .toMatchObject({ type: "deleteSession" });
+describe("session archiving", () => {
+  it("accepts archiving and rejects the removed deletion command", () => {
+    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "setSessionArchived", path: "/sessions/a.jsonl", archived: true, requestId: "a1" }))
+      .toMatchObject({ type: "setSessionArchived", archived: true });
+    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "/sessions/a.jsonl" })).toThrow();
     expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "" })).toThrow();
   });
 });

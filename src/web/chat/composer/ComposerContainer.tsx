@@ -27,6 +27,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [selection, setSelection] = useState({ sessionId: app.activeSessionId, start: 0, end: 0 });
   const [composing, setComposing] = useState(false);
+  const [archiveError, setArchiveError] = useState<{ sessionId: string; message: string }>();
   const pendingCaret = useRef<number | undefined>(undefined);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
@@ -34,17 +35,20 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const input = drafts[app.activeSessionId] ?? "";
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
-  const sessionName = state.sessionName?.trim();
   const sessionPath = state.sessionPath;
+  function archive(): void {
+    if (!sessionPath || busy) return;
+    const sessionId = app.activeSessionId;
+    setArchiveError(undefined);
+    void chat.archiveSession(sessionPath, true).catch((error: unknown) => {
+      setArchiveError({ sessionId, message: error instanceof Error ? error.message : String(error) });
+    });
+  }
   const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
   const sessionActions: LocalAction[] = [
     { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
     { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
-    ...(sessionPath && !busy ? [{ name: "Delete session", description: "Move this session to the trash and close its tab", run: () => {
-      void confirm({ title: "Delete session?", body: `“${sessionName || "This session"}” moves to the trash and its tab closes.`, confirmLabel: "Delete" }).then((yes) => {
-        if (yes && sessionPath) return chat.deleteSession(sessionPath);
-      });
-    } }] : []),
+    ...(sessionPath && !busy ? [{ name: "Archive session", description: "Keep this session in Archived and close its tab", run: archive }] : []),
     ...(restartFeature ? [{ name: "Restart server", description: restartFeature.description ?? "Restart the Pi Chat server", run: () => {
       void confirm({ title: "Restart server?", body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.", confirmLabel: "Restart" }).then((yes) => {
         if (yes) return chat.restartServer();
@@ -137,7 +141,8 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     event?.preventDefault();
     const message = input.trim();
     if (!message || state.status !== "idle") return;
-    chat.prompt(message);
+    if (message === "/archive") archive();
+    else chat.prompt(message);
     setInput("");
     setActiveCommand(0);
     setMenuDismissed(false);
@@ -196,7 +201,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         home,
         connection: app.connection,
         connecting,
-        error: visibleError(app, state),
+        error: archiveError?.sessionId === app.activeSessionId ? archiveError.message : visibleError(app, state),
         busy,
         input,
         activeCommand: activeIndex,
@@ -208,7 +213,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
       }}
       actions={{
         takeControl: chat.takeControl,
-        dismissError: chat.dismissError,
+        dismissError: () => { setArchiveError(undefined); chat.dismissError(); },
         changeInput,
         selectionChanged,
         compositionChanged: setComposing,

@@ -332,7 +332,6 @@ export const clientMessageSchema = z.union([
   z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional(), requestId: z.string().min(1).max(128).optional() }),
   directoryBrowseSchema.extend({ ...baseClientMessage, type: z.literal("browseDirectories"), requestId: z.string().min(1).max(128) }),
-  z.object({ ...baseClientMessage, type: z.literal("deleteSession"), path: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("setSessionArchived"), path: z.string().min(1), archived: z.boolean(), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("pinProject"), path: z.string().min(1), pinned: z.boolean(), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
