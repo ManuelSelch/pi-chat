@@ -43,6 +43,26 @@ describe("native steering", () => {
     expect(adapter.snapshot().steeringMessages).toEqual([]);
   });
 
+  it("records each newly queued steering message as a transcript user message", () => {
+    const { adapter, queue } = runtime();
+    const listener = vi.fn();
+    adapter.subscribe(listener);
+    queue(["Use the existing API", "Prefer the shared helper"]);
+
+    const finalCalls = listener.mock.calls.filter(([event]) => event.type === "messageFinal");
+    expect(finalCalls).toHaveLength(2);
+    expect(finalCalls[0]?.[0]).toMatchObject({
+      type: "messageFinal",
+      runId: "steering",
+      message: { role: "user", text: "Use the existing API" },
+    });
+    expect(finalCalls[1]?.[0]).toMatchObject({
+      type: "messageFinal",
+      runId: "steering",
+      message: { role: "user", text: "Prefer the shared helper" },
+    });
+  });
+
   it("does not release the initial prompt's preflight claim when steering returns", async () => {
     const { adapter, session } = runtime();
     let finish!: () => void;

@@ -32,7 +32,11 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private bashRunning = false;
   private compactPending = false;
   private disposed = false;
-  private readonly projectionState = { currentRunId: "", lastError: undefined as string | undefined };
+  private readonly projectionState = {
+    currentRunId: "",
+    lastError: undefined as string | undefined,
+    lastSteeringMessages: [] as string[],
+  };
   private boundSessionId = "";
   /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
   private readonly inFlightTools = new Set<string>();

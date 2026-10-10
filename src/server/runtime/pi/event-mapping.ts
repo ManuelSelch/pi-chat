@@ -11,6 +11,7 @@ export type SessionEvent = Parameters<AgentSessionRuntime["session"]["subscribe"
 export interface EventProjectionState {
   currentRunId: string;
   lastError?: string;
+  lastSteeringMessages: string[];
 }
 
 export interface EventMappingDependencies {
@@ -26,7 +27,19 @@ export interface EventMappingDependencies {
 export function createSessionEventHandler(dependencies: EventMappingDependencies): (event: SessionEvent) => void {
   return (event) => {
     if (event.type === "queue_update") {
-      dependencies.emit({ type: "steeringQueue", messages: [...event.steering] });
+      const messages = [...event.steering];
+      const seen = new Set(dependencies.state.lastSteeringMessages);
+      for (const message of messages) {
+        const text = message.trim();
+        if (!text || seen.has(message)) continue;
+        dependencies.emit({
+          type: "messageFinal",
+          runId: dependencies.state.currentRunId || "steering",
+          message: { id: `steering:${crypto.randomUUID()}`, role: "user", text },
+        });
+      }
+      dependencies.state.lastSteeringMessages = messages;
+      dependencies.emit({ type: "steeringQueue", messages });
       return;
     }
     if (event.type === "session_info_changed") {
