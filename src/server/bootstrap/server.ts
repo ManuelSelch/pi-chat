@@ -10,6 +10,7 @@ import type { RuntimeAdapter, RuntimeAdapterFactory } from "../runtime/contracts
 import type { RestartService } from "./restart-service.js";
 import { WebSocketTransport } from "../transport/websocket-transport.js";
 import type { FileService } from "../files/file-service.js";
+import type { FileLogger } from "../logging/file-logger.js";
 
 export interface PiChatServer {
   httpServer: Server;
@@ -28,6 +29,7 @@ export function createPiChatServer(
   restart?: RestartService,
   extensions?: PiChatExtensionRegistry,
   files?: FileService,
+  logger?: FileLogger,
 ): PiChatServer {
   const app = express();
   app.get("/health", (_request, response) => response.json({ ok: true }));
@@ -39,11 +41,12 @@ export function createPiChatServer(
   const httpServer = createServer(app);
   const projectSessions = new ProjectSessionService(new PiSessionStore());
   const chat = new ChatApplicationService(runtime, factory, projectSessions, restart, extensions, undefined, files);
-  const transport = new WebSocketTransport(httpServer, chat);
+  const transport = new WebSocketTransport(httpServer, chat, logger);
   return {
     httpServer,
     transport,
     async close() {
+      logger?.info("server.shutdown");
       await transport.close();
       await new Promise<void>((resolveClose, reject) => {
         httpServer.close((error) => (error ? reject(error) : resolveClose()));

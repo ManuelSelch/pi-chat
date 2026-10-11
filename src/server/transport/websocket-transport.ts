@@ -1,4 +1,5 @@
 import type { Server } from "node:http";
+import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
 import {
   CONTROLLER_REPLACED_CODE,
@@ -8,6 +9,7 @@ import {
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
 import { handleClientCommand } from "./command-handler.js";
+import type { FileLogger } from "../logging/file-logger.js";
 
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
@@ -15,7 +17,9 @@ export class WebSocketTransport {
   private readonly publisher: ServerPublisher;
   private readonly unsubscribe: () => void;
 
-  constructor(httpServer: Server, private readonly chat: ChatApplicationService) {
+  private readonly connectionIds = new WeakMap<WebSocket, string>();
+
+  constructor(httpServer: Server, private readonly chat: ChatApplicationService, private readonly logger?: FileLogger) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
     this.publisher = new ServerPublisher(chat, () => this.controller);
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publisher.publish(sessionId, event));
@@ -29,7 +33,11 @@ export class WebSocketTransport {
   }
 
   private connect(socket: WebSocket): void {
+    const connectionId = randomUUID();
+    this.connectionIds.set(socket, connectionId);
+    this.logger?.info("websocket.open", { connectionId });
     if (this.controller?.readyState === WebSocket.OPEN) {
+      this.logger?.warn("websocket.controller_replaced", { connectionId: this.connectionIds.get(this.controller) });
       this.publisher.sendTo(this.controller, this.publisher.protocolError("Another browser took control of this Pi Chat session."));
       this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
     }
@@ -40,7 +48,18 @@ export class WebSocketTransport {
 
     socket.on("message", (data) => this.handleMessage(socket, data));
 
-    socket.on("close", () => {
+    socket.on("error", (error) => {
+      this.logger?.error("websocket.error", { connectionId, message: error.message });
+    });
+
+    socket.on("close", (code, reason) => {
+      this.logger?.info("websocket.close", {
+        connectionId,
+        code,
+        reason: reason.toString("utf8").slice(0, 256),
+        controller: this.controller === socket,
+        runtimeActive: this.chat.tabs().some((tab) => tab.status !== "idle"),
+      });
       if (this.controller !== socket) return;
       this.controller = undefined;
       // A reload must not cancel a permission gate, so pending dialogs only

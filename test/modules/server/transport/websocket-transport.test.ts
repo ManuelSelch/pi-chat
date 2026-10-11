@@ -54,6 +54,27 @@ describe("WebSocket transport", () => {
     if (server) await server.close();
   });
 
+  it("logs connection lifecycle metadata without logging WebSocket payloads", async () => {
+    const logger = {
+      info: vi.fn(), warn: vi.fn(), error: vi.fn(),
+      flush: vi.fn(async () => {}), close: vi.fn(async () => {}),
+    };
+    server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, undefined, undefined, logger);
+    await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+    const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
+    socket = connected.socket;
+    const close = new Promise<void>((resolve) => socket!.once("close", () => resolve()));
+    socket.close(1000, "test close");
+    await close;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(logger.info).toHaveBeenCalledWith("websocket.open", { connectionId: expect.any(String) });
+    expect(logger.info).toHaveBeenCalledWith("websocket.close", expect.objectContaining({
+      connectionId: expect.any(String), code: 1000, reason: "test close", controller: true,
+      runtimeActive: false,
+    }));
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain("test payload");
+  });
+
   it("returns Pi argument suggestions without running or publishing a snapshot", async () => {
     const runtime = new FakeRuntimeAdapter();
     const complete = vi.spyOn(runtime, "completeCommandArguments").mockResolvedValue([{ value: "staging", label: "Staging" }]);

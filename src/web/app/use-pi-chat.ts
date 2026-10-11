@@ -50,6 +50,14 @@ export function usePiChat() {
 
       socket.addEventListener("open", () => {
         retryMs = FIRST_RETRY_MS;
+        console.info("[pi-chat] websocket.open", { timestamp: new Date().toISOString() });
+      });
+
+      socket.addEventListener("error", (event) => {
+        console.warn("[pi-chat] websocket.error", {
+          timestamp: new Date().toISOString(),
+          message: event instanceof ErrorEvent ? event.message : undefined,
+        });
       });
 
       socket.addEventListener("message", (event) => {
@@ -73,6 +81,12 @@ export function usePiChat() {
       // "closed before the connection is established".
       socket.addEventListener("close", (event) => {
         if (disposed || socketRef.current !== socket) return;
+        console.info("[pi-chat] websocket.close", {
+          timestamp: new Date().toISOString(),
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        });
         socketRef.current = undefined;
         folderRequests.current.disconnect();
         completionRequests.current.disconnect();

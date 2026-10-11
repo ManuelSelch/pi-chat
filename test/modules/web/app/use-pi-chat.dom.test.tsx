@@ -32,11 +32,11 @@ class FakeWebSocket {
     this.listeners.set(type, existing);
   }
 
-  close(code = 1000): void {
+  close(code = 1000, reason = "", wasClean = true): void {
     if (this.readyState === FakeWebSocket.CONNECTING) this.closedWhileConnecting = true;
     if (this.readyState === FakeWebSocket.CLOSED) return;
     this.readyState = FakeWebSocket.CLOSED;
-    this.emit("close", { code });
+    this.emit("close", { code, reason, wasClean });
   }
 
   /** The server kicked this tab because another browser took the controller slot. */
@@ -315,7 +315,8 @@ describe("usePiChat connection lifecycle", () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
   });
 
-  it("returns to connecting and reconnects when an established socket drops", () => {
+  it("logs close details to the browser console and reconnects", () => {
+    const log = vi.spyOn(console, "info").mockImplementation(() => {});
     render(<Probe />);
     act(() => void vi.advanceTimersByTime(0));
     const first = FakeWebSocket.instances[0]!;
@@ -328,7 +329,13 @@ describe("usePiChat connection lifecycle", () => {
     );
     expect(screen.getByTestId("status").textContent).toBe("idle");
 
-    act(() => first.close());
+    act(() => first.close(1006, "abnormal closure", false));
+    expect(log).toHaveBeenCalledWith("[pi-chat] websocket.close", expect.objectContaining({
+      code: 1006,
+      reason: "abnormal closure",
+      wasClean: false,
+      timestamp: expect.any(String),
+    }));
     expect(screen.getByTestId("status").textContent).toBe("connecting");
 
     act(() => void vi.advanceTimersByTime(250));

@@ -126,6 +126,19 @@ Home/transcript selection, composer height, and widget docking.
 See [the grouping plan and verification record](docs/web-organization/REQUIREMENTS.md)
 for detailed boundaries and migration history.
 
+## Troubleshooting WebSocket connections
+
+Pi Chat writes structured server logs to `~/.pi/agent/logs/pi-chat.log`. The active
+file is limited to 5 MiB, with three rotated files retained alongside it. Follow
+new events with `tail -f ~/.pi/agent/logs/pi-chat.log`; browser WebSocket close
+codes, reasons, and clean/unclean status are also printed in the browser
+Developer Console with the `[pi-chat] websocket.close` prefix.
+
+Set `PI_CHAT_LOG_DIR` to choose another log directory,
+`PI_CHAT_LOG_MAX_BYTES` to change the per-file limit, and
+`PI_CHAT_LOG_RETAINED_FILES` to change the number of rotated files. Logs include
+connection lifecycle metadata, not chat frames or prompts.
+
 ## Environment variables
 
 | Variable | Meaning |
