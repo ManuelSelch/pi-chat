@@ -102,7 +102,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     return (
       <div key={group.key}>
         <div className={`${styles.groupRow}${active ? ` ${styles.groupRowActive}` : ""}`}>
-          <UnstyledButton className={styles.groupMain} aria-expanded={open} aria-current={active ? "true" : undefined} title={group.displayPath}
+          <UnstyledButton className={styles.groupMain} aria-expanded={open} aria-current={active ? "true" : undefined}
             onClick={() => { setSelected(group.key); setExpanded(value => ({ ...value, [group.key]: !open })); }}>
             <IconChevronRight size={14} className={`${styles.groupChevron}${open ? ` ${styles.groupChevronOpen}` : ""}`} />
             {group.quickChats ? <IconMessage size={16} className={styles.groupIcon} />

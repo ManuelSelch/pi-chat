@@ -136,7 +136,7 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
           />
           <Text ff="monospace" fw={600} size="sm" style={{ flex: "none" }}>{tool.name}</Text>
           {subject ? (
-            <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} title={subject} data-testid="tool-subject">
+            <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} data-testid="tool-subject">
               {subject}
             </Text>
           ) : (

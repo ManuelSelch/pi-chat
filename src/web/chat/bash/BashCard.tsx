@@ -31,7 +31,7 @@ export function BashCard({ bash }: { bash: BashCardData }) {
         <Group gap="sm" wrap="nowrap">
           <Box w={8} h={8} className={bash.status === "running" ? "tool-running-pulse" : undefined} style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[bash.status]}-6)`, flex: "none" }} />
           <Text ff="monospace" fw={600} size="sm" style={{ flex: "none" }}>bash</Text>
-          <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} title={bash.command} data-testid="bash-command">{command}</Text>
+          <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} data-testid="bash-command">{command}</Text>
         </Group>
       </Box>
       <Box px="sm" pb="sm" style={{ borderTop: `1px solid ${THEME.border.default}` }}>
