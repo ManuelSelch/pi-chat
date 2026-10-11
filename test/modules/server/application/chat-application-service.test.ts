@@ -12,7 +12,7 @@ function service(archiveSpy = vi.fn(async () => {})) {
     openSession: async () => new FakeRuntimeAdapter(),
     newSession: newSessionSpy,
   };
-  const projectSessions = { catalogue: async () => ({ projects: [] }), archive: archiveSpy } as any;
+  const projectSessions = { catalogue: async () => ({ projects: [] }), rememberProject: vi.fn(async () => {}), archive: archiveSpy } as any;
   return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, archiveSpy, newSessionSpy };
 }
 

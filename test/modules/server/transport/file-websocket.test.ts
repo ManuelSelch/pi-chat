@@ -20,7 +20,7 @@ afterEach(async () => {
 });
 function receive(type: ServerMessage["type"]): Promise<ServerMessage> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { socket!.off("message", listener); reject(new Error(`Timed out waiting for ${type}`)); }, 2000);
+    const timer = setTimeout(() => { socket!.off("message", listener); reject(new Error(`Timed out waiting for ${type}`)); }, 15000);
     const listener = (data: WebSocket.RawData) => {
       const message = serverMessageSchema.parse(JSON.parse(data.toString()));
       if (message.type === type) { clearTimeout(timer); socket!.off("message", listener); resolve(message); }

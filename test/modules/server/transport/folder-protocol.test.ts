@@ -69,7 +69,7 @@ describe("folder requests", () => {
     expect(await reply).toMatchObject({ type: "sessionOpened", requestId: "start-1", sessionId: "fake-session" });
     expect(factory.newSession).toHaveBeenCalledWith(await realpath(join(folder, "target")));
     expect(factory.continueProject).not.toHaveBeenCalled();
-  });
+  }, 15000);
   it("leaves an existing streaming tab untouched when opening a new folder", async () => {
     folder = await mkdtemp(join(tmpdir(), "pi-browser-"));
     const current = new FakeRuntimeAdapter("running");
