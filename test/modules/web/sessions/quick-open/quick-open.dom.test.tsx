@@ -14,9 +14,9 @@ const catalogue: ProjectCatalogue = { projects: [
   { path: "/detached", displayPath: "~/trees/review", name: "review", exists: true, modified: 0, sessionCount: 0, sessions: [],
     repositoryName: "pi-chat", worktree: { detached: true, primary: false, commit: "abcdef123456" } },
 ] };
-function setup() {
+function setup(data = catalogue) {
   const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
-  render(<MantineProvider><QuickOpen opened catalogue={catalogue} tabs={[]} {...handlers} /></MantineProvider>);
+  render(<MantineProvider><QuickOpen opened catalogue={data} tabs={[]} {...handlers} /></MantineProvider>);
   return handlers;
 }
 it("identifies each type by icon and accessible name without visible right-hand labels", () => {
@@ -48,6 +48,62 @@ it("keeps existing project/session activation with new worktree identity", () =>
   fireEvent.click(screen.getByRole("option", { name: /Worktree: feat\/palette/ }));
   expect(handlers.onOpenProject).toHaveBeenCalledWith("/feature");
 });
+it("distinguishes an empty catalogue, an empty scope and no search matches", () => {
+  setup({ projects: [] });
+  expect(screen.getByText("No folders or sessions yet. Open a folder to get started.")).toBeTruthy();
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "missing" } });
+  expect(screen.getByText('Nothing matches “missing”.')).toBeTruthy();
+  fireEvent.change(input, { target: { value: "%" } });
+  expect(screen.getByText("No worktrees available.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "/ Actions" }));
+  expect(screen.getAllByRole("option")).toHaveLength(3);
+});
+it("offers search or scopes when folders exist but no recent sessions are available", () => {
+  setup({ projects: [catalogue.projects[0]!] });
+  expect(screen.getByText("No recent sessions. Search or choose a scope.")).toBeTruthy();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "#" } });
+  expect(screen.getByRole("option", { name: /Folder: pi-chat/ })).toBeTruthy();
+});
+it("wraps keyboard selection, activates worktrees, and resets selection after editing", () => {
+  const handlers = setup();
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "%" } });
+  let rows = screen.getAllByRole("option");
+  fireEvent.keyDown(input, { key: "ArrowUp" });
+  expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  expect(rows[0]!.getAttribute("aria-selected")).toBe("true");
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  fireEvent.change(input, { target: { value: "%palette" } });
+  rows = screen.getAllByRole("option");
+  expect(rows[0]!.getAttribute("aria-selected")).toBe("true");
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(handlers.onOpenProject).toHaveBeenCalledWith("/feature");
+});
+it("does nothing on Enter with no results or during IME composition", () => {
+  const handlers = setup();
+  const input = screen.getByRole("textbox");
+  fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+  expect(handlers.onOpenSession).not.toHaveBeenCalled();
+  fireEvent.change(input, { target: { value: "missing" } });
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(handlers.onOpenProject).not.toHaveBeenCalled();
+  expect(handlers.onClose).not.toHaveBeenCalled();
+});
+it("clamps selection when the catalogue changes without a query edit", () => {
+  const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn() };
+  const view = render(<MantineProvider><QuickOpen opened catalogue={catalogue} tabs={[]} {...handlers} /></MantineProvider>);
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "%" } });
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  view.rerender(<MantineProvider><QuickOpen opened catalogue={{ projects: [catalogue.projects[1]!] }} tabs={[]} {...handlers} /></MantineProvider>);
+  expect(screen.getByRole("option").getAttribute("aria-selected")).toBe("true");
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(handlers.onOpenProject).toHaveBeenCalledWith("/feature");
+});
+
 it("uses neutral styling and scopes focus the search input", () => {
   setup();
   fireEvent.click(screen.getByRole("button", { name: "/ Actions" }));

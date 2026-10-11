@@ -57,6 +57,15 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId), actions);
   const scopeKind = parseQuickOpenQuery(query).kind;
   const results = rankQuickOpen(items, query);
+  // Catalogue snapshots can remove results without a query edit.
+  const selectedIndex = Math.min(active, Math.max(0, results.length - 1));
+  const emptyText = parseQuickOpenQuery(query).text
+    ? `Nothing matches “${query.trim()}”.`
+    : scopeKind
+      ? `No ${{ session: "sessions", project: "folders", worktree: "worktrees", action: "actions" }[scopeKind]} available.`
+      : catalogue.projects.length === 0
+        ? "No folders or sessions yet. Open a folder to get started."
+        : "No recent sessions. Search or choose a scope.";
 
   useEffect(() => {
     // Every opening starts fresh, showing the most recent sessions.
@@ -80,16 +89,16 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   }
 
   function keyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (results.length === 0) return;
+    if (event.nativeEvent.isComposing || results.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((index) => (index + step + results.length) % results.length);
+      setActive((selectedIndex + step + results.length) % results.length);
       return;
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      choose(results[active]!);
+      choose(results[selectedIndex]!);
     }
   }
 
@@ -139,21 +148,21 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
         >
           <Stack gap={2} role="listbox" aria-label="Folders, worktrees, sessions and actions" style={{ width: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box" }}>
             {results.length === 0 ? (
-              <Text size="sm" c="dimmed" p="8px 12px">Nothing matches “{query.trim()}”.</Text>
+              <Text size="sm" c="dimmed" p="8px 12px">{emptyText}</Text>
             ) : null}
             {results.map((item, index) => (
               <UnstyledButton
                 key={`${item.kind}:${item.path}`}
-                ref={index === active ? activeRef : undefined}
+                ref={index === selectedIndex ? activeRef : undefined}
                 role="option"
                 className={classes.row}
                 aria-label={`${resultTypes[item.kind]}: ${resultTitle(item)} · ${resultContext(item)}${item.isOpen ? " · Open" : ""}`}
-                aria-selected={index === active}
+                aria-selected={index === selectedIndex}
                 onMouseMove={(event) => {
                   const last = pointer.current;
                   if (last && last.x === event.clientX && last.y === event.clientY) return;
                   pointer.current = { x: event.clientX, y: event.clientY };
-                  if (index !== active) {
+                  if (index !== selectedIndex) {
                     mouseActive.current = index;
                     setActive(index);
                   }
