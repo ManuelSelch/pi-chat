@@ -37,11 +37,12 @@ describe("WidgetPanel", () => {
     expect(container.querySelector("pre")).toBeNull();
   });
 
-  it("renders the lines verbatim, as the terminal laid them out", () => {
-    show([todo]);
+  it("renders widget contents as Markdown", () => {
+    show([{ ...todo, lines: ["## Tasks", "", "- **Write** tests", "- Read the docs"] }]);
 
-    const block = document.querySelector("pre");
-    expect(block?.textContent).toBe("── Todos ──\n○ #1 Write tests\n✓ #2 Read the docs");
+    expect(screen.getByRole("heading", { name: "Tasks", level: 2 })).toBeTruthy();
+    expect(screen.getByText("Write").tagName).toBe("STRONG");
+    expect(document.querySelectorAll("ul li")).toHaveLength(2);
     // The extension's own key is the only label the browser has for it.
     expect(screen.getByText("todo")).toBeTruthy();
   });
@@ -52,7 +53,7 @@ describe("WidgetPanel", () => {
     const link = screen.getByRole("link", { name: "Frontend" });
     expect(link.getAttribute("href")).toBe("http://localhost:5174");
     expect(link.getAttribute("rel")).toContain("noopener");
-    expect(document.querySelector("pre")?.textContent).toBe("Frontend");
+    expect(document.querySelector("pre")).toBeNull();
     expect(screen.getByText("Preview")).toBeTruthy();
   });
 
@@ -61,14 +62,10 @@ describe("WidgetPanel", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("wraps a long row instead of running it off the side", () => {
+  it("allows long Markdown content to wrap", () => {
     show([{ ...todo, lines: [`○ #1 ${"a very long task ".repeat(8)}`] }]);
 
-    const block = document.querySelector("pre");
-    // The alignment spaces a widget draws with still have to survive: it is the
-    // overflow that wraps, not every space that collapses.
-    expect(block?.style.whiteSpace).toBe("pre-wrap");
-    expect(block?.style.overflowWrap).toBe("anywhere");
+    expect(document.querySelector(".markdown")?.getAttribute("style")).toContain("overflow-wrap: anywhere");
   });
 
   it("collapses and expands a panel", () => {
@@ -77,17 +74,17 @@ describe("WidgetPanel", () => {
 
     fireEvent.click(toggle);
 
-    expect(document.querySelector("pre")).toBeNull();
+    expect(document.querySelector(".markdown")).toBeNull();
     expect(screen.getByText("3 lines")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { expanded: false }));
-    expect(document.querySelector("pre")).toBeTruthy();
+    expect(document.querySelector(".markdown")).toBeTruthy();
   });
 
   it("renders one panel per extension", () => {
     show([todo, { key: "build", lines: ["running…"], placement: "aboveEditor" }]);
 
-    expect(document.querySelectorAll("pre")).toHaveLength(2);
+    expect(document.querySelectorAll(".markdown")).toHaveLength(2);
     expect(screen.getByText("build")).toBeTruthy();
   });
 });
@@ -143,17 +140,17 @@ describe("WidgetDock", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "todo", expanded: true }));
 
-    expect([...document.querySelectorAll("pre")].map((block) => block.textContent)).toEqual(["42k tokens"]);
+    expect([...document.querySelectorAll(".markdown")].map((block) => block.textContent)).toEqual(["42k tokens"]);
     expect(screen.getByText("3 lines")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /todo/, expanded: false }));
-    expect(document.querySelectorAll("pre")).toHaveLength(2);
+    expect(document.querySelectorAll(".markdown")).toHaveLength(2);
   });
 
   it("renders the lines the same way the composer panel does", () => {
     dock([todo, below]);
 
-    const blocks = [...document.querySelectorAll("pre")].map((block) => block.textContent);
+    const blocks = [...document.querySelectorAll(".markdown")].map((block) => block.textContent);
     expect(blocks).toEqual(["── Todos ──\n○ #1 Write tests\n✓ #2 Read the docs", "42k tokens"]);
   });
 });
