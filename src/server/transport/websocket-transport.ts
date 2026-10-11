@@ -21,7 +21,7 @@ export class WebSocketTransport {
 
   constructor(httpServer: Server, private readonly chat: ChatApplicationService, private readonly logger?: FileLogger) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
-    this.publisher = new ServerPublisher(chat, () => this.controller);
+    this.publisher = new ServerPublisher(chat, () => this.controller, logger);
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publisher.publish(sessionId, event));
     this.server.on("connection", (socket) => this.connect(socket));
   }
