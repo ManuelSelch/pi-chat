@@ -150,11 +150,11 @@ describe("quick open", () => {
 
   it("searches provided built-in actions with / and unscoped text", () => {
     const withActions = buildQuickOpenItems(catalogue, [], [
-      { id: "settings", title: "Open settings", description: "Models and appearance" },
-      { id: "new-session", title: "New session", description: "Start in the current folder" },
+      { id: "settings", name: "Open settings", description: "Models and appearance", run: () => {} },
+      { id: "new-session", name: "New session", description: "Start in the current folder", run: () => {} },
     ]);
     expect(rankQuickOpen(withActions, "/")).toHaveLength(2);
-    expect(rankQuickOpen(withActions, "/setings")[0]).toMatchObject({ kind: "action", action: "settings" });
+    expect(rankQuickOpen(withActions, "/setings")[0]).toMatchObject({ kind: "action", action: { id: "settings" } });
     expect(rankQuickOpen(withActions, "appearance")[0]?.kind).toBe("action");
     expect(rankQuickOpen(withActions, "").every((item) => item.kind === "session")).toBe(true);
   });

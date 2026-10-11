@@ -3,7 +3,9 @@ import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from
 import { IconBolt, IconFolder, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
-import { buildQuickOpenItems, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenAction, type QuickOpenItem } from "./quick-open.js";
+import { buildQuickOpenItems, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
+
+import type { SessionAction } from "../actions/session-actions.js";
 
 interface QuickOpenProps {
   opened: boolean;
@@ -12,9 +14,7 @@ interface QuickOpenProps {
   tabs: Tab[];
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
-  onNewSession?: () => void;
-  onOpenFolder?: () => void;
-  onOpenSettings?: () => void;
+  actions?: readonly SessionAction[];
 }
 
 const resultTypes = { session: "Session", project: "Folder", worktree: "Worktree", action: "Action" };
@@ -41,7 +41,7 @@ function resultContext(item: QuickOpenItem): string {
 }
 
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, onOpenFolder, onOpenSettings }: QuickOpenProps) {
+export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, actions = [] }: QuickOpenProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const activeRef = useRef<HTMLButtonElement | null>(null);
@@ -49,11 +49,6 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const pointer = useRef<{ x: number; y: number } | null>(null);
   const mouseActive = useRef<number | null>(null);
 
-  const actions: QuickOpenAction[] = [];
-  if (onNewSession) actions.push({ id: "new-session", title: "New session", description: "Start a session in the current folder" });
-  if (onOpenFolder) actions.push({ id: "open-folder", title: "Open folder…", description: "Choose a folder to start a session" });
-  if (onOpenSettings) actions.push({ id: "settings", title: "Open settings", description: "Models, appearance and preferences" });
-  const actionHandlers = { "new-session": onNewSession, "open-folder": onOpenFolder, settings: onOpenSettings };
   const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId), actions);
   const scopeKind = parseQuickOpenQuery(query).kind;
   const results = rankQuickOpen(items, query);
@@ -83,7 +78,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   function choose(item: QuickOpenItem): void {
     if (item.kind === "session") onOpenSession(item.path);
     else if (item.kind === "action") {
-      if (item.action) actionHandlers[item.action]?.();
+      item.action?.run();
     } else onOpenProject(item.path);
     onClose();
   }

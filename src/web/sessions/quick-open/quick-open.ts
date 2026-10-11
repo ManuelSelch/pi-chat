@@ -1,14 +1,10 @@
 import type { ProjectCatalogue } from "../../../shared/protocol.js";
 
-export interface QuickOpenAction {
-  id: "new-session" | "open-folder" | "settings";
-  title: string;
-  description: string;
-}
+import type { SessionAction } from "../actions/session-actions.js";
 
 export interface QuickOpenItem {
   kind: "session" | "project" | "worktree" | "action";
-  action?: QuickOpenAction["id"];
+  action?: SessionAction;
   /** Session or project path; also the React key. */
   path: string;
   title: string;
@@ -38,7 +34,7 @@ export function relativeTime(timestamp: number): string {
 }
 
 /** Sessions and checkouts share catalogue metadata; primary checkouts remain projects. */
-export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds: readonly string[], actions: readonly QuickOpenAction[] = []): QuickOpenItem[] {
+export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds: readonly string[], actions: readonly SessionAction[] = []): QuickOpenItem[] {
   const sessions: QuickOpenItem[] = [];
   const projects: QuickOpenItem[] = [];
 
@@ -76,7 +72,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
   }
 
   return [...sessions, ...projects, ...actions.map((action): QuickOpenItem => ({
-    kind: "action", action: action.id, path: action.id, title: action.title, project: action.description, modified: 0,
+    kind: "action", action, path: action.id, title: action.name, project: action.description, modified: 0,
   }))];
 }
 

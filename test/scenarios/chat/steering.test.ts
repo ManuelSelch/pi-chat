@@ -15,7 +15,7 @@ describe("Pi Chat native steering workflows", () => {
     await app.Chat.WaitUntilStreaming();
     await app.Chat.Steer("Use the native queue");
     app.Chat.ShouldHaveQueuedSteering(["Use the native queue"]);
-    app.Chat.ShouldHaveMessageCount(1);
+    app.Chat.ShouldHaveMessageCount(2);
     await app.Browser.Reconnect();
     app.Chat.ShouldHaveQueuedSteering(["Use the native queue"]);
     await app.Chat.WaitUntilStreaming();

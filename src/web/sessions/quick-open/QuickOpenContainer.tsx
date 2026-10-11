@@ -1,10 +1,12 @@
 import { useHotkeys } from "@mantine/hooks";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
+import { useSessionActions } from "../actions/SessionActionsProvider.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {
-  const { app, state, newSession, openSession, openProject } = useAppController();
+  const { app, openSession, openProject } = useAppController();
+  const { actions } = useSessionActions();
   const overlays = useOverlays();
   const opened = overlays.state.quickOpen;
 
@@ -25,9 +27,7 @@ export function QuickOpenContainer() {
         tabs={app.tabs}
         onOpenSession={openSession}
         onOpenProject={openProject}
-        onNewSession={() => newSession(state.projectPath || undefined)}
-        onOpenFolder={() => overlays.open("folderPicker")}
-        onOpenSettings={() => overlays.open("settings")}
+        actions={actions}
       />
     </>
   );

@@ -4,17 +4,20 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { OverlayController, useOverlays } from "../../../../../src/web/app/overlays/OverlayController.js";
 import type { Tab } from "../../../../../src/shared/protocol.js";
+import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
+import { ConfirmDialogProvider } from "../../../../../src/web/ui/confirm/ConfirmDialogProvider.js";
+import { initialChatState } from "../../../../../src/web/app/state/chat-state.js";
 import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/QuickOpenContainer.js";
 
 const controller = vi.hoisted(() => ({
-  app: { activeSessionId: "active", tabs: [] as Tab[], tabsKnown: true, openingTabs: 0, closingSessionIds: [] as string[], catalogue: { projects: [] } },
-  state: { projectPath: "/current" }, newSession: vi.fn(), openSession: vi.fn(), openProject: vi.fn(),
+  app: { activeSessionId: "active", tabs: [] as Tab[], tabsKnown: true, openingTabs: 0, closingSessionIds: [] as string[], connection: "open", appFeatures: [], catalogue: { projects: [] } },
+  state: {} as typeof initialChatState, newSession: vi.fn(), openSession: vi.fn(), openProject: vi.fn(),
 }));
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => controller }));
 beforeEach(() => {
   controller.app.tabs = [];
   controller.app.activeSessionId = "";
-  controller.state.projectPath = "/current";
+  controller.state = { ...initialChatState, projectPath: "/current" };
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it.each(["home", "session"] as const)("opens via Cmd+O from %s and Escape closes without changing sessions", async (view) => {
@@ -36,7 +39,7 @@ it.each(["home", "session"] as const)("opens via Cmd+O from %s and Escape closes
 
 function Harness() {
   const overlays = useOverlays();
-  return <><button onClick={() => overlays.open("quickOpen")}>Open palette</button><QuickOpenContainer />
+  return <><button onClick={() => overlays.open("quickOpen")}>Open palette</button><ConfirmDialogProvider><SessionActionsProvider><QuickOpenContainer /></SessionActionsProvider></ConfirmDialogProvider>
     <output>{JSON.stringify(overlays.state)}</output></>;
 }
 it.each([
@@ -50,6 +53,8 @@ it.each([
   expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
 });
 it("starts a new session in the current project through the application controller", async () => {
+  controller.app.activeSessionId = "one";
+  controller.app.tabs = [{ sessionId: "one", title: "One", projectPath: "/current", projectName: "current", status: "idle" }];
   render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
   fireEvent.click(screen.getByText("Open palette"));
   fireEvent.click(await screen.findByRole("button", { name: "/ Actions" }));
