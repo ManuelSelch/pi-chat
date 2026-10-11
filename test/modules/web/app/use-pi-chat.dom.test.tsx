@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../../../../src/shared/protocol.js";
 import { usePiChat } from "../../../../src/web/app/use-pi-chat.js";
 import { AppControllerProvider } from "../../../../src/web/app/AppControllerContext.js";
+import { SessionActionsProvider } from "../../../../src/web/sessions/actions/SessionActionsProvider.js";
 import { ComposerContainer } from "../../../../src/web/chat/composer/ComposerContainer.js";
 
 vi.mock("../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
@@ -144,7 +145,7 @@ describe("usePiChat connection lifecycle", () => {
     render(
       <MantineProvider>
         <AppControllerProvider>
-          <ComposerContainer onHeightChange={() => {}} />
+          <SessionActionsProvider><ComposerContainer onHeightChange={() => {}} /></SessionActionsProvider>
         </AppControllerProvider>
       </MantineProvider>,
     );

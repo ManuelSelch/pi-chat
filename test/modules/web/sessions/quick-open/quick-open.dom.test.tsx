@@ -2,6 +2,7 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+import { buildSessionActions } from "../../../../../src/web/sessions/actions/session-actions.js";
 import { QuickOpen } from "../../../../../src/web/sessions/quick-open/QuickOpen.js";
 import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
 
@@ -16,7 +17,11 @@ const catalogue: ProjectCatalogue = { projects: [
 ] };
 function setup(data = catalogue) {
   const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
-  render(<MantineProvider><QuickOpen opened catalogue={data} tabs={[]} {...handlers} /></MantineProvider>);
+  const actions = buildSessionActions({ sessionId: "", connected: true, busy: false }, {
+    newSession: handlers.onNewSession, closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
+    openFolder: handlers.onOpenFolder, openSettings: handlers.onOpenSettings,
+  });
+  render(<MantineProvider><QuickOpen opened catalogue={data} tabs={[]} actions={actions} {...handlers} /></MantineProvider>);
   return handlers;
 }
 it("identifies each type by icon and accessible name without visible right-hand labels", () => {

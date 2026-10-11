@@ -1,6 +1,37 @@
 import { expect, test } from "@playwright/test";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
+test("shares session actions between composer and quickswitcher", async ({ page }) => {
+  const app = await PiChatBrowserDriver.start(page);
+  try {
+    await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
+    await app.Chat.SendPrompt("Hello");
+    await app.Chat.ShouldShowAssistantReply("Ready");
+    const composer = page.getByRole("textbox", { name: "Message Pi" });
+    await composer.fill("/");
+    const commands = page.getByRole("listbox", { name: "Commands" });
+    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Open settings"]) {
+      await expect(commands.getByRole("option", { name: new RegExp(name) })).toBeVisible();
+    }
+    await composer.press("Escape");
+    await composer.fill("");
+    await composer.press("Meta+o");
+    await page.getByRole("button", { name: "/ Actions", exact: true }).click();
+    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Open settings"]) {
+      await expect(page.getByRole("option", { name: new RegExp(`Action: ${name}`) })).toBeVisible();
+    }
+    await page.getByRole("option", { name: /Action: Close tab/ }).click();
+    await app.Home.ShouldBeVisible();
+    await page.locator("body").press("Meta+o");
+    await page.getByRole("button", { name: "/ Actions", exact: true }).click();
+    await expect(page.getByRole("option", { name: /Action: Close tab/ })).toHaveCount(0);
+    await expect(page.getByRole("option", { name: /Action: Archive session/ })).toHaveCount(0);
+    await expect(page.getByRole("option", { name: /Action: New session/ })).toBeVisible();
+  } finally {
+    await app.dispose();
+  }
+});
+
 // Run against the complete production stylesheet stack, not just component CSS.
 test("shows keyboard selection and compact mockup scope controls", async ({ page }) => {
   const app = await PiChatBrowserDriver.start(page);

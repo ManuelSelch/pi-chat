@@ -2,7 +2,8 @@
 import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ComposerContainer } from "../../../../../src/web/chat/composer/ComposerContainer.js";
+import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
+import { ComposerContainer as ActualComposerContainer } from "../../../../../src/web/chat/composer/ComposerContainer.js";
 import { initialChatState } from "../../../../../src/web/app/state/chat-state.js";
 import type { CommandCompletionItem } from "../../../../../src/shared/protocol.js";
 
@@ -18,6 +19,9 @@ const confirm = vi.fn();
 vi.mock("../../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm }) }));
 vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
 
+function ComposerContainer(props: { onHeightChange: (height: number) => void }) {
+  return <SessionActionsProvider><ActualComposerContainer {...props} /></SessionActionsProvider>;
+}
 function mount() {
   return render(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
 }

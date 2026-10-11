@@ -12,6 +12,7 @@ import { Home } from "../sessions/home/Home.js";
 import { HeaderContainer } from "./shell/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
+import { SessionActionsProvider } from "../sessions/actions/SessionActionsProvider.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
 
 /** Breathing room between the last message and the composer. */
@@ -22,8 +23,10 @@ export function App() {
     <AppControllerProvider>
       <ConfirmDialogProvider>
         <OverlayController>
-          <GlobalKeyboardController />
-          <AppContent />
+          <SessionActionsProvider>
+            <GlobalKeyboardController />
+            <AppContent />
+          </SessionActionsProvider>
         </OverlayController>
       </ConfirmDialogProvider>
     </AppControllerProvider>

@@ -2,7 +2,8 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ComposerContainer } from "../../../../../src/web/chat/composer/ComposerContainer.js";
+import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
+import { ComposerContainer as ActualComposerContainer } from "../../../../../src/web/chat/composer/ComposerContainer.js";
 import { initialChatState, type ChatState } from "../../../../../src/web/app/state/chat-state.js";
 
 const chat = {
@@ -13,6 +14,9 @@ const chat = {
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 vi.mock("../../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
 vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
+function ComposerContainer(props: { onHeightChange: (height: number) => void }) {
+  return <SessionActionsProvider><ActualComposerContainer {...props} /></SessionActionsProvider>;
+}
 function mount() { return render(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>); }
 function enter(text: string) {
   const input = screen.getByRole("textbox") as HTMLTextAreaElement;

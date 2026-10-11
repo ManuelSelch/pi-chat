@@ -1,15 +1,12 @@
 import type { CommandCompletionItem, SlashCommand } from "../../../shared/protocol.js";
+import type { SessionAction } from "../../sessions/actions/session-actions.js";
 
 /**
  * A menu row is either a Pi slash command (inserted into the composer) or an
  * action this UI performs itself, such as renaming the session. Both are shown
  * in one list so Cmd+K answers "what can I do right now?".
  */
-export interface LocalAction {
-  name: string;
-  description: string;
-  run: () => void;
-}
+export type LocalAction = Pick<SessionAction, "name" | "description" | "run">;
 
 export type MenuItem = (SlashCommand & { kind: "command" }) | (LocalAction & { kind: "action" }) | (CommandCompletionItem & { kind: "argument" });
 

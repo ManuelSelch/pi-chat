@@ -2,10 +2,10 @@ import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent }
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { argumentContext, applyArgumentCompletion } from "./argument-completion.js";
 import { useArgumentCompletion } from "./use-argument-completion.js";
-import { commandQuery, filterCommands, menuItems, type LocalAction, type MenuItem } from "./command-menu.js";
+import { commandQuery, filterCommands, menuItems, type MenuItem } from "./command-menu.js";
 import { atHome, visibleError } from "../../app/state/app-state.js";
 import { useAppController } from "../../app/AppControllerContext.js";
-import { useConfirmDialog } from "../../ui/confirm/ConfirmDialogProvider.js";
+import { useSessionActions } from "../../sessions/actions/SessionActionsProvider.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../../extensions/widgets/widget-placement.js";
@@ -20,14 +20,13 @@ const DEFAULT_FOOTER_HEIGHT = 170;
 export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const chat = useAppController();
   const overlays = useOverlays();
-  const { confirm } = useConfirmDialog();
+  const { actions: sessionActions, error: actionError, clearError: clearActionError } = useSessionActions();
   const { app, state } = chat;
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [activeCommand, setActiveCommand] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [selection, setSelection] = useState({ sessionId: app.activeSessionId, start: 0, end: 0 });
   const [composing, setComposing] = useState(false);
-  const [archiveError, setArchiveError] = useState<{ sessionId: string; message: string }>();
   const pendingCaret = useRef<number | undefined>(undefined);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
@@ -35,26 +34,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const input = drafts[app.activeSessionId] ?? "";
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
-  const sessionPath = state.sessionPath;
-  function archive(): void {
-    if (!sessionPath || busy) return;
-    const sessionId = app.activeSessionId;
-    setArchiveError(undefined);
-    void chat.archiveSession(sessionPath, true).catch((error: unknown) => {
-      setArchiveError({ sessionId, message: error instanceof Error ? error.message : String(error) });
-    });
-  }
-  const restartFeature = [...state.actions.features, ...app.appFeatures].find((feature) => feature.id === "app.restart");
-  const sessionActions: LocalAction[] = [
-    { name: "New session", description: "Open a new session in this project", run: () => chat.newSession(state.projectPath || undefined) },
-    { name: "Close tab", description: "Close this session's tab", run: () => chat.closeTab(app.activeSessionId) },
-    ...(sessionPath && !busy ? [{ name: "Archive session", description: "Keep this session in Archived and close its tab", run: archive }] : []),
-    ...(restartFeature ? [{ name: "Restart server", description: restartFeature.description ?? "Restart the Pi Chat server", run: () => {
-      void confirm({ title: "Restart server?", body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.", confirmLabel: "Restart" }).then((yes) => {
-        if (yes) return chat.restartServer();
-      });
-    } }] : []),
-  ];
+
   const footerItems = [
     ...state.footer,
     ...(state.status === "aborting" ? [{ key: "run", text: "stopping…", align: "right" as const, variant: "plain" as const }] : []),
@@ -142,7 +122,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     const message = input.trim();
     if (!message || app.connection !== "open" || (state.status !== "idle" && state.status !== "running")) return;
     if (state.status === "running" && /^[!/]/.test(message)) return;
-    if (message === "/archive") archive();
+    if (message === "/archive") sessionActions.find(action => action.id === "archive-session")?.run();
     else chat.prompt(message);
     setInput("");
     setActiveCommand(0);
@@ -202,7 +182,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         home,
         connection: app.connection,
         connecting,
-        error: archiveError?.sessionId === app.activeSessionId ? archiveError.message : visibleError(app, state),
+        error: actionError ?? visibleError(app, state),
         busy,
         steering: state.status === "running",
         steeringMessages: state.steeringMessages,
@@ -216,7 +196,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
       }}
       actions={{
         takeControl: chat.takeControl,
-        dismissError: () => { setArchiveError(undefined); chat.dismissError(); },
+        dismissError: () => { clearActionError(); chat.dismissError(); },
         changeInput,
         selectionChanged,
         compositionChanged: setComposing,
