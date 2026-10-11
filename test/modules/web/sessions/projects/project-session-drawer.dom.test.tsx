@@ -72,6 +72,27 @@ describe("ProjectSessionDrawer", () => {
     expect(screen.queryByText("~/.worktrees/pi-chat/feature")).toBeNull();
   });
 
+  it("puts archived-only projects in the collapsed Other projects section", () => {
+    const archivedOnly: ProjectCatalogue = {
+      projects: [
+        ...catalogue.projects,
+        {
+          path: "/work/archived", displayPath: "~/work/archived", name: "archived", exists: true, modified: 0, sessionCount: 0,
+          sessions: [session("archived", "Old chat", { archivedAt: 10 })],
+        },
+      ],
+    };
+    show({ data: archivedOnly });
+
+    expect(screen.queryByText("archived")).toBeNull();
+    const toggle = screen.getByRole("button", { name: /Other projects/ });
+    fireEvent.click(toggle);
+
+    expect(screen.getByText("archived")).toBeTruthy();
+    fireEvent.click(screen.getByText("archived"));
+    expect(screen.getByRole("button", { name: /Archived/ })).toBeTruthy();
+  });
+
   it("opens the server folder picker while an agent is running", () => {
     const { onOpenFolder } = show({ busy: true });
     fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
