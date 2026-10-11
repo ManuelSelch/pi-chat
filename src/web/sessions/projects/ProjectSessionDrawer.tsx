@@ -45,8 +45,12 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const projects = groups.filter(group => !group.quickChats);
   const pinned = projects.filter(group => group.pinned);
   const unpinned = projects.filter(group => !group.pinned);
-  const recent = unpinned.slice(0, 5);
-  const other = unpinned.slice(5);
+  const recentlyActive = unpinned.filter(group => group.activeCount > 0);
+  const recent = recentlyActive.slice(0, 5);
+  const other = [
+    ...recentlyActive.slice(5),
+    ...unpinned.filter(group => group.activeCount === 0),
+  ];
   const currentKey = groupKeyForPath(catalogue, currentProjectPath);
   const activeKey = selected ?? currentKey;
   const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
@@ -161,7 +165,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
           {pinned.map(groupRow)}
           {pinned.length && recent.length ? <Divider my="xs" /> : null}
           {recent.map(groupRow)}
-          {recent.length > 0 && other.length > 0 ? <Divider my="xs" /> : null}
+          {((recent.length > 0 && other.length > 0) || (pinned.length > 0 && other.length > 0 && recent.length === 0)) ? <Divider my="xs" /> : null}
           {other.length ? <>
             <button type="button" className={styles.archivedToggle} aria-expanded={Boolean(expandedArchive.__otherProjects)} onClick={() => setExpandedArchive(value => ({ ...value, __otherProjects: !value.__otherProjects }))}>
               <IconChevronRight size={12} className={expandedArchive.__otherProjects ? styles.groupChevronOpen : undefined} />
