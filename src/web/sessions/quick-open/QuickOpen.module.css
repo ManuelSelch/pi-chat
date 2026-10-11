@@ -1,4 +1,6 @@
-.row {
+/* Mantine's unlayered UnstyledButton reset may load after this module.
+   Higher specificity preserves these overrides regardless of import order. */
+.row.row {
   display: block;
   box-sizing: border-box;
   width: 100%;
@@ -17,11 +19,11 @@
   border-color: var(--mantine-color-dimmed);
 }
 
-.scope {
+.scope.scope {
   color: var(--mantine-color-dimmed);
   padding: 4px 6px;
   border-radius: var(--mantine-radius-sm);
-  font-size: var(--mantine-font-size-xs);
+  font-size: 12px;
 }
 
 .scope:hover {
