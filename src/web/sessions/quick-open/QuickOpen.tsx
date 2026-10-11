@@ -89,7 +89,19 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   }
 
   function keyDown(event: KeyboardEvent<HTMLInputElement>): void {
-    if (event.nativeEvent.isComposing || results.length === 0) return;
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      const current = scopes.findIndex((scope) => scope.kind === scopeKind);
+      const step = event.shiftKey ? -1 : 1;
+      const next = scopes[(current + step + scopes.length) % scopes.length]!;
+      const text = scopeKind ? query.trim().slice(1).trimStart() : query.trim();
+      setQuery(`${next.prefix}${text}`);
+      setActive(0);
+      return;
+    }
+    if (results.length === 0) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
@@ -185,7 +197,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
           </Stack>
         </ScrollArea.Autosize>
 
-        <Text size="xs" c="dimmed" px={10}>↑↓ to move · Enter to open · Esc to close</Text>
+        <Text size="xs" c="dimmed" px={10}>Tab to cycle filters · ↑↓ to move · Enter to open · Esc to close</Text>
       </Stack>
     </Modal>
   );

@@ -104,6 +104,32 @@ it("clamps selection when the catalogue changes without a query edit", () => {
   expect(handlers.onOpenProject).toHaveBeenCalledWith("/feature");
 });
 
+it("cycles scopes with Tab and wraps Actions back to All even without results", () => {
+  setup({ projects: [] });
+  const input = screen.getByRole("textbox") as HTMLInputElement;
+  input.focus();
+  for (const [label, prefix] of [["# Folders", "#"], ["% Worktrees", "%"], ["@ Sessions", "@"], ["/ Actions", "/"], ["All", ""]]) {
+    fireEvent.keyDown(input, { key: "Tab" });
+    expect(input.value).toBe(prefix);
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByRole("button", { name: label }).getAttribute("aria-pressed")).toBe("true");
+  }
+});
+it("preserves search text while cycling forward and backward and resets result selection", () => {
+  setup();
+  const input = screen.getByRole("textbox") as HTMLInputElement;
+  fireEvent.change(input, { target: { value: "palette" } });
+  fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
+  expect(input.value).toBe("/palette");
+  fireEvent.keyDown(input, { key: "Tab" });
+  expect(input.value).toBe("palette");
+  fireEvent.change(input, { target: { value: "%" } });
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  fireEvent.keyDown(input, { key: "Tab", shiftKey: true });
+  fireEvent.keyDown(input, { key: "Tab" });
+  expect(screen.getAllByRole("option")[0]!.getAttribute("aria-selected")).toBe("true");
+});
+
 it("uses neutral styling and scopes focus the search input", () => {
   setup();
   fireEvent.click(screen.getByRole("button", { name: "/ Actions" }));

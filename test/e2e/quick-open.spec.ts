@@ -11,6 +11,15 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
     const actions = page.getByRole("button", { name: "/ Actions", exact: true });
     await expect(actions).toHaveCSS("font-size", "12px");
     await expect(actions).toHaveCSS("padding", "4px 6px");
+    for (const [label, prefix] of [["# Folders", "#"], ["% Worktrees", "%"], ["@ Sessions", "@"], ["/ Actions", "/"], ["All", ""]] as const) {
+      await input.press("Tab");
+      await expect(input).toBeFocused();
+      await expect(input).toHaveValue(prefix);
+      await expect(page.getByRole("button", { name: label, exact: true })).toHaveAttribute("aria-pressed", "true");
+    }
+    await input.press("Shift+Tab");
+    await expect(input).toHaveValue("/");
+    await expect(input).toBeFocused();
     await actions.click();
     await expect(input).toBeFocused();
     const rows = page.getByRole("option");
