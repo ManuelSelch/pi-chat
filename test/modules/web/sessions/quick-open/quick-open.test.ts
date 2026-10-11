@@ -76,6 +76,7 @@ describe("quick open", () => {
     [" # Pi-Chat ", "project", "pi-chat"],
     ["%feature", "worktree", "feature"],
     ["@", "session", ""],
+    ["/ settings", "action", "settings"],
     ["> action", undefined, "> action"],
     ["notes @", undefined, "notes @"],
   ])("parses only a leading scope in %s", (query, kind, text) => {
@@ -145,6 +146,17 @@ describe("quick open", () => {
     expect(items).toEqual(original);
     expect(buildQuickOpenItems({ projects: [] }, [])).toEqual([]);
     expect(rankQuickOpen([], "@")).toEqual([]);
+  });
+
+  it("searches provided built-in actions with / and unscoped text", () => {
+    const withActions = buildQuickOpenItems(catalogue, [], [
+      { id: "settings", title: "Open settings", description: "Models and appearance" },
+      { id: "new-session", title: "New session", description: "Start in the current folder" },
+    ]);
+    expect(rankQuickOpen(withActions, "/")).toHaveLength(2);
+    expect(rankQuickOpen(withActions, "/setings")[0]).toMatchObject({ kind: "action", action: "settings" });
+    expect(rankQuickOpen(withActions, "appearance")[0]?.kind).toBe("action");
+    expect(rankQuickOpen(withActions, "").every((item) => item.kind === "session")).toBe(true);
   });
 
   it("caps the result list", () => {

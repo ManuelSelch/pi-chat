@@ -1,7 +1,14 @@
 import type { ProjectCatalogue } from "../../../shared/protocol.js";
 
+export interface QuickOpenAction {
+  id: "new-session" | "open-folder" | "settings";
+  title: string;
+  description: string;
+}
+
 export interface QuickOpenItem {
-  kind: "session" | "project" | "worktree";
+  kind: "session" | "project" | "worktree" | "action";
+  action?: QuickOpenAction["id"];
   /** Session or project path; also the React key. */
   path: string;
   title: string;
@@ -31,7 +38,7 @@ export function relativeTime(timestamp: number): string {
 }
 
 /** Sessions and checkouts share catalogue metadata; primary checkouts remain projects. */
-export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds: readonly string[]): QuickOpenItem[] {
+export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds: readonly string[], actions: readonly QuickOpenAction[] = []): QuickOpenItem[] {
   const sessions: QuickOpenItem[] = [];
   const projects: QuickOpenItem[] = [];
 
@@ -68,7 +75,9 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
     }
   }
 
-  return [...sessions, ...projects];
+  return [...sessions, ...projects, ...actions.map((action): QuickOpenItem => ({
+    kind: "action", action: action.id, path: action.id, title: action.title, project: action.description, modified: 0,
+  }))];
 }
 
 export interface QuickOpenQuery {
@@ -78,7 +87,7 @@ export interface QuickOpenQuery {
 
 export function parseQuickOpenQuery(query: string): QuickOpenQuery {
   const text = query.trim().toLowerCase();
-  const scopes: Record<string, QuickOpenItem["kind"]> = { "#": "project", "%": "worktree", "@": "session" };
+  const scopes: Record<string, QuickOpenItem["kind"]> = { "#": "project", "%": "worktree", "@": "session", "/": "action" };
   const kind = scopes[text.charAt(0)];
   return { kind, text: kind ? text.slice(1).trim() : text };
 }
