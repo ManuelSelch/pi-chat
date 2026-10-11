@@ -137,7 +137,8 @@ Developer Console with the `[pi-chat] websocket.close` prefix.
 Set `PI_CHAT_LOG_DIR` to choose another log directory,
 `PI_CHAT_LOG_MAX_BYTES` to change the per-file limit, and
 `PI_CHAT_LOG_RETAINED_FILES` to change the number of rotated files. Logs include
-connection lifecycle metadata, not chat frames or prompts.
+connection lifecycle metadata and redacted runtime error messages, not chat
+frames, prompts, model output, or tool content.
 
 ## Environment variables
 

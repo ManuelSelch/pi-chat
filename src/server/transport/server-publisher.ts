@@ -2,6 +2,8 @@ import { WebSocket } from "ws";
 import { PROTOCOL_VERSION, type ServerMessage } from "../../shared/protocol.js";
 import type { RuntimeEvent } from "../runtime/contracts.js";
 import type { ChatApplicationService } from "../application/chat-application-service.js";
+import type { FileLogger } from "../logging/file-logger.js";
+import { redactRuntimeError } from "./runtime-error-redaction.js";
 
 export class ServerPublisher {
   private readonly sequences = new Map<string, number>();
@@ -9,6 +11,7 @@ export class ServerPublisher {
   constructor(
     private readonly chat: ChatApplicationService,
     private readonly controller: () => WebSocket | undefined,
+    private readonly logger?: FileLogger,
   ) {}
 
   publish(sessionId: string, event: RuntimeEvent): void {
@@ -17,6 +20,9 @@ export class ServerPublisher {
       this.sendTabs();
       void this.sendCatalogue();
       return;
+    }
+    if (event.type === "notification" && event.level === "error") {
+      this.logger?.error("runtime.notification_error", { message: redactRuntimeError(event.message) });
     }
     const message: ServerMessage = {
       version: PROTOCOL_VERSION,
@@ -57,6 +63,10 @@ export class ServerPublisher {
 
   publishError(sessionId: string, error: unknown): void {
     const text = error instanceof Error ? error.message : "Unknown runtime error";
+    this.logger?.error("runtime.operation_error", {
+      errorName: error instanceof Error ? error.name : "NonError",
+      message: redactRuntimeError(text),
+    });
     // A rejected steering/command submission does not settle the ongoing run.
     const tab = this.chat.tabs().find((entry) => entry.sessionId === sessionId);
     const status = tab && tab.status !== "idle" ? "running" : "idle";
