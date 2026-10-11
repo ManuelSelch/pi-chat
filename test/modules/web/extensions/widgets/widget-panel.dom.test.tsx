@@ -46,6 +46,21 @@ describe("WidgetPanel", () => {
     expect(screen.getByText("todo")).toBeTruthy();
   });
 
+  it("renders a named Markdown link without displaying its URL", () => {
+    show([{ key: "Preview", lines: ["[Frontend](http://localhost:5174)"], placement: "aboveEditor" }]);
+
+    const link = screen.getByRole("link", { name: "Frontend" });
+    expect(link.getAttribute("href")).toBe("http://localhost:5174");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(document.querySelector("pre")?.textContent).toBe("Frontend");
+    expect(screen.getByText("Preview")).toBeTruthy();
+  });
+
+  it("does not turn unsafe Markdown URLs into links", () => {
+    show([{ ...todo, lines: ["[Unsafe](javascript:alert(1))"] }]);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+
   it("wraps a long row instead of running it off the side", () => {
     show([{ ...todo, lines: [`○ #1 ${"a very long task ".repeat(8)}`] }]);
 

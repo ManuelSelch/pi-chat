@@ -1,15 +1,15 @@
-import { Box, Group, Text, UnstyledButton } from "@mantine/core";
+import { Anchor, Box, Group, Text, UnstyledButton } from "@mantine/core";
 import { Panel } from "../../ui/Panel.js";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { Widget } from "../../../shared/protocol.js";
 
 /**
  * A widget an extension pushed with `ctx.ui.setWidget`, e.g. a todo overlay.
  *
  * The terminal draws these as fixed-width rows above the editor, so the lines
- * arrive pre-formatted and are shown verbatim in a monospace block rather than
- * re-laid out. Nothing here knows which extension sent them: an extension that
+ * arrive pre-formatted and are shown in a monospace block rather than
+ * re-laid out. Standalone HTTP(S) Markdown links become named clickable links. Nothing here knows which extension sent them: an extension that
  * speaks Pi's widget protocol renders without any support code of its own.
  */
 export function WidgetBlock({ widget }: { widget: Widget }) {
@@ -54,7 +54,19 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
             margin: 0,
           }}
         >
-          {widget.lines.join("\n")}
+          {widget.lines.map((line, index) => {
+            const link = /^\[((?:\\.|[^\]\\])*)\]\((https?:\/\/[^\s]+)\)$/.exec(line);
+            return (
+              <Fragment key={index}>
+                {index > 0 ? "\n" : null}
+                {link ? (
+                  <Anchor href={link[2]} target="_blank" rel="noopener noreferrer" inherit>
+                    {link[1]?.replace(/\\([\\\[\]])/g, "$1")}
+                  </Anchor>
+                ) : line}
+              </Fragment>
+            );
+          })}
         </Box>
       ) : null}
     </Panel>
