@@ -32,8 +32,8 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
         </Group>
       </UnstyledButton>
       {open ? (
-        <Box mt={6} className="markdown" style={{ overflowWrap: "anywhere" }}>
-          <Markdown>{widget.lines.join("\n")}</Markdown>
+        <Box mt={6} className="markdown markdown-widget" style={{ overflowWrap: "anywhere" }}>
+          <Markdown>{widget.lines.join("  \n")}</Markdown>
         </Box>
       ) : null}
     </Panel>
