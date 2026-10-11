@@ -42,6 +42,8 @@ html::-webkit-scrollbar {
 /* Reasoning is context, not the answer: smaller and dimmed so the eye skips it
    unless it is looking for it. */
 .markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--mantine-color-dimmed); }
+/* Extension widgets are compact panels, while retaining full Markdown styling. */
+.markdown-widget { font-size: 13px; line-height: 1.5; }
 .markdown-thinking p, .markdown-thinking ul { margin: 4px 0; }
 .markdown-thinking ul { padding-left: 18px; }
 .markdown > :first-child { margin-top: 0; }
