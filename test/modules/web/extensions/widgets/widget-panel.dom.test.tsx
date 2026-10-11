@@ -41,10 +41,17 @@ describe("WidgetPanel", () => {
     show([{ ...todo, lines: ["## Tasks", "", "- **Write** tests", "- Read the docs"] }]);
 
     expect(screen.getByRole("heading", { name: "Tasks", level: 2 })).toBeTruthy();
+    expect(document.querySelector(".markdown-widget")).toBeTruthy();
     expect(screen.getByText("Write").tagName).toBe("STRONG");
     expect(document.querySelectorAll("ul li")).toHaveLength(2);
     // The extension's own key is the only label the browser has for it.
     expect(screen.getByText("todo")).toBeTruthy();
+  });
+
+  it("preserves widget line breaks as Markdown hard breaks", () => {
+    show([{ key: "todo", lines: ["First task", "Second task"], placement: "aboveEditor" }]);
+
+    expect(document.querySelectorAll(".markdown br")).toHaveLength(1);
   });
 
   it("renders a named Markdown link without displaying its URL", () => {
