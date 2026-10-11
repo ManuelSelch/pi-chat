@@ -170,7 +170,11 @@ export function usePiChat() {
     });
   }, []);
 
-  const projectMutation = useCallback((command: Omit<Extract<ClientMessage, { type: "setSessionArchived" }>, "requestId" | "version"> | Omit<Extract<ClientMessage, { type: "pinProject" }>, "requestId" | "version">) => {
+  type ProjectMutation =
+    | { type: "setSessionArchived"; path: string; archived: boolean }
+    | { type: "pinProject"; path: string; pinned: boolean }
+    | { type: "removeProject"; path: string };
+  const projectMutation = useCallback((command: ProjectMutation) => {
     return projectRequests.current.request({ ...command, version: PROTOCOL_VERSION, requestId: `project-${++projectSequence.current}` }, (message) => {
       const socket = socketRef.current;
       if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
@@ -179,6 +183,7 @@ export function usePiChat() {
   }, []);
   const archiveSession = useCallback((path: string, archived: boolean) => projectMutation({ type: "setSessionArchived", path, archived }), [projectMutation]);
   const pinProject = useCallback((path: string, pinned: boolean) => projectMutation({ type: "pinProject", path, pinned }), [projectMutation]);
+  const removeProject = useCallback((path: string) => projectMutation({ type: "removeProject", path }), [projectMutation]);
 
   const openSession = useCallback((path: string) => {
     dispatch({ type: "openPending" });
@@ -214,6 +219,7 @@ export function usePiChat() {
     focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
     archiveSession,
     pinProject,
+    removeProject,
     closeTab: (sessionId: string) => {
       fileRequests.current.closeSession(sessionId);
       dispatch({ type: "closePending", sessionId });

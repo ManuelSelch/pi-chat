@@ -27,6 +27,7 @@ export function ProjectSessionContainer() {
       newSession={chat.newSession}
       archiveSession={chat.archiveSession}
       pinProject={chat.pinProject}
+      removeProject={chat.removeProject}
       busySessionIds={busySessionIds}
       onOpenFolder={onOpenFolder}
     />

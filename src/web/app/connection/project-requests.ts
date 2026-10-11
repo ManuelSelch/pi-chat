@@ -1,5 +1,5 @@
 import type { ClientMessage, ServerMessage } from "../../../shared/protocol.js";
-type ProjectCommand = Extract<ClientMessage, { type: "setSessionArchived" | "pinProject" }>;
+type ProjectCommand = Extract<ClientMessage, { type: "setSessionArchived" | "pinProject" | "removeProject" }>;
 
 /** Correlated success matters: do not offer Undo for a write the server refused. */
 export class ProjectRequests {

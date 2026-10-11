@@ -45,6 +45,16 @@ describe("buildPanelGroups", () => {
     expect(byTitle.get("Second")?.worktreeLabel).toBe(false);
   });
 
+  it("keeps projects with archived-only sessions visible in the panel", () => {
+    const oldChat = session({ archivedAt: 1 });
+    const archivedOnly = project({ path: "/work/old", name: "old", sessions: [oldChat], sessionCount: 0 });
+
+    const groups = buildPanelGroups(catalogue(archivedOnly), "/elsewhere");
+
+    expect(groups.map(group => group.name)).toEqual(["old"]);
+    expect(groups[0]?.sessions[0]?.session.archivedAt).toBe(1);
+  });
+
   it("puts Quick Chats first and keeps it out of repository grouping", () => {
     const quick = project({ path: "/home/me", name: "Quick Chats", displayPath: "~", quickChats: true, sessions: [session()], sessionCount: 1 });
     const folder = project({ path: "/work/app", name: "app", sessions: [session()], sessionCount: 1 });

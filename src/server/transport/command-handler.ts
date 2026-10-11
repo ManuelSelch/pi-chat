@@ -50,10 +50,10 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
   } else if (command.type === "focusTab") {
     chat.focusTab(command.sessionId);
     publisher.sendTabs();
-  } else if (command.type === "setSessionArchived" || command.type === "pinProject") {
+  } else if (command.type === "setSessionArchived" || command.type === "pinProject" || command.type === "removeProject") {
     Promise.resolve().then(() => command.type === "setSessionArchived"
       ? chat.archiveSession(command.path, command.archived)
-      : chat.pinProject(command.path, command.pinned))
+      : command.type === "pinProject" ? chat.pinProject(command.path, command.pinned) : chat.removeProject(command.path))
       .then(async () => {
         publisher.sendTabs();
         await publisher.sendCatalogue();

@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Tooltip, UnstyledButton } from "@mantine/core";
-import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus } from "@tabler/icons-react";
+import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
 import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
@@ -23,6 +23,7 @@ interface ProjectSessionDrawerProps {
   onOpenFolder: () => void;
   archiveSession?: (path: string, archived: boolean) => Promise<void>;
   pinProject?: (path: string, pinned: boolean) => Promise<void>;
+  removeProject?: (path: string) => Promise<void>;
   busySessionIds?: readonly string[];
 }
 
@@ -32,7 +33,7 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
   return project ? project.repositoryPath ?? project.path : undefined;
 }
 
-export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, onOpenFolder, archiveSession, pinProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [expandedArchive, setExpandedArchive] = useState<Record<string, boolean>>({});
@@ -43,7 +44,9 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const quickChats = groups.find(group => group.quickChats);
   const projects = groups.filter(group => !group.quickChats);
   const pinned = projects.filter(group => group.pinned);
-  const recent = projects.filter(group => !group.pinned);
+  const unpinned = projects.filter(group => !group.pinned);
+  const recent = unpinned.slice(0, 5);
+  const other = unpinned.slice(5);
   const currentKey = groupKeyForPath(catalogue, currentProjectPath);
   const activeKey = selected ?? currentKey;
   const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
@@ -116,6 +119,15 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
                 {group.pinned ? <IconPinnedOff size={15} /> : <IconPin size={15} />}
               </ActionIcon>
             </Tooltip> : null}
+            {removeProject && !group.quickChats && other.some(item => item.key === group.key) ? (
+              <Tooltip label="Remove from project history">
+                <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={pending}
+                  aria-label={`Remove ${group.name} from project history`}
+                  onClick={() => void mutate(() => removeProject(group.key))}>
+                  <IconTrash size={15} />
+                </ActionIcon>
+              </Tooltip>
+            ) : null}
             <Tooltip label={group.quickChats ? "New chat" : "New session"}>
               <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={!group.exists}
                 aria-label={`New ${group.quickChats ? "chat" : "session"} in ${group.name}`}
@@ -149,6 +161,14 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
           {pinned.map(groupRow)}
           {pinned.length && recent.length ? <Divider my="xs" /> : null}
           {recent.map(groupRow)}
+          {recent.length > 0 && other.length > 0 ? <Divider my="xs" /> : null}
+          {other.length ? <>
+            <button type="button" className={styles.archivedToggle} aria-expanded={Boolean(expandedArchive.__otherProjects)} onClick={() => setExpandedArchive(value => ({ ...value, __otherProjects: !value.__otherProjects }))}>
+              <IconChevronRight size={12} className={expandedArchive.__otherProjects ? styles.groupChevronOpen : undefined} />
+              <span>Other projects</span><StatusBadge>{other.length}</StatusBadge>
+            </button>
+            {expandedArchive.__otherProjects ? other.map(groupRow) : null}
+          </> : null}
           {!groups.length ? <div className={styles.empty}>No sessions found yet.</div> : null}
         </Stack>
       </ScrollArea>

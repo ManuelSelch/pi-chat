@@ -190,6 +190,7 @@ export class ChatApplicationService {
 
   async openProject(path: string): Promise<string> {
     const target = await this.directories.validate(path);
+    await this.projectSessions.rememberProject(target);
     return this.openTab(() => this.factory.continueProject(target));
   }
 
@@ -207,6 +208,7 @@ export class ChatApplicationService {
   async newSession(path?: string): Promise<string> {
     const active = this.activeSessionId();
     const target = await this.directories.validate(path ?? (active ? this.sessions.get(active).snapshot().projectPath : homedir()));
+    await this.projectSessions.rememberProject(target);
     return this.openTab(() => this.factory.newSession(target));
   }
 
@@ -227,6 +229,11 @@ export class ChatApplicationService {
   async pinProject(path: string, pinned: boolean): Promise<void> {
     const target = pinned ? await this.directories.validate(path) : path;
     await this.projectSessions.pin(target, pinned);
+    this.catalogueCache = undefined;
+  }
+
+  async removeProject(path: string): Promise<void> {
+    await this.projectSessions.removeProject(path);
     this.catalogueCache = undefined;
   }
 

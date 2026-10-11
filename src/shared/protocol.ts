@@ -334,6 +334,7 @@ export const clientMessageSchema = z.union([
   directoryBrowseSchema.extend({ ...baseClientMessage, type: z.literal("browseDirectories"), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("setSessionArchived"), path: z.string().min(1), archived: z.boolean(), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("pinProject"), path: z.string().min(1), pinned: z.boolean(), requestId: z.string().min(1).max(128) }),
+  z.object({ ...baseClientMessage, type: z.literal("removeProject"), path: z.string().min(1), requestId: z.string().min(1).max(128) }),
   z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
   z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
   z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),

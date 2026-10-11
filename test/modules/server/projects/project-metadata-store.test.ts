@@ -15,7 +15,7 @@ afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, {
 describe("ProjectMetadataStore", () => {
   it("starts empty and persists pins and archive state across store instances", async () => {
     const { path, store } = await setup();
-    expect(await store.read()).toEqual({ version: 1, pins: [], archives: [] });
+    expect(await store.read()).toEqual({ version: 1, pins: [], archives: [], removedProjects: [] });
     await store.pin("/work/project", true);
     await store.archive({ path: "/sessions/one.jsonl", id: "one", cwd: "/work/project" }, true);
     const persisted = await new ProjectMetadataStore(path).read();
@@ -31,6 +31,16 @@ describe("ProjectMetadataStore", () => {
     expect((await store.read()).archives).toHaveLength(1);
     await store.pin("/a", true);
     expect((await store.read()).pins).toHaveLength(2);
+  });
+  it("removes projects from history and restores them when remembered or pinned", async () => {
+    const { store } = await setup();
+    await store.removeProject("/work/old");
+    expect((await store.read()).removedProjects).toEqual(["/work/old"]);
+    await store.rememberProject("/work/old");
+    expect((await store.read()).removedProjects).toEqual([]);
+    await store.removeProject("/work/old");
+    await store.pin("/work/old", true);
+    expect((await store.read()).removedProjects).toEqual([]);
   });
   it("does not share archive state between copied session ids", async () => {
     const { store } = await setup();

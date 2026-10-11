@@ -51,6 +51,14 @@ export class ProjectSessionService {
     await this.archive(sessionPath, false);
   }
 
+  async removeProject(projectPath: string): Promise<void> {
+    await this.metadata.removeProject(await canonicalPath(projectPath));
+  }
+
+  async rememberProject(projectPath: string): Promise<void> {
+    await this.metadata.rememberProject(await canonicalPath(projectPath));
+  }
+
   async pin(projectPath: string, pinned: boolean): Promise<void> {
     let path = pinned ? await realpath(projectPath) : await canonicalPath(projectPath);
     const repository = await this.discovery.forDirectory(path);
@@ -124,6 +132,8 @@ export class ProjectSessionService {
       }
       project.sessionCount = project.sessions.filter(session => session.archivedAt === undefined).length;
     }
+
+    for (const path of metadata.removedProjects) byProject.delete(path);
 
     const projects = [...byProject.values()]
       .map((project) => ({

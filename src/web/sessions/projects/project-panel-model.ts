@@ -32,8 +32,10 @@ export interface PanelGroup {
  */
 function isVisibleCheckout(project: ChatProjectSummary, projects: ChatProjectSummary[], currentPath: string): boolean {
   if (project.pinned || project.path === currentPath) return true;
-  if (!project.worktree) return project.sessionCount > 0;
-  if (project.sessions.length > 0 && project.sessionCount > 0) return true;
+  if (!project.worktree) return project.sessionCount > 0 || project.sessions.length > 0;
+  // Keep projects with archived-only history visible too: the quick switcher
+  // still offers the project even though it has no active sessions.
+  if (project.sessions.length > 0) return true;
   return project.worktree.primary && projects.some(candidate => (
     candidate.path !== project.path
     && candidate.repositoryPath === project.repositoryPath
