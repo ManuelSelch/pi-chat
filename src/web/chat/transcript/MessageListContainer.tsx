@@ -4,6 +4,7 @@ import { useAppController } from "../../app/AppControllerContext.js";
 import { useAutoScroll } from "./use-auto-scroll.js";
 import { MessageList } from "./MessageList.js";
 import { useFileAction } from "../markdown/FileActions.js";
+import { useTranscriptDensity } from "../../settings/preferences/use-transcript-density.js";
 
 interface MessageListContainerProps {
   footerHeight: number;
@@ -11,6 +12,7 @@ interface MessageListContainerProps {
 
 export function MessageListContainer({ footerHeight }: MessageListContainerProps) {
   const { state } = useAppController();
+  const { density } = useTranscriptDensity();
   const openFile = useFileAction();
   const onLocalLink = useCallback((path: string) => openFile(state.sessionId, path), [openFile, state.sessionId]);
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.draft?.thinking.length ?? 0}:${state.status}`;
@@ -23,6 +25,7 @@ export function MessageListContainer({ footerHeight }: MessageListContainerProps
         messages={state.messages}
         draft={state.draft}
         onLocalLink={onLocalLink}
+        compact={density === "compact"}
       />
       <div ref={bottomRef} aria-hidden="true" style={{ scrollMarginBottom: footerHeight }} />
     </Container>

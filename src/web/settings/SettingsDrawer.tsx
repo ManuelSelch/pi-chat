@@ -1,6 +1,6 @@
-import { Button, Drawer, Select, Stack, Switch, Text } from "@mantine/core";
+import { Button, Drawer, SegmentedControl, Select, Stack, Switch, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../ui/theme.js";
-import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconPuzzle, IconRefresh } from "@tabler/icons-react";
+import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconMessageCircle, IconPuzzle, IconRefresh } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
 import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
@@ -22,10 +22,12 @@ interface SettingsDrawerProps {
   chimesAvailable: boolean;
   displayPathShow: boolean;
   setDisplayPathShow: (value: boolean) => void;
+  transcriptDensity: "comfortable" | "compact";
+  setTranscriptDensity: (value: "comfortable" | "compact") => void;
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, runExtensionAction }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
@@ -46,6 +48,20 @@ export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel,
             onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
             disabled={!chimesAvailable}
             label="Chime when a run finishes or needs an answer"
+          />
+        </Panel>
+        <Panel>
+          <SectionHeader icon={<IconMessageCircle size={16} />}>Transcript</SectionHeader>
+          <Text size="sm" mb="xs">Tool call display</Text>
+          <SegmentedControl
+            aria-label="Transcript density"
+            fullWidth
+            value={transcriptDensity}
+            onChange={(value) => setTranscriptDensity(value as "comfortable" | "compact")}
+            data={[
+              { label: "Comfortable", value: "comfortable" },
+              { label: "Compact", value: "compact" },
+            ]}
           />
         </Panel>
         <Panel>

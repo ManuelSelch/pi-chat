@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pi Chat — Tool density</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar"><div class="brand"><span class="mark">π</span> Pi Chat <span class="crumb">/ Quick Chats</span></div><button class="settings-button" id="settingsButton" aria-expanded="false">⚙ <span>Settings</span></button></header>
+    <main class="conversation">
+      <div class="day">TODAY</div>
+      <article class="user"><div class="avatar user-avatar">M</div><div><div class="author">You</div><p>Find where the transcript spacing is controlled and summarize the tool rendering.</p></div></article>
+      <article class="assistant"><div class="avatar pi-avatar">π</div><div class="body"><div class="author">Pi <span class="model">Claude Sonnet</span></div><p>I’ll inspect the chat components and styles, then report the relevant files.</p>
+        <section class="tool-stack" aria-label="Tool calls">
+          <details class="tool" open><summary><span class="tool-icon">⌘</span><span class="tool-name">bash</span><span class="tool-desc">rg -n "tool" src/web/chat</span><span class="status">✓</span><span class="chevron">⌄</span></summary><div class="tool-content"><div class="label">COMMAND</div><code>rg -n "tool" src/web/chat</code><div class="label">OUTPUT</div><pre>src/web/chat/tools/ToolCall.tsx
+src/web/chat/transcript/MessageList.tsx</pre></div></details>
+          <details class="tool" open><summary><span class="tool-icon">⌘</span><span class="tool-name">read</span><span class="tool-desc">ToolCall.tsx</span><span class="status">✓</span><span class="chevron">⌄</span></summary><div class="tool-content"><div class="label">FILE</div><code>src/web/chat/tools/ToolCall.tsx</code><p>Tool card renders the call name, arguments, and result in a disclosure card.</p></div></details>
+          <details class="tool running"><summary><span class="tool-icon">◌</span><span class="tool-name">bash</span><span class="tool-desc">Check transcript styles…</span><span class="live">Running</span><span class="chevron">⌄</span></summary><div class="tool-content"><div class="label">COMMAND</div><code>rg -n "gap|padding" src/web/chat</code></div></details>
+        </section>
+        <p>Tool cards live in the chat tools folder; transcript spacing is managed by the message list styles.</p>
+      </div></article>
+      <footer class="composer"><span>Ask anything…</span><button>↑</button></footer>
+    </main>
+    <aside class="settings" id="settingsPanel" hidden><div class="settings-head"><strong>Settings</strong><button id="closeSettings" aria-label="Close settings">×</button></div><div class="setting-group"><div class="setting-label">Transcript density</div><div class="segmented" role="group" aria-label="Transcript density"><button data-mode="comfortable" class="selected">Comfortable</button><button data-mode="compact">Compact</button></div><p>Choose how much detail tool activity shows in the transcript.</p></div><div class="preview-note"><span>ⓘ</span> Tool details remain available—select a row to expand it.</div></aside>
+  </div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

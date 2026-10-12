@@ -102,7 +102,7 @@ export function toolFilePath(tool: ToolCardState): string | undefined {
  * Native details/summary keeps it keyboard-operable. File previews/highlighting
  * load only when opened; arguments and non-file results remain literal text.
  */
-export function ToolCard({ tool }: { tool: ToolCardState }) {
+export function ToolCard({ tool, compact = false }: { tool: ToolCardState; compact?: boolean }) {
   const subject = toolSubject(tool);
   const path = toolFilePath(tool);
   const [opened, setOpened] = useState(false);
@@ -111,30 +111,30 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
   return (
     <Box
       component="details"
-      className={`tool-card ${tool.status}`}
+      className={`tool-card ${tool.status}${compact ? " tool-card-compact" : ""}`}
       data-testid="tool-card"
       onToggle={(event) => {
         if (event.target === event.currentTarget) setOpened((event.currentTarget as HTMLDetailsElement).open);
       }}
       style={{
-        border: `1px solid ${THEME.border.default}`,
-        borderRadius: "var(--mantine-radius-md)",
-        background: THEME.surface.panel,
-        fontSize: 13,
+        border: compact ? 0 : `1px solid ${THEME.border.default}`,
+        borderRadius: compact ? 0 : "var(--mantine-radius-md)",
+        background: compact ? "transparent" : THEME.surface.panel,
+        fontSize: compact ? 12 : 13,
       }}
     >
       <Box
         component="summary"
-        style={{ cursor: "pointer", listStyle: "none", padding: "8px 12px", userSelect: "none" }}
+        style={{ cursor: "pointer", listStyle: "none", padding: compact ? "2px 0" : "8px 12px", userSelect: "none" }}
       >
-        <Group gap="sm" wrap="nowrap">
+        <Group gap={compact ? "xs" : "sm"} wrap="nowrap">
           <Box
             w={8}
             h={8}
             className={tool.status === "running" ? "tool-running-pulse" : undefined}
             style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[tool.status]}-6)`, flex: "none" }}
           />
-          <Text ff="monospace" fw={600} size="sm" style={{ flex: "none" }}>{tool.name}</Text>
+          <Text ff="monospace" fw={compact ? 500 : 600} size={compact ? "xs" : "sm"} style={{ flex: "none" }}>{tool.name}</Text>
           {subject ? (
             <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} data-testid="tool-subject">
               {subject}
@@ -145,14 +145,14 @@ export function ToolCard({ tool }: { tool: ToolCardState }) {
           {/* The dot already carries running and success; only a failure is
               worth the extra width. */}
           {tool.status === "error" ? (
-            <Badge color={STATUS_COLOR.error} variant="light" size="sm" style={{ flex: "none" }}>
+            <Badge color={STATUS_COLOR.error} variant="light" size={compact ? "xs" : "sm"} style={{ flex: "none" }}>
               {STATUS_LABEL.error}
             </Badge>
           ) : null}
         </Group>
       </Box>
       {diff || content || tool.argsText !== undefined || tool.outputText !== undefined ? (
-        <Box px="sm" pb="sm" style={{ borderTop: `1px solid ${THEME.border.default}` }}>
+        <Box px={compact ? 0 : "sm"} pb="sm" style={compact ? { borderLeft: `1px solid ${THEME.border.default}`, margin: "2px 0 5px 5px", paddingLeft: 10 } : { borderTop: `1px solid ${THEME.border.default}` }}>
           {diff ? <EditDiff diff={diff} path={path} highlight={opened} /> : null}
           {content && opened ? <WriteContent content={content} status={tool.status} path={path} /> : null}
           {tool.argsText !== undefined ? (
