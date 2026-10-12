@@ -189,6 +189,7 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         );
         return;
       }
+      if (running) rmSync(PID_FILE, { force: true });
 
       const state = await probePort(port);
       if (state === "pi-chat") {
@@ -204,18 +205,15 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         return;
       }
 
-      // The server serves the built client from dist/web, so a fresh checkout
-      // needs one build before it can answer anything but the API.
-      if (!existsSync(join(home, "dist/web/index.html"))) {
-        ctx.ui.notify("Building the Pi Chat client…", "info");
-        const failure = await build(pi, home);
-        if (failure) {
-          ctx.ui.notify(`Pi Chat build failed: ${failure}`, "error");
-          return;
-        }
+      ctx.ui.notify("Building Pi Chat for production…", "info");
+      const failure = await build(pi, home);
+      if (failure) {
+        ctx.ui.notify(`Pi Chat build failed: ${failure}`, "error");
+        return;
       }
 
-      const child = spawn("npm", ["start"], {
+      const entryPoint = join(home, "dist/server/server/index.js");
+      const child = spawn(process.execPath, [entryPoint], {
         cwd: home,
         env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd, PI_CHAT_PID_FILE: PID_FILE },
         // Detached so the UI outlives this Pi session; output is dropped
@@ -226,20 +224,44 @@ export default function piChatExtension(pi: ExtensionAPI): void {
       child.unref();
 
       if (!child.pid) {
+        rmSync(PID_FILE, { force: true });
         ctx.ui.notify("Could not start the Pi Chat server.", "error");
         return;
       }
-      writeFileSync(PID_FILE, JSON.stringify({ pid: child.pid, port, cwd: projectCwd }));
+      try {
+        writeFileSync(PID_FILE, JSON.stringify({ pid: child.pid, port, cwd: projectCwd }));
+      } catch (error) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          child.kill("SIGTERM");
+        }
+        rmSync(PID_FILE, { force: true });
+        ctx.ui.notify(`Could not track the Pi Chat server: ${String(error)}`, "error");
+        return;
+      }
 
       ctx.ui.notify(`Starting Pi Chat on http://127.0.0.1:${port}…`, "info");
-      const ready = await waitForHealth(port, Date.now() + START_TIMEOUT_MS);
+      const exited = new Promise<boolean>((resolveReady) => {
+        child.once("error", () => resolveReady(false));
+        child.once("exit", () => resolveReady(false));
+      });
+      const ready = await Promise.race([waitForHealth(port, Date.now() + START_TIMEOUT_MS), exited]);
+      if (!ready) {
+        try {
+          process.kill(-child.pid, "SIGTERM");
+        } catch {
+          child.kill("SIGTERM");
+        }
+        rmSync(PID_FILE, { force: true });
+      }
       // Only open once the server actually answers, so the browser never lands
       // on a connection error.
       if (ready && open) openBrowser(`http://127.0.0.1:${port}`);
       ctx.ui.notify(
         ready
           ? `Pi Chat is running: http://127.0.0.1:${port} (project ${projectCwd})${open ? " · opening browser" : ""}`
-          : `Pi Chat did not become healthy within ${START_TIMEOUT_MS / 1000}s. Check it with /pi-chat.`,
+          : `Pi Chat failed to start on port ${port}; no server was left running.`,
         ready ? "info" : "error",
       );
     },
