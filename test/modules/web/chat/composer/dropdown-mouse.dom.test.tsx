@@ -18,7 +18,7 @@ function Commands() {
 for (const kind of ["commands", "quick open"] as const) {
   it(`${kind}: ignores enter and stationary movement; hover does not scroll`, () => {
     render(<MantineProvider>{kind === "commands" ? <Commands /> : <QuickOpen
-      opened onClose={vi.fn()} tabs={[]} onOpenSession={vi.fn()} onOpenProject={vi.fn()}
+      opened onClose={vi.fn()} tabs={[]} onOpenSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()}
       catalogue={{ projects: ["first", "second"].map((name) => ({
         path: `/${name}`, displayPath: `/${name}`, name, exists: true,
         modified: 0, sessionCount: 1, sessions: [{
@@ -32,13 +32,13 @@ for (const kind of ["commands", "quick open"] as const) {
     scroll.mockClear();
     fireEvent.mouseEnter(second!);
     expect(first!.getAttribute("aria-selected")).toBe("true");
-    fireEvent.mouseMove(second!, { clientX: 20, clientY: 30 });
+    fireEvent.pointerMove(second!, { pointerType: "mouse", clientX: 20, clientY: 30 });
     expect(second!.getAttribute("aria-selected")).toBe("true");
     expect(scroll).not.toHaveBeenCalled();
     fireEvent.keyDown(kind === "commands" ? first! : screen.getByRole("textbox"), { key: "ArrowUp" });
     expect(first!.getAttribute("aria-selected")).toBe("true");
     expect(scroll).toHaveBeenCalled();
-    fireEvent.mouseMove(second!, { clientX: 20, clientY: 30 });
     expect(first!.getAttribute("aria-selected")).toBe("true");
+    expect(first!.closest('[class*="pointerActive"]')).toBeNull();
   });
 }

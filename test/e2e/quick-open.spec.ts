@@ -65,6 +65,13 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
     expect(border).not.toBe("rgba(0, 0, 0, 0)");
     await input.press("ArrowUp");
     await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
+    const hovered = await rows.nth(1).boundingBox();
+    expect(hovered).not.toBeNull();
+    await page.mouse.move(hovered!.x + hovered!.width / 2, hovered!.y + hovered!.height / 2);
+    await expect(rows.nth(1)).toHaveAttribute("aria-selected", "true");
+    await input.press("ArrowUp");
+    await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
+    await expect(rows.nth(1)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await input.press("Escape");
     await expect(input).not.toBeVisible();
   } finally {
