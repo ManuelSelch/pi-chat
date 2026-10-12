@@ -30,7 +30,7 @@ describe("session name refresh", () => {
     const tabs = [{ sessionId: "background-session", title: "Generated title" }];
     const catalogue = { projects: [{ sessions: [{ title: "Generated title" }] }] };
     const chat = {
-      snapshot: vi.fn().mockResolvedValue(snapshot),
+      prepareSnapshot: vi.fn().mockResolvedValue(() => snapshot),
       tabs: vi.fn().mockReturnValue(tabs),
       activeSessionId: vi.fn().mockReturnValue("foreground-session"),
       currentCatalogue: vi.fn().mockResolvedValue(catalogue),
@@ -44,7 +44,7 @@ describe("session name refresh", () => {
 
     await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(3));
     const messages = send.mock.calls.map(([value]) => JSON.parse(value));
-    expect(chat.snapshot).toHaveBeenCalledWith("background-session");
+    expect(chat.prepareSnapshot).toHaveBeenCalledWith("background-session");
     expect(messages).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: "snapshot", sessionId: "background-session", sessionName: "Generated title", isStreaming }),
       expect.objectContaining({ type: "tabs", tabs, activeSessionId: "foreground-session" }),
