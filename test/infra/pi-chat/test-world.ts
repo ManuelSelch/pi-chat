@@ -91,6 +91,9 @@ export class TestWorld {
         ? SessionManager.open(sessionPath, this.sessionDir, this.projectPath)
         : SessionManager.create(this.projectPath, this.sessionDir);
       (session as unknown as { sessionManager: SessionManager }).sessionManager = sessionManager;
+      // The harness starts empty. Mirror SDK session construction when replacing
+      // its manager so reopened sessions expose the restored agent context too.
+      session.agent.state.messages = sessionManager.buildSessionContext().messages;
       runtime = new AgentSessionRuntime(session, {
         cwd: harness.cwd, agentDir: harness.cwd,
         modelRuntime: session.modelRuntime,

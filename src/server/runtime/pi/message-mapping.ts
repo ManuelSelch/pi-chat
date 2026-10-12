@@ -169,6 +169,17 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
     ];
   }
 
+  if (value.role === "compactionSummary" || value.role === "branchSummary") {
+    if (typeof value.summary !== "string" || value.summary.length === 0) return [];
+    return [{
+      id: identity.idFor(message),
+      role: "custom",
+      customType: value.role === "compactionSummary" ? "compaction-summary" : "branch-summary",
+      text: value.summary,
+      ...stamp,
+    }];
+  }
+
   if (value.role === "custom") {
     if (value.display !== true || typeof value.customType !== "string" || value.customType.length === 0) return [];
     const text = textFromContent(value.content);

@@ -59,15 +59,32 @@ export class ChatApplicationService {
     return this.sessions.list().map((session) => session.sessionId);
   }
 
-  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
-    const snapshot = this.sessions.get(sessionId).snapshot();
+  /** Prepare slow dependencies; the returned capture must run at publication time. */
+  async prepareSnapshot(sessionId: string): Promise<() => (RuntimeSnapshot & { catalogue: ProjectCatalogue }) | undefined> {
+    if (!this.sessions.has(sessionId)) return () => undefined;
+    const adapter = this.sessions.get(sessionId);
+    const isCurrent = () => this.sessions.has(sessionId) && this.sessions.get(sessionId) === adapter;
     await this.extensions.emit("session.snapshot", { sessionId });
-    return {
-      ...snapshot,
-      actions: this.withAppActions(snapshot.actions),
-      catalogue: await this.catalogue(snapshot),
-      extensions: this.extensions.snapshot({ sessionId }),
+    if (!isCurrent()) return () => undefined;
+    const catalogue = await this.catalogue(adapter.snapshot());
+    return () => {
+      if (!isCurrent()) return undefined;
+      const snapshot = adapter.snapshot();
+      if (snapshot.sessionId !== sessionId) return undefined;
+      return {
+        ...snapshot,
+        actions: this.withAppActions(snapshot.actions),
+        catalogue,
+        extensions: this.extensions.snapshot({ sessionId }),
+      };
     };
+  }
+
+  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
+    const capture = await this.prepareSnapshot(sessionId);
+    const snapshot = capture();
+    if (!snapshot) throw new Error(`Unknown or replaced session: ${sessionId}`);
+    return snapshot;
   }
 
   /**

@@ -38,29 +38,40 @@ export class ServerPublisher {
   }
 
   async sendAll(socket: WebSocket): Promise<void> {
-    for (const sessionId of this.chat.openSessionIds()) await this.sendSnapshot(sessionId, socket);
+    for (const sessionId of this.chat.openSessionIds()) {
+      if (!this.isCurrentSocket(socket)) return;
+      await this.sendSnapshot(sessionId, socket);
+    }
+    if (!this.isCurrentSocket(socket)) return;
     this.sendTabs(socket);
     await this.sendCatalogue(socket);
   }
 
   async sendCatalogue(socket = this.controller()): Promise<void> {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!this.isCurrentSocket(socket)) return;
     try {
-      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue: await this.chat.currentCatalogue(), features: this.chat.appFeatures() });
+      const catalogue = await this.chat.currentCatalogue();
+      if (!this.isCurrentSocket(socket)) return;
+      this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features: this.chat.appFeatures() });
     } catch (error: unknown) {
-      this.publishError(this.chat.activeSessionId(), error);
+      if (this.isCurrentSocket(socket)) this.publishError(this.chat.activeSessionId(), error);
     }
   }
 
   sendTabs(socket = this.controller()): void {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!this.isCurrentSocket(socket)) return;
     this.sendTo(socket, { version: PROTOCOL_VERSION, type: "tabs", tabs: this.chat.tabs(), activeSessionId: this.chat.activeSessionId() });
   }
 
   async sendSnapshot(sessionId: string, socket = this.controller()): Promise<void> {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (!this.isCurrentSocket(socket)) return;
+    const capture = await this.chat.prepareSnapshot(sessionId);
+    if (!this.isCurrentSocket(socket)) return;
+    // No await from capture through send: state and its event watermark belong
+    // to the same synchronous publication, even if preparation finished late.
+    const snapshot = capture();
+    if (!snapshot) return;
     const sequence = this.sequences.get(sessionId) ?? 0;
-    const snapshot = await this.chat.snapshot(sessionId);
     this.sendTo(socket, { version: PROTOCOL_VERSION, type: "snapshot", sequence, throughSequence: sequence, ...snapshot });
   }
 
@@ -90,6 +101,10 @@ export class ServerPublisher {
 
   sendTo(socket: WebSocket, message: ServerMessage): void {
     socket.send(JSON.stringify(message));
+  }
+
+  private isCurrentSocket(socket: WebSocket | undefined): socket is WebSocket {
+    return socket !== undefined && socket === this.controller() && socket.readyState === WebSocket.OPEN;
   }
 
   private nextSequence(sessionId: string): number {

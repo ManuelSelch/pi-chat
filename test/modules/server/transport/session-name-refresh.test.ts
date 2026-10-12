@@ -9,7 +9,7 @@ import { ServerPublisher } from "../../../../src/server/transport/server-publish
 describe("session name refresh", () => {
   it.each(["Generated title", undefined])("projects a Pi name change (%s) without changing run state", (name) => {
     const emit = vi.fn();
-    const state = { currentRunId: "running-turn", lastError: "Previous error", lastSteeringMessages: [] as string[] };
+    const state = { currentRunId: "running-turn", lastError: "Previous error" };
     const handler = createSessionEventHandler({
       session: {} as AgentSessionRuntime["session"],
       identity: new MessageIdentity(),
@@ -22,7 +22,7 @@ describe("session name refresh", () => {
     handler({ type: "session_info_changed", name });
 
     expect(emit.mock.calls).toEqual([[{ type: "sessionMetadataChanged" }]]);
-    expect(state).toEqual({ currentRunId: "running-turn", lastError: "Previous error", lastSteeringMessages: [] });
+    expect(state).toEqual({ currentRunId: "running-turn", lastError: "Previous error" });
   });
 
   it.each([false, true])("refreshes the changed session, tabs and catalogue while streaming=%s", async (isStreaming) => {
@@ -30,7 +30,7 @@ describe("session name refresh", () => {
     const tabs = [{ sessionId: "background-session", title: "Generated title" }];
     const catalogue = { projects: [{ sessions: [{ title: "Generated title" }] }] };
     const chat = {
-      snapshot: vi.fn().mockResolvedValue(snapshot),
+      prepareSnapshot: vi.fn().mockResolvedValue(() => snapshot),
       tabs: vi.fn().mockReturnValue(tabs),
       activeSessionId: vi.fn().mockReturnValue("foreground-session"),
       currentCatalogue: vi.fn().mockResolvedValue(catalogue),
@@ -44,7 +44,7 @@ describe("session name refresh", () => {
 
     await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(3));
     const messages = send.mock.calls.map(([value]) => JSON.parse(value));
-    expect(chat.snapshot).toHaveBeenCalledWith("background-session");
+    expect(chat.prepareSnapshot).toHaveBeenCalledWith("background-session");
     expect(messages).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: "snapshot", sessionId: "background-session", sessionName: "Generated title", isStreaming }),
       expect.objectContaining({ type: "tabs", tabs, activeSessionId: "foreground-session" }),

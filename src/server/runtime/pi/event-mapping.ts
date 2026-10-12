@@ -1,7 +1,7 @@
 import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import type { RuntimeEvent } from "../contracts.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
-import { customMessageFromEntry, MessageIdentity, textFromContent, toChatMessage } from "./message-mapping.js";
+import { MessageIdentity, textFromContent, toChatMessage } from "./message-mapping.js";
 import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
 
 export type SessionEvent = Parameters<AgentSessionRuntime["session"]["subscribe"]>[0] extends (event: infer Event) => unknown
@@ -11,7 +11,6 @@ export type SessionEvent = Parameters<AgentSessionRuntime["session"]["subscribe"
 export interface EventProjectionState {
   currentRunId: string;
   lastError?: string;
-  lastSteeringMessages: string[];
 }
 
 export interface EventMappingDependencies {
@@ -27,19 +26,9 @@ export interface EventMappingDependencies {
 export function createSessionEventHandler(dependencies: EventMappingDependencies): (event: SessionEvent) => void {
   return (event) => {
     if (event.type === "queue_update") {
-      const messages = [...event.steering];
-      const seen = new Set(dependencies.state.lastSteeringMessages);
-      for (const message of messages) {
-        const text = message.trim();
-        if (!text || seen.has(message)) continue;
-        dependencies.emit({
-          type: "messageFinal",
-          runId: dependencies.state.currentRunId || "steering",
-          message: { id: `steering:${crypto.randomUUID()}`, role: "user", text },
-        });
-      }
-      dependencies.state.lastSteeringMessages = messages;
-      dependencies.emit({ type: "steeringQueue", messages });
+      // Queued input is not transcript history until Pi consumes it and emits
+      // the actual user message_end. Keep the SDK queue intact, including repeats.
+      dependencies.emit({ type: "steeringQueue", messages: [...event.steering] });
       return;
     }
     if (event.type === "session_info_changed") {
@@ -60,6 +49,12 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
       return;
     }
     if (event.type === "message_end") {
+      if (event.message.role === "custom") {
+        // Pi reconstructs custom message objects when refreshing context.
+        // Use its snapshot rather than appending an event object with a second id.
+        dependencies.emit({ type: "sessionMetadataChanged" });
+        return;
+      }
       const failure = event.message as { stopReason?: string; errorMessage?: string };
       if (failure.stopReason === "error") {
         dependencies.state.lastError = failure.errorMessage?.trim() || "The model ended the turn with an error.";
@@ -68,11 +63,6 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
       if (final && (final.role === "user" || final.role === "assistant" || final.role === "custom")) {
         dependencies.emit({ type: "messageFinal", runId: dependencies.state.currentRunId, message: final });
       }
-      return;
-    }
-    if (event.type === "entry_appended") {
-      const message = customMessageFromEntry(event.entry);
-      if (message) dependencies.emit({ type: "messageFinal", runId: dependencies.state.currentRunId, message });
       return;
     }
     if (event.type === "tool_execution_start") {
@@ -130,6 +120,11 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
         dependencies.emit({ type: "notification", level: "error", message: `Compaction failed: ${event.errorMessage}` });
       } else if (event.aborted) {
         dependencies.emit({ type: "notification", level: "warning", message: "Compaction was cancelled." });
+      }
+      // Automatic compaction can finish without a submitted command returning;
+      // refresh the browser from the SDK's newly reconstructed context.
+      if (event.result && !event.aborted && !event.errorMessage) {
+        dependencies.emit({ type: "sessionMetadataChanged" });
       }
       if (!event.willRetry && !dependencies.session.isStreaming) {
         dependencies.emit({ type: "runtimeStatus", status: "idle" });
