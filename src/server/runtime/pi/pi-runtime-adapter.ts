@@ -11,7 +11,7 @@ import { UiPromptRegistry } from "../../extensions/ui/ui-prompt-registry.js";
 import { StatusRegistry } from "../../extensions/ui/status-registry.js";
 import { WidgetRegistry } from "../../extensions/ui/widget-registry.js";
 import { type SessionStatsView } from "./session-stats.js";
-import { MessageIdentity, mergeEntriesById, messagesFromBranch, toChatMessages } from "./message-mapping.js";
+import { MessageIdentity, mergeEntriesById, toChatMessages } from "./message-mapping.js";
 import { createSessionEventHandler } from "./event-mapping.js";
 import { projectFooter, projectSnapshot } from "./snapshot.js";
 import { offeredModels } from "./models.js";
@@ -161,10 +161,9 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   snapshot(): RuntimeSnapshot {
-    const branch = (this.runtime.session as { sessionManager?: { getBranch(): Iterable<unknown> } }).sessionManager?.getBranch();
-    const messages = branch
-      ? messagesFromBranch(branch, this.identity)
-      : mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
+    // Agent state includes finalized messages before branch persistence and
+    // already owns custom messages and compaction-aware context reconstruction.
+    const messages = mergeEntriesById(this.runtime.session.messages.flatMap((message) => toChatMessages(message, this.identity)));
     const snapshot = projectSnapshot({
       session: this.runtime.session,
       cwd: this.runtime.cwd,

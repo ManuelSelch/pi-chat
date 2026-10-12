@@ -150,6 +150,18 @@ describe("Pi message mapping", () => {
     expect(merged.tool.argsText).toContain("/tmp/x");
   });
 
+  it.each([
+    ["compactionSummary", "compaction-summary"],
+    ["branchSummary", "branch-summary"],
+  ])("maps SDK %s without creating a new identity on each snapshot", (role, customType) => {
+    const identity = new MessageIdentity();
+    const message = { role, summary: "Earlier work", timestamp: 123 };
+    const mapped = toChatMessages(message, identity);
+    expect(mapped).toEqual([{ id: "msg-1", role: "custom", customType, text: "Earlier work", timestamp: 123 }]);
+    expect(toChatMessages(message, identity)).toEqual(mapped);
+    expect(toChatMessages({ role, summary: "" }, identity)).toEqual([]);
+  });
+
   it("maps displayable custom messages from pi.sendMessage", () => {
     const identity = new MessageIdentity();
     const message = {
