@@ -35,14 +35,16 @@ function receive(socket: WebSocket): Promise<ServerMessage> {
   });
 }
 
-async function connectWithSnapshot(url: string): Promise<{ socket: WebSocket; snapshot: ServerMessage }> {
+async function connectWithSnapshot(url: string): Promise<{ socket: WebSocket; snapshot: ServerMessage; catalogue: Promise<ServerMessage> }> {
   const socket = new WebSocket(url);
+  // Subscribe before connection: a fast empty catalogue may arrive with the snapshot.
+  const catalogue = receiveOfType(socket, "catalogue");
   const snapshot = receive(socket);
   await new Promise<void>((resolve, reject) => {
     socket.once("open", () => resolve());
     socket.once("error", reject);
   });
-  return { socket, snapshot: await snapshot };
+  return { socket, snapshot: await snapshot, catalogue };
 }
 
 describe("WebSocket transport", () => {
@@ -102,7 +104,7 @@ describe("WebSocket transport", () => {
       const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
       socket = connected.socket;
       // Drain the initial publication before listening for the archive response.
-      await receiveOfType(socket, "catalogue");
+      await connected.catalogue;
       const tabs = receiveOfType(socket, "tabs");
       const catalogue = receiveOfType(socket, "catalogue");
       const reply = receiveOfType(socket, "projectMutationResult");
@@ -116,6 +118,40 @@ describe("WebSocket transport", () => {
     }
   });
 
+  it.each(["newSession", "openSession"] as const)("publishes %s before its single catalogue scan completes", async type => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const catalogue = vi.spyOn(ProjectSessionService.prototype, "catalogue")
+      .mockResolvedValueOnce({ projects: [] })
+      .mockImplementation(async () => { await gate; return { projects: [] }; });
+    const remember = vi.spyOn(ProjectSessionService.prototype, "rememberProject").mockResolvedValue(undefined);
+    try {
+      const next = new FakeRuntimeAdapter("next-session");
+      server = createPiChatServer(new FakeRuntimeAdapter(), undefined, {
+        continueProject: async () => next, openSession: async () => next, newSession: async () => next,
+      });
+      await new Promise<void>(resolve => server!.httpServer.listen(0, "127.0.0.1", resolve));
+      const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
+      socket = connected.socket;
+      await connected.catalogue;
+      expect(catalogue).toHaveBeenCalledOnce();
+      const snapshot = receiveOfType(socket, "snapshot");
+      const tabs = receiveOfType(socket, "tabs");
+      const opened = type === "newSession" ? receiveOfType(socket, "sessionOpened") : undefined;
+      const refreshed = receiveOfType(socket, "catalogue");
+      socket.send(JSON.stringify(type === "newSession"
+        ? { version: 1, type, requestId: "open-fast" }
+        : { version: 1, type, path: "next-session.jsonl" }));
+      expect(await snapshot).toMatchObject({ sessionId: "next-session" });
+      expect(await tabs).toMatchObject({ activeSessionId: "next-session" });
+      if (opened) expect(await opened).toMatchObject({ sessionId: "next-session", requestId: "open-fast" });
+      await vi.waitFor(() => expect(catalogue).toHaveBeenCalledTimes(2));
+      release();
+      await refreshed;
+      expect(catalogue).toHaveBeenCalledTimes(2);
+    } finally { release(); catalogue.mockRestore(); remember.mockRestore(); }
+  });
+
   it("starts on the home screen when no session tab is open", async () => {
     server = createPiChatServer(undefined);
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
@@ -124,7 +160,7 @@ describe("WebSocket transport", () => {
     socket = connected.socket;
 
     expect(connected.snapshot).toMatchObject({ version: PROTOCOL_VERSION, type: "tabs", tabs: [], activeSessionId: "" });
-    expect(await receiveOfType(socket, "catalogue")).toMatchObject({ type: "catalogue" });
+    expect(await connected.catalogue).toMatchObject({ type: "catalogue" });
   });
 
   it("sends a versioned snapshot and survives malformed input", async () => {

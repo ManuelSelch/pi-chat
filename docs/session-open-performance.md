@@ -39,7 +39,7 @@ Warm new sessions: first snapshot 1,040–1,067 ms; full flow 2,007–2,054 ms.
 Existing session: first snapshot 1,034–1,048 ms; full flow 1,956–2,001 ms.
 An earlier repeated run showed catalogue refresh variability up to 1,292 ms.
 
-## Root cause
+## Original root cause
 
 `ChatApplicationService.prepareSnapshot()` awaits a full catalogue rebuild **before
 publishing the transcript or focusing the browser tab**. After snapshot publication,
@@ -55,7 +55,33 @@ The second refresh occurs after the initial snapshot, so its whole duration shou
 not be presented as time-to-first-visible-transcript. Actual browser rendering and
 the user's exact three-second delay were not measured by this script.
 
-Suggested next small change: reuse the already prepared catalogue for the
-post-open catalogue publication. Separately, decouple catalogue refresh from
-transcript publication or cache session metadata using file modification times.
-No performance behavior changes are included in this profiling task.
+## Implemented fix and remeasurement
+
+Snapshots no longer include or await a catalogue rebuild. The transport sends the
+snapshot, tab focus, and correlated Open acknowledgement before requesting the
+one catalogue refresh. Separate catalogue messages already update the browser's
+project/session state, so no protocol or UI changes are required.
+
+Prompt and feature completion now explicitly publish their catalogue update after
+the transcript snapshot, preserving the old metadata-refresh behavior. Removed
+the unused application catalogue cache rather than introducing stale-data caching.
+Extension snapshot hooks and atomic event-watermark capture remain unchanged.
+
+Reran the same profiler, sequentially without concurrent build/test load:
+
+| Session | First snapshot before | First snapshot after |
+| --- | ---: | ---: |
+| New, warm | 1,040–1,067 ms | **55–57 ms** |
+| Existing, warm | 1,034–1,048 ms | **69–74 ms** |
+| New, cold process | 1,662 ms | **587 ms** |
+
+Catalogue refresh still takes 934–992 ms, but happens once and no longer blocks
+opening. Total snapshot-plus-catalogue flow is 991–1,065 ms warm and 1,560 ms cold.
+
+Regression tests hold catalogue scanning open and verify snapshots, tab focus,
+and Open acknowledgement are published first, with one scan per opening.
+Atomic publication tests now use delayed extension hooks (the actual remaining
+async snapshot dependency), retaining close/reopen/controller replacement coverage.
+Full Vitest suite: 829 tests passed. Browser E2E: seven tests passed. Production
+build and TypeScript checks passed. Real-browser latency itself is not measured;
+the timings above are server-side first-snapshot readiness.

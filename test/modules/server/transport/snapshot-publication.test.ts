@@ -46,12 +46,36 @@ function setup() {
 }
 
 describe("atomic snapshot publication", () => {
-  it("captures current messages and status after catalogue preparation, without rewinding the reducer", async () => {
+  it("publishes the transcript without scanning the catalogue, even if scanning would fail", async () => {
+    const context = setup();
+    context.catalogue.mockRejectedValue(new Error("Catalogue unavailable"));
+    try {
+      await context.publisher.sendSnapshot("s1");
+      expect(context.snapshots()).toHaveLength(1);
+      expect(context.catalogue).not.toHaveBeenCalled();
+      expect(context.snapshots()[0]).not.toHaveProperty("catalogue");
+    } finally { await context.chat.dispose(); }
+  });
+
+  it("publishes a snapshot while a catalogue refresh is still blocked", async () => {
     const context = setup();
     const gate = deferred();
-    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; });
-    const pending = context.publisher.sendSnapshot("s1");
+    context.catalogue.mockImplementation(async () => { await gate.promise; return { projects: [] }; });
+    const refresh = context.publisher.sendCatalogue();
     await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+    try {
+      await context.publisher.sendSnapshot("s1");
+      expect(context.snapshots()).toHaveLength(1);
+      expect(context.catalogue).toHaveBeenCalledOnce();
+    } finally { gate.resolve(); await refresh; await context.chat.dispose(); }
+  });
+  it("captures current messages and status after extension preparation, without rewinding the reducer", async () => {
+    const context = setup();
+    const gate = deferred();
+    const entered = deferred();
+    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
+    const pending = context.publisher.sendSnapshot("s1");
+    await entered.promise;
     context.addUser("u1", "Quick message after bash");
     context.publisher.publish("s1", { type: "runtimeStatus", status: "running" });
     gate.resolve();
@@ -86,14 +110,15 @@ describe("atomic snapshot publication", () => {
     const context = setup();
     const first = deferred();
     const second = deferred();
-    context.catalogue
-      .mockImplementationOnce(async () => { await first.promise; return { projects: [] }; })
-      .mockImplementationOnce(async () => { await second.promise; return { projects: [] }; });
+    const hook = vi.fn()
+      .mockImplementationOnce(async () => { await first.promise; })
+      .mockImplementationOnce(async () => { await second.promise; });
+    context.extensions.on("session.snapshot", hook);
     const older = context.publisher.sendSnapshot("s1");
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1));
     context.addUser("u1", "First");
     const newer = context.publisher.sendSnapshot("s1");
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(2));
     second.resolve();
     await newer;
     context.addUser("u2", "Second");
@@ -109,9 +134,10 @@ describe("atomic snapshot publication", () => {
   it.each([false, true])("discards preparation after closing the session (reopen=%s)", async reopen => {
     const context = setup();
     const gate = deferred();
-    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; });
+    const entered = deferred();
+    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
     const pending = context.publisher.sendSnapshot("s1");
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+    await entered.promise;
     await context.chat.closeTab("s1");
     if (reopen) await context.chat.openSession("s1.jsonl");
     gate.resolve();
@@ -123,9 +149,10 @@ describe("atomic snapshot publication", () => {
   it.each(["closed", "replaced"] as const)("does not publish to a %s connection after preparation", async invalidation => {
     const context = setup();
     const gate = deferred();
-    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; });
+    const entered = deferred();
+    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
     const pending = context.publisher.sendAll(context.socket);
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+    await entered.promise;
     if (invalidation === "closed") Object.assign(context.socket, { readyState: WebSocket.CLOSED });
     else context.setController({ readyState: WebSocket.OPEN, send: vi.fn() } as unknown as WebSocket);
     gate.resolve();

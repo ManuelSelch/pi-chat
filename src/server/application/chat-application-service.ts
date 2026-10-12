@@ -30,7 +30,6 @@ const RELOAD_COMMAND = {
 export class ChatApplicationService {
   private readonly listeners = new Set<(sessionId: string, event: RuntimeEvent) => void>();
   private readonly sessions: SessionRegistry;
-  private catalogueCache?: ProjectCatalogue;
   private readonly sessionMutations = new Set<string>();
   private readonly pendingWork = new Map<string, number>();
 
@@ -59,14 +58,13 @@ export class ChatApplicationService {
     return this.sessions.list().map((session) => session.sessionId);
   }
 
-  /** Prepare slow dependencies; the returned capture must run at publication time. */
-  async prepareSnapshot(sessionId: string): Promise<() => (RuntimeSnapshot & { catalogue: ProjectCatalogue }) | undefined> {
+  /** Await extension hooks only; catalogue scans must never block transcript publication. */
+  async prepareSnapshot(sessionId: string) {
     if (!this.sessions.has(sessionId)) return () => undefined;
     const adapter = this.sessions.get(sessionId);
     const isCurrent = () => this.sessions.has(sessionId) && this.sessions.get(sessionId) === adapter;
     await this.extensions.emit("session.snapshot", { sessionId });
     if (!isCurrent()) return () => undefined;
-    const catalogue = await this.catalogue(adapter.snapshot());
     return () => {
       if (!isCurrent()) return undefined;
       const snapshot = adapter.snapshot();
@@ -74,13 +72,12 @@ export class ChatApplicationService {
       return {
         ...snapshot,
         actions: this.withAppActions(snapshot.actions),
-        catalogue,
         extensions: this.extensions.snapshot({ sessionId }),
       };
     };
   }
 
-  async snapshot(sessionId = this.activeSessionId()): Promise<RuntimeSnapshot & { catalogue: ProjectCatalogue }> {
+  async snapshot(sessionId = this.activeSessionId()) {
     const capture = await this.prepareSnapshot(sessionId);
     const snapshot = capture();
     if (!snapshot) throw new Error(`Unknown or replaced session: ${sessionId}`);
@@ -136,7 +133,6 @@ export class ChatApplicationService {
       if (nextSessionId !== sessionId) this.sessions.rekey(sessionId, nextSessionId);
       // Informational slash commands and /new do not resume the old task.
       if (path && !message.trim().startsWith("/")) await this.projectSessions.restoreIfArchived?.(path);
-      this.catalogueCache = undefined;
       return nextSessionId;
     } finally {
       const count = (this.pendingWork.get(sessionId) ?? 1) - 1;
@@ -160,7 +156,6 @@ export class ChatApplicationService {
     this.sessionMutations.add(sessionId);
     try {
       await this.sessions.get(sessionId).reload();
-      this.catalogueCache = undefined;
       this.emit(sessionId, {
         type: "notification",
         level: "info",
@@ -246,12 +241,10 @@ export class ChatApplicationService {
   async pinProject(path: string, pinned: boolean): Promise<void> {
     const target = pinned ? await this.directories.validate(path) : path;
     await this.projectSessions.pin(target, pinned);
-    this.catalogueCache = undefined;
   }
 
   async removeProject(path: string): Promise<void> {
     await this.projectSessions.removeProject(path);
-    this.catalogueCache = undefined;
   }
 
   async archiveSession(path: string, archived: boolean): Promise<void> {
@@ -265,7 +258,6 @@ export class ChatApplicationService {
       // Persist first: a failed write must not close the user's tab.
       await this.projectSessions.archive(path, archived);
       if (archived && sessionId) await this.sessions.close(sessionId);
-      this.catalogueCache = undefined;
     } finally { if (sessionId) this.sessionMutations.delete(sessionId); }
   }
 
@@ -273,7 +265,6 @@ export class ChatApplicationService {
   async closeTab(sessionId: string): Promise<void> {
     if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
     await this.sessions.close(sessionId);
-    this.catalogueCache = undefined;
   }
 
   async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
@@ -290,7 +281,6 @@ export class ChatApplicationService {
       });
       if (path && (message.type === "runExtensionAction" || message.featureId === "session.compact")) {
         await this.projectSessions.restoreIfArchived?.(path);
-        this.catalogueCache = undefined;
       }
     } finally {
       const count = (this.pendingWork.get(sessionId) ?? 1) - 1;
@@ -313,12 +303,11 @@ export class ChatApplicationService {
   private async openTab(create: () => Promise<RuntimeAdapter>): Promise<string> {
     const adapter = await create();
     const { sessionId } = this.sessions.add(adapter);
-    this.catalogueCache = undefined;
     return sessionId;
   }
 
   private async catalogue(snapshot: RuntimeSnapshot): Promise<ProjectCatalogue> {
-    this.catalogueCache = await this.projectSessions.catalogue({
+    return this.projectSessions.catalogue({
       id: snapshot.sessionId,
       path: snapshot.sessionPath,
       name: snapshot.sessionName,
@@ -326,14 +315,12 @@ export class ChatApplicationService {
       messageCount: snapshot.messages.filter((message) => message.role !== "tool").length,
       firstMessage: firstUserMessage(snapshot),
     });
-    return this.catalogueCache;
   }
 
   private emit(sessionId: string, event: RuntimeEvent): void {
     if (event.type === "sessionSwitch") {
       this.sessions.rekey(event.previousSessionId || sessionId, event.sessionId);
       sessionId = event.sessionId;
-      this.catalogueCache = undefined;
     }
     if (event.type === "messageFinal") {
       void this.extensions.emit("message.final", { sessionId, message: event.message as ChatMessage });

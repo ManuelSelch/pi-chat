@@ -111,12 +111,13 @@ export class WebSocketTransport {
     try {
       await this.publisher.sendSnapshot(sessionId);
       this.publisher.sendTabs();
-      await this.publisher.sendCatalogue();
     } catch (error: unknown) {
       this.publisher.publishError(sessionId, error);
     } finally {
+      // The session is usable now; catalogue scanning must not delay the Open reply.
       if (requestId && socket) this.publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "sessionOpened", requestId, sessionId });
     }
+    await this.publisher.sendCatalogue();
   }
 
 }

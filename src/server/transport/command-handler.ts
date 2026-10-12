@@ -36,15 +36,19 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
     chat.abort(command.sessionId).catch((error: unknown) => publisher.publishError(command.sessionId, error));
   } else if (command.type === "prompt") {
     chat.prompt(command.sessionId, command.message)
-      .then((sessionId) => publisher.sendSnapshot(sessionId))
+      .then(async (sessionId) => {
+        await publisher.sendSnapshot(sessionId);
+        await publisher.sendCatalogue();
+      })
       .catch((error: unknown) => publisher.publishError(command.sessionId, error));
   } else if (command.type === "uiPromptResponse") {
     chat.respondToPrompt(command.sessionId, command.promptId, command.result);
   } else if (command.type === "runFeature" || command.type === "runExtensionAction") {
     chat.runFeature(command)
-      .then(() => {
-        void publisher.sendSnapshot(command.sessionId);
+      .then(async () => {
+        await publisher.sendSnapshot(command.sessionId);
         publisher.sendTabs();
+        await publisher.sendCatalogue();
       })
       .catch((error: unknown) => publisher.publishError(command.sessionId, error));
   } else if (command.type === "focusTab") {
