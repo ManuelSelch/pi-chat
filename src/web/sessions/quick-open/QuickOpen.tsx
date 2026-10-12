@@ -3,7 +3,8 @@ import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from
 import { IconBolt, IconFolder, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
-import { buildQuickOpenItems, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
+import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
+import { usePointerModality } from "../../ui/usePointerModality.js";
 
 import type { SessionAction } from "../actions/session-actions.js";
 
@@ -14,11 +15,12 @@ interface QuickOpenProps {
   tabs: Tab[];
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
+  onNewSession: (path: string) => void;
   actions?: readonly SessionAction[];
 }
 
-const resultTypes = { session: "Session", project: "Folder", worktree: "Worktree", action: "Action" };
-const resultIcons = { session: IconMessage, project: IconFolder, worktree: IconGitBranch, action: IconBolt };
+const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
+const resultIcons = { session: IconMessage, project: IconFolder, worktree: IconGitBranch, projectAction: IconBolt, action: IconBolt };
 const scopes = [
   { prefix: "", label: "All", kind: undefined },
   { prefix: "#", label: "# Folders", kind: "project" },
@@ -32,7 +34,7 @@ function resultTitle(item: QuickOpenItem): string {
 }
 
 function resultContext(item: QuickOpenItem): string {
-  if (item.kind === "action") return item.project;
+  if (item.kind === "action" || item.kind === "projectAction") return item.project;
   const checkout = item.branch ?? (item.detached ? `detached at ${item.commit?.slice(0, 7) ?? "unknown commit"}` : undefined);
   const project = item.repositoryName ?? item.project;
   if (item.kind === "session") return [project, checkout, relativeTime(item.modified)].filter(Boolean).join(" · ");
@@ -41,19 +43,24 @@ function resultContext(item: QuickOpenItem): string {
 }
 
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, actions = [] }: QuickOpenProps) {
+export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, actions = [] }: QuickOpenProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const pointer = useRef<{ x: number; y: number } | null>(null);
-  const mouseActive = useRef<number | null>(null);
+  const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
 
   const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId), actions);
   const scopeKind = parseQuickOpenQuery(query).kind;
-  const results = rankQuickOpen(items, query);
+  const rankedResults = rankQuickOpen(items, query);
+  const results = query.trim() ? folderSearchChoices(rankedResults) : rankedResults;
   // Catalogue snapshots can remove results without a query edit.
-  const selectedIndex = Math.min(active, Math.max(0, results.length - 1));
+  const rawActive = Math.min(active, Math.max(0, results.length - 1));
+  const selectedIndex = results[rawActive]?.disabled
+    ? results.findIndex((item, index) => index > rawActive && !item.disabled) >= 0
+      ? results.findIndex((item, index) => index > rawActive && !item.disabled)
+      : results.findIndex(item => !item.disabled)
+    : rawActive;
   const emptyText = parseQuickOpenQuery(query).text
     ? `Nothing matches “${query.trim()}”.`
     : scopeKind
@@ -67,18 +74,21 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
     if (opened) {
       setQuery("");
       setActive(0);
+      resetPointerModality();
     }
-  }, [opened]);
+  }, [opened, resetPointerModality]);
 
   useEffect(() => {
-    if (mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
-    mouseActive.current = null;
-  }, [active]);
+    if (!pointerActive) activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active, pointerActive]);
 
   function choose(item: QuickOpenItem): void {
+    if (item.disabled) return;
     if (item.kind === "session") onOpenSession(item.path);
-    else if (item.kind === "action") {
-      item.action?.run();
+    else if (item.kind === "action") item.action?.run();
+    else if (item.kind === "projectAction") {
+      if (item.path.endsWith("::latest-session") && item.targetPath) onOpenSession(item.targetPath);
+      else if (item.path.endsWith("::new-session") && item.targetPath) onNewSession(item.targetPath);
     } else onOpenProject(item.path);
     onClose();
   }
@@ -100,7 +110,10 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((selectedIndex + step + results.length) % results.length);
+      for (let offset = 1; offset <= results.length; offset++) {
+        const next = (selectedIndex + step * offset + results.length * 2) % results.length;
+        if (!results[next]!.disabled) { setActive(next); break; }
+      }
       return;
     }
     if (event.key === "Enter") {
@@ -119,7 +132,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
       title={null}
       styles={{ body: { overflowX: "hidden" } }}
     >
-      <Stack gap="xs" style={{ minWidth: 0, overflowX: "hidden" }}>
+      <Stack gap="xs" className={pointerActive ? classes.pointerActive : undefined} style={{ minWidth: 0, overflowX: "hidden" }}>
         <TextInput
           ref={inputRef}
           data-autofocus
@@ -165,15 +178,8 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
                 className={classes.row}
                 aria-label={`${resultTypes[item.kind]}: ${resultTitle(item)} · ${resultContext(item)}${item.isOpen ? " · Open" : ""}`}
                 aria-selected={index === selectedIndex}
-                onMouseMove={(event) => {
-                  const last = pointer.current;
-                  if (last && last.x === event.clientX && last.y === event.clientY) return;
-                  pointer.current = { x: event.clientX, y: event.clientY };
-                  if (index !== selectedIndex) {
-                    mouseActive.current = index;
-                    setActive(index);
-                  }
-                }}
+                disabled={item.disabled}
+                onPointerMove={(event) => onPointerMove(event, index, selectedIndex, setActive)}
                 onClick={() => choose(item)}
                 p="8px 12px"
               >

@@ -5,7 +5,7 @@ import { useSessionActions } from "../actions/SessionActionsProvider.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {
-  const { app, openSession, openProject } = useAppController();
+  const { app, openSession, openProject, newSession } = useAppController();
   const { actions } = useSessionActions();
   const overlays = useOverlays();
   const opened = overlays.state.quickOpen;
@@ -27,6 +27,7 @@ export function QuickOpenContainer() {
         tabs={app.tabs}
         onOpenSession={openSession}
         onOpenProject={openProject}
+        onNewSession={(path) => { void newSession(path); }}
         actions={actions}
       />
     </>

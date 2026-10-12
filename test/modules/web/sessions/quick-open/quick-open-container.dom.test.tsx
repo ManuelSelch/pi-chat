@@ -3,14 +3,14 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { OverlayController, useOverlays } from "../../../../../src/web/app/overlays/OverlayController.js";
-import type { Tab } from "../../../../../src/shared/protocol.js";
+import type { ProjectCatalogue, Tab } from "../../../../../src/shared/protocol.js";
 import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
 import { ConfirmDialogProvider } from "../../../../../src/web/ui/confirm/ConfirmDialogProvider.js";
 import { initialChatState } from "../../../../../src/web/app/state/chat-state.js";
 import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/QuickOpenContainer.js";
 
 const controller = vi.hoisted(() => ({
-  app: { activeSessionId: "active", tabs: [] as Tab[], tabsKnown: true, openingTabs: 0, closingSessionIds: [] as string[], connection: "open", appFeatures: [], catalogue: { projects: [] } },
+  app: { activeSessionId: "active", tabs: [] as Tab[], tabsKnown: true, openingTabs: 0, closingSessionIds: [] as string[], connection: "open", appFeatures: [], catalogue: { projects: [] } as ProjectCatalogue },
   state: {} as typeof initialChatState, newSession: vi.fn(), openSession: vi.fn(), openProject: vi.fn(),
 }));
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => controller }));
@@ -51,6 +51,27 @@ it.each([
   fireEvent.click(screen.getByRole("option", { name: new RegExp(`Action: ${title}`) }));
   expect(screen.getByRole("status").textContent).toContain(state);
   expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
+});
+it("offers latest and new-session choices for each folder search", async () => {
+  controller.app.catalogue = { projects: [{
+    path: "/project", displayPath: "~/project", name: "project", exists: true, modified: 10, sessionCount: 1,
+    sessions: [{ path: "/sessions/latest.jsonl", id: "latest", title: "Latest", nameSource: "manual", modified: 10, created: 1, messageCount: 2 }],
+  }] };
+  render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
+  fireEvent.click(screen.getByText("Open palette"));
+  fireEvent.change(await screen.findByRole("textbox"), { target: { value: "#project" } });
+  fireEvent.click(screen.getByRole("option", { name: /Open latest session/ }));
+  expect(controller.openSession).toHaveBeenCalledWith("/sessions/latest.jsonl");
+
+  cleanup();
+  controller.app.catalogue = { projects: [{
+    path: "/project", displayPath: "~/project", name: "project", exists: true, modified: 10, sessionCount: 1, sessions: [],
+  }] };
+  render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
+  fireEvent.click(screen.getByText("Open palette"));
+  fireEvent.change(await screen.findByRole("textbox"), { target: { value: "#project" } });
+  fireEvent.click(screen.getByRole("option", { name: /Open new session/ }));
+  expect(controller.newSession).toHaveBeenCalledWith("/project");
 });
 it("starts a new session in the current project through the application controller", async () => {
   controller.app.activeSessionId = "one";

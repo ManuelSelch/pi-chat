@@ -11,12 +11,21 @@
   border-radius: var(--mantine-radius-sm);
 }
 
-.row:hover {
+.pointerActive .row:hover {
   background: var(--mantine-color-default-hover);
 }
 
 .row[aria-selected="true"], .row:focus-visible {
   border-color: var(--mantine-color-dimmed);
+}
+
+.row:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.row:disabled:hover {
+  background: transparent;
 }
 
 .scope.scope {

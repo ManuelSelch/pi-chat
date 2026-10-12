@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Badge, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
 import { THEME } from "../../ui/theme.js";
+import { usePointerModality } from "../../ui/usePointerModality.js";
 import type { MenuItem } from "./command-menu.js";
 
 interface CommandMenuProps {
@@ -12,8 +13,8 @@ interface CommandMenuProps {
 
 export function CommandMenu({ commands, activeIndex, onHover, onSelect }: CommandMenuProps) {
   const activeRef = useRef<HTMLButtonElement | null>(null);
-  const pointer = useRef<{ x: number; y: number } | null>(null);
   const mouseActive = useRef<number | null>(null);
+  const { onPointerMove } = usePointerModality();
 
   useEffect(() => {
     if (mouseActive.current !== activeIndex) activeRef.current?.scrollIntoView({ block: "nearest" });
@@ -32,14 +33,9 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               ref={index === activeIndex ? activeRef : undefined}
               role="option"
               aria-selected={index === activeIndex}
-              onMouseMove={(event) => {
-                const last = pointer.current;
-                if (last && last.x === event.clientX && last.y === event.clientY) return;
-                pointer.current = { x: event.clientX, y: event.clientY };
-                if (index !== activeIndex) {
-                  mouseActive.current = index;
-                  onHover(index);
-                }
+              onPointerMove={(event) => {
+                if (index !== activeIndex) mouseActive.current = index;
+                onPointerMove(event, index, activeIndex, onHover);
               }}
               // The composer keeps focus, so selection must happen before blur.
               onMouseDown={(event) => { event.preventDefault(); onSelect(command); }}

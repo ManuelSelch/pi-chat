@@ -28,7 +28,7 @@ it("identifies each type by icon and accessible name without visible right-hand 
   setup();
   expect(screen.getByRole("option", { name: /Session: Improve search.*pi-chat.*feat\/palette/ }).querySelector(".tabler-icon-message")).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "# Folders" }));
-  expect(screen.getByRole("option", { name: /Folder: pi-chat.*~\/repo/ }).querySelector(".tabler-icon-folder")).not.toBeNull();
+  expect(screen.getByRole("option", { name: /Folder action: Open latest session.*~\/repo/ }).querySelector(".tabler-icon-bolt")).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "% Worktrees" }));
   expect(screen.getByRole("option", { name: /Worktree: feat\/palette.*pi-chat.*trees\/feature/ }).querySelector(".tabler-icon-git-branch")).not.toBeNull();
   expect(screen.getByRole("option", { name: /Worktree: review.*detached at abcdef1/ })).toBeTruthy();
@@ -44,6 +44,42 @@ it.each([
   fireEvent.click(screen.getByRole("option", { name: new RegExp(`Action: ${title}`) }));
   expect(handlers[callback]).toHaveBeenCalledOnce();
   expect(handlers.onClose).toHaveBeenCalledOnce();
+});
+it("offers latest-session and fresh-session choices for a matching folder", () => {
+  const latestData = { projects: [{ ...catalogue.projects[0]!, sessions: [{ path: "/sessions/latest", id: "latest", title: "Latest", nameSource: "manual" as const, modified: 3, created: 0, messageCount: 1 }] }] };
+  const handlers = setup(latestData);
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "#pi-chat" } });
+  fireEvent.click(screen.getByRole("option", { name: /Folder action: Open latest session.*~\/repo/ }));
+  expect(handlers.onOpenSession).toHaveBeenCalledWith("/sessions/latest");
+  cleanup();
+
+  const second = setup();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "#pi-chat" } });
+  fireEvent.click(screen.getByRole("option", { name: /Folder action: Open new session.*~\/repo/ }));
+  expect(second.onNewSession).toHaveBeenCalledWith("/repo");
+});
+it("disables latest-session choice for a folder with no sessions", () => {
+  setup();
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "#pi-chat" } });
+  expect(screen.getByRole("option", { name: /Open latest session.*~\/repo/ }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("option", { name: /Open new session/ }).hasAttribute("disabled")).toBe(false);
+});
+it("keeps mouse hover inactive until pointer movement, and keyboard input clears it", () => {
+  const latestData = { projects: [{ ...catalogue.projects[0]!, sessions: [{ path: "/sessions/latest", id: "latest", title: "Latest", nameSource: "manual" as const, modified: 3, created: 0, messageCount: 1 }] }] };
+  setup(latestData);
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "#pi-chat" } });
+  const rows = screen.getAllByRole("option");
+  const root = rows[0]!.closest('[class*="pointerActive"]');
+  expect(root).toBeNull();
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+  fireEvent.pointerMove(rows[0]!, { pointerType: "mouse", clientX: 10, clientY: 10 });
+  expect(rows[0]!.getAttribute("aria-selected")).toBe("true");
+  expect(rows[0]!.closest('[class*="pointerActive"]')).not.toBeNull();
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+  expect(rows[0]!.closest('[class*="pointerActive"]')).toBeNull();
 });
 it("keeps existing project/session activation with new worktree identity", () => {
   const handlers = setup();
@@ -68,7 +104,8 @@ it("offers search or scopes when folders exist but no recent sessions are availa
   setup({ projects: [catalogue.projects[0]!] });
   expect(screen.getByText("No recent sessions. Search or choose a scope.")).toBeTruthy();
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "#" } });
-  expect(screen.getByRole("option", { name: /Folder: pi-chat/ })).toBeTruthy();
+  expect(screen.getByRole("option", { name: /Folder action: Open latest session.*~\/repo/ })).toBeTruthy();
+  expect(screen.getByRole("option", { name: /Folder action: Open new session.*~\/repo/ })).toBeTruthy();
 });
 it("wraps keyboard selection, activates worktrees, and resets selection after editing", () => {
   const handlers = setup();
@@ -98,7 +135,7 @@ it("does nothing on Enter with no results or during IME composition", () => {
   expect(handlers.onClose).not.toHaveBeenCalled();
 });
 it("clamps selection when the catalogue changes without a query edit", () => {
-  const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn() };
+  const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn() };
   const view = render(<MantineProvider><QuickOpen opened catalogue={catalogue} tabs={[]} {...handlers} /></MantineProvider>);
   const input = screen.getByRole("textbox");
   fireEvent.change(input, { target: { value: "%" } });

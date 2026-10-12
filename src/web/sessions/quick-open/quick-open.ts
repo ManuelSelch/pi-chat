@@ -3,7 +3,7 @@ import type { ProjectCatalogue } from "../../../shared/protocol.js";
 import type { SessionAction } from "../actions/session-actions.js";
 
 export interface QuickOpenItem {
-  kind: "session" | "project" | "worktree" | "action";
+  kind: "session" | "project" | "worktree" | "projectAction" | "action";
   action?: SessionAction;
   /** Session or project path; also the React key. */
   path: string;
@@ -21,6 +21,9 @@ export interface QuickOpenItem {
   messageCount?: number;
   /** A session already held by a tab is focused rather than opened twice. */
   isOpen?: boolean;
+  latestSessionPath?: string;
+  targetPath?: string;
+  disabled?: boolean;
 }
 
 /** Shared by the palette and the home screen so both age sessions the same way. */
@@ -55,6 +58,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
       title: project.name,
       project: project.path,
       modified: project.modified,
+      latestSessionPath: project.sessions.filter(session => session.archivedAt === undefined).sort((a, b) => b.modified - a.modified)[0]?.path,
     });
     for (const session of project.sessions) {
       if (session.archivedAt !== undefined) continue;
@@ -77,15 +81,43 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
 }
 
 export interface QuickOpenQuery {
-  kind: QuickOpenItem["kind"] | undefined;
+  kind: "session" | "project" | "worktree" | "action" | undefined;
   text: string;
 }
 
 export function parseQuickOpenQuery(query: string): QuickOpenQuery {
   const text = query.trim().toLowerCase();
-  const scopes: Record<string, QuickOpenItem["kind"]> = { "#": "project", "%": "worktree", "@": "session", "/": "action" };
+  const scopes: Record<string, NonNullable<QuickOpenQuery["kind"]>> = { "#": "project", "%": "worktree", "@": "session", "/": "action" };
   const kind = scopes[text.charAt(0)];
   return { kind, text: kind ? text.slice(1).trim() : text };
+}
+
+/** Expand a matched folder into explicit latest/new-session choices. */
+export function folderSearchChoices(items: readonly QuickOpenItem[]): QuickOpenItem[] {
+  return items.flatMap(item => {
+    if (item.kind !== "project") return [item];
+    const context = item.displayPath ?? item.path;
+    return [
+      {
+        ...item,
+        kind: "projectAction",
+        path: `${item.path}::latest-session`,
+        title: "Open latest session",
+        project: item.latestSessionPath ? context : `${context} · No session yet`,
+        targetPath: item.latestSessionPath,
+        disabled: !item.latestSessionPath,
+      },
+      {
+        ...item,
+        kind: "projectAction",
+        path: `${item.path}::new-session`,
+        title: "Open new session in folder",
+        project: context,
+        targetPath: item.path,
+        disabled: false,
+      },
+    ];
+  });
 }
 
 /** One insertion, deletion, replacement, or adjacent transposition. */
