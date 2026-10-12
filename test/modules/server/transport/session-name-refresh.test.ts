@@ -9,7 +9,7 @@ import { ServerPublisher } from "../../../../src/server/transport/server-publish
 describe("session name refresh", () => {
   it.each(["Generated title", undefined])("projects a Pi name change (%s) without changing run state", (name) => {
     const emit = vi.fn();
-    const state = { currentRunId: "running-turn", lastError: "Previous error", lastSteeringMessages: [] as string[] };
+    const state = { currentRunId: "running-turn", lastError: "Previous error" };
     const handler = createSessionEventHandler({
       session: {} as AgentSessionRuntime["session"],
       identity: new MessageIdentity(),
@@ -22,7 +22,7 @@ describe("session name refresh", () => {
     handler({ type: "session_info_changed", name });
 
     expect(emit.mock.calls).toEqual([[{ type: "sessionMetadataChanged" }]]);
-    expect(state).toEqual({ currentRunId: "running-turn", lastError: "Previous error", lastSteeringMessages: [] });
+    expect(state).toEqual({ currentRunId: "running-turn", lastError: "Previous error" });
   });
 
   it.each([false, true])("refreshes the changed session, tabs and catalogue while streaming=%s", async (isStreaming) => {

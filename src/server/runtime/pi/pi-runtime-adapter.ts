@@ -35,7 +35,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   private readonly projectionState = {
     currentRunId: "",
     lastError: undefined as string | undefined,
-    lastSteeringMessages: [] as string[],
   };
   private boundSessionId = "";
   /** toolCallIds between tool_execution_start and end; only those may stay "running" in a snapshot. */
