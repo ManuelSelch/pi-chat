@@ -9,11 +9,18 @@ describe("runtime error logging", () => {
     const publisher = new ServerPublisher(chat, () => undefined, logger);
     publisher.publish("s1", { type: "notification", level: "error", message: "exceeded request buffer limit while retrying upstream https://provider.test?token=secret" });
     publisher.publishError("s1", new Error("api_key=secret123"));
+    publisher.publish("s1", { type: "runtimeStatus", status: "idle", error: "fetch failed" });
     expect(logger.error).toHaveBeenNthCalledWith(1, "runtime.notification_error", {
       message: "exceeded request buffer limit while retrying upstream [URL]",
     });
     expect(logger.error).toHaveBeenNthCalledWith(2, "runtime.operation_error", {
       errorName: "Error", message: "api_key=[REDACTED]",
+    });
+    expect(logger.error).toHaveBeenNthCalledWith(3, "runtime.turn_error", {
+      message: "api_key=[REDACTED]", status: "running",
+    });
+    expect(logger.error).toHaveBeenNthCalledWith(4, "runtime.turn_error", {
+      message: "fetch failed", status: "idle",
     });
   });
 });
