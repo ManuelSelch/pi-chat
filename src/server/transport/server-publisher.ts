@@ -24,6 +24,9 @@ export class ServerPublisher {
     if (event.type === "notification" && event.level === "error") {
       this.logger?.error("runtime.notification_error", { message: redactRuntimeError(event.message) });
     }
+    if (event.type === "runtimeStatus" && event.error) {
+      this.logger?.error("runtime.turn_error", { message: redactRuntimeError(event.error), status: event.status });
+    }
     const message: ServerMessage = {
       version: PROTOCOL_VERSION,
       sessionId,
