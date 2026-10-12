@@ -4,6 +4,7 @@ import { useOverlays } from "../app/overlays/OverlayController.js";
 import { useConfirmDialog } from "../ui/confirm/ConfirmDialogProvider.js";
 import { useChimes } from "./preferences/use-chimes.js";
 import { useDisplayPath } from "./preferences/use-display-path.js";
+import { useTranscriptDensity } from "./preferences/use-transcript-density.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 
 export function SettingsContainer() {
@@ -14,6 +15,7 @@ export function SettingsContainer() {
   const busy = state.status === "running" || state.status === "aborting";
   const chimes = useChimes(app.tabs);
   const displayPath = useDisplayPath();
+  const transcript = useTranscriptDensity();
   
   const restartServer = useCallback(async () => {
     if (await confirm({
@@ -38,6 +40,8 @@ export function SettingsContainer() {
       chimesAvailable={chimes.available}
       displayPathShow={displayPath.show}
       setDisplayPathShow={displayPath.setShow}
+      transcriptDensity={transcript.density}
+      setTranscriptDensity={transcript.setDensity}
       runExtensionAction={chat.runExtensionAction}
       restartServer={restartServer}
     />

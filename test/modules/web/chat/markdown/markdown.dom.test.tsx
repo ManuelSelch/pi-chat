@@ -150,6 +150,20 @@ describe("ToolCard rendering", () => {
     expect(card.textContent).toContain("README.md");
   });
 
+  it("renders compact tool calls as borderless muted rows that still expand", async () => {
+    const { ToolCard } = await import("../../../../../src/web/chat/tools/ToolCard.js");
+    render(withMantine(
+      <ToolCard compact tool={{ toolCallId: "compact", name: "bash", status: "success", argsText: '{"command":"npm test"}', outputText: "passed" }} />,
+    ));
+    const card = screen.getByTestId("tool-card");
+    expect(card.className).toContain("tool-card-compact");
+    expect((card as HTMLElement).style.border).toBe("0px");
+    expect((card as HTMLElement).style.background).toBe("transparent");
+    (card.querySelector("summary") as HTMLElement).click();
+    expect(card).toHaveProperty("open", true);
+    expect(card.textContent).toContain("passed");
+  });
+
   it("marks errors visually", async () => {
     const { ToolCard } = await import("../../../../../src/web/chat/tools/ToolCard.js");
     render(withMantine(<ToolCard tool={{ toolCallId: "c2", name: "edit", status: "error", outputText: "permission denied" }} />));

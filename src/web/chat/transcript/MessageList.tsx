@@ -15,8 +15,8 @@ import { THEME } from "../../ui/theme.js";
  * holds hundreds of entries. Each row is memoised so typing in the composer or
  * receiving a streaming delta only re-renders what actually changed.
  */
-const MessageRow = memo(function MessageRow({ message, onLocalLink }: { message: ChatMessage; onLocalLink?: (path: string) => void }) {
-  if (message.role === "tool") return <ToolCard tool={message.tool} />;
+const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: { message: ChatMessage; onLocalLink?: (path: string) => void; compact: boolean }) {
+  if (message.role === "tool") return <ToolCard tool={message.tool} compact={compact} />;
   if (message.role === "bash") return <BashCard bash={message.bash} />;
 
   if (message.role === "notice") {
@@ -88,9 +88,10 @@ interface MessageListProps {
   messages: ChatState["messages"];
   draft: ChatState["draft"];
   onLocalLink?: (path: string) => void;
+  compact?: boolean;
 }
 
-export const MessageList = memo(function MessageList({ messages, draft, onLocalLink }: MessageListProps) {
+export const MessageList = memo(function MessageList({ messages, draft, onLocalLink, compact = false }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
   const shown = messages.length > visible ? messages.slice(-visible) : messages;
   const hidden = messages.length - shown.length;
@@ -108,13 +109,13 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
 
       {/* One gap owns the rhythm: rows must not add their own margins, or a
           tool call between two messages gets counted twice. */}
-      <Stack gap="md" component="section" aria-live="polite">
+      <Stack gap="md" component="section" aria-live="polite" className={compact ? "transcript-compact" : undefined}>
         {hidden > 0 ? (
           <Button variant="subtle" size="compact-sm" onClick={() => setVisible((count) => count + OLDER_STEP)}>
             Show earlier messages ({hidden})
           </Button>
         ) : null}
-        {shown.map((message) => <MessageRow key={message.id} message={message} onLocalLink={onLocalLink} />)}
+        {shown.map((message) => <MessageRow key={message.id} message={message} onLocalLink={onLocalLink} compact={compact} />)}
         {draft ? (
           <Box component="article">
             <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
