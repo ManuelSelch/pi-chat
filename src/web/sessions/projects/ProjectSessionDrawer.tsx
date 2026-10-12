@@ -105,7 +105,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     const active = group.key === activeKey;
     return (
       <div key={group.key}>
-        <div className={`${styles.groupRow}${active ? ` ${styles.groupRowActive}` : ""}`}>
+        <div className={styles.groupRow}>
           <UnstyledButton className={styles.groupMain} aria-expanded={open} aria-current={active ? "true" : undefined}
             onClick={() => { setSelected(group.key); setExpanded(value => ({ ...value, [group.key]: !open })); }}>
             <IconChevronRight size={14} className={`${styles.groupChevron}${open ? ` ${styles.groupChevronOpen}` : ""}`} />

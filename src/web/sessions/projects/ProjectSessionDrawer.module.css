@@ -15,10 +15,6 @@
   background: var(--mantine-color-default-hover);
 }
 
-.groupRowActive {
-  background: var(--mantine-primary-color-light);
-}
-
 .groupMain {
   flex: 1 1 auto;
   min-width: 0;
