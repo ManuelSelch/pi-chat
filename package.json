@@ -20,6 +20,8 @@
     "start": "node dist/server/server/index.js",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
+    "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
+    "measure:server-memory": "npm run build && node scripts/compare-server-memory.mjs",
     "test:watch": "vitest"
   },
   "engines": {

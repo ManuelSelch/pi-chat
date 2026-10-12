@@ -32,6 +32,21 @@ which adds three commands to any Pi session:
 - `/pi-chat-stop`: stop pi-chat server
 - `/pi-chat`: show status
 
+`/pi-chat-start` builds the production web UI and backend on each new start, then
+runs the compiled backend with Node. Generated `dist/` artifacts are local and
+are not committed. For development, use `npm run dev`; it runs the server with
+`tsx watch`.
+
+Production checks and a repeatable fresh-process memory comparison:
+
+```sh
+npm run test:production-smoke
+npm run measure:server-memory
+```
+
+The memory comparison starts both launch modes without open sessions; it is a
+baseline, not a prediction for a long-running server with large transcripts.
+
 ## Keyboard shortcuts
 
 | Shortcut | Effect |

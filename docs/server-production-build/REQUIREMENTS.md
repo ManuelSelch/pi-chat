@@ -47,7 +47,16 @@ Description: **Completed.** Added `tsconfig.server.json` with `src` as `rootDir`
 Description: **Implemented.** `/pi-chat-start` now always invokes `npm run build` when it needs to start a server, then launches `dist/server/server/index.js` directly with `process.execPath` rather than an npm wrapper. Existing healthy instances still short-circuit as already running. Stale PID state is removed; early child exit, spawn failure, and PID-file write failure are handled without leaving a tracked/orphaned listener. Startup timeout also terminates the detached process group and removes its PID file. `npm run build` already rebuilds both backend and web artifacts, and in-app restart uses that same build before re-executing the compiled Node argv. `tsx watch` remains development-only. Validation: TypeScript check and extension build-helper tests pass; production launcher lifecycle smoke remains part of slice 4.
 
 ### 4. Production smoke and memory comparison
-Description: Add or update automated checks for compiled-server startup, `/health`, static UI serving, configured port/PID/log/CWD behavior, and clean shutdown. Measure fresh-process RSS for `tsx` and compiled Node under matched conditions and record the results and limitations.
+Description: **Completed.** Added `npm run test:production-smoke`, which builds then starts the compiled server and verifies `/health`, the built UI, configured port/CWD/PID/log settings, and clean SIGTERM shutdown. Manually exercised the real `/pi-chat-start` and `/pi-chat-stop` handlers with a temporary Pi API stub: it built before first start, recognized the healthy server without rebuilding, and stopped it. Added `npm run measure:server-memory` to run matched fresh-process samples for the prior `tsx` launch and compiled Node.
+
+On macOS ARM with Node v26.5.0, same checkout/CWD and environment, no WebSocket/open sessions, and a 10-second post-health hold, three fresh-process samples reported:
+
+| Launch | RSS range | Peak physical footprint range |
+|---|---:|---:|
+| `tsx src/server/index.ts` | 197.7–199.6 MiB | 167.9–170.2 MiB |
+| `node dist/server/server/index.js` | 109.0–137.3 MiB | 99.8–105.3 MiB |
+
+These short-run baseline samples indicate the compiled launch reduces RSS by roughly 60–90 MiB and peak physical footprint by roughly 63–70 MiB in this environment. They do not explain all of the reported ~400 MiB usage: real sessions, transcript size, extensions, and longer runtime may add memory. RSS/physical-footprint samples are not a heap profile and do not establish or rule out a leak. Use `npm run measure:server-memory` to repeat; its JSON records identify the actual listener PID (important because `tsx` spawns the server process).
 
 ## Open Questions
 None.
