@@ -8,6 +8,7 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - Session-specific skill discovery in the existing slash-command catalogue.
 - Pi terminal's canonical `/skill:name` syntax and discovery setting.
 - Existing keyboard/mouse completion, prompt submission, resource reload, and session switching.
+- Compact `[skill] <name>` headers for agent read calls targeting `SKILL.md`, matching Pi terminal.
 - Regression tests and isolated real-SDK/browser verification.
 
 ### Out of Scope
@@ -16,7 +17,8 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - New WebSocket messages, endpoints, queues, or an execution framework.
 - Skill-specific argument providers or terminal filesystem completion.
 - Allowing slash commands during a live run; preserve Pi Chat's existing idle-only command policy.
-- Custom compact skill transcript rendering or changes to SDK error/fallback semantics.
+- Custom compact rendering of expanded slash-command user messages or changes to SDK error/fallback semantics.
+- General terminal renderer parity for docs, other resources, or unrelated tools.
 - Changes to the unrelated root steering requirements document.
 
 ## Requirements
@@ -32,6 +34,9 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - Resource reload and session/workspace changes must refresh the catalogue through existing snapshots. Use the current session's loader/settings rather than a process-global or browser-owned skill cache. Other tabs retain their own resources.
 - Unknown skill names retain SDK pass-through behavior. Unreadable skill files retain SDK error emission and literal-text fallback; do not invent a custom rejecting preflight or silently claim that loading succeeded.
 - Verify no remote argument-completion request is introduced for a normal skill row; existing argument providers are extension-only. A real extension occupying a skill-shaped invocation retains its existing argument provider.
+- When an agent `read` call targets a file whose basename is exactly `SKILL.md`, show `[skill] <parent-directory>` in the collapsed tool header instead of `read <full-path>`. For example, reading `/Users/manuelselch/.pi/agent/skills/daily-briefing/SKILL.md` displays `[skill] daily-briefing`. Match Pi's filename-based classification, not frontmatter names or membership in the loaded skill catalogue; this presentation remains enabled when `enableSkillCommands` is false.
+- Apply skill-read presentation to both live tool events and snapshot/history cards, retaining the original `read` tool name, call id, arguments/full path, result content, and running/success/error status underneath. Expansion still reveals the real read details; failed reads must remain visibly failed. Non-skill reads and other tools retain their current presentation. Do not generate a synthetic skill tool call for `/skill:name` expansion.
+- Recognize `file_path` as well as `path`, with `file_path` precedence, matching Pi's read renderer. Handle absolute, relative, and home-prefixed paths without filesystem access. Only classify a complete path value, not an unfinished streamed string that merely ends in `SKILL.md` so far. Preserve existing partial-argument display until classification is reliable. Retain Pi-style line-range suffixes when offset/limit are supplied.
 
 ## Assumptions
 - Canonical `/skill:name` syntax is desired, rather than bare `/name` aliases. This matches Pi terminal and avoids collisions with existing commands.
@@ -46,8 +51,11 @@ Description: Extend `src/shared/protocol.ts` to accept the skill source and add 
 ### 2. Invocation and Resource Lifecycle Regressions
 Description: Depends on slice 1. Add isolated real-SDK tests using temporary skills and a deterministic local stream stub, following existing SDK test patterns. Verify expansion with and without task text, frontmatter removal, location/base-directory references, raw input interception, extension precedence, unknown names, and manually entered commands when discovery is disabled. Capture extension-runner errors for the SDK's missing-file fallback without changing browser error handling. Verify changed files are read on invocation and reload refreshes added/removed skill rows and settings. Cover current-session resource replacement and live/snapshot user-message consistency. Keep tests network-free and isolated from personal resources.
 
-### 3. Browser Parity and Verification
-Description: Depends on slices 1–2. Extend existing menu/composer tests for `/skill:` filtering, descriptions/source badges, keyboard and mouse insertion without execution, task submission, no-argument submission, Escape, and absence of skill argument-completion requests. Verify session-specific catalogues through tab changes and reconnect snapshots. Run an isolated browser smoke with a real Pi runtime and fixture skill; confirm invocation, reload, and unchanged busy-command guards. Install worktree dependencies as needed, run focused tests, full suite, typechecking, production build, and whitespace checks; distinguish baseline failures. Document canonical syntax and discovery-setting behavior in README. Commit completed, verified implementation slices without pushing.
+### 3. Compact Skill Read Headers
+Description: Add a narrowly scoped presentation helper for `src/web/chat/tools/ToolCard.tsx` that classifies complete read paths ending in `SKILL.md` and supplies `[skill]` plus the parent-directory label and optional line range. Reuse the existing tool card and disclosure; leave protocol tool identity and server execution unchanged. Add helper/DOM tests covering `path`/`file_path` precedence, absolute/relative/home-prefixed paths, exact filename matching, malformed and partial arguments, unrelated reads/tools, offset/limit including null values, failed/running/completed states, and expansion retaining full arguments/results. Verify equivalent presentation for a live card and the same card restored from a snapshot. This slice is independent of slash-command execution; the requested header format is fixed and needs no layout redesign.
+
+### 4. Browser Parity and Verification
+Description: Depends on slices 1–3. Extend existing menu/composer tests for `/skill:` filtering, descriptions/source badges, keyboard and mouse insertion without execution, task submission, no-argument submission, Escape, and absence of skill argument-completion requests. Verify session-specific catalogues through tab changes and reconnect snapshots. Run an isolated browser smoke with a real Pi runtime and fixture skill; confirm invocation, reload, unchanged busy-command guards, and `[skill] <name>` headers for an actual agent skill read, both live and after reconnect. Verify expansion still exposes its path and content. Install worktree dependencies as needed, run focused tests, full suite, typechecking, production build, and whitespace checks; distinguish baseline failures. Document canonical syntax and discovery-setting behavior in README. Commit completed, verified implementation slices without pushing.
 
 ## Open Questions
 None.
