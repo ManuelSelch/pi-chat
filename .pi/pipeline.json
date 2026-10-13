@@ -12,6 +12,16 @@
       "staleAfterMinutes": 30,
       "auto": "after-agent"
     },
+    "unit": {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": ".",
+      "timeoutSeconds": 300,
+      "staleAfterMinutes": 30,
+      "auto": "after-agent"
+    },
     "e2e": {
       "command": [
         "npm",
@@ -33,16 +43,6 @@
       "timeoutSeconds": 300,
       "staleAfterMinutes": 60,
       "auto": "manual"
-    },
-    "unit": {
-      "command": [
-        "npm",
-        "test"
-      ],
-      "cwd": ".",
-      "timeoutSeconds": 300,
-      "staleAfterMinutes": 30,
-      "auto": "after-agent"
     }
   }
 }
