@@ -16,7 +16,7 @@ function fixture() {
       getAvailable: async () => catalogue,
       getAvailableSnapshot: () => catalogue,
     },
-    settingsManager: { reload: vi.fn(async () => { patterns = savedPatterns; }), getEnabledModels: () => patterns },
+    settingsManager: { getEnableSkillCommands: () => false, reload: vi.fn(async () => { patterns = savedPatterns; }), getEnabledModels: () => patterns },
     extensionRunner: {
       setUIContext: () => {}, getCommand: () => undefined,
       getRegisteredCommands: () => [], emit: vi.fn(async () => {}),

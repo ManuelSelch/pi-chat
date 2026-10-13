@@ -204,7 +204,13 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
         ...(template.argumentHint ? { argumentHint: template.argumentHint } : {}),
         source: "prompt" as const,
       }));
-    return [...registered, ...NATIVE_COMMANDS, ...templates].sort((left, right) => left.name.localeCompare(right.name));
+    for (const template of templates) occupied.add(template.name);
+    const skills = this.runtime.session.settingsManager.getEnableSkillCommands()
+      ? this.runtime.session.resourceLoader.getSkills().skills
+        .filter((skill) => !occupied.has(`skill:${skill.name}`))
+        .map((skill) => ({ name: `skill:${skill.name}`, description: skill.description, source: "skill" as const }))
+      : [];
+    return [...registered, ...NATIVE_COMMANDS, ...templates, ...skills].sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async completeCommandArguments(commandName: string, argumentPrefix: string): Promise<CommandCompletionItem[]> {

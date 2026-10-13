@@ -252,7 +252,7 @@ export const slashCommandSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   argumentHint: z.string().optional(),
-  source: z.enum(["native", "extension", "prompt"]).optional(),
+  source: z.enum(["native", "extension", "prompt", "skill"]).optional(),
 });
 
 export type SlashCommand = z.infer<typeof slashCommandSchema>;

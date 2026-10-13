@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PiRuntimeAdapter } from "../../../../../src/server/runtime/pi/pi-runtime-adapter.js";
 
-function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] = []) {
+function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] = [], skills: unknown[] = [], enableSkillCommands = true) {
   const session = {
     sessionId: "s1",
     sessionFile: undefined,
@@ -13,7 +13,8 @@ function fakeAdapter(promptTemplates: unknown[], registeredCommands: unknown[] =
     getAvailableThinkingLevels: () => ["off"],
     supportsThinking: () => false,
     promptTemplates,
-    resourceLoader: { getSkills: () => ({ skills: [] }) },
+    resourceLoader: { getSkills: () => ({ skills }) },
+    settingsManager: { getEnableSkillCommands: () => enableSkillCommands },
     extensionRunner: {
       setUIContext: () => {},
       getCommand: (name: string) => registeredCommands.find((command) => (command as { invocationName: string }).invocationName === name),
@@ -57,6 +58,41 @@ describe("argument completion", () => {
 });
 
 describe("slash command catalogue", () => {
+  it("includes loaded skills, including explicit-only skills, with descriptions and sorted names", () => {
+    const adapter = fakeAdapter([], [], [
+      { name: "zebra", description: "Explicit workflow", disableModelInvocation: true },
+      { name: "alpha", description: "Automatic workflow", disableModelInvocation: false },
+    ]);
+    const commands = adapter.snapshot().actions.commands;
+    expect(commands.filter(command => command.source === "skill")).toEqual([
+      { name: "skill:alpha", description: "Automatic workflow", source: "skill" },
+      { name: "skill:zebra", description: "Explicit workflow", source: "skill" },
+    ]);
+    expect(commands.map(command => command.name)).toEqual(commands.map(command => command.name).sort((a, b) => a.localeCompare(b)));
+    expect(commands.some(command => command.name === "alpha")).toBe(false);
+  });
+
+  it("omits skill discovery when disabled or no skills are loaded", () => {
+    expect(fakeAdapter([], [], [{ name: "alpha", description: "Workflow" }], false).snapshot().actions.commands
+      .some(command => command.name === "skill:alpha")).toBe(false);
+    expect(fakeAdapter([]).snapshot().actions.commands.some(command => command.source === "skill")).toBe(false);
+  });
+
+  it("keeps exact extension and template collisions without hiding distinct skill names", () => {
+    const adapter = fakeAdapter(
+      [{ name: "skill:template", description: "Template" }, { name: "distinct", description: "Bare template" }],
+      [{ invocationName: "skill:extension", description: "Extension" }],
+      ["extension", "template", "distinct"].map(name => ({ name, description: "Skill" })),
+    );
+    const commands = adapter.snapshot().actions.commands;
+    expect(commands.filter(command => command.name === "skill:extension")).toEqual([
+      { name: "skill:extension", description: "Extension", source: "extension" },
+    ]);
+    expect(commands.filter(command => command.name === "skill:template")).toEqual([
+      { name: "skill:template", description: "Template", source: "prompt" },
+    ]);
+    expect(commands).toContainEqual({ name: "skill:distinct", description: "Skill", source: "skill" });
+  });
   it("includes prompt templates with argument hints", () => {
     const adapter = fakeAdapter([
       {

@@ -9,6 +9,7 @@ function runtime() {
     isStreaming: false, isIdle: true, isCompacting: false, isBashRunning: false,
     model: undefined, thinkingLevel: "off", supportsThinking: () => false,
     getAvailableThinkingLevels: () => ["off"], promptTemplates: [],
+    settingsManager: { getEnableSkillCommands: () => false },
     getSteeringMessages: () => queue,
     extensionRunner: { setUIContext: () => {}, getCommand: () => undefined, getRegisteredCommands: () => [] },
     prompt: vi.fn(async (_text: string, _options?: unknown) => {}),

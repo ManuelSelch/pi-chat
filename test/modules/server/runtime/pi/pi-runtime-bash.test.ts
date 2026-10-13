@@ -10,6 +10,7 @@ function runtime() {
     isStreaming: false, isCompacting: false, isIdle: true, isBashRunning: false,
     model: undefined, thinkingLevel: "off", supportsThinking: () => false,
     getAvailableThinkingLevels: () => ["off"], promptTemplates: [],
+    settingsManager: { getEnableSkillCommands: () => false },
     extensionRunner: { setUIContext: () => {}, getCommand: () => undefined, getRegisteredCommands: () => [], emitUserBash: vi.fn(async () => undefined) },
     prompt: vi.fn(async () => {}),
     recordBashResult: vi.fn((command: string, result: any, options: any) => messages.push({ role: "bashExecution", command, ...result, ...options })),

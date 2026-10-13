@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { parseClientMessage, PROTOCOL_VERSION, serverMessageSchema } from "../../../src/shared/protocol.js";
+import { parseClientMessage, PROTOCOL_VERSION, serverMessageSchema, slashCommandSchema } from "../../../src/shared/protocol.js";
 
 describe("client protocol", () => {
+  it.each(["native", "extension", "prompt", "skill", undefined])("accepts command source %s", source => {
+    expect(slashCommandSchema.parse({ name: "skill:daily-briefing", description: "Daily briefing", source }))
+      .toMatchObject({ name: "skill:daily-briefing" });
+  });
+
+  it("rejects unknown command sources", () => {
+    expect(slashCommandSchema.safeParse({ name: "example", source: "unknown" }).success).toBe(false);
+  });
   it("accepts a non-empty prompt", () => {
     expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "prompt", message: "hello" })).toMatchObject({ type: "prompt" });
   });
