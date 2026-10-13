@@ -4,6 +4,7 @@ import { EditDiff } from "./EditDiff.js";
 import { useState } from "react";
 import { WriteContent } from "./WriteContent.js";
 import { ReadContent } from "./FileContent.js";
+import { skillReadHeader } from "./skill-read-header.js";
 import { MANTINE_COLOR, THEME } from "../../ui/theme.js";
 
 const STATUS_COLOR: Record<ToolCardState["status"], string> = {
@@ -28,7 +29,7 @@ const SUBJECT_KEYS: Record<string, string[]> = {
   bash: ["command"],
   edit: ["path"],
   write: ["path"],
-  read: ["path"],
+  read: ["file_path", "path"],
   glob: ["pattern"],
   grep: ["pattern"],
 };
@@ -90,10 +91,11 @@ export function toolFilePath(tool: ToolCardState): string | undefined {
   try {
     const args: unknown = JSON.parse(tool.argsText);
     if (!args || typeof args !== "object") return undefined;
-    const path = (args as Record<string, unknown>).path;
+    const values = args as Record<string, unknown>;
+    const path = tool.name === "read" ? values.file_path ?? values.path : values.path;
     return typeof path === "string" ? path : undefined;
   } catch {
-    return partialStringValue(tool.argsText, ["path"]);
+    return partialStringValue(tool.argsText, tool.name === "read" ? ["file_path", "path"] : ["path"]);
   }
 }
 
@@ -103,7 +105,8 @@ export function toolFilePath(tool: ToolCardState): string | undefined {
  * load only when opened; arguments and non-file results remain literal text.
  */
 export function ToolCard({ tool, compact = false }: { tool: ToolCardState; compact?: boolean }) {
-  const subject = toolSubject(tool);
+  const skill = skillReadHeader(tool);
+  const subject = skill?.subject ?? toolSubject(tool);
   const path = toolFilePath(tool);
   const [opened, setOpened] = useState(false);
   const content = tool.name === "write" ? tool.writeContent : undefined;
@@ -134,7 +137,7 @@ export function ToolCard({ tool, compact = false }: { tool: ToolCardState; compa
             className={tool.status === "running" ? "tool-running-pulse" : undefined}
             style={{ borderRadius: "50%", background: `var(--mantine-color-${STATUS_COLOR[tool.status]}-6)`, flex: "none" }}
           />
-          <Text ff="monospace" fw={compact ? 500 : 600} size={compact ? "xs" : "sm"} style={{ flex: "none" }}>{tool.name}</Text>
+          <Text ff="monospace" fw={compact ? 500 : 600} size={compact ? "xs" : "sm"} style={{ flex: "none" }}>{skill?.name ?? tool.name}</Text>
           {subject ? (
             <Text ff="monospace" size="xs" c="dimmed" truncate flex={1} data-testid="tool-subject">
               {subject}
