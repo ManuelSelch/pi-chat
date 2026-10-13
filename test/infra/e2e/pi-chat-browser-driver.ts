@@ -7,6 +7,7 @@ import { BrowserBrowserDriver } from "./browser-browser-driver.js";
 import { BrowserChatDriver } from "./browser-chat-driver.js";
 import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
+import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
@@ -14,6 +15,7 @@ export class PiChatBrowserDriver {
   readonly Chat: BrowserChatDriver;
   readonly Home: BrowserHomeDriver;
   readonly Tabs: BrowserTabsDriver;
+  readonly Skills: BrowserSkillsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -27,6 +29,7 @@ export class PiChatBrowserDriver {
     this.Chat = new BrowserChatDriver(page, this.composer);
     this.Home = new BrowserHomeDriver(page);
     this.Tabs = new BrowserTabsDriver(page, world);
+    this.Skills = new BrowserSkillsDriver(page, this.composer);
   }
 
   static async start(page: Page): Promise<PiChatBrowserDriver> {
@@ -42,11 +45,11 @@ export class PiChatBrowserDriver {
         });
       });
       const port = (server.httpServer.address() as AddressInfo).port;
-      await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
       const driver = new PiChatBrowserDriver(page, world, async () => {
         await server!.close();
         await world.dispose();
       });
+      await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
       await driver.Home.ShouldBeVisible();
       return driver;
     } catch (error) {

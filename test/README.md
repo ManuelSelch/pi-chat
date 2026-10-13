@@ -10,6 +10,8 @@
 Keep test cases out of the root folder. Separate scenario phases with blank lines.
 Scenarios use real Pi sessions and WebSocket transport, not a rendered browser.
 
+`e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and streaming guards. `app.Tabs.Create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.Skills`.
+
 ## Run
 
 ```sh

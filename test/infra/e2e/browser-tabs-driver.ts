@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { expect, type Locator, type Page } from "@playwright/test";
-import type { AssistantResponse, TestWorld } from "../pi-chat/test-world.js";
+import type { AssistantResponse, TestSessionResources, TestWorld } from "../pi-chat/test-world.js";
 
 const handleBrand = Symbol("PiChatBrowserTab");
 export interface BrowserTabHandle { readonly [handleBrand]: true }
 
-export interface CreateBrowserTabOptions {
+export interface CreateBrowserTabOptions extends TestSessionResources {
   responses: readonly AssistantResponse[];
 }
 
@@ -29,9 +29,9 @@ export class BrowserTabsDriver {
 
   async Create(options: CreateBrowserTabOptions): Promise<BrowserTabHandle> {
     const index = await this.tabs().count();
-    const release = this.world.reserveSession(options.responses);
+    const release = this.world.reserveSession(options.responses, options);
     try {
-      await this.page.getByRole("button", { name: "New session" }).click();
+      await this.page.getByRole("button", { name: "New session", exact: true }).click();
       await expect(this.tabs()).toHaveCount(index + 1);
       const composer = this.page.getByRole("textbox", { name: "Message Pi" });
       await expect(composer).toBeVisible();

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { AgentSessionRuntime, SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
-import { createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
+import { calls, createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import type { RuntimeAdapterFactory } from "../../../src/server/runtime/contracts.js";
 import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
 
@@ -13,6 +13,13 @@ export interface AssistantResponse {
   reply: string;
   /** Keep the model result pending until the test explicitly releases it. */
   hold?: boolean;
+  /** Run a real read tool against one of this session's skill fixtures. */
+  readSkill?: string;
+}
+
+export interface TestSessionResources {
+  skills?: readonly { name: string; instructions: string }[];
+  enableSkillCommands?: boolean;
 }
 
 interface OwnedSession {
@@ -28,7 +35,7 @@ export class TestWorld {
   readonly sessionDir = join(this.projectPath, ".pi-sessions");
   private readonly controlledResponses = new Map<string, () => void>();
   private readonly creating = new Set<Promise<PiRuntimeAdapter>>();
-  private reservation?: { responses: readonly AssistantResponse[]; started: boolean };
+  private reservation?: { responses: readonly AssistantResponse[]; resources: TestSessionResources; started: boolean };
   private disposed = false;
   private disposal?: Promise<void>;
   private readonly extensions: readonly ExtensionFactory[];
@@ -43,13 +50,13 @@ export class TestWorld {
     newSession: async path => {
       assert(!this.disposed, "Test world is disposed");
       const canonicalPath = realpathSync(path);
-      assert(canonicalPath === this.projectPath || (this.allowHomeSession && canonicalPath === realpathSync(homedir())), "Only the isolated test project may be opened");
+      assert(canonicalPath === this.projectPath || canonicalPath.startsWith(`${this.projectPath}/`) || (this.allowHomeSession && canonicalPath === realpathSync(homedir())), "Only the isolated test project may be opened");
       const reservation = this.reservation;
       assert(reservation, "No response script reserved for session creation");
       assert(!reservation.started, "Session creation is already in progress");
       reservation.started = true;
       // Keep the reservation held until the browser has seen success/failure.
-      return this.create(reservation.responses);
+      return this.create(reservation.responses, undefined, reservation.resources);
     },
     continueProject: async () => { throw new Error("Continuing a persisted project is not supported by this driver yet"); },
     openSession: async path => {
@@ -59,37 +66,49 @@ export class TestWorld {
       assert(reservation, "No response script reserved for session opening");
       assert(!reservation.started, "Session opening is already in progress");
       reservation.started = true;
-      return this.create(reservation.responses, path);
+      return this.create(reservation.responses, path, reservation.resources);
     },
   };
 
-  reserveSession(responses: readonly AssistantResponse[]): () => void {
+  reserveSession(responses: readonly AssistantResponse[], resources: TestSessionResources = {}): () => void {
     assert(!this.disposed, "Test world is disposed");
     assert(!this.reservation, "Await Tabs.Create before creating another tab");
-    const reservation = { responses: responses.map(response => ({ ...response })), started: false };
+    const reservation = { responses: responses.map(response => ({ ...response })), resources, started: false };
     this.reservation = reservation;
     return () => { if (this.reservation === reservation) this.reservation = undefined; };
   }
 
-  create(responses: readonly AssistantResponse[], sessionPath?: string): Promise<PiRuntimeAdapter> {
+  create(responses: readonly AssistantResponse[], sessionPath?: string, resources: TestSessionResources = {}): Promise<PiRuntimeAdapter> {
     assert(!this.disposed, "Test world is disposed");
-    const task = this.build(responses.map(response => ({ ...response })), sessionPath);
+    const task = this.build(responses.map(response => ({ ...response })), sessionPath, resources);
     this.creating.add(task);
     // Use both callbacks to avoid an unhandled rejected cleanup promise.
     void task.then(() => this.creating.delete(task), () => this.creating.delete(task));
     return task;
   }
 
-  private async build(responses: readonly AssistantResponse[], sessionPath?: string): Promise<PiRuntimeAdapter> {
-    const harness = await createTestSession({ cwd: this.projectPath, extensionFactories: [...this.extensions] });
+  private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<PiRuntimeAdapter> {
+    const cwd = resources.skills ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
+    for (const skill of resources.skills ?? []) {
+      assert(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skill.name), "Fixture skill name must be a safe directory name");
+      const dir = join(cwd, "skills", skill.name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "SKILL.md"), `---\nname: ${skill.name}\ndescription: ${skill.name} browser fixture\ndisable-model-invocation: true\n---\n\n${skill.instructions}\n`);
+    }
+    const harness = await createTestSession({ cwd, extensionFactories: [...this.extensions] });
     let runtime: AgentSessionRuntime | undefined;
     try {
       assert(!this.disposed, "Test world was disposed during session creation");
-      harness.prepare(...responses.map(({ prompt, reply }) => when(prompt, [says(reply)])));
       const session = harness.session;
+      if (resources.enableSkillCommands !== undefined) session.settingsManager.setEnableSkillCommands(resources.enableSkillCommands);
+      harness.prepare(...responses.map(({ prompt, reply, readSkill }) => {
+        const skill = readSkill ? session.resourceLoader.getSkills().skills.find((candidate: { name: string }) => candidate.name === readSkill) : undefined;
+        assert(!readSkill || skill, `No fixture skill named ${readSkill}`);
+        return when(prompt, [...(skill ? [calls("read", { path: skill.filePath })] : []), says(reply)]);
+      }));
       const sessionManager = sessionPath
-        ? SessionManager.open(sessionPath, this.sessionDir, this.projectPath)
-        : SessionManager.create(this.projectPath, this.sessionDir);
+        ? SessionManager.open(sessionPath, this.sessionDir, cwd)
+        : SessionManager.create(cwd, this.sessionDir);
       (session as unknown as { sessionManager: SessionManager }).sessionManager = sessionManager;
       // The harness starts empty. Mirror SDK session construction when replacing
       // its manager so reopened sessions expose the restored agent context too.
