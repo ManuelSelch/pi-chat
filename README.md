@@ -57,6 +57,8 @@ baseline, not a prediction for a long-running server with large transcripts.
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
 
+Invoke a loaded skill with `/skill:name [task]`. Skill instructions appear as a collapsed **[skill] name** disclosure; expand it to inspect the source path and instructions. Any task text appears separately as your message. Agent reads of `SKILL.md` use the same compact label. Pi's `enableSkillCommands` setting controls menu discovery, not manually typed invocations.
+
 Type `/archive` to archive the current idle session and close its tab without deleting its transcript. Archived sessions remain available under **Archived** in Projects, where they can be restored. The delete-session command is no longer available.
 
 Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.

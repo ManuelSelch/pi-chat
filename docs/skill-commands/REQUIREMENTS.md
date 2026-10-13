@@ -9,6 +9,7 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - Pi terminal's canonical `/skill:name` syntax and discovery setting.
 - Existing keyboard/mouse completion, prompt submission, resource reload, and session switching.
 - Compact `[skill] <name>` headers for agent read calls targeting `SKILL.md`, matching Pi terminal.
+- Collapsed skill invocation disclosures with separately displayed task text, matching Pi terminal.
 - Regression tests and isolated real-SDK/browser verification.
 
 ### Out of Scope
@@ -17,7 +18,7 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - New WebSocket messages, endpoints, queues, or an execution framework.
 - Skill-specific argument providers or terminal filesystem completion.
 - Allowing slash commands during a live run; preserve Pi Chat's existing idle-only command policy.
-- Custom compact rendering of expanded slash-command user messages or changes to SDK error/fallback semantics.
+- Changes to SDK skill expansion, execution, or error/fallback semantics.
 - General terminal renderer parity for docs, other resources, or unrelated tools.
 - Changes to the unrelated root steering requirements document.
 
@@ -30,7 +31,8 @@ Invoke loaded skills through `/skill:name [task]` in Pi Chat, using Pi's existin
 - Reuse alphabetical catalogue ordering, descriptions, and the menu's existing source badge. `/`, `/skill:`, and partial skill-name queries must find matching skill commands through the current filter. Enter, Tab, and mouse selection insert `/skill:name ` without executing; the next submission invokes it, with or without task text. Escape retains existing dismissal behavior.
 - Submit the literal command through the existing application/adapter prompt path. The SDK reads the skill file at invocation time, strips frontmatter, includes its file location and base-directory reference, and appends task text. Do not duplicate this expansion or convert the command to a tool call.
 - Preserve SDK extension-command precedence and raw `input` interception before skill expansion. Keep current bash, compaction, abort, and running-command guards.
-- Preserve SDK-owned transcript content and live/snapshot identity. Expanded skill instructions are part of the SDK user message; do not add a second synthetic invocation bubble or history store. The browser may display the expanded content using its current user-message renderer.
+- Preserve SDK-owned transcript content and live/snapshot identity. Expanded skill instructions remain part of the original SDK user message; do not add a synthetic tool call, second history entry, or history store. Use Pi's exported `parseSkillBlock()` in the server message projection to attach skill name, location, and content as optional display metadata on that same user message. The projected text contains only the appended task, or an empty string when absent. Do not duplicate the full skill prompt across metadata and text.
+- Render projected skill metadata as a collapsed `[skill] <name>` disclosure without tool running/success status. Expansion reveals the location and instructions using existing safe Markdown rendering. Display appended task text once in a normal user bubble; do not render an empty bubble for a skill-only invocation. Apply the same projection/rendering to live events and restored snapshots. Non-user messages, malformed blocks, and unexpanded unknown commands retain ordinary rendering.
 - Resource reload and session/workspace changes must refresh the catalogue through existing snapshots. Use the current session's loader/settings rather than a process-global or browser-owned skill cache. Other tabs retain their own resources.
 - Unknown skill names retain SDK pass-through behavior. Unreadable skill files retain SDK error emission and literal-text fallback; do not invent a custom rejecting preflight or silently claim that loading succeeded.
 - Verify no remote argument-completion request is introduced for a normal skill row; existing argument providers are extension-only. A real extension occupying a skill-shaped invocation retains its existing argument provider.
@@ -54,8 +56,11 @@ Description: Depends on slice 1. Add isolated real-SDK tests using temporary ski
 ### 3. Compact Skill Read Headers
 Description: Add a narrowly scoped presentation helper for `src/web/chat/tools/ToolCard.tsx` that classifies complete read paths ending in `SKILL.md` and supplies `[skill]` plus the parent-directory label and optional line range. Reuse the existing tool card and disclosure; leave protocol tool identity and server execution unchanged. Add helper/DOM tests covering `path`/`file_path` precedence, absolute/relative/home-prefixed paths, exact filename matching, malformed and partial arguments, unrelated reads/tools, offset/limit including null values, failed/running/completed states, and expansion retaining full arguments/results. Verify equivalent presentation for a live card and the same card restored from a snapshot. This slice is independent of slash-command execution; the requested header format is fixed and needs no layout redesign.
 
-### 4. Browser Parity and Verification
-Description: Depends on slices 1–3. Extend existing menu/composer tests for `/skill:` filtering, descriptions/source badges, keyboard and mouse insertion without execution, task submission, no-argument submission, Escape, and absence of skill argument-completion requests. Verify session-specific catalogues through tab changes and reconnect snapshots. Run an isolated browser smoke with a real Pi runtime and fixture skill; confirm invocation, reload, unchanged busy-command guards, and `[skill] <name>` headers for an actual agent skill read, both live and after reconnect. Verify expansion still exposes its path and content. Install worktree dependencies as needed, run focused tests, full suite, typechecking, production build, and whitespace checks; distinguish baseline failures. Document canonical syntax and discovery-setting behavior in README. Commit completed, verified implementation slices without pushing.
+### 4. Compact Skill Invocation Messages
+Description: Reuse the SDK parser in the existing server message mapper and add optional skill metadata to the existing user-message protocol. Keep the original SDK message unchanged and preserve its projected identity. Add a small `SkillInvocation` transcript component using native details/summary, collapsed by default, and retain the normal user bubble only for appended task text. Verify parser fidelity, original SDK content, protocol round-trip, malformed/non-user fallbacks, safe expansion, with/without task text, compact mode, and live/restored snapshot parity using mapping, real-SDK, and DOM regressions. No synthetic tool calls or execution changes.
+
+### 5. Browser Parity and Verification
+Description: Depends on slices 1–4. Extend existing menu/composer tests for `/skill:` filtering, descriptions/source badges, keyboard and mouse insertion without execution, task submission, no-argument submission, Escape, and absence of skill argument-completion requests. Verify session-specific catalogues through tab changes and reconnect snapshots. Run an isolated browser smoke with a real Pi runtime and fixture skill; confirm invocation, reload, unchanged busy-command guards, and `[skill] <name>` headers for an actual agent skill read, both live and after reconnect. Verify expansion still exposes its path and content. Install worktree dependencies as needed, run focused tests, full suite, typechecking, production build, and whitespace checks; distinguish baseline failures. Document canonical syntax and discovery-setting behavior in README. Commit completed, verified implementation slices without pushing.
 
 ## Open Questions
 None.

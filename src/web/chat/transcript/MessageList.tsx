@@ -6,6 +6,7 @@ import { Markdown } from "../markdown/MarkdownLazy.js";
 import { ThinkingPanel } from "./ThinkingPanel.js";
 import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
+import { SkillInvocation } from "./SkillInvocation.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../../app/state/chat-state.js";
 import { THEME } from "../../ui/theme.js";
@@ -66,9 +67,14 @@ const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: {
       {/* A turn can be reasoning plus a tool call and no prose at all; the
           panel above is then the whole message. */}
       {message.role === "assistant" && message.text === "" ? null : message.role === "user" ? (
-        <Paper bg={THEME.surface.panelHover} radius="lg" p="sm" px="md" ml="auto" maw="82%">
-          <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
-        </Paper>
+        <>
+          {message.skill ? <SkillInvocation skill={message.skill} compact={compact} onLocalLink={onLocalLink} /> : null}
+          {message.text ? (
+            <Paper bg={THEME.surface.panelHover} radius="lg" p="sm" px="md" ml="auto" maw="82%" mt={message.skill ? "sm" : undefined}>
+              <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
+            </Paper>
+          ) : null}
+        </>
       ) : (
         <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
       )}

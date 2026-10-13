@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { afterEach, expect, it } from "vitest";
 import { PiRuntimeAdapter } from "../../../../../src/server/runtime/pi/pi-runtime-adapter.js";
+import { textFromContent } from "../../../../../src/server/runtime/pi/message-mapping.js";
 import type { RuntimeEvent } from "../../../../../src/server/runtime/contracts.js";
 
 let root = "";
@@ -82,7 +83,7 @@ function userTexts(adapter: PiRuntimeAdapter) {
 }
 
 it.each(["", " Prepare today's report"])("expands a real skill with task suffix %j and keeps live/snapshot identity", async suffix => {
-  const { adapter, skillPath } = await setup();
+  const { adapter, runtime, skillPath } = await setup();
   expect(skillCommands(adapter)).toEqual([{ name: "skill:fixture", description: "fixture workflow", source: "skill" }]);
   const users: RuntimeEvent[] = [];
   adapter.subscribe(event => {
@@ -92,7 +93,10 @@ it.each(["", " Prepare today's report"])("expands a real skill with task suffix 
     }
   });
   await adapter.prompt(`/skill:fixture${suffix}`);
-  const user = userTexts(adapter);
+  const user = runtime.session.messages.flatMap(message => message.role === "user" ? [textFromContent(message.content)] : []);
+  expect(adapter.snapshot().messages.find(message => message.role === "user")).toMatchObject({
+    text: suffix.trim(), skill: { name: "fixture", location: skillPath, content: expect.stringContaining("Follow the fixture workflow.") },
+  });
   expect(users).toHaveLength(1);
   expect(user).toHaveLength(1);
   expect(user[0]).toBe(`<skill name="fixture" location="${skillPath}">\nReferences are relative to ${dirname(skillPath)}.\n\nFollow the fixture workflow.\n</skill>${suffix ? `\n\n${suffix.trim()}` : ""}`);
@@ -103,7 +107,8 @@ it("keeps manually typed skill invocation working when discovery is disabled", a
   const { adapter } = await setup({ enabled: false });
   expect(skillCommands(adapter)).toEqual([]);
   await adapter.prompt("/skill:fixture manual request");
-  expect(userTexts(adapter)[0]).toContain("</skill>\n\nmanual request");
+  expect(userTexts(adapter)[0]).toBe("manual request");
+  expect(adapter.snapshot().messages[0]).toMatchObject({ skill: { name: "fixture" } });
   expect(await adapter.completeCommandArguments("skill:fixture", "")).toEqual([]);
 });
 
@@ -117,7 +122,8 @@ it("lets input hooks see and transform the raw command before skill expansion", 
   } });
   await adapter.prompt("/skill:fixture original task");
   expect(received).toEqual(["/skill:fixture original task"]);
-  expect(userTexts(adapter)[0]).toContain("</skill>\n\ntransformed task");
+  expect(userTexts(adapter)[0]).toBe("transformed task");
+  expect(adapter.snapshot().messages[0]).toMatchObject({ skill: { name: "fixture" } });
 });
 
 it("gives exact extension commands precedence and retains their argument provider", async () => {
@@ -157,7 +163,7 @@ it("reads edited instructions on invocation and refreshes skills/settings on rel
   const { adapter, runtime, cwd, saveSettings } = await setup();
   await writeSkill(cwd, "fixture", "Edited instructions.");
   await adapter.prompt("/skill:fixture");
-  expect(userTexts(adapter)[0]).toContain("Edited instructions.");
+  expect(adapter.snapshot().messages[0]).toMatchObject({ skill: { content: expect.stringContaining("Edited instructions.") } });
   await rm(join(cwd, "skills", "fixture"), { recursive: true });
   await writeSkill(cwd, "replacement");
   const sessionId = runtime.session.sessionId;
@@ -186,5 +192,6 @@ it("uses replacement-session workspace resources without caching the previous ca
   expect(adapter.snapshot().projectPath).toBe(nextCwd);
   expect(skillCommands(adapter).map(command => command.name)).toEqual(["skill:second"]);
   await adapter.prompt("/skill:second new workspace");
-  expect(userTexts(adapter)[0]).toContain('<skill name="second"');
+  expect(userTexts(adapter)[0]).toBe("new workspace");
+  expect(adapter.snapshot().messages[0]).toMatchObject({ skill: { name: "second" } });
 });

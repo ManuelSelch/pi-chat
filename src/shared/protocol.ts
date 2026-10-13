@@ -51,12 +51,19 @@ export const bashMessageSchema = z.object({
 });
 export type BashMessage = z.infer<typeof bashMessageSchema>;
 
+export const skillInvocationSchema = z.object({
+  name: z.string().min(1), location: z.string().min(1), content: z.string(),
+});
+export type SkillInvocation = z.infer<typeof skillInvocationSchema>;
+
 export const chatMessageSchema = z.discriminatedUnion("role", [
   bashMessageSchema,
   z.object({
     id: z.string().min(1),
     role: z.enum(["user", "assistant", "system"]),
     text: z.string(),
+    /** SDK-expanded user skill instructions; text holds the appended task only. */
+    skill: skillInvocationSchema.optional(),
     /**
      * The model's reasoning for this turn, when it reported any. Only ever set
      * for `assistant`. Carried on the message rather than streamed alone so it

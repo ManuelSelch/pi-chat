@@ -1,3 +1,4 @@
+import { parseSkillBlock } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import { bashCardFromMessage } from "./bash-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
@@ -191,6 +192,7 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
 
   const entries: ChatMessage[] = [];
   const text = textFromContent(value.content);
+  const skill = value.role === "user" ? parseSkillBlock(text) : null;
   // Reasoning alone is worth a bubble: a turn that only thought and then called
   // a tool would otherwise show the tool card with nothing explaining it.
   const thinking = value.role === "assistant" ? clampThinking(thinkingFromContent(value.content)) : "";
@@ -198,7 +200,8 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
     entries.push({
       id: identity.idFor(message),
       role: value.role,
-      text,
+      text: skill ? skill.userMessage ?? "" : text,
+      ...(skill ? { skill: { name: skill.name, location: skill.location, content: skill.content } } : {}),
       ...(thinking ? { thinking } : {}),
       ...stamp,
     });
