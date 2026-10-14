@@ -102,7 +102,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
       if (!context) return;
       const completed = applyArgumentCompletion(input, context, item.value);
       setInput(completed.input, completed.caret);
-      setMenuDismissed(true);
+      setMenuDismissed(false);
       setActiveCommand(0);
       return;
     }

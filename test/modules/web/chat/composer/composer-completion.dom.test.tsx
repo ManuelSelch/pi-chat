@@ -95,6 +95,41 @@ describe("composer session actions", () => {
 });
 
 describe("composer argument completion", () => {
+  it("continues completing the same argument after keyboard and pointer acceptance and further typing", async () => {
+    chat.state.actions.commands.push({ name: "cwd", source: "extension" });
+    chat.completeCommandArguments.mockImplementation(async (_session, _name, prefix) => {
+      if (prefix === "") return [{ value: "/projects/", label: "Projects" }];
+      if (prefix === "/projects/") return [{ value: "/projects/app/", label: "App" }];
+      if (prefix === "/projects/app/s") return [{ value: "/projects/app/src/", label: "Source" }];
+      return [];
+    });
+    try {
+      mount();
+      const textarea = type("/cwd ");
+      await screen.findByRole("option", { name: "Projects" });
+      fireEvent.keyDown(textarea, { key: "Tab" });
+      expect(textarea.value).toBe("/cwd /projects/");
+      const subfolder = await screen.findByRole("option", { name: "App" });
+      expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/", expect.any(AbortSignal));
+      fireEvent.mouseDown(subfolder);
+      expect(textarea.value).toBe("/cwd /projects/app/");
+      expect(textarea.selectionStart).toBe(textarea.value.length);
+      expect(document.activeElement).toBe(textarea);
+      await waitFor(() => expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/app/", expect.any(AbortSignal)));
+      type("/cwd /projects/app/s");
+      await screen.findByRole("option", { name: "Source" });
+      fireEvent.keyDown(textarea, { key: "Enter" });
+      expect(textarea.value).toBe("/cwd /projects/app/src/");
+      expect(chat.prompt).not.toHaveBeenCalled();
+      await waitFor(() => expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/app/src/", expect.any(AbortSignal)));
+      expect(screen.queryByRole("listbox")).toBeNull();
+      fireEvent.keyDown(textarea, { key: "Enter" });
+      expect(chat.prompt).toHaveBeenCalledWith("/cwd /projects/app/src/");
+    } finally {
+      chat.state.actions.commands = chat.state.actions.commands.filter((command) => command.name !== "cwd");
+    }
+  });
+
   it("shows Pi items and inserts without executing, preserving the suffix and caret", async () => {
     mount();
     const textarea = type("/deploy st --flag", 10);
