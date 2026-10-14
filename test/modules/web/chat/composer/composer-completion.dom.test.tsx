@@ -95,12 +95,12 @@ describe("composer session actions", () => {
 });
 
 describe("composer argument completion", () => {
-  it("continues completing the same argument after keyboard and pointer acceptance and further typing", async () => {
+  it("hides after acceptance and resumes completing the same argument only when typing continues", async () => {
     chat.state.actions.commands.push({ name: "cwd", source: "extension" });
     chat.completeCommandArguments.mockImplementation(async (_session, _name, prefix) => {
       if (prefix === "") return [{ value: "/projects/", label: "Projects" }];
-      if (prefix === "/projects/") return [{ value: "/projects/app/", label: "App" }];
-      if (prefix === "/projects/app/s") return [{ value: "/projects/app/src/", label: "Source" }];
+      if (prefix === "/projects/" || prefix === "/projects/a") return [{ value: "/projects/app/", label: "App" }];
+      if (prefix === "/projects/app/" || prefix === "/projects/app/s") return [{ value: "/projects/app/src/", label: "Source" }];
       return [];
     });
     try {
@@ -109,19 +109,26 @@ describe("composer argument completion", () => {
       await screen.findByRole("option", { name: "Projects" });
       fireEvent.keyDown(textarea, { key: "Tab" });
       expect(textarea.value).toBe("/cwd /projects/");
+      await act(async () => {});
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(chat.completeCommandArguments).toHaveBeenCalledTimes(1);
+      type("/cwd /projects/a");
       const subfolder = await screen.findByRole("option", { name: "App" });
-      expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/", expect.any(AbortSignal));
+      expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/a", expect.any(AbortSignal));
       fireEvent.mouseDown(subfolder);
       expect(textarea.value).toBe("/cwd /projects/app/");
       expect(textarea.selectionStart).toBe(textarea.value.length);
       expect(document.activeElement).toBe(textarea);
-      await waitFor(() => expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/app/", expect.any(AbortSignal)));
+      await act(async () => {});
+      expect(screen.queryByRole("listbox")).toBeNull();
+      expect(chat.completeCommandArguments).toHaveBeenCalledTimes(2);
       type("/cwd /projects/app/s");
       await screen.findByRole("option", { name: "Source" });
       fireEvent.keyDown(textarea, { key: "Enter" });
       expect(textarea.value).toBe("/cwd /projects/app/src/");
       expect(chat.prompt).not.toHaveBeenCalled();
-      await waitFor(() => expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "cwd", "/projects/app/src/", expect.any(AbortSignal)));
+      await act(async () => {});
+      expect(chat.completeCommandArguments).toHaveBeenCalledTimes(3);
       expect(screen.queryByRole("listbox")).toBeNull();
       fireEvent.keyDown(textarea, { key: "Enter" });
       expect(chat.prompt).toHaveBeenCalledWith("/cwd /projects/app/src/");
