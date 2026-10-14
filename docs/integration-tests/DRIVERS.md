@@ -161,7 +161,7 @@ in-flight creation.
 Latest verification: 75 test files / 500 tests passed with `--maxWorkers=4`;
 build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
 
-## Visible-browser archive coverage
+## Visible-browser project metadata coverage
 
 `PiChatBrowserDriver` in `test/infra/e2e/` runs Playwright against the built
 frontend and the real loopback backend, with harness-backed Pi sessions. Its
@@ -175,11 +175,18 @@ closes without disturbing the other conversation. A browser reload must retain
 the archived state. Selectors and retrying assertions live in
 `BrowserProjectsDriver`; there are no fixed sleeps or mocked archive replies.
 
-Run this scenario with:
+`test/e2e/project-pin.spec.ts` pins and unpins the fixture project through that
+same panel, verifies the updated controls and preserved session row, and reloads
+after each mutation to confirm both states persist. Known projects reuse the
+catalogue scan for pin/unpin; pinning a previously unknown folder still triggers
+full discovery. Unit tests check that the fast path does not scan sessions or
+rerun Git, including linked-worktree pins and empty pin-only repositories.
+
+Run these scenarios with:
 
 ```sh
 npm run build
-npx playwright test test/e2e/project-archive.spec.ts
+npx playwright test test/e2e/project-archive.spec.ts test/e2e/project-pin.spec.ts
 ```
 
 ## Harness setup

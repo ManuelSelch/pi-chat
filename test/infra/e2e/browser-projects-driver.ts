@@ -18,6 +18,24 @@ export class BrowserProjectsDriver {
     await expect(this.panel).not.toBeVisible();
   }
 
+  async Pin(): Promise<void> {
+    await this.panel.getByRole("button", { name: /^Pin / }).click();
+  }
+
+  async Unpin(): Promise<void> {
+    await this.panel.getByRole("button", { name: /^Unpin / }).click();
+  }
+
+  async ShouldBePinned(): Promise<void> {
+    await expect(this.panel.getByRole("button", { name: /^Unpin / })).toBeEnabled();
+    await expect(this.panel.getByRole("button", { name: /^Pin / })).toHaveCount(0);
+  }
+
+  async ShouldBeUnpinned(): Promise<void> {
+    await expect(this.panel.getByRole("button", { name: /^Pin / })).toBeEnabled();
+    await expect(this.panel.getByRole("button", { name: /^Unpin / })).toHaveCount(0);
+  }
+
   async Archive(title: string): Promise<void> {
     await this.panel.getByRole("button", { name: title, exact: true }).hover();
     await this.panel.getByRole("button", { name: `Archive ${title}`, exact: true }).click();

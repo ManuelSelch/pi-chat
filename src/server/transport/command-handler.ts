@@ -60,7 +60,7 @@ export function handleClientCommand(socket: WebSocket, command: ClientMessage, d
       : command.type === "pinProject" ? chat.pinProject(command.path, command.pinned) : chat.removeProject(command.path))
       .then(async () => {
         publisher.sendTabs();
-        await publisher.sendCatalogue(undefined, { metadataOnly: command.type === "setSessionArchived" });
+        await publisher.sendCatalogue(undefined, { metadataOnly: command.type === "setSessionArchived" || command.type === "pinProject" });
         publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId });
       })
       .catch((error: unknown) => publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: command.requestId, error: publisher.errorText(error) }));

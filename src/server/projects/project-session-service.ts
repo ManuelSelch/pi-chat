@@ -65,12 +65,20 @@ export class ProjectSessionService {
 
   async pin(projectPath: string, pinned: boolean): Promise<void> {
     let path = pinned ? await realpath(projectPath) : await canonicalPath(projectPath);
-    const repository = await this.discovery.forDirectory(path);
-    if (repository) {
-      const checkouts = await Promise.all(repository.worktrees.map(worktree => canonicalPath(worktree.path)));
-      if (checkouts.includes(path)) path = await canonicalPath(repository.repositoryPath);
+    const cachedProject = this.scannedProjects?.get(path);
+    if (cachedProject?.repositoryPath) {
+      path = cachedProject.repositoryPath;
+    } else if (!cachedProject) {
+      const repository = await this.discovery.forDirectory(path);
+      if (repository) {
+        const checkouts = await Promise.all(repository.worktrees.map(worktree => canonicalPath(worktree.path)));
+        if (checkouts.includes(path)) path = await canonicalPath(repository.repositoryPath);
+      }
     }
     await this.metadata.pin(path, pinned);
+    // A folder outside the scanned catalogue may introduce a new repository
+    // and its worktrees. Keep the full-discovery fallback for that case only.
+    if (!cachedProject) this.scannedProjects = undefined;
   }
 
   private async scanProjects(pins: readonly string[], active?: ActiveSessionSummary): Promise<Map<string, ChatProjectSummary>> {
@@ -112,22 +120,15 @@ export class ProjectSessionService {
     }
 
     if (active) this.includeActiveSession(byProject, active);
-    for (const path of pins) {
-      const project = byProject.get(path) ?? {
-        path, displayPath: formatProjectDisplayPath(path), name: formatProjectName(path),
-        exists: existsSync(path), modified: 0, sessionCount: 0, sessions: [],
-      };
-      project.pinned = true;
-      byProject.set(path, project);
-    }
+    this.includePinnedProjects(byProject, pins);
     await this.includeRegisteredWorktrees(byProject);
     await this.includeQuickChats(byProject);
     this.scannedProjects = structuredClone(byProject);
     return byProject;
   }
 
-  /** Only archive/restore may reuse the scan; other changes still discover
-   *  new sessions, titles, projects and worktrees from disk. */
+  /** Archive/restore and pin/unpin may reuse the scan; other changes still
+   *  discover new sessions, titles, projects and worktrees from disk. */
   async catalogue(active?: ActiveSessionSummary, options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
     const normalizedActive = active ? { ...active, cwd: await canonicalPath(active.cwd), ...(active.path ? { path: await canonicalPath(active.path) } : {}) } : undefined;
     let metadata = await this.metadata.read();
@@ -137,6 +138,15 @@ export class ProjectSessionService {
     // state captured before reading all transcripts and discovering worktrees.
     if (!cached) metadata = await this.metadata.read();
     if (cached && normalizedActive) this.includeActiveSession(byProject, normalizedActive);
+    this.includePinnedProjects(byProject, metadata.pins);
+    // Unpinning a folder/repository with no history removes the projects that
+    // existed only because of that pin, including its empty worktrees.
+    const populatedGroups = new Set([...byProject.values()]
+      .filter(project => project.sessions.length > 0 || project.pinned)
+      .map(project => project.repositoryPath ?? project.path));
+    for (const [path, project] of byProject) {
+      if (!project.quickChats && !populatedGroups.has(project.repositoryPath ?? path)) byProject.delete(path);
+    }
     const archived = new Map(metadata.archives.map(session => [`${session.path}\0${session.id}`, session]));
     for (const project of byProject.values()) {
       for (const session of project.sessions) {
@@ -162,6 +172,18 @@ export class ProjectSessionService {
       .sort((a, b) => Number(Boolean(b.quickChats)) - Number(Boolean(a.quickChats)) || Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.modified - a.modified);
 
     return { projects };
+  }
+
+  private includePinnedProjects(byProject: Map<string, ChatProjectSummary>, pins: readonly string[]): void {
+    for (const project of byProject.values()) delete project.pinned;
+    for (const path of pins) {
+      const project = byProject.get(path) ?? {
+        path, displayPath: formatProjectDisplayPath(path), name: formatProjectName(path),
+        exists: existsSync(path), modified: 0, sessionCount: 0, sessions: [],
+      };
+      project.pinned = true;
+      byProject.set(path, project);
+    }
   }
 
   /** Quick Chats is the home folder. It must stay visible with zero sessions
