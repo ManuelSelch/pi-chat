@@ -19,6 +19,72 @@ async function setup() {
 }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 describe("project archives", () => {
+  it("pins and unpins a known project without scanning sessions or rediscovering worktrees", async () => {
+    const { service, cwd, lister, discovery } = await setup();
+    const list = vi.spyOn(lister, "listAll");
+    const discover = vi.spyOn(discovery, "forDirectory");
+    const before = await service.catalogue();
+    list.mockClear(); discover.mockClear();
+    await service.pin(cwd, true);
+    const pinned = await service.catalogue(undefined, { metadataOnly: true });
+    expect(pinned.projects[0]!.pinned).toBe(true);
+    expect(before.projects[0]!.pinned).toBeUndefined();
+    await service.pin(cwd, false);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects[0]!.pinned).toBeUndefined();
+    expect(pinned.projects[0]!.pinned).toBe(true);
+    expect(list).not.toHaveBeenCalled();
+    expect(discover).not.toHaveBeenCalled();
+
+    await service.pin(cwd, true);
+    await service.catalogue();
+    list.mockClear(); discover.mockClear();
+    await service.pin(cwd, false);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects[0]!.pinned).toBeUndefined();
+    expect(list).not.toHaveBeenCalled();
+    expect(discover).not.toHaveBeenCalled();
+  });
+
+  it("reuses discovered worktrees when pinning a linked checkout", async () => {
+    const { cwd, sessionsRoot, lister, metadata } = await setup();
+    const main = join(cwd, "main"); await mkdir(main);
+    const discovery = { forDirectory: vi.fn(async () => ({ repositoryPath: main, worktrees: [{ path: main, primary: true, detached: false }, { path: cwd, primary: false, detached: false }] })) };
+    const service = new ProjectSessionService(lister, sessionsRoot, discovery, metadata, "");
+    await service.catalogue();
+    discovery.forDirectory.mockClear();
+    await service.pin(cwd, true);
+    const pinned = await service.catalogue(undefined, { metadataOnly: true });
+    expect(pinned.projects.find(project => project.path === main)?.pinned).toBe(true);
+    expect((await metadata.read()).pins).toEqual([main]);
+    await service.pin(cwd, false);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects.every(project => !project.pinned)).toBe(true);
+    expect(discovery.forDirectory).not.toHaveBeenCalled();
+  });
+
+  it("removes pin-only repositories and their empty worktrees without rescanning", async () => {
+    const { cwd, sessionsRoot, metadata } = await setup();
+    const linked = join(cwd, "linked"); await mkdir(linked);
+    const lister = { listAll: vi.fn(async () => []) };
+    const discovery = { forDirectory: vi.fn(async () => ({ repositoryPath: cwd, worktrees: [{ path: cwd, primary: true, detached: false }, { path: linked, primary: false, detached: false }] })) };
+    const service = new ProjectSessionService(lister, sessionsRoot, discovery, metadata, "");
+    await service.pin(cwd, true);
+    expect((await service.catalogue()).projects).toHaveLength(2);
+    lister.listAll.mockClear(); discovery.forDirectory.mockClear();
+    await service.pin(cwd, false);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects).toEqual([]);
+    expect(lister.listAll).not.toHaveBeenCalled();
+    expect(discovery.forDirectory).not.toHaveBeenCalled();
+  });
+
+  it("handles newly pinned empty folders and removes them after unpinning", async () => {
+    const { service, cwd, root } = await setup();
+    const empty = join(root, "empty"); await mkdir(empty);
+    await service.catalogue();
+    await service.pin(empty, true);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects[0]).toMatchObject({ path: empty, pinned: true, sessions: [] });
+    await service.pin(empty, false);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects.map(project => project.path)).toEqual([cwd]);
+  });
+
   it("refreshes archive metadata without rescanning sessions or rediscovering worktrees", async () => {
     const { service, path, lister, discovery } = await setup();
     const list = vi.spyOn(lister, "listAll");

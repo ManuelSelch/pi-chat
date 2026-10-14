@@ -122,6 +122,29 @@ describe("WebSocket transport", () => {
     }
   });
 
+  it.each([true, false])("refreshes pin metadata before acknowledging pinned=%s", async pinned => {
+    const pinProject = vi.spyOn(ProjectSessionService.prototype, "pin").mockResolvedValue(undefined);
+    const catalogueScan = vi.spyOn(ProjectSessionService.prototype, "catalogue");
+    try {
+      server = createPiChatServer(new FakeRuntimeAdapter());
+      await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
+      const connected = await connectWithSnapshot(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
+      socket = connected.socket;
+      await connected.catalogue;
+      catalogueScan.mockClear();
+      const catalogue = receiveOfType(socket, "catalogue");
+      const reply = receiveOfType(socket, "projectMutationResult");
+      socket.send(JSON.stringify({ version: PROTOCOL_VERSION, type: "pinProject", path: process.cwd(), pinned, requestId: "pin-1" }));
+      await catalogue;
+      expect(await reply).toMatchObject({ type: "projectMutationResult", requestId: "pin-1" });
+      expect(pinProject).toHaveBeenCalledWith(process.cwd(), pinned);
+      expect(catalogueScan).toHaveBeenCalledExactlyOnceWith(expect.any(Object), { metadataOnly: true });
+    } finally {
+      pinProject.mockRestore();
+      catalogueScan.mockRestore();
+    }
+  });
+
   it.each(["newSession", "openSession"] as const)("publishes %s before its single catalogue scan completes", async type => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });
