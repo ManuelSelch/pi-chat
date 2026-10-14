@@ -21,6 +21,8 @@ export interface PanelGroup {
   exists: boolean;
   quickChats: boolean;
   activeCount: number;
+  /** Latest unarchived session activity across all checkouts. */
+  activeModified: number;
   sessions: PanelSession[];
 }
 
@@ -50,6 +52,11 @@ function groupOf(project: ChatProjectSummary): string {
 
 function sessionRow(session: ChatSessionSummary, branch: string | undefined, worktreeLabel: boolean): PanelSession {
   return { session, branch, worktreeLabel };
+}
+
+function activeModified(sessions: PanelSession[]): number {
+  return sessions.reduce((latest, entry) => entry.session.archivedAt === undefined
+    ? Math.max(latest, entry.session.modified) : latest, 0);
 }
 
 /**
@@ -116,11 +123,20 @@ export function buildPanelGroups(catalogue: ProjectCatalogue, currentPath: strin
       exists: primary.exists,
       quickChats: false,
       activeCount: sessions.filter(entry => entry.session.archivedAt === undefined).length,
+      activeModified: activeModified(sessions),
       sessions,
     });
   }
 
-  groups.sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.name.localeCompare(b.name));
+  groups.sort((a, b) => (
+    Number(b.pinned) - Number(a.pinned)
+    || (!a.pinned && !b.pinned
+      ? Number(b.activeCount > 0) - Number(a.activeCount > 0) : 0)
+    || (!a.pinned && !b.pinned && a.activeCount > 0 && b.activeCount > 0
+      ? b.activeModified - a.activeModified : 0)
+    || a.name.localeCompare(b.name)
+    || a.key.localeCompare(b.key)
+  ));
 
   if (quick) {
     const sessions = quick.sessions
@@ -135,6 +151,7 @@ export function buildPanelGroups(catalogue: ProjectCatalogue, currentPath: strin
       exists: quick.exists,
       quickChats: true,
       activeCount: sessions.filter(entry => entry.session.archivedAt === undefined).length,
+      activeModified: activeModified(sessions),
       sessions,
     });
   }

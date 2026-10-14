@@ -46,21 +46,82 @@ const groupedCatalogue: ProjectCatalogue = {
 afterEach(cleanup);
 
 function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string } = {}) {
-  const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
-  render(
+  const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), removeProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
+  const drawer = (data: ProjectCatalogue) => (
     <MantineProvider>
       <ProjectSessionDrawer
         opened onClose={vi.fn()} currentSessionId="current" currentProjectPath={options.currentPath ?? "/work/current"}
-        catalogue={options.data ?? catalogue} busy={options.busy ?? false} showDisplayPath
+        catalogue={data} busy={options.busy ?? false} showDisplayPath
         openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
-        archiveSession={archiveSession} pinProject={pinProject}
+        archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
       />
-    </MantineProvider>,
+    </MantineProvider>
   );
-  return { archiveSession, pinProject, openSession, newSession, onOpenFolder };
+  const { rerender } = render(drawer(options.data ?? catalogue));
+  return { archiveSession, pinProject, openSession, newSession, onOpenFolder, updateCatalogue: (data: ProjectCatalogue) => rerender(drawer(data)) };
 }
 
 describe("ProjectSessionDrawer", () => {
+  it("shows every active project in recency order without hiding pi-chat after five projects", () => {
+    const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "pi-chat"];
+    const projects = names.map((name, index) => ({
+      path: `/work/${name}`, displayPath: `/work/${name}`, name, exists: true, modified: 0, sessionCount: 1,
+      sessions: [session(name, `${name} chat`, { modified: index + 1 })],
+    }));
+    const pinned = { ...projects[0]!, path: "/pin", name: "Pinned", pinned: true };
+    const quick = { ...projects[0]!, path: "/home/me", name: "Quick Chats", quickChats: true };
+    const archived = { ...projects[0]!, path: "/old", name: "Old", sessionCount: 0, sessions: [session("old", "Old chat", { archivedAt: 10 })] };
+    show({ data: { projects: [quick, pinned, ...projects, archived] }, currentPath: "/work/pi-chat" });
+
+    const expected = ["Quick Chats", "Pinned", ...names.toReversed()];
+    for (let i = 1; i < expected.length; i += 1) {
+      expect(screen.getByText(expected[i - 1]!).compareDocumentPosition(screen.getByText(expected[i]!)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(screen.getByText("pi-chat chat")).toBeTruthy();
+    expect(screen.queryByText("Old")).toBeNull();
+    for (const name of names) {
+      expect(screen.queryByRole("button", { name: `Remove ${name} from project history` })).toBeNull();
+    }
+    fireEvent.click(screen.getByRole("button", { name: /Other projects/ }));
+    expect(screen.getByText("Old")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove Old from project history" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Remove Pinned from project history" })).toBeNull();
+  });
+
+  it("moves a project into Other after its last session is archived and restores it in recency order", () => {
+    const active = { ...catalogue.projects[1]!, sessions: [session("other", "Other chat", { modified: 20 })] };
+    const archived = { ...active, sessionCount: 0, sessions: [session("other", "Other chat", { modified: 20, archivedAt: 30 })] };
+    const older = { ...catalogue.projects[0]!, sessions: [session("current", "Current chat", { modified: 10 })] };
+    const { updateCatalogue } = show({ data: { projects: [older, active] } });
+    const follows = () => expect(screen.getByText("other").compareDocumentPosition(screen.getByText("current")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    follows();
+    expect(screen.queryByRole("button", { name: /Other projects/ })).toBeNull();
+
+    updateCatalogue({ projects: [older, archived] });
+    expect(screen.queryByText("other")).toBeNull();
+    const toggle = screen.getByRole("button", { name: /Other projects/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "Remove other from project history" })).toBeTruthy();
+
+    updateCatalogue({ projects: [older, active] });
+    expect(screen.queryByRole("button", { name: /Other projects/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove other from project history" })).toBeNull();
+    follows();
+  });
+
+  it("reorders projects on activity updates without changing their expanded state", () => {
+    const older = { ...catalogue.projects[0]!, sessions: [session("current", "Current chat", { modified: 10 })] };
+    const newer = { ...catalogue.projects[1]!, sessions: [session("other", "Other chat", { modified: 20 })] };
+    const { updateCatalogue } = show({ data: { projects: [older, newer] } });
+    fireEvent.click(screen.getByText("other"));
+    updateCatalogue({ projects: [{ ...older, sessions: [session("current", "Current chat", { modified: 30 })] }, newer] });
+
+    expect(screen.getByText("current").compareDocumentPosition(screen.getByText("other")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Other chat")).toBeTruthy();
+    expect(screen.getByText("Current chat")).toBeTruthy();
+  });
+
   it("groups worktrees per repository and labels a lone worktree session with the branch", () => {
     show({ data: groupedCatalogue, currentPath: "/work/pi-chat-feature" });
 

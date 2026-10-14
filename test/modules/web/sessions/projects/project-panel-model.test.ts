@@ -17,6 +17,36 @@ function catalogue(...projects: ChatProjectSummary[]): ProjectCatalogue {
 }
 
 describe("buildPanelGroups", () => {
+  it("sorts recent projects by unarchived activity, ignoring newer archived sessions", () => {
+    const older = project({ path: "/a", name: "Alpha", modified: 1000, sessions: [session({ modified: 10 }), session({ modified: 100, archivedAt: 1 })] });
+    const newer = project({ path: "/z", name: "Zulu", sessions: [session({ modified: 20 })] });
+    const groups = buildPanelGroups(catalogue(older, newer), "/a");
+
+    expect(groups.map(group => group.name)).toEqual(["Zulu", "Alpha"]);
+  });
+
+  it("uses linked-worktree activity for repository recency", () => {
+    const main = project({ path: "/repo", name: "Zulu", repositoryPath: "/repo", worktree: { branch: "main", detached: false, primary: true }, sessions: [session({ modified: 1 })] });
+    const linked = project({ path: "/feature", name: "feature", repositoryPath: "/repo", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ modified: 30 })] });
+    const other = project({ path: "/a", name: "Alpha", sessions: [session({ modified: 20 })] });
+
+    expect(buildPanelGroups(catalogue(other, main, linked), "/feature").map(group => group.name)).toEqual(["Zulu", "Alpha"]);
+  });
+
+  it("breaks recency ties by name then key and keeps pins and archived-only projects alphabetical", () => {
+    const active = (path: string, name: string, modified = 10, pinned = false) => project({ path, name, pinned, sessions: [session({ modified })] });
+    const archived = (path: string, name: string, modified: number) => project({ path, name, sessions: [session({ modified, archivedAt: 1 })] });
+    const groups = buildPanelGroups(catalogue(
+      active("/pin-z", "Z pinned", 100, true), active("/pin-a", "A pinned", 1, true),
+      active("/same-z", "Same"), active("/same-a", "Same"), active("/alpha", "Alpha"),
+      archived("/old-z", "Z old", 100), archived("/old-a", "A old", 1),
+    ), "/elsewhere");
+
+    expect(groups.filter(group => group.pinned).map(group => group.name)).toEqual(["A pinned", "Z pinned"]);
+    expect(groups.filter(group => !group.pinned && group.activeCount > 0).map(group => group.key)).toEqual(["/alpha", "/same-a", "/same-z"]);
+    expect(groups.filter(group => !group.pinned && group.activeCount === 0).map(group => group.name)).toEqual(["A old", "Z old"]);
+  });
+
   it("merges worktree checkouts of one repository and tags sessions with their branch", () => {
     const main = project({ path: "/repo", name: "pi-chat", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "main", detached: false, primary: true }, sessions: [session({ title: "On main", modified: 5 })], sessionCount: 1 });
     const feature = project({ path: "/repo-feature", name: "feature", displayPath: "~/.worktrees/repo/feature", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ title: "Feature work", modified: 9 })], sessionCount: 1 });
