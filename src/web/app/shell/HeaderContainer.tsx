@@ -15,7 +15,6 @@ export function HeaderContainer() {
     <HeaderView
       home={home}
       title={title}
-      status={state.status}
       tabs={visibleTabs(app)}
       openingTabs={app.openingTabs}
       activeSessionId={app.activeSessionId}

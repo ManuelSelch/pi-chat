@@ -39,11 +39,12 @@ it("shows Pi's session title, refreshes it while running, and clears it on a lat
   expect(chat.state.actions.features.map((feature) => feature.id)).not.toContain("session.rename");
   const view = render(header());
   expect(screen.getByText("Original title").textContent).toBe("Original title");
+  expect(screen.queryByTestId("status")).toBeNull();
   snapshot("Generated title", 1, true);
   view.rerender(header());
   expect(screen.getByText("Generated title").textContent).toBe("Generated title");
   expect(screen.queryByText("Original title")).toBeNull();
-  expect(screen.getByTestId("status").textContent).toBe("running");
+  expect(screen.queryByTestId("status")).toBeNull();
   snapshot(undefined, 2);
   view.rerender(header());
   expect(screen.getByText("New session").textContent).toBe("New session");

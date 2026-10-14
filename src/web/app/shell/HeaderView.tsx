@@ -8,7 +8,6 @@ import { MANTINE_COLOR } from "../../ui/theme.js";
 interface HeaderViewProps {
   home: boolean;
   title: string;
-  status: string;
   tabs: Tab[];
   openingTabs: number;
   activeSessionId: string;
@@ -25,7 +24,6 @@ interface HeaderViewProps {
 export function HeaderView({
   home,
   title,
-  status,
   tabs,
   openingTabs,
   activeSessionId,
@@ -52,11 +50,6 @@ export function HeaderView({
         <Group gap="sm" wrap="nowrap">
           {home ? null : <Slot name="session.status" buttons={buttons} badges={badges} onAction={onAction} />}
           {home ? null : <Slot name="session.header.right" buttons={buttons} badges={badges} onAction={onAction} />}
-          {home ? null : (
-            <Text c={status === "running" ? "green" : "dimmed"} size="xs" tt="capitalize" data-testid="status">
-              {status}
-            </Text>
-          )}
           <Tooltip label="Settings">
             <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Settings" onClick={onOpenSettings}>
               <IconSettings size={18} />
