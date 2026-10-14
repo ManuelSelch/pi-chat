@@ -92,7 +92,7 @@ export function parseQuickOpenQuery(query: string): QuickOpenQuery {
   return { kind, text: kind ? text.slice(1).trim() : text };
 }
 
-/** Expand a matched folder into explicit latest/new-session choices. */
+/** A matched folder starts a fresh session; existing sessions are separate results. */
 export function folderSearchChoices(items: readonly QuickOpenItem[]): QuickOpenItem[] {
   return items.flatMap(item => {
     if (item.kind !== "project") return [item];
@@ -101,18 +101,9 @@ export function folderSearchChoices(items: readonly QuickOpenItem[]): QuickOpenI
       {
         ...item,
         kind: "projectAction",
-        path: `${item.path}::latest-session`,
-        title: "Open latest session",
-        project: item.latestSessionPath ? context : `${context} · No session yet`,
-        targetPath: item.latestSessionPath,
-        disabled: !item.latestSessionPath,
-      },
-      {
-        ...item,
-        kind: "projectAction",
         path: `${item.path}::new-session`,
-        title: "Open new session in folder",
-        project: context,
+        title: item.title,
+        project: `New session · ${context}`,
         targetPath: item.path,
         disabled: false,
       },
@@ -194,7 +185,14 @@ export function rankQuickOpen(items: readonly QuickOpenItem[], query: string, li
   return candidates
     .map((item) => ({ item, score: rank(item, text) }))
     .filter((entry): entry is { item: QuickOpenItem; score: number } => entry.score !== undefined)
-    .sort((left, right) => left.score - right.score || compareItems(left.item, right.item))
+    .sort((left, right) => {
+      // Keep folder/action matches prominent, then list every matching session by date.
+      const leftSession = left.item.kind === "session";
+      const rightSession = right.item.kind === "session";
+      if (leftSession !== rightSession) return leftSession ? 1 : -1;
+      if (leftSession) return compareItems(left.item, right.item);
+      return left.score - right.score || compareItems(left.item, right.item);
+    })
     .slice(0, limit)
     .map((entry) => entry.item);
 }

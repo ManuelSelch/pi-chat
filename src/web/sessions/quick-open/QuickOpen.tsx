@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { IconBolt, IconFolder, IconGitBranch, IconMessage } from "@tabler/icons-react";
+import { IconBolt, IconFolder, IconFolderPlus, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
 import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
@@ -20,7 +20,7 @@ interface QuickOpenProps {
 }
 
 const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
-const resultIcons = { session: IconMessage, project: IconFolder, worktree: IconGitBranch, projectAction: IconBolt, action: IconBolt };
+const resultIcons = { session: IconMessage, project: IconFolder, worktree: IconGitBranch, projectAction: IconFolderPlus, action: IconBolt };
 const scopes = [
   { prefix: "", label: "All", kind: undefined },
   { prefix: "#", label: "# Folders", kind: "project" },
@@ -87,8 +87,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
     if (item.kind === "session") onOpenSession(item.path);
     else if (item.kind === "action") item.action?.run();
     else if (item.kind === "projectAction") {
-      if (item.path.endsWith("::latest-session") && item.targetPath) onOpenSession(item.targetPath);
-      else if (item.path.endsWith("::new-session") && item.targetPath) onNewSession(item.targetPath);
+      if (item.targetPath) onNewSession(item.targetPath);
     } else onOpenProject(item.path);
     onClose();
   }
@@ -189,7 +188,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
                     return <Icon size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2, color: "var(--mantine-color-dimmed)" }} />;
                   })()}
                   <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
-                    <Text size="sm" truncate>{resultTitle(item)}{item.isOpen ? <Text component="span" size="xs" c="dimmed" ml={6}>Open</Text> : null}</Text>
+                    <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}{item.isOpen ? <Text component="span" size="xs" c="dimmed" ml={6}>Open</Text> : null}</Text>
                     <Text size="xs" c="dimmed" truncate>{resultContext(item)}</Text>
                   </Stack>
                 </Group>

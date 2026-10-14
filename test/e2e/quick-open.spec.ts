@@ -51,6 +51,12 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
     await input.press("Shift+Tab");
     await expect(input).toHaveValue("/");
     await expect(input).toBeFocused();
+    await page.getByRole("button", { name: "# Folders", exact: true }).click();
+    const projectRow = page.getByRole("option").first();
+    await expect(projectRow).toBeVisible();
+    await expect(projectRow.getByText(/^New session ·/)).toHaveCSS("font-size", "12px");
+    await expect(projectRow.locator("p").first()).toHaveCSS("font-size", "16px");
+    await expect(page.getByText("Open latest session", { exact: true })).toHaveCount(0);
     await actions.click();
     await expect(input).toBeFocused();
     const rows = page.getByRole("option");

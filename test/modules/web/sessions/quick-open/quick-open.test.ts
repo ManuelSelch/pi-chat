@@ -49,14 +49,14 @@ describe("quick open", () => {
     expect(results.every((item) => item.kind === "session")).toBe(true);
   });
 
-  it("ranks a title prefix above a word match above a plain substring", () => {
+  it("shows matching projects followed by sessions newest first", () => {
     const results = rankQuickOpen(items, "obsidian");
 
     expect(results.map((item) => item.title)).toEqual([
-      "Obsidian Notes", // title starts with the query
-      "obsidian-plugins", // project name beats session context
-      "Notes About Obsidian", // a later word starts with it
-      "Ping", // only its project matches
+      "obsidian-plugins",
+      "Obsidian Notes",
+      "Ping",
+      "Notes About Obsidian",
     ]);
   });
 
@@ -129,14 +129,14 @@ describe("quick open", () => {
     expect(rankQuickOpen(items, "@jsonl")).toEqual([]);
   });
 
-  it("ranks exact and prefix matches above fuzzy matches, and name matches above context", () => {
+  it("sorts matching sessions by date rather than title-match strength", () => {
     const candidates = [
       { ...items[0]!, path: "/context", title: "Other", project: "palette", modified: 100 },
       { ...items[0]!, path: "/fuzzy", title: "Palete", modified: 100 },
       { ...items[0]!, path: "/prefix", title: "Palette work", modified: 100 },
       { ...items[0]!, path: "/exact", title: "Palette", modified: 1 },
     ];
-    expect(rankQuickOpen(candidates, "palette").map((item) => item.path)).toEqual(["/exact", "/prefix", "/fuzzy", "/context"]);
+    expect(rankQuickOpen(candidates, "palette").map((item) => item.path)).toEqual(["/context", "/fuzzy", "/prefix", "/exact"]);
   });
 
   it("does not mutate inputs and handles an empty catalogue", () => {

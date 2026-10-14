@@ -52,15 +52,15 @@ it.each([
   expect(screen.getByRole("status").textContent).toContain(state);
   expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
 });
-it("offers latest and new-session choices for each folder search", async () => {
+it("opens matching sessions and creates a new session from the project row", async () => {
   controller.app.catalogue = { projects: [{
     path: "/project", displayPath: "~/project", name: "project", exists: true, modified: 10, sessionCount: 1,
     sessions: [{ path: "/sessions/latest.jsonl", id: "latest", title: "Latest", nameSource: "manual", modified: 10, created: 1, messageCount: 2 }],
   }] };
   render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
   fireEvent.click(screen.getByText("Open palette"));
-  fireEvent.change(await screen.findByRole("textbox"), { target: { value: "#project" } });
-  fireEvent.click(screen.getByRole("option", { name: /Open latest session/ }));
+  fireEvent.change(await screen.findByRole("textbox"), { target: { value: "project" } });
+  fireEvent.click(screen.getByRole("option", { name: /Session: Latest/ }));
   expect(controller.openSession).toHaveBeenCalledWith("/sessions/latest.jsonl");
 
   cleanup();
@@ -70,7 +70,7 @@ it("offers latest and new-session choices for each folder search", async () => {
   render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
   fireEvent.click(screen.getByText("Open palette"));
   fireEvent.change(await screen.findByRole("textbox"), { target: { value: "#project" } });
-  fireEvent.click(screen.getByRole("option", { name: /Open new session/ }));
+  fireEvent.click(screen.getByRole("option", { name: /Folder action: project.*New session/ }));
   expect(controller.newSession).toHaveBeenCalledWith("/project");
 });
 it("starts a new session in the current project through the application controller", async () => {
