@@ -19,10 +19,6 @@
   outline-offset: -2px;
 }
 
-.active {
-  background: var(--mantine-primary-color-light);
-}
-
 .content {
   min-width: 0;
   flex: 1 1 auto;
