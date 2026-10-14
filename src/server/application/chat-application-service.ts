@@ -228,10 +228,10 @@ export class ChatApplicationService {
    * The catalogue the home screen searches. With every tab closed there is no
    * snapshot to fold in, so the on-disk sessions stand on their own.
    */
-  async currentCatalogue(): Promise<ProjectCatalogue> {
+  async currentCatalogue(options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
     const active = this.activeSessionId();
-    if (!active) return this.projectSessions.catalogue();
-    return this.catalogue(this.sessions.get(active).snapshot());
+    if (!active) return this.projectSessions.catalogue(undefined, options);
+    return this.catalogue(this.sessions.get(active).snapshot(), options);
   }
 
   focusTab(sessionId: string): void {
@@ -306,7 +306,7 @@ export class ChatApplicationService {
     return sessionId;
   }
 
-  private async catalogue(snapshot: RuntimeSnapshot): Promise<ProjectCatalogue> {
+  private async catalogue(snapshot: RuntimeSnapshot, options: { metadataOnly?: boolean }): Promise<ProjectCatalogue> {
     return this.projectSessions.catalogue({
       id: snapshot.sessionId,
       path: snapshot.sessionPath,
@@ -314,7 +314,7 @@ export class ChatApplicationService {
       cwd: snapshot.projectPath,
       messageCount: snapshot.messages.filter((message) => message.role !== "tool").length,
       firstMessage: firstUserMessage(snapshot),
-    });
+    }, options);
   }
 
   private emit(sessionId: string, event: RuntimeEvent): void {

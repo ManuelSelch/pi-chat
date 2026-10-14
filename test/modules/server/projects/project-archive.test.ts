@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 import { ProjectMetadataStore } from "../../../../src/server/projects/project-metadata-store.js";
 const roots: string[] = [];
@@ -19,6 +19,67 @@ async function setup() {
 }
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 describe("project archives", () => {
+  it("refreshes archive metadata without rescanning sessions or rediscovering worktrees", async () => {
+    const { service, path, lister, discovery } = await setup();
+    const list = vi.spyOn(lister, "listAll");
+    const discover = vi.spyOn(discovery, "forDirectory");
+    const before = await service.catalogue();
+    list.mockClear(); discover.mockClear();
+
+    await service.archive(path, true);
+    const archived = await service.catalogue(undefined, { metadataOnly: true });
+    expect(archived.projects[0]!.sessionCount).toBe(0);
+    expect(archived.projects[0]!.sessions[0]!.archivedAt).toEqual(expect.any(Number));
+    expect(before.projects[0]!.sessions[0]!.archivedAt).toBeUndefined();
+    await service.archive(path, false);
+    const restored = await service.catalogue(undefined, { metadataOnly: true });
+    expect(restored.projects[0]!.sessionCount).toBe(1);
+    expect(restored.projects[0]!.sessions[0]!.archivedAt).toBeUndefined();
+    expect(archived.projects[0]!.sessions[0]!.archivedAt).toBeDefined();
+    expect(list).not.toHaveBeenCalled();
+    expect(discover).not.toHaveBeenCalled();
+    await service.catalogue();
+    expect(list).toHaveBeenCalledOnce();
+    expect(discover).toHaveBeenCalledOnce();
+  });
+
+  it("retains repository discovery for an active session not yet listed on disk", async () => {
+    const { cwd, sessionsRoot, metadata } = await setup();
+    const discovery = { forDirectory: vi.fn(async () => ({ repositoryPath: cwd, worktrees: [{ path: cwd, primary: true, detached: false, branch: "main" }] })) };
+    const service = new ProjectSessionService({ listAll: async () => [] }, sessionsRoot, discovery, metadata, "");
+    const active = { id: "new", cwd, messageCount: 0, name: "New session" };
+    const catalogue = await service.catalogue(active);
+    expect(catalogue.projects[0]!.worktree).toMatchObject({ branch: "main" });
+    const refreshed = await service.catalogue({ ...active, name: "Renamed session", messageCount: 2 }, { metadataOnly: true });
+    expect(refreshed.projects[0]!.sessions[0]).toMatchObject({ title: "Renamed session", messageCount: 2 });
+    expect(catalogue.projects[0]!.sessions[0]!.title).toBe("New session");
+    expect(discovery.forDirectory).toHaveBeenCalledOnce();
+  });
+
+  it("applies archive writes that finish during a full scan", async () => {
+    const { service, path, lister } = await setup();
+    await service.catalogue();
+    const records = await lister.listAll();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const list = vi.spyOn(lister, "listAll").mockImplementationOnce(async () => { await gate; return records; });
+    const scanning = service.catalogue();
+    await vi.waitFor(() => expect(list).toHaveBeenCalledOnce());
+    try {
+      await service.archive(path, true);
+      expect((await service.catalogue(undefined, { metadataOnly: true })).projects[0]!.sessionCount).toBe(0);
+    } finally { release(); }
+    expect((await scanning).projects[0]!.sessionCount).toBe(0);
+  });
+
+  it("falls back to a full scan when no catalogue has been built", async () => {
+    const { service, path, lister } = await setup();
+    const list = vi.spyOn(lister, "listAll");
+    await service.archive(path, true);
+    expect((await service.catalogue(undefined, { metadataOnly: true })).projects[0]!.sessionCount).toBe(0);
+    expect(list).toHaveBeenCalledOnce();
+  });
+
   it("marks history without touching the transcript and excludes it from active counts", async () => {
     const { service, path, content } = await setup();
     await service.archive(path, true);

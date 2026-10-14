@@ -47,10 +47,10 @@ export class ServerPublisher {
     await this.sendCatalogue(socket);
   }
 
-  async sendCatalogue(socket = this.controller()): Promise<void> {
+  async sendCatalogue(socket = this.controller(), options: { metadataOnly?: boolean } = {}): Promise<void> {
     if (!this.isCurrentSocket(socket)) return;
     try {
-      const catalogue = await this.chat.currentCatalogue();
+      const catalogue = await this.chat.currentCatalogue(options);
       if (!this.isCurrentSocket(socket)) return;
       this.sendTo(socket, { version: PROTOCOL_VERSION, type: "catalogue", catalogue, features: this.chat.appFeatures() });
     } catch (error: unknown) {

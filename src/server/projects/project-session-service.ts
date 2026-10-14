@@ -22,6 +22,8 @@ export const QUICK_CHATS_NAME = "Quick Chats";
 
 export class ProjectSessionService {
   private readonly store: PiSessionStore;
+  /** Last disk/worktree scan, before the archive overlay. */
+  private scannedProjects?: Map<string, ChatProjectSummary>;
 
   constructor(
     private readonly lister: ProjectSessionLister = new PiSessionStore(),
@@ -35,12 +37,14 @@ export class ProjectSessionService {
 
   async archive(sessionPath: string, archived: boolean): Promise<void> {
     const session = await this.store.describe(sessionPath);
-    const repository = archived ? await this.discovery.forDirectory(session.cwd) : undefined;
-    const checkout = repository?.worktrees.find(worktree => resolve(worktree.path) === session.cwd);
+    const cachedProject = this.scannedProjects?.get(await canonicalPath(session.cwd));
+    const repository = archived && !cachedProject ? await this.discovery.forDirectory(session.cwd) : undefined;
+    const repositoryPath = cachedProject?.repositoryPath ?? repository?.repositoryPath;
+    const branch = cachedProject?.worktree?.branch ?? repository?.worktrees.find(worktree => resolve(worktree.path) === session.cwd)?.branch;
     await this.metadata.archive({
       ...session,
-      ...(repository ? { repositoryPath: repository.repositoryPath, repositoryName: formatProjectName(repository.repositoryPath) } : {}),
-      ...(checkout?.branch ? { branch: checkout.branch } : {}),
+      ...(repositoryPath ? { repositoryPath, repositoryName: formatProjectName(repositoryPath) } : {}),
+      ...(branch ? { branch } : {}),
     }, archived);
   }
 
@@ -69,8 +73,8 @@ export class ProjectSessionService {
     await this.metadata.pin(path, pinned);
   }
 
-  async catalogue(active?: ActiveSessionSummary): Promise<ProjectCatalogue> {
-    const [sessions, metadata] = await Promise.all([this.lister.listAll(), this.metadata.read()]);
+  private async scanProjects(pins: readonly string[], active?: ActiveSessionSummary): Promise<Map<string, ChatProjectSummary>> {
+    const sessions = await this.lister.listAll();
     const byProject = new Map<string, ChatProjectSummary>();
 
     for (const session of sessions) {
@@ -107,8 +111,8 @@ export class ProjectSessionService {
       });
     }
 
-    if (active) this.includeActiveSession(byProject, { ...active, cwd: await canonicalPath(active.cwd), ...(active.path ? { path: await canonicalPath(active.path) } : {}) });
-    for (const path of metadata.pins) {
+    if (active) this.includeActiveSession(byProject, active);
+    for (const path of pins) {
       const project = byProject.get(path) ?? {
         path, displayPath: formatProjectDisplayPath(path), name: formatProjectName(path),
         exists: existsSync(path), modified: 0, sessionCount: 0, sessions: [],
@@ -118,6 +122,21 @@ export class ProjectSessionService {
     }
     await this.includeRegisteredWorktrees(byProject);
     await this.includeQuickChats(byProject);
+    this.scannedProjects = structuredClone(byProject);
+    return byProject;
+  }
+
+  /** Only archive/restore may reuse the scan; other changes still discover
+   *  new sessions, titles, projects and worktrees from disk. */
+  async catalogue(active?: ActiveSessionSummary, options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
+    const normalizedActive = active ? { ...active, cwd: await canonicalPath(active.cwd), ...(active.path ? { path: await canonicalPath(active.path) } : {}) } : undefined;
+    let metadata = await this.metadata.read();
+    const cached = options.metadataOnly ? this.scannedProjects : undefined;
+    const byProject = cached ? structuredClone(cached) : await this.scanProjects(metadata.pins, normalizedActive);
+    // A scan can overlap an archive write. Overlay fresh metadata, never the
+    // state captured before reading all transcripts and discovering worktrees.
+    if (!cached) metadata = await this.metadata.read();
+    if (cached && normalizedActive) this.includeActiveSession(byProject, normalizedActive);
     const archived = new Map(metadata.archives.map(session => [`${session.path}\0${session.id}`, session]));
     for (const project of byProject.values()) {
       for (const session of project.sessions) {
