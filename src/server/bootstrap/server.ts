@@ -30,6 +30,7 @@ export function createPiChatServer(
   extensions?: PiChatExtensionRegistry,
   files?: FileService,
   logger?: FileLogger,
+  projectSessions = new ProjectSessionService(new PiSessionStore()),
 ): PiChatServer {
   const app = express();
   app.get("/health", (_request, response) => response.json({ ok: true }));
@@ -39,7 +40,6 @@ export function createPiChatServer(
   }
 
   const httpServer = createServer(app);
-  const projectSessions = new ProjectSessionService(new PiSessionStore());
   const chat = new ChatApplicationService(runtime, factory, projectSessions, restart, extensions, undefined, files);
   const transport = new WebSocketTransport(httpServer, chat, logger);
   return {

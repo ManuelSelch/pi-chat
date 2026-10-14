@@ -98,6 +98,7 @@ describe("WebSocket transport", () => {
 
   it("publishes the closed tab and acknowledges archiving the current session", async () => {
     const archiveSession = vi.spyOn(ProjectSessionService.prototype, "archive").mockResolvedValue(undefined);
+    const catalogueScan = vi.spyOn(ProjectSessionService.prototype, "catalogue");
     try {
       server = createPiChatServer(new FakeRuntimeAdapter());
       await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
@@ -105,6 +106,7 @@ describe("WebSocket transport", () => {
       socket = connected.socket;
       // Drain the initial publication before listening for the archive response.
       await connected.catalogue;
+      catalogueScan.mockClear();
       const tabs = receiveOfType(socket, "tabs");
       const catalogue = receiveOfType(socket, "catalogue");
       const reply = receiveOfType(socket, "projectMutationResult");
@@ -112,9 +114,11 @@ describe("WebSocket transport", () => {
       await catalogue;
       expect(await reply).toMatchObject({ type: "projectMutationResult", requestId: "archive-1" });
       expect(archiveSession).toHaveBeenCalledWith("fake-session.jsonl", true);
+      expect(catalogueScan).toHaveBeenCalledExactlyOnceWith(undefined, { metadataOnly: true });
       expect(await tabs).toMatchObject({ type: "tabs", tabs: [], activeSessionId: "" });
     } finally {
       archiveSession.mockRestore();
+      catalogueScan.mockRestore();
     }
   });
 
