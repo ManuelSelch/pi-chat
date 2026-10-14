@@ -46,14 +46,14 @@ const groupedCatalogue: ProjectCatalogue = {
 afterEach(cleanup);
 
 function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string } = {}) {
-  const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
+  const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), removeProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
   render(
     <MantineProvider>
       <ProjectSessionDrawer
         opened onClose={vi.fn()} currentSessionId="current" currentProjectPath={options.currentPath ?? "/work/current"}
         catalogue={options.data ?? catalogue} busy={options.busy ?? false} showDisplayPath
         openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
-        archiveSession={archiveSession} pinProject={pinProject}
+        archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
       />
     </MantineProvider>,
   );
@@ -61,6 +61,32 @@ function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: 
 }
 
 describe("ProjectSessionDrawer", () => {
+  it("shows every active project in recency order without hiding pi-chat after five projects", () => {
+    const names = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "pi-chat"];
+    const projects = names.map((name, index) => ({
+      path: `/work/${name}`, displayPath: `/work/${name}`, name, exists: true, modified: 0, sessionCount: 1,
+      sessions: [session(name, `${name} chat`, { modified: index + 1 })],
+    }));
+    const pinned = { ...projects[0]!, path: "/pin", name: "Pinned", pinned: true };
+    const quick = { ...projects[0]!, path: "/home/me", name: "Quick Chats", quickChats: true };
+    const archived = { ...projects[0]!, path: "/old", name: "Old", sessionCount: 0, sessions: [session("old", "Old chat", { archivedAt: 10 })] };
+    show({ data: { projects: [quick, pinned, ...projects, archived] }, currentPath: "/work/pi-chat" });
+
+    const expected = ["Quick Chats", "Pinned", ...names.toReversed()];
+    for (let i = 1; i < expected.length; i += 1) {
+      expect(screen.getByText(expected[i - 1]!).compareDocumentPosition(screen.getByText(expected[i]!)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(screen.getByText("pi-chat chat")).toBeTruthy();
+    expect(screen.queryByText("Old")).toBeNull();
+    for (const name of names) {
+      expect(screen.queryByRole("button", { name: `Remove ${name} from project history` })).toBeNull();
+    }
+    fireEvent.click(screen.getByRole("button", { name: /Other projects/ }));
+    expect(screen.getByText("Old")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove Old from project history" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Remove Pinned from project history" })).toBeNull();
+  });
+
   it("groups worktrees per repository and labels a lone worktree session with the branch", () => {
     show({ data: groupedCatalogue, currentPath: "/work/pi-chat-feature" });
 

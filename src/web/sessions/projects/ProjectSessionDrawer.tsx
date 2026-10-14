@@ -45,12 +45,8 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const projects = groups.filter(group => !group.quickChats);
   const pinned = projects.filter(group => group.pinned);
   const unpinned = projects.filter(group => !group.pinned);
-  const recentlyActive = unpinned.filter(group => group.activeCount > 0);
-  const recent = recentlyActive.slice(0, 5);
-  const other = [
-    ...recentlyActive.slice(5),
-    ...unpinned.filter(group => group.activeCount === 0),
-  ];
+  const recent = unpinned.filter(group => group.activeCount > 0);
+  const other = unpinned.filter(group => group.activeCount === 0);
   const currentKey = groupKeyForPath(catalogue, currentProjectPath);
   const activeKey = selected ?? currentKey;
   const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
