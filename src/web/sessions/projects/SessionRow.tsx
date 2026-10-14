@@ -19,7 +19,7 @@ interface SessionRowProps {
 export function SessionRow({ session, label, active, disabled, archiveDisabled, onOpen, onArchive }: SessionRowProps) {
   const archived = session.archivedAt !== undefined;
   return (
-    <div className={`${styles.row}${active ? ` ${styles.active}` : ""}`}>
+    <div className={styles.row}>
       <UnstyledButton className={styles.content} disabled={disabled} aria-current={active ? "page" : undefined} onClick={onOpen}>
         <Text className={styles.title} fw={archived ? 400 : 500} size="sm">
           {label ? <><IconGitBranch size={12} className={styles.branch} />{label}</> : session.title}
