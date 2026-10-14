@@ -161,6 +161,27 @@ in-flight creation.
 Latest verification: 75 test files / 500 tests passed with `--maxWorkers=4`;
 build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
 
+## Visible-browser archive coverage
+
+`PiChatBrowserDriver` in `test/infra/e2e/` runs Playwright against the built
+frontend and the real loopback backend, with harness-backed Pi sessions. Its
+catalogue, session-path validation and archive metadata are isolated inside the
+world's temporary directory; it never archives normal user sessions.
+
+`test/e2e/project-archive.spec.ts` creates two persisted conversations, archives
+the active one through the visible Projects panel, checks its active row is
+removed and its Restore row appears under Archived, and verifies that its tab
+closes without disturbing the other conversation. A browser reload must retain
+the archived state. Selectors and retrying assertions live in
+`BrowserProjectsDriver`; there are no fixed sleeps or mocked archive replies.
+
+Run this scenario with:
+
+```sh
+npm run build
+npx playwright test test/e2e/project-archive.spec.ts
+```
+
 ## Harness setup
 
 The dev dependency is pinned to the ManuelSelch harness fork at commit

@@ -1,4 +1,7 @@
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { ProjectSessionService } from "../../../src/server/projects/project-session-service.js";
+import { ProjectMetadataStore } from "../../../src/server/projects/project-metadata-store.js";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
@@ -8,6 +11,7 @@ import { BrowserChatDriver } from "./browser-chat-driver.js";
 import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 import { BrowserSkillsDriver } from "./browser-skills-driver.js";
+import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
@@ -16,6 +20,7 @@ export class PiChatBrowserDriver {
   readonly Home: BrowserHomeDriver;
   readonly Tabs: BrowserTabsDriver;
   readonly Skills: BrowserSkillsDriver;
+  readonly Projects: BrowserProjectsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -30,13 +35,20 @@ export class PiChatBrowserDriver {
     this.Home = new BrowserHomeDriver(page);
     this.Tabs = new BrowserTabsDriver(page, world);
     this.Skills = new BrowserSkillsDriver(page, this.composer);
+    this.Projects = new BrowserProjectsDriver(page);
   }
 
   static async start(page: Page): Promise<PiChatBrowserDriver> {
     const world = new TestWorld([], true);
     let server: PiChatServer | undefined;
     try {
-      server = createPiChatServer(undefined, resolve("dist/web"), world.factory);
+      const projectSessions = new ProjectSessionService(
+        { listAll: () => SessionManager.list(world.projectPath, world.sessionDir) },
+        world.sessionDir,
+        undefined,
+        new ProjectMetadataStore(join(world.projectPath, ".pi-chat", "projects.json")),
+      );
+      server = createPiChatServer(undefined, resolve("dist/web"), world.factory, undefined, undefined, undefined, undefined, projectSessions);
       await new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
         server!.httpServer.listen(0, "127.0.0.1", () => {
