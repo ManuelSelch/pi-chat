@@ -8,15 +8,74 @@ import type { ChatMessage } from "../../../../../src/shared/protocol.js";
 
 afterEach(cleanup);
 
-function renderMessages(messages: ChatMessage[], draft?: { runId: string; text: string; thinking: string }) {
+function renderMessages(messages: ChatMessage[], draft?: { runId: string; text: string; thinking: string }, compact = false) {
   return render(
     <MantineProvider>
-      <MessageList messages={messages} draft={draft} />
+      <MessageList messages={messages} draft={draft} compact={compact} />
     </MantineProvider>,
   );
 }
 
+function tool(id: string, name: string, status: "running" | "success" | "error" = "success"): ChatMessage {
+  return { id, role: "tool", tool: { toolCallId: id, name, status, argsText: `args-${id}`, outputText: `result-${id}` } };
+}
+
 describe("MessageList", () => {
+  it("groups consecutive compact tools by name and keeps reasoning and answer in order", async () => {
+    const { container } = renderMessages([
+      { id: "a", role: "assistant", text: "", thinking: "Inspect first" },
+      tool("r1", "read"), tool("w1", "write"), tool("r2", "read"),
+      { id: "b", role: "assistant", text: "", thinking: "Now verify" },
+      tool("b1", "bash"),
+      { id: "c", role: "assistant", text: "Final answer" },
+    ], undefined, true);
+    const groups = screen.getAllByTestId("tool-group") as HTMLDetailsElement[];
+    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual(["Used 2 read, 1 write", "Used 1 bash"]);
+    expect(groups.every((group) => !group.open)).toBe(true);
+    const first = groups[0]!;
+    expect(first.querySelectorAll("[data-testid='tool-card']")).toHaveLength(3);
+    expect(Array.from(container.querySelector("section")!.children).map((row) => row.tagName)).toEqual(["ARTICLE", "DETAILS", "ARTICLE", "DETAILS", "ARTICLE"]);
+    first.open = true;
+    fireEvent(first, new Event("toggle"));
+    const card = first.querySelector("[data-testid='tool-card']") as HTMLDetailsElement;
+    card.open = true;
+    fireEvent(card, new Event("toggle"));
+    expect(card.textContent).toContain("args-r1");
+    expect(card.textContent).toContain("result-r1");
+    expect(await screen.findByText("Final answer")).not.toBeNull();
+  });
+
+  it("leaves comfortable tools ungrouped", () => {
+    renderMessages([tool("r1", "read"), tool("r2", "read")]);
+    expect(screen.queryByTestId("tool-group")).toBeNull();
+    expect(screen.getAllByTestId("tool-card")).toHaveLength(2);
+  });
+
+  it("does not group across non-tool messages", () => {
+    renderMessages([tool("r1", "read"), { id: "n", role: "notice", level: "info", text: "Notice" }, tool("r2", "read")], undefined, true);
+    expect(screen.getAllByTestId("tool-group")).toHaveLength(2);
+  });
+
+  it("keeps a complete tool group at the visible history boundary", () => {
+    renderMessages([
+      { id: "u", role: "user", text: "Start" },
+      ...Array.from({ length: 45 }, (_, i) => tool(`r${i}`, "read")),
+    ], undefined, true);
+    expect(screen.getByText("Used 45 read")).not.toBeNull();
+    expect(screen.getByText("Show earlier messages (1)")).not.toBeNull();
+  });
+
+  it("preserves an expanded group during live tool updates and exposes running/errors", () => {
+    const messages = [tool("r1", "read")];
+    const { rerender } = renderMessages(messages, undefined, true);
+    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
+    group.open = true;
+    fireEvent(group, new Event("toggle"));
+    rerender(<MantineProvider><MessageList messages={[...messages, tool("b1", "bash", "running"), tool("w1", "write", "error")]} draft={undefined} compact /></MantineProvider>);
+    expect((screen.getByTestId("tool-group") as HTMLDetailsElement).open).toBe(true);
+    expect(screen.getByText(/1 running/)).not.toBeNull();
+    expect(screen.getByText(/1 failed/)).not.toBeNull();
+  });
   it("renders pi.sendMessage custom messages as distinct extension cards", async () => {
     const { container } = renderMessages([
       {

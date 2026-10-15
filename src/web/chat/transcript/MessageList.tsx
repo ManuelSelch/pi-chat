@@ -7,6 +7,7 @@ import { ThinkingPanel } from "./ThinkingPanel.js";
 import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import { SkillInvocation } from "./SkillInvocation.js";
+import { ToolGroup, type ToolMessage } from "./ToolGroup.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../../app/state/chat-state.js";
 import { THEME } from "../../ui/theme.js";
@@ -99,8 +100,21 @@ interface MessageListProps {
 
 export const MessageList = memo(function MessageList({ messages, draft, onLocalLink, compact = false }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
-  const shown = messages.length > visible ? messages.slice(-visible) : messages;
-  const hidden = messages.length - shown.length;
+  let start = Math.max(0, messages.length - visible);
+  // Never show a partial count when pagination cuts through a tool group.
+  if (compact) {
+    while (start > 0 && messages[start]?.role === "tool" && messages[start - 1]?.role === "tool") start--;
+  }
+  const shown = messages.slice(start);
+  const hidden = start;
+  const rows: (ChatMessage | [ToolMessage, ...ToolMessage[]])[] = [];
+  for (const message of shown) {
+    const previous = rows[rows.length - 1];
+    if (compact && message.role === "tool") {
+      if (Array.isArray(previous)) previous.push(message);
+      else rows.push([message]);
+    } else rows.push(message);
+  }
 
   return (
     <>
@@ -121,7 +135,9 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
             Show earlier messages ({hidden})
           </Button>
         ) : null}
-        {shown.map((message) => <MessageRow key={message.id} message={message} onLocalLink={onLocalLink} compact={compact} />)}
+        {rows.map((row) => Array.isArray(row)
+          ? <ToolGroup key={`tools:${row[0].id}`} messages={row} />
+          : <MessageRow key={row.id} message={row} onLocalLink={onLocalLink} compact={compact} />)}
         {draft ? (
           <Box component="article">
             <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>

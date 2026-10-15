@@ -125,8 +125,19 @@ html::-webkit-scrollbar {
 @keyframes stream-cursor-blink { 50% { opacity: 0; } }
 
 /* Compact tool activity reads as muted transcript text, not a stack of cards. */
-.transcript-compact > .tool-card-compact + .tool-card-compact {
-  margin-top: calc(-1 * var(--mantine-spacing-md) + 2px);
+.tool-group > summary {
+  cursor: pointer;
+  padding: 2px 0;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+.tool-group > summary:hover { color: var(--mantine-color-text); }
+.tool-group > summary:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 .tool-card-compact summary { color: var(--mantine-color-dimmed); }
 .tool-card-compact summary .mantine-Text-root { font-size: 11px; }
