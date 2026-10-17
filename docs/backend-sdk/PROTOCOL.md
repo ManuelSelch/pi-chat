@@ -84,6 +84,29 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 - The current draft does not guarantee recovering an unfinished answer's already-streamed prefix. Clients may show running state until a complete final message arrives. Complete current-draft snapshots remain a review question.
 - Runtime errors survive snapshots until new execution begins. Optional widgets/footer/slots are rendering hints; core settings must not be parsed from formatted UI text.
 
+### Server events
+
+All session events below use core sequence ordering except `presentationChanged`, which carries session identities and its own `revision` instead of `sequence`. `snapshot` uses its existing watermark without incrementing it. Server-wide replacement views carry their own revisions.
+
+| Event | Scope | `data` / application rule |
+|---|---|---|
+| `snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
+| `assistantDelta`, `thinkingDelta` | Session | `runId`, `delta`; append to that run's draft |
+| `messageFinal` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
+| `toolEvent` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
+| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
+| `steeringQueue` | Session | `messages: string[]`; replace queued text, preserving duplicates |
+| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
+| `settingsChanged` | Session | Complete `SessionSettings` |
+| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
+| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
+| `operationFinished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
+| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
+| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
+| `catalogueChanged` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
+| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
+
 ### Server models
 
 Illustrative TypeScript definitions, not implemented SDK exports. `?` means optional; unions describe distinct wire shapes. Collections are complete current values. Schemas will enforce bounds and cross-field rules; local notification bubbles are not authoritative history.
@@ -289,29 +312,6 @@ interface SavedSessionSummary {
 ```
 
 Catalogue fields retain v1 semantics. `SavedSessionSummary.id` identifies history; it does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
-
-### Server events
-
-All session events below use core sequence ordering except `presentationChanged`, which carries session identities and its own `revision` instead of `sequence`. `snapshot` uses its existing watermark without incrementing it. Server-wide replacement views carry their own revisions.
-
-| Event | Scope | `data` / application rule |
-|---|---|---|
-| `snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
-| `assistantDelta`, `thinkingDelta` | Session | `runId`, `delta`; append to that run's draft |
-| `messageFinal` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
-| `toolEvent` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
-| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
-| `steeringQueue` | Session | `messages: string[]`; replace queued text, preserving duplicates |
-| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
-| `settingsChanged` | Session | Complete `SessionSettings` |
-| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
-| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
-| `operationFinished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
-| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
-| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
-| `catalogueChanged` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
-| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
-| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
 
 ### Pi extension UI mapping
 
