@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
+import { useHideArchivedSessions } from "../../settings/preferences/use-hide-archived-sessions.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { ProjectSessionDrawer } from "./ProjectSessionDrawer.js";
 
@@ -9,6 +10,7 @@ export function ProjectSessionContainer() {
   const overlays = useOverlays();
   const { app, state } = chat;
   const displayPath = useDisplayPath();
+  const archivedSessions = useHideArchivedSessions();
   const busy = state.status === "running" || state.status === "aborting";
   const busySessionIds = useMemo(() => app.tabs.filter(tab => tab.status === "running" || tab.status === "blocked").map(tab => tab.sessionId), [app.tabs]);
   const onClose = useCallback(() => overlays.close("projects"), [overlays.close]);
@@ -23,6 +25,7 @@ export function ProjectSessionContainer() {
       catalogue={app.catalogue}
       busy={busy}
       showDisplayPath={displayPath.show}
+      hideArchivedSessions={archivedSessions.hide}
       openSession={chat.openSession}
       newSession={chat.newSession}
       archiveSession={chat.archiveSession}

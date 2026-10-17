@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pi Chat · Archived session visibility</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Pi Chat home"><span class="brand-mark">π</span> Pi Chat</a>
+    <div class="topbar-meta"><span class="preview-dot"></span> Design preview · fake data</div>
+    <button class="avatar" aria-label="Open settings" title="Settings">M</button>
+  </header>
+  <main class="layout">
+    <section class="settings" aria-labelledby="settings-title">
+      <div class="eyebrow">PREFERENCES</div>
+      <h1 id="settings-title">Settings</h1>
+      <p class="intro">Choose what appears in your projects and sessions list.</p>
+      <div class="setting-card">
+        <div class="setting-icon" aria-hidden="true">▤</div>
+        <div class="setting-copy">
+          <label for="hide-archived">Hide archived sessions</label>
+          <p>Keep archived conversations out of project lists. Your archived sessions are still saved.</p>
+        </div>
+        <label class="switch" aria-label="Hide archived sessions">
+          <input id="hide-archived" type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="preview-note"><span aria-hidden="true">↗</span><span>Preview the project list to see this setting take effect.</span></div>
+    </section>
+
+    <section class="project-panel" aria-labelledby="projects-title">
+      <header class="panel-header">
+        <div><div class="eyebrow">PROJECTS</div><h2 id="projects-title">Your projects</h2></div>
+        <button class="more" aria-label="More project actions">···</button>
+      </header>
+      <div class="project-group">
+        <div class="project-row"><span class="folder-icon">⌂</span><span class="project-name">pi-chat</span><span class="badge">2</span><span class="plus">＋</span></div>
+        <div class="session-list">
+          <div class="session-row selected"><span class="session-dot"></span><div><strong>Improve command completion</strong><small>main · Today</small></div><span class="current-indicator">Current</span></div>
+          <div class="session-row"><span class="session-dot"></span><div><strong>Settings drawer cleanup</strong><small>feat/settings · Yesterday</small></div></div>
+          <div class="archived-block" id="archive-block">
+            <button class="archive-heading" aria-expanded="false"><span class="chevron">›</span><span>Archived</span><span class="badge muted">3</span></button>
+            <div class="archived-rows">
+              <div class="session-row archived"><span class="archive-mini">▤</span><div><strong>Project panel redesign</strong><small>Oct 12</small></div><button aria-label="Restore Project panel redesign" class="restore">↶</button></div>
+              <div class="session-row archived"><span class="archive-mini">▤</span><div><strong>Add archive support</strong><small>Oct 08</small></div><button aria-label="Restore Add archive support" class="restore">↶</button></div>
+              <div class="session-row archived"><span class="archive-mini">▤</span><div><strong>Fix session reconnect</strong><small>Sep 29</small></div><button aria-label="Restore Fix session reconnect" class="restore">↶</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="project-group other-projects"><button class="other-heading"><span class="chevron">›</span> Other projects <span class="badge muted">2</span></button></div>
+      <footer class="panel-footer"><span class="footer-dot"></span> Hidden archived sessions stay available in session history.</footer>
+    </section>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

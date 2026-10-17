@@ -51,7 +51,7 @@ function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: 
     <MantineProvider>
       <ProjectSessionDrawer
         opened onClose={vi.fn()} currentSessionId={options.currentSessionId ?? "current"} currentProjectPath={options.currentPath ?? "/work/current"}
-        catalogue={data} busy={options.busy ?? false} showDisplayPath
+        catalogue={data} busy={options.busy ?? false} showDisplayPath hideArchivedSessions={false}
         openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
         archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
       />

@@ -4,6 +4,7 @@ import { useOverlays } from "../app/overlays/OverlayController.js";
 import { useConfirmDialog } from "../ui/confirm/ConfirmDialogProvider.js";
 import { useChimes } from "./preferences/use-chimes.js";
 import { useDisplayPath } from "./preferences/use-display-path.js";
+import { useHideArchivedSessions } from "./preferences/use-hide-archived-sessions.js";
 import { useTranscriptDensity } from "./preferences/use-transcript-density.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 
@@ -15,6 +16,7 @@ export function SettingsContainer() {
   const busy = state.status === "running" || state.status === "aborting";
   const chimes = useChimes(app.tabs);
   const displayPath = useDisplayPath();
+  const archivedSessions = useHideArchivedSessions();
   const transcript = useTranscriptDensity();
   
   const restartServer = useCallback(async () => {
@@ -40,6 +42,8 @@ export function SettingsContainer() {
       chimesAvailable={chimes.available}
       displayPathShow={displayPath.show}
       setDisplayPathShow={displayPath.setShow}
+      hideArchivedSessions={archivedSessions.hide}
+      setHideArchivedSessions={archivedSessions.setHide}
       transcriptDensity={transcript.density}
       setTranscriptDensity={transcript.setDensity}
       runExtensionAction={chat.runExtensionAction}

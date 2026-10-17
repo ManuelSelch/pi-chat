@@ -13,6 +13,7 @@ import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
+import { BrowserSettingsDriver } from "./browser-settings-driver.js";
 import { BrowserFocusDriver } from "./browser-focus-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
@@ -23,6 +24,7 @@ export class PiChatBrowserDriver {
   readonly Tabs: BrowserTabsDriver;
   readonly Skills: BrowserSkillsDriver;
   readonly Projects: BrowserProjectsDriver;
+  readonly Settings: BrowserSettingsDriver;
   readonly Focus: BrowserFocusDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
@@ -39,6 +41,7 @@ export class PiChatBrowserDriver {
     this.Tabs = new BrowserTabsDriver(page, world);
     this.Skills = new BrowserSkillsDriver(page, this.composer);
     this.Projects = new BrowserProjectsDriver(page);
+    this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
   }
 

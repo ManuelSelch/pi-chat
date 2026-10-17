@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 const noop = () => {};
 
-function renderDrawer(extensions: typeof initialChatState.extensions, runExtensionAction = vi.fn()) {
+function renderDrawer(extensions: typeof initialChatState.extensions, runExtensionAction = vi.fn(), setHideArchivedSessions = vi.fn()) {
   render(
     <MantineProvider>
       <SettingsDrawer
@@ -27,6 +27,8 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         chimesAvailable
         displayPathShow={true}
         setDisplayPathShow={noop}
+        hideArchivedSessions={true}
+        setHideArchivedSessions={setHideArchivedSessions}
         transcriptDensity="comfortable"
         setTranscriptDensity={noop}
         runExtensionAction={runExtensionAction}
@@ -43,6 +45,15 @@ describe("SettingsDrawer extension section", () => {
     expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
     expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
     expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
+  });
+
+  it("shows the enabled archive visibility switch and dispatches changes", () => {
+    const setHideArchivedSessions = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), setHideArchivedSessions);
+    const toggle = screen.getByRole("switch", { name: "Hide archived sessions" }) as HTMLInputElement;
+    expect(toggle.checked).toBe(true);
+    fireEvent.click(toggle);
+    expect(setHideArchivedSessions).toHaveBeenCalledWith(false);
   });
 
   it("renders settings.section buttons and dispatches their action", () => {

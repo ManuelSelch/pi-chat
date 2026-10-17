@@ -23,12 +23,14 @@ interface SettingsDrawerProps {
   chimesAvailable: boolean;
   displayPathShow: boolean;
   setDisplayPathShow: (value: boolean) => void;
+  hideArchivedSessions: boolean;
+  setHideArchivedSessions: (value: boolean) => void;
   transcriptDensity: "comfortable" | "compact";
   setTranscriptDensity: (value: "comfortable" | "compact") => void;
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -72,6 +74,14 @@ export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel,
             checked={displayPathShow}
             onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
             label="Show folder path in projects panel"
+          />
+          <Switch
+            mt="sm"
+            checked={hideArchivedSessions}
+            onChange={(event) => setHideArchivedSessions(event.currentTarget.checked)}
+            label="Hide archived sessions"
+            aria-label="Hide archived sessions"
+            description="Hide archived conversations and their Archived sections in the projects panel. Your history stays saved."
           />
         </Panel>
         {thinkingFeature ? (

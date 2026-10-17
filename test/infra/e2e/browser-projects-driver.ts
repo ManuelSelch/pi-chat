@@ -52,6 +52,10 @@ export class BrowserProjectsDriver {
     await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
   }
 
+  async ShouldHideArchivedSection(): Promise<void> {
+    await expect(this.panel.getByRole("button", { name: /^Archived/ })).toHaveCount(0);
+  }
+
   async ShowArchivedSessions(): Promise<void> {
     const toggle = this.panel.getByRole("button", { name: /^Archived/ });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");

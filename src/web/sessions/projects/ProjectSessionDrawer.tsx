@@ -19,6 +19,7 @@ interface ProjectSessionDrawerProps {
    *  starting sessions stays safe meanwhile. */
   busy: boolean;
   showDisplayPath: boolean;
+  hideArchivedSessions?: boolean;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
   onOpenFolder: () => void;
@@ -34,7 +35,7 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
   return project ? project.repositoryPath ?? project.path : undefined;
 }
 
-export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -86,7 +87,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     return (
       <div className={styles.sessions}>
         {active.length ? active.map(row) : <div className={styles.empty}>No sessions yet. Use + to start one.</div>}
-        {archived.length ? <>
+        {!hideArchivedSessions && archived.length ? <>
           <button type="button" className={styles.archivedToggle} aria-expanded={Boolean(expandedArchive[group.key])} onClick={() => setExpandedArchive(value => ({ ...value, [group.key]: !value[group.key] }))}>
             <IconChevronRight size={12} className={expandedArchive[group.key] ? styles.groupChevronOpen : undefined} />
             <span>Archived</span>

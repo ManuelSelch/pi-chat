@@ -14,10 +14,31 @@ const catalogue: ProjectCatalogue = { projects: [
 ] };
 function show(archiveSession = vi.fn(async () => {})) {
   const pinProject = vi.fn(async () => {}), openSession = vi.fn(), newSession = vi.fn();
-  render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath openSession={openSession} newSession={newSession} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
+  render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath hideArchivedSessions={false} openSession={openSession} newSession={newSession} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
   return { archiveSession, pinProject, openSession, newSession };
 }
 describe("archive panel", () => {
+  it("hides Archived headings and rows by default, including after expanding the archive", () => {
+    const drawer = (hideArchivedSessions?: boolean) => <MantineProvider><ProjectSessionDrawer
+      opened onClose={vi.fn()} currentSessionId="active" currentProjectPath="/project"
+      catalogue={catalogue} busy={false} showDisplayPath hideArchivedSessions={hideArchivedSessions}
+      openSession={vi.fn()} newSession={vi.fn()} onOpenFolder={vi.fn()}
+    /></MantineProvider>;
+    const { rerender } = render(drawer());
+    expect(screen.getByText("Active conversation")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Archived/ })).toBeNull();
+    expect(screen.queryByText("Old conversation")).toBeNull();
+
+    rerender(drawer(false));
+    fireEvent.click(screen.getByRole("button", { name: /Archived/ }));
+    expect(screen.getByText("Old conversation")).toBeTruthy();
+
+    rerender(drawer(true));
+    expect(screen.queryByRole("button", { name: /Archived/ })).toBeNull();
+    expect(screen.queryByText("Old conversation")).toBeNull();
+    expect(screen.getByText("Active conversation")).toBeTruthy();
+    expect(catalogue.projects[0]!.sessions).toHaveLength(2);
+  });
   it("starts the archive section collapsed and opens archived sessions normally", () => {
     const { openSession } = show();
     const toggle = screen.getByRole("button", { name: /Archived/ });
