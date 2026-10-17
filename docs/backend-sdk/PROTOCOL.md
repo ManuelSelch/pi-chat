@@ -2,7 +2,7 @@
 
 **Proposed, not implemented. Target wire version: `2` (provisional).**
 
-A shared contract for TypeScript and Swift clients. The existing [v1 schemas](../../src/shared/protocol.ts) remain unchanged until a coordinated migration. This draft describes behavior; exact schemas and fixtures follow separately.
+A shared contract for TypeScript and Swift clients. The existing [v1 schemas](../../src/shared/protocol.ts) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. This draft describes behavior; exact schemas and fixtures follow separately.
 
 ## 1. Boundaries
 
@@ -15,7 +15,7 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 ## 2. Connection
 
 - WebSocket `/ws`, one JSON object per text message. No batches or binary messages initially.
-- Remote access uses HTTPS/WSS through the homelab reverse proxy. Authentication and browser-origin validation are required; TLS alone is not authentication. Default binding remains loopback.
+- Remote access uses HTTPS/WSS through the homelab reverse proxy. Authentication and browser-origin validation are required; TLS alone is not authentication. Authentication is a connection/transport concern, not a session-operation payload. SDK transports accept replaceable credential providers so OAuth can be added later without changing v2 operations or events. Default binding remains loopback.
 - One controller connection may operate multiple concurrent sessions. Only successful authentication and initialization replace the controller.
 - Replaced connections close with code `4001`. They must not automatically reconnect until the user explicitly takes control.
 - First request: `initialize`, carrying client name/version and requested optional capabilities.
@@ -344,7 +344,7 @@ interface SavedSessionSummary {
 }
 ```
 
-Catalogue fields retain v1 semantics. `SavedSessionSummary.id` identifies history; it does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
+Catalogue fields retain existing semantics. `SavedSessionSummary.id` identifies history; it does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
 
 ### Pi extension UI mapping
 
@@ -372,13 +372,12 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 
 ## 8. Open decisions and rollout
 
-- Authentication ownership/mechanism for browser and Swift behind the reverse proxy.
+- Authentication ownership/mechanism for browser and Swift behind the reverse proxy; OAuth can be introduced later through the transport credential-provider boundary.
 - Final envelope choice (custom versus JSON-RPC) and wire version confirmation.
 - Admission handoff against Pi's SDK; whether operation outcomes need querying after reconnect.
 - Whether full in-progress assistant drafts are required in snapshots.
 - Message/work limits, heartbeat/timeouts and partial teardown failure behavior. Required events must not be silently dropped under load.
-- Whether coordinated rollout needs temporary v1 compatibility.
 
-Keep v1 behavior during SDK extraction, then migrate server and Pi Chat together; Swift targets the new contract. Remove wire-level tabs/focus and move project-session selection to clients. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
+Keep current v1 runtime/UI behavior during SDK extraction, then cut over the server and Pi Chat together to v2. No v1 compatibility or dual-protocol period is required; clients using v1 are unsupported after cutover. Swift targets v2. Remove wire-level tabs/focus and move project-session selection to clients. Closing a Pi Chat client tab continues to call `closeSession`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
 
 See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. No implementation or passing conformance tests are implied by this draft.
