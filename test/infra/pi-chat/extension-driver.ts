@@ -20,7 +20,7 @@ export class ExtensionDriver {
     const sessionId = requireSession(this.context, "Extensions.RunCommand");
     check(this.context, "Extensions.RunCommand", () => {
       assert(client.chat.actions.commands.some(command => command.name === name && command.source === "extension"), `Unknown extension command ${name}`);
-      assert.equal(client.chat.status, "idle", "Conversation must be idle");
+      assert(["idle", "running"].includes(client.chat.status), "Conversation must be idle or running");
       assert.equal(client.chat.prompts.length, 0, "Answer the pending prompt before running another command");
     });
     const after = client.mark();

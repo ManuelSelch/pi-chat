@@ -39,6 +39,14 @@ export class BrowserSkillsDriver {
     await this.composer.press("Escape");
     await expect(this.page.getByRole("listbox", { name: "Commands" })).toHaveCount(0);
   }
+  async ShouldHaveQueuedInvocation(name: string, instructions: string, task: string): Promise<void> {
+    const panel = this.page.getByRole("region", { name: "Queued steering" });
+    await expect(panel.getByRole("listitem")).toHaveCount(1);
+    await expect(panel).toContainText(`<skill name="${name}"`);
+    await expect(panel).toContainText(instructions);
+    await expect(panel).toContainText(task);
+    await this.ShouldHaveDraft("");
+  }
   async ShouldHaveNoInvocations(): Promise<void> {
     await expect(this.page.getByTestId("skill-invocation")).toHaveCount(0);
   }

@@ -24,6 +24,17 @@ test("steers a running Pi session and restores the queue after browser reload", 
   await app.Chat.ShouldHaveQueuedSteering(["Keep the existing shortcuts", "Use the native Pi queue"]);
 });
 
+for (const command of ["!pwd", "!!pwd"]) {
+  test(`keeps ${command} blocked while steering`, async () => {
+    await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
+    await app.Chat.SendPrompt("Start working");
+    await app.Chat.ShouldBeSteering();
+    await app.Chat.SendPrompt(command);
+    await app.Skills.ShouldHaveDraft(command);
+    await app.Chat.ShouldBeSteering();
+  });
+}
+
 test("creates a session from home and sends a prompt through the visible app", async () => {
   await app.Home.ShouldBeVisible();
   await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Hello from the visible Pi Chat app." }] });

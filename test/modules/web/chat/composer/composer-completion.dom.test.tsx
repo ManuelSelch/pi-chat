@@ -95,6 +95,19 @@ describe("composer session actions", () => {
 });
 
 describe("composer argument completion", () => {
+  it("offers commands and argument completion while running", async () => {
+    chat.state.status = "running";
+    mount();
+    const textarea = type("/dep");
+    expect(screen.getByRole("option", { name: /deploy/ })).toBeTruthy();
+    type("/deploy ");
+    expect(await screen.findByRole("option", { name: /Staging/ })).toBeTruthy();
+    expect(chat.completeCommandArguments).toHaveBeenCalledWith("s1", "deploy", "", expect.any(AbortSignal));
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    expect(textarea.value).toBe("/deploy staging");
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
   it("hides after acceptance and resumes completing the same argument only when typing continues", async () => {
     chat.state.actions.commands.push({ name: "cwd", source: "extension" });
     chat.completeCommandArguments.mockImplementation(async (_session, _name, prefix) => {

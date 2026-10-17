@@ -213,13 +213,21 @@ describe("/reload", () => {
     expect(replacement.snapshot().messages).toHaveLength(0);
   });
 
-  it("refuses while the session is still running", async () => {
+  it("delegates reload while a prompt is still running", async () => {
     const { chat, runtime, openSession, reload } = reloadable();
     vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
-
-    await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow(/finish/);
-    expect(openSession).not.toHaveBeenCalled();
-    expect(reload).not.toHaveBeenCalled();
+    let finish!: () => void;
+    vi.spyOn(runtime, "prompt").mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    const sessionId = chat.activeSessionId();
+    const run = chat.prompt(sessionId, "Start");
+    try {
+      await chat.prompt(sessionId, "/reload");
+      expect(openSession).not.toHaveBeenCalled();
+      expect(reload).toHaveBeenCalledOnce();
+    } finally {
+      finish();
+      await run;
+    }
   });
 
   it("reloads a session that has no file on disk", async () => {

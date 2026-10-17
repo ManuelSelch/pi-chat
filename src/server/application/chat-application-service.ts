@@ -151,8 +151,7 @@ export class ChatApplicationService {
 
   /** Reload resources in place, preserving the session and every other tab. */
   async reloadSession(sessionId: string): Promise<void> {
-    const snapshot = this.sessions.get(sessionId).snapshot();
-    if (snapshot.isStreaming || this.pendingWork.has(sessionId) || this.sessionMutations.has(sessionId)) throw new Error("Wait for the current run or session change to finish before reloading.");
+    if (this.sessionMutations.has(sessionId)) throw new Error("Wait for the current session change to finish before reloading.");
     this.sessionMutations.add(sessionId);
     try {
       await this.sessions.get(sessionId).reload();

@@ -71,8 +71,13 @@ Press Enter with ordinary text while Pi is running to steer the ongoing task.
 Pi receives it after the current assistant turn and its tool calls, without
 aborting the run. Pending messages appear above the composer until Pi consumes
 them, and survive browser reconnects/reloads through the native Pi queue.
-Shift+Enter still inserts a newline; Escape stops the run. Bash and slash
-commands wait until idle. Follow-up queuing is not exposed.
+Shift+Enter still inserts a newline; Escape stops the run. Slash commands and
+argument completion remain available during a run: Pi executes extension
+commands immediately and queues expanded skill/prompt templates as steering.
+`/compact` uses Pi's native behavior: stop the active turn, then compact without
+resuming it. `/reload` delegates to the SDK even during a run (unlike the terminal's
+UI-level reload restriction). Bash (`!` / `!!`) still waits until idle.
+Follow-up queuing is not exposed.
 
 ## Command argument completion
 

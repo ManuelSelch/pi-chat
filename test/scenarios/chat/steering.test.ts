@@ -5,6 +5,30 @@ const apps: PiChatDriver[] = [];
 afterEach(async () => { for (const app of apps.splice(0)) await app.dispose(); });
 
 describe("Pi Chat native steering workflows", () => {
+  it("runs an extension command immediately without interrupting a real Pi stream", async () => {
+    const app = await PiChatDriver.start({
+      responses: [{ prompt: "Start working", reply: "Completed normally.", hold: true }],
+      extensions: [pi => {
+        pi.registerCommand("stream-status", {
+          handler: async (_, ctx) => { ctx.ui.notify("Command ran during streaming", "info"); },
+        });
+      }],
+    });
+    apps.push(app);
+    await app.Chat.SendPrompt("Start working");
+    await app.Chat.WaitUntilStreaming();
+    await app.Extensions.RunCommand("stream-status");
+    app.Extensions.ShouldShowNotification("Command ran during streaming");
+    app.Chat.ShouldHaveQueuedSteering([]);
+    await app.Chat.WaitUntilStreaming();
+    await app.Browser.Reconnect();
+    await app.Chat.WaitUntilStreaming();
+    app.Chat.ReleaseControlledResponse();
+    await app.Chat.WaitUntilIdle();
+    app.Chat.ShouldHaveAssistantReply("Completed normally.");
+    app.Chat.ShouldHaveConsumedResponses();
+  }, 15000);
+
   it("queues during a real Pi run, restores on reconnect, and consumes without a duplicate turn", async () => {
     const app = await PiChatDriver.start({ responses: [
       { prompt: "Start working", reply: "First response.", hold: true },

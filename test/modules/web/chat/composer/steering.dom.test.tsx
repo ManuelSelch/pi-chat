@@ -21,6 +21,7 @@ function mount() { return render(<MantineProvider><ComposerContainer onHeightCha
 function enter(text: string) {
   const input = screen.getByRole("textbox") as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: text } });
+  if (screen.queryByRole("listbox")) fireEvent.keyDown(input, { key: "Escape" });
   fireEvent.keyDown(input, { key: "Enter" });
   return input;
 }
@@ -52,7 +53,12 @@ describe("steering composer", () => {
     view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
     expect(screen.queryByRole("region", { name: "Queued steering" })).toBeNull();
   });
-  it.each(["!pwd", "/reload", "/new"])("keeps busy command %s in the draft", text => {
+  it.each(["/reload", "/compact", "/new", "/skill:review"])("submits %s while running", text => {
+    mount();
+    expect(enter(text).value).toBe("");
+    expect(chat.prompt).toHaveBeenCalledExactlyOnceWith(text);
+  });
+  it.each(["!pwd", "!!pwd"])("keeps busy bash %s in the draft", text => {
     mount();
     expect(enter(text).value).toBe(text);
     expect(chat.prompt).not.toHaveBeenCalled();

@@ -43,8 +43,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const query = menuDismissed || busy ? undefined : commandQuery(input);
-  const context = !busy && !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
+  const canSubmit = state.status === "idle" || state.status === "running";
+  const query = menuDismissed || !canSubmit ? undefined : commandQuery(input);
+  const context = canSubmit && !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
     ? argumentContext(input, selection.start, selection.end, state.actions.commands)
     : undefined;
   const argumentItems = useArgumentCompletion(app.activeSessionId, input, context, chat.completeCommandArguments);
@@ -121,7 +122,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     event?.preventDefault();
     const message = input.trim();
     if (!message || app.connection !== "open" || (state.status !== "idle" && state.status !== "running")) return;
-    if (state.status === "running" && /^[!/]/.test(message)) return;
+    if (state.status === "running" && message.startsWith("!")) return;
     if (message === "/archive") sessionActions.find(action => action.id === "archive-session")?.run();
     else chat.prompt(message);
     setInput("");

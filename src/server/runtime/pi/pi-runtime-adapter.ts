@@ -229,9 +229,6 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
 
   async reload(): Promise<void> {
     if (this.disposed) throw new Error("Session is closed.");
-    if (this.promptPending || this.abortPending || this.bashRunning || this.compactPending || this.runtime.session.isIdle === false) {
-      throw new Error("Wait for the current run to finish before reloading.");
-    }
     await this.reloadResources();
   }
 
@@ -249,12 +246,10 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
   }
 
   async compact(): Promise<void> {
-    if (this.promptPending) throw new Error("Wait for the current run to finish before compacting.");
     await this.compactSession();
   }
 
   private async compactSession(): Promise<void> {
-    if (this.bashRunning || this.compactPending || this.runtime.session.isIdle === false) throw new Error("Wait for the current run to finish before compacting.");
     this.compactPending = true;
     try {
       await this.performCompact();
@@ -314,10 +309,12 @@ export class PiRuntimeAdapter implements RuntimeAdapter {
     if (bash && !bash.command.trim()) throw new Error("Bash command is empty.");
     const session = this.runtime.session;
     const busy = this.promptPending > 0 || session.isIdle === false;
-    // Only ordinary text can steer a live agent. Never run shell/session
-    // commands concurrently or start a second run during asynchronous preflight.
-    if (this.abortPending || (this.abortWatchdog && !session.isIdle) || this.compactPending || session.isCompacting || this.bashRunning || session.isBashRunning
-      || (busy && (bash || message.trimStart().startsWith("/") || !session.isStreaming))) {
+    const slashCommand = message.trimStart().startsWith("/");
+    // Pi owns slash-command concurrency: extensions execute immediately and
+    // templates/skills become native steering. Keep ordinary input/preflight
+    // guards and disallow user bash alongside a live run.
+    if (!slashCommand && (this.abortPending || (this.abortWatchdog && !session.isIdle) || this.compactPending || session.isCompacting || this.bashRunning || session.isBashRunning
+      || (busy && (bash || !session.isStreaming)))) {
       throw new Error("Wait for the current run to finish before submitting another command.");
     }
     this.promptPending++; // Count concurrent steering preflights as well as the original run.

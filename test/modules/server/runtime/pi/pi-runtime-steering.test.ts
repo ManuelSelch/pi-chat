@@ -86,15 +86,16 @@ describe("native steering", () => {
     expect(adapter.snapshot().steeringMessages).toEqual([]);
   });
 
-  it("does not release the initial prompt's preflight claim when steering returns", async () => {
+  it.each(["Steer", "/extension-command"])("keeps the original preflight claim after %s returns", async input => {
     const { adapter, session } = runtime();
+    vi.spyOn(adapter as any, "refreshModels").mockResolvedValue(undefined);
     let finish!: () => void;
     session.prompt.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
     const run = adapter.prompt("Start");
     await vi.waitFor(() => expect(session.prompt).toHaveBeenCalledOnce());
     session.isStreaming = true;
     session.isIdle = false;
-    await adapter.prompt("Steer");
+    await adapter.prompt(input);
     session.isStreaming = false;
     session.isIdle = true;
     await expect(adapter.prompt("Too early")).rejects.toThrow(/current run/i);
@@ -103,7 +104,62 @@ describe("native steering", () => {
     await adapter.prompt("Next run");
   });
 
-  it.each(["!pwd", "/new", "/reload"])("rejects busy command %s instead of steering it", async input => {
+  it.each(["/extension-command", "/skill:review", "/template"])("delegates %s to Pi while streaming", async input => {
+    const { adapter, session } = runtime();
+    vi.spyOn(adapter as any, "refreshModels").mockResolvedValue(undefined);
+    session.isStreaming = true;
+    session.isIdle = false;
+    await adapter.prompt(input);
+    expect(session.prompt).toHaveBeenCalledExactlyOnceWith(input, { streamingBehavior: "steer" });
+    expect(adapter.snapshot().isStreaming).toBe(true);
+  });
+
+  it("allows native /session while streaming without submitting model input", async () => {
+    const { adapter, session } = runtime();
+    Object.assign(session, { getSessionStats: () => ({
+      sessionId: "s1", totalMessages: 0, userMessages: 0, assistantMessages: 0, toolCalls: 0, toolResults: 0,
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }, cost: 0,
+    }) });
+    session.isStreaming = true;
+    session.isIdle = false;
+    await adapter.prompt("/session");
+    expect(session.prompt).not.toHaveBeenCalled();
+  });
+
+  it.each(["command", "action"])("delegates compact %s to Pi during an active prompt", async invocation => {
+    const { adapter, session } = runtime();
+    let finish!: () => void;
+    session.prompt.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    const run = adapter.prompt("Start");
+    await vi.waitFor(() => expect(session.prompt).toHaveBeenCalledOnce());
+    session.isStreaming = true;
+    session.isIdle = false;
+    const compact = vi.fn(async () => {
+      session.isStreaming = false;
+      session.isIdle = true;
+      finish();
+      return { tokensBefore: 100 };
+    });
+    Object.assign(session, { compact });
+    if (invocation === "command") await adapter.prompt("/compact");
+    else await adapter.compact();
+    await run;
+    expect(compact).toHaveBeenCalledOnce();
+    expect(adapter.snapshot().isStreaming).toBe(false);
+  });
+
+  it("delegates reload to Pi while streaming", async () => {
+    const { adapter, session } = runtime();
+    const reload = vi.fn(async () => {});
+    Object.assign(session, { reload });
+    vi.spyOn(adapter as any, "refreshModels").mockResolvedValue(undefined);
+    session.isStreaming = true;
+    session.isIdle = false;
+    await adapter.reload();
+    expect(reload).toHaveBeenCalledOnce();
+  });
+
+  it.each(["!pwd", "!!pwd"])("rejects busy bash %s instead of steering it", async input => {
     const { adapter, session } = runtime();
     session.isStreaming = true;
     session.isIdle = false;

@@ -94,15 +94,17 @@ test("allows manual invocation when skill discovery is disabled", async () => {
   await app.Skills.ShouldNotRequestArguments();
 });
 
-test("does not submit a skill command while the agent is streaming", async () => {
+test("selects and queues a skill command while streaming and restores it after reload", async () => {
   await app.Tabs.Create({ skills: [fixture], responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.Chat.SendPrompt("Start working");
   await app.Chat.ShouldBeSteering();
 
-  await app.Skills.Type("/skill:browser-briefing blocked task");
-  await app.Skills.ShouldNotOffer(fixture.name);
-  await app.Skills.AttemptSubmit();
-  await app.Skills.ShouldHaveDraft("/skill:browser-briefing blocked task");
+  await app.Skills.Select(fixture.name);
+  await app.Skills.SubmitTask("steering task");
+  await app.Skills.ShouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
   await app.Skills.ShouldHaveNoInvocations();
+  await app.Chat.ShouldBeSteering();
+  await app.Browser.Reload();
+  await app.Skills.ShouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
   await app.Chat.ShouldBeSteering();
 });
