@@ -51,7 +51,7 @@ Session operations require the target runtime identities. Server operations do n
 | `getSessionSnapshot` | Session | Current state and event watermark |
 | `closeSession` | Session | Teardown completed; saved history is not deleted |
 | `getCatalogue` | Server | Projects and nested saved-session summaries |
-| `submitInput` | Session; `message` | Accepted operation receipt |
+| `sendMessage` | Session; `message` | Accepted operation receipt; new chat/steering/command/bash input, not a dialog answer |
 | `abortRun` | Session | Accepted abort receipt, or completed no-op if idle |
 | `setModel`, `setThinkingLevel` | Session; selected value | Completed change and structured settings |
 | `compactSession`, `reloadSession` | Session | Accepted operation receipt |
@@ -65,7 +65,7 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 
 ## 5. Execution and lifecycle
 
-- `submitInput` preserves Pi behavior: plain input starts a run or steers an active run; slash commands and `!`/`!!` use existing command/bash rules. Pi owns scheduling and queues. Equal text submissions remain distinct.
+- `sendMessage` preserves Pi behavior: plain input starts a run or steers an active run; slash commands and `!`/`!!` use existing command/bash rules. Pi owns scheduling and queues. Equal text submissions remain distinct.
 - Long operations return `{state: accepted, operationId}` after validation/handoff, not after model completion. Publish acceptance before related events. Failures after acceptance are operation outcomes, not second responses.
 - `operationFinished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
 - Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `sessionClosed` is its final event, followed by inventory removal.
@@ -80,10 +80,72 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 - Core session events increment a per-runtime `sequence`. Snapshot watermarks do not increment it. Prepare asynchronously, then capture current state/watermark and enqueue synchronously; never stamp stale state with a newer sequence.
 - Apply only non-stale snapshots and events above the watermark. On a gap, recover through a fresh snapshot with bounded buffering; overflow requires reconnect. New process/runtime identities reset the projection.
 - `sessionsChanged` and `catalogueChanged` carry complete replacement views with independent revisions. Optional `presentationChanged` also uses its own revision, not the core sequence, so capability filtering creates no gaps.
-- Other events: `snapshot`, `assistantDelta`, `thinkingDelta`, `messageFinal`, `toolEvent`, `runtimeStatus`, `steeringQueue`, `prompts`, `settingsChanged`, `notification`, `operationFinished`, `sessionClosed`, `sessionReplaced`, and best-effort `serverStopping`.
 - Reconnect repeats initialization and receives current state, not missed-event replay. Drop obsolete socket callbacks and incomplete drafts; reconcile local navigation against inventory. Transient notifications and operation outcomes may be lost.
 - The current draft does not guarantee recovering an unfinished answer's already-streamed prefix. Clients may show running state until a complete final message arrives. Complete current-draft snapshots remain a review question.
 - Runtime errors survive snapshots until new execution begins. Optional widgets/footer/slots are rendering hints; core settings must not be parsed from formatted UI text.
+
+### Server models
+
+`?` marks an optional field. Collections in snapshots are complete current values, not append-only updates. Models are application-owned data, not serialized Pi SDK/TUI objects.
+
+| Model | Fields / meaning |
+|---|---|
+| `OpenSessionSummary` | `sessionId`, `sessionInstanceId`, `title`, `sessionPath?`, `projectPath`, `projectName`, `status: idle / running / blocked / closing` |
+| `SessionSnapshot` | Session identities, `throughSequence`, `sessionPath?`, `sessionName?`, `projectPath`, `messages`, `runtime`, `steeringMessages`, `settings`, `commands`, `prompts`, `presentation?` |
+| `RuntimeState` | `status: idle / running / aborting / closing`, `runId?`, `lastError?`; summary status is blocked when prompts are pending |
+| `ChatMessage` | `id`, `role`, `timestamp?`; user/assistant/system have `text`, `thinking?`, `skill?`; tool has `tool`; bash has `bash`; custom has `customType` and `text` |
+| `ToolCard` | `toolCallId`, `name`, `status: running / success / error`, `argsText?`, `outputText?`, bounded `writeContent?` and `editDiff?` |
+| `BashCard` | `command`, bounded `output`, `status: running / success / error / cancelled`, `exitCode?`, `excludeFromContext`, `truncated`, `fullOutputPath?` |
+| `SessionSettings` | `model`, `availableModels`, `thinkingLevel`, `availableThinkingLevels`; model values are opaque server-offered IDs |
+| `SlashCommand` | `name`, `description?`, `argumentHint?`, `source?`; invoke by sending `/name ...` through `sendMessage` |
+| `Prompt` | `id`, `kind`, `title`, `message?`, `options?`, `placeholder?`, `prefill?`; see question types below |
+| `PromptResult` | Either `cancelled: true`, or `cancelled: false` with typed `value`; sent through `answerPrompt` using the prompt's `id` as `promptId` |
+| `Presentation` | `revision`, `widgets`, `footer`, `extensions`; optional rendering contributions, not core execution state |
+| `Widget` | `key`, plain-text `lines`, `placement: aboveEditor / belowEditor`; placement is a hint, not a required layout |
+| `FooterItem` | `key`, `text`, `align: left / right`, `variant: badge / plain`; includes keyed extension status text |
+| `ExtensionContributions` | `buttons`, `badges`, namespaced JSON `state`; button has `id`, `slot`, `label`, `icon?`, `actionId`; badge has `id`, `slot`, `label`, `tone` |
+| `ProjectCatalogue` | `projects`; project paths/names, worktree/quick-chat/pin metadata and nested saved-session summaries retain the [existing catalogue fields](../../src/shared/protocol.ts) |
+
+Messages retain existing nested skill, diff, output and truncation fields from the v1 schemas. Local notification bubbles are not authoritative `ChatMessage` history. Exact bounds and optional-value validation belong to the later schemas.
+
+### Server events
+
+All session events below use core sequence ordering except `presentationChanged`, which carries session identities and its own `revision` instead of `sequence`. `snapshot` uses its existing watermark without incrementing it. Server-wide replacement views carry their own revisions.
+
+| Event | Scope | `data` / application rule |
+|---|---|---|
+| `snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
+| `assistantDelta`, `thinkingDelta` | Session | `runId`, `delta`; append to that run's draft |
+| `messageFinal` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
+| `toolEvent` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
+| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
+| `steeringQueue` | Session | `messages: string[]`; replace queued text, preserving duplicates |
+| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
+| `settingsChanged` | Session | Complete `SessionSettings` |
+| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
+| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
+| `operationFinished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
+| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
+| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
+| `catalogueChanged` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
+| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
+
+### Pi extension UI mapping
+
+| Pi UI call | Server output | Client action |
+|---|---|---|
+| `select(title, options)` | `Prompt` kind select with `options` | `answerPrompt`: offered string or cancellation |
+| `confirm(title, message)` | `Prompt` kind confirm with `message` | `answerPrompt`: boolean or cancellation |
+| `input(title, placeholder)` | `Prompt` kind input with `placeholder?` | `answerPrompt`: string or cancellation |
+| `editor(title, prefill)` | `Prompt` kind editor with `prefill?` | `answerPrompt`: string or cancellation |
+| `notify(message, level)` | `notification` event | Display only |
+| `setWidget(key, lines, placement)` | Updated `Presentation.widgets` | Render if supported; clearing removes the keyed widget |
+| `setStatus(key, text)` | Updated keyed `Presentation.footer` item | Render if supported; clearing removes the item |
+
+The server publishes prompts before waiting for answers. New/changed prompts appear in `prompts` events and snapshots, independently of model turns. Widget/status updates use optional `presentationChanged` events and snapshots. Mobile may use native controls and different placement.
+
+Arbitrary `ui.custom()` components, component-factory widgets, raw terminal input, custom headers/footers and terminal editor components are **not transported**. They remain unsupported/inert as in the current host unless a future declarative capability is designed. Slash commands and LLM model choices are separate from these UI models.
 
 ## 7. Questions, cancellation and retry
 
