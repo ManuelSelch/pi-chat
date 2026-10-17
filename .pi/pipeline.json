@@ -3,9 +3,9 @@
   "suites": {
     "build": {
       "command": [
-        "npm",
-        "run",
-        "build"
+        "node",
+        "-e",
+        "const { spawnSync } = require('node:child_process'); for (const args of [['ci'], ['run', 'build']]) { const result = spawnSync('npm', args, { stdio: 'inherit' }); if (result.error) { console.error(result.error); process.exit(1); } if (result.status !== 0) process.exit(result.status ?? 1); }"
       ],
       "cwd": ".",
       "timeoutSeconds": 300,
