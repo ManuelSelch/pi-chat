@@ -13,6 +13,7 @@ export interface ComposerViewModel {
   home: boolean;
   connection: "connecting" | "open" | "superseded";
   connecting: boolean;
+  loading: boolean;
   error?: string;
   busy: boolean;
   steering: boolean;
@@ -47,7 +48,7 @@ interface ComposerViewProps {
 }
 
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
-  const { home, connection, connecting, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
+  const { home, connection, connecting, loading, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
   const menuOpen = matches.length > 0;
   const bashInput = input.trimStart().startsWith("!");
 
@@ -134,7 +135,8 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
               onCompositionStart={() => actions.compositionChanged(true)}
               onCompositionEnd={() => actions.compositionChanged(false)}
               onKeyDown={actions.keyDown}
-              placeholder={steering ? "Steer Pi…" : "Ask Pi anything…"}
+              disabled={loading}
+              placeholder={loading ? "Loading session…" : steering ? "Steer Pi…" : "Ask Pi anything…"}
               value={input}
               variant="unstyled"
               flex={1}

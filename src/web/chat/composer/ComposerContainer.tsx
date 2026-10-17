@@ -34,6 +34,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const input = drafts[app.activeSessionId] ?? "";
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
+  const loading = app.openingTabs > 0 || !app.activeSessionId;
 
   const footerItems = [
     ...state.footer,
@@ -43,7 +44,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     state.widgets,
     useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
   );
-  const canSubmit = state.status === "idle" || state.status === "running";
+  const canSubmit = !loading && (state.status === "idle" || state.status === "running");
   const query = menuDismissed || !canSubmit ? undefined : commandQuery(input);
   const context = canSubmit && !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
     ? argumentContext(input, selection.start, selection.end, state.actions.commands)
@@ -55,12 +56,14 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const activeIndex = Math.min(activeCommand, Math.max(0, matches.length - 1));
 
   function setInput(value: string, caret = value.length): void {
+    if (loading) return;
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
     setSelection({ sessionId: app.activeSessionId, start: caret, end: caret });
     pendingCaret.current = caret;
   }
 
   function changeInput(value: string, start = value.length, end = start): void {
+    if (loading) return;
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
     setSelection({ sessionId: app.activeSessionId, start, end });
     setActiveCommand(0);
@@ -121,7 +124,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   function submit(event?: FormEvent): void {
     event?.preventDefault();
     const message = input.trim();
-    if (!message || app.connection !== "open" || (state.status !== "idle" && state.status !== "running")) return;
+    if (!message || app.connection !== "open" || !canSubmit) return;
     if (state.status === "running" && message.startsWith("!")) return;
     if (message === "/archive") sessionActions.find(action => action.id === "archive-session")?.run();
     else chat.prompt(message);
@@ -160,9 +163,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   useLayoutEffect(() => {
     // A prompt can linger during handover after state.prompts becomes empty;
     // other portalled dialogs (including confirmations) also still own focus.
-    if (home || overlays.anyOpen || state.prompts.length > 0 || document.querySelector('[role="dialog"]')) return;
+    if (home || loading || overlays.anyOpen || state.prompts.length > 0 || document.querySelector('[role="dialog"]')) return;
     composerRef.current?.focus();
-  }, [app.activeSessionId, home, overlays.anyOpen, state.prompts.length]);
+  }, [app.activeSessionId, home, loading, overlays.anyOpen, state.prompts.length]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;
@@ -183,6 +186,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
         home,
         connection: app.connection,
         connecting,
+        loading,
         error: actionError ?? visibleError(app, state),
         busy,
         steering: state.status === "running",

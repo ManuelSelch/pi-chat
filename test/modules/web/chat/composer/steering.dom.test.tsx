@@ -29,9 +29,62 @@ beforeEach(() => {
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   chat.state = { ...initialChatState, status: "running" };
   chat.app.connection = "open";
+  chat.app.activeSessionId = "s1";
+  chat.app.openingTabs = 0;
+  chat.app.tabsKnown = true;
   vi.clearAllMocks();
 });
 afterEach(cleanup);
+describe("loading composer", () => {
+  it("disables input until the first session has finished opening, then focuses it", () => {
+    chat.app.activeSessionId = "";
+    chat.app.openingTabs = 1;
+    chat.state = { ...initialChatState };
+    const view = mount();
+    const input = screen.getByRole("textbox") as HTMLTextAreaElement;
+    expect(input.disabled).toBe(true);
+    expect(input.placeholder).toBe("Loading session…");
+    fireEvent.change(input, { target: { value: "Too early" } });
+    fireEvent.submit(input.closest("form")!);
+    expect(chat.prompt).not.toHaveBeenCalled();
+    expect(input.value).toBe("");
+
+    chat.app.activeSessionId = "s2";
+    chat.app.openingTabs = 0;
+    chat.state = { ...initialChatState, status: "idle" };
+    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    expect(input.disabled).toBe(false);
+    expect(document.activeElement).toBe(input);
+    expect(enter("Ready now").value).toBe("");
+    expect(chat.prompt).toHaveBeenCalledExactlyOnceWith("Ready now");
+  });
+
+  it("disables the initial composer before any active session is known", () => {
+    chat.app.activeSessionId = "";
+    chat.app.tabsKnown = false;
+    mount();
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).disabled).toBe(true);
+  });
+
+  it("preserves an existing draft while another session is opening", () => {
+    const view = mount();
+    const input = screen.getByRole("textbox") as HTMLTextAreaElement;
+    fireEvent.change(input, { target: { value: "Keep this draft" } });
+    chat.app.openingTabs = 1;
+    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    expect(input.disabled).toBe(true);
+    fireEvent.submit(input.closest("form")!);
+    expect(chat.prompt).not.toHaveBeenCalled();
+    expect(input.value).toBe("Keep this draft");
+
+    chat.app.openingTabs = 0;
+    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    expect(input.disabled).toBe(false);
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("Keep this draft");
+  });
+});
+
 describe("steering composer", () => {
   it("submits while running and clears the draft without keyboard helper text", () => {
     mount();
