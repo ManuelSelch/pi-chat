@@ -3,7 +3,7 @@
 ## Goal
 Make Pi Chat's current backend reusable by the existing web client and a future native iOS application. Establish a small, documented client/server contract and UI-independent TypeScript and Swift SDKs without replacing Pi's runtime or adopting a larger agent protocol. Prove the boundaries inside this repository before deciding whether to move the server, protocol and SDKs into a dedicated repository.
 
-This is a planning deliverable, not approval to implement. The root REQUIREMENTS.md covers steering/snapshot consistency and remains unchanged; this feature plan follows the repository's docs/<feature>/REQUIREMENTS.md convention.
+This is a planning deliverable, not approval to implement. The existing [steering/snapshot requirements](../steering/REQUIREMENTS.md) remain unchanged; this feature plan follows the repository's docs/<feature>/REQUIREMENTS.md convention.
 
 ## Scope
 ### In Scope
@@ -30,7 +30,7 @@ This is a planning deliverable, not approval to implement. The root REQUIREMENTS
 - Creating a remote repository, selecting final public package names, publishing packages or pushing commits without separate approval.
 
 ## Requirements
-- R1. Keep the current runtime adapter/application boundary and Pi-owned execution/steering behavior. Do not serialize an entire running prompt in a way that prevents steering, abort or dialog responses. Preserve SDK-owned transcript and atomic snapshot-publication requirements from the root REQUIREMENTS.md.
+- R1. Keep the current runtime adapter/application boundary and Pi-owned execution/steering behavior. Do not serialize an entire running prompt in a way that prevents steering, abort or dialog responses. Preserve SDK-owned transcript and atomic snapshot-publication requirements from [the steering plan](../steering/REQUIREMENTS.md).
 - R2. Give protocol schemas/specification, server execution and each client SDK explicit package owners. Client packages must not import server implementations, Pi runtime modules, React, Mantine, DOM rendering or SwiftUI. TypeScript must build independently of the web app; Swift must build and test through SwiftPM. Keep server-side extension API compatibility distinct from the wire contract; existing type-only Pi UI dependencies are not a claim of full SDK neutrality.
 - R3. Maintain one authoritative wire contract. Initially retain the existing Zod schemas as the source rather than rewriting them during extraction. Publish language-neutral schemas and checked-in JSON fixtures from that source. Validate a practical Swift model generation approach on representative unions/optional values before selecting tooling; hand-written SDK behavior must remain idiomatic. Do not maintain independently evolving TypeScript and Swift wire definitions without automated conformance checks.
 - R4. Document message shapes and observable semantics: routing, request identity, result/error shape, event sequencing, snapshot watermarks, running drafts, transient versus snapshot-backed state, prompt expiration, restart, cancellation and compatibility. State what is guaranteed and what is not. Compare AHP/pi-server by concrete gaps, not by matching their feature counts.
@@ -61,7 +61,7 @@ This is a planning deliverable, not approval to implement. The root REQUIREMENTS
 
 ## Implementation Plan
 ### 1. Protocol Inventory and Behavioral Specification
-Description: Inventory src/shared/protocol.ts, directories/files schemas, transport handlers/publisher, runtime contracts, browser reducers and the four request trackers. Write a protocol specification and operation-contract table covering current behavior and shortcomings. Classify AHP/pi-server findings as fix, document or defer. Record ambiguous acceptance/completion and snapshot semantics without changing code. Verify every current command/event family is covered and preserve the root steering/snapshot requirements.
+Description: Inventory src/shared/protocol.ts, directories/files schemas, transport handlers/publisher, runtime contracts, browser reducers and the four request trackers. Write a protocol specification and operation-contract table covering current behavior and shortcomings. Classify AHP/pi-server findings as fix, document or defer. Record ambiguous acceptance/completion and snapshot semantics without changing code. Verify every current command/event family is covered and preserve the [steering/snapshot requirements](../steering/REQUIREMENTS.md).
 
 ### 2. Shared Contract Package and Fixtures
 Description: Depends on slice 1. Introduce a separately buildable local protocol package and move schemas/types without behavior changes. Export language-neutral schemas, representative wire fixtures and public package entry points. Update server/web/tests incrementally; preserve intentional compatibility surfaces. Verify package imports, current protocol tests, typechecking, production build and that no runtime/UI dependency leaks into the contract. Validate Swift generation feasibility on message unions, optional values, enums and extension JSON; document the selected approach before generating the full Swift model set.
