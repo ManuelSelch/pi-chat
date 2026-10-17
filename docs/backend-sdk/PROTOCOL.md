@@ -41,6 +41,10 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 
 ## 4. Operations
 
+This draft groups operations by domain, but the wire format stays the same: a request/response envelope with `method` and `params`.
+
+### 4.1 Session lifecycle and navigation
+
 Session operations require the target runtime identities. Server operations do not depend on a focused session.
 
 | Method | Scope / input | Response meaning |
@@ -51,13 +55,25 @@ Session operations require the target runtime identities. Server operations do n
 | `getSessionSnapshot` | Session | Current state and event watermark |
 | `closeSession` | Session | Teardown completed; saved history is not deleted |
 | `getCatalogue` | Server | Projects and nested saved-session summaries |
+| `ping` | Server | Completed liveness check |
+
+### 4.2 Message, run and model control
+
+| Method | Scope / input | Response meaning |
+|---|---|---|
 | `sendMessage` | Session; `message` | Accepted operation receipt; new chat/steering/command/bash input, not a dialog answer |
 | `abortRun` | Session | Accepted abort receipt, or completed no-op if idle |
 | `setModel`, `setThinkingLevel` | Session; selected value | Completed change and structured settings |
 | `compactSession`, `reloadSession` | Session | Accepted operation receipt |
-| `runExtensionAction` | Session; `actionId` | Accepted operation receipt |
 | `answerPrompt` | Session; `promptId`, `result` | Question settled |
-| `ping` | Server | Completed liveness check |
+
+### 4.3 Extensions and UI
+
+| Method | Scope / input | Response meaning |
+|---|---|---|
+| `runExtensionAction` | Session; `actionId` | Accepted operation receipt |
+
+### 4.4 Optional capability operations
 
 Optional capabilities expose `browseDirectories`, `completeCommandArguments`, `setSessionArchived`, `pinProject`, `removeProject`, `openFile`, `restartServer` and presentation contributions. Clients use only advertised/selected capabilities. Directory/completion/catalogue data retain existing field semantics; exact models follow in schemas.
 
@@ -86,26 +102,43 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 
 ### Server events
 
-All session events below use core sequence ordering except `presentationChanged`, which carries session identities and its own `revision` instead of `sequence`. `snapshot` uses its existing watermark without incrementing it. Server-wide replacement views carry their own revisions.
+The event stream is grouped by domain here for readability. The actual wire envelope is unchanged: each event still carries `type: event`, `event`, `sessionId`/`sessionInstanceId` when applicable, and `serverInstanceId`.
+
+#### Session lifecycle and inventory events
 
 | Event | Scope | `data` / application rule |
 |---|---|---|
 | `snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
+| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
+| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
+| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
+| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
+
+#### Message and execution events
+
+| Event | Scope | `data` / application rule |
+|---|---|---|
 | `assistantDelta`, `thinkingDelta` | Session | `runId`, `delta`; append to that run's draft |
 | `messageFinal` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
 | `toolEvent` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
-| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
 | `steeringQueue` | Session | `messages: string[]`; replace queued text, preserving duplicates |
-| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
 | `settingsChanged` | Session | Complete `SessionSettings` |
-| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
-| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
 | `operationFinished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
-| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
-| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
+| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
+
+#### TUI and presentation events
+
+| Event | Scope | `data` / application rule |
+|---|---|---|
+| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
+| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
+
+#### Project and catalogue events
+
+| Event | Scope | `data` / application rule |
+|---|---|---|
 | `catalogueChanged` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
-| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
-| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
 
 ### Server models
 
