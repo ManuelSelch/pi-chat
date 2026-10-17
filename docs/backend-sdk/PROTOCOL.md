@@ -1,8 +1,8 @@
 # Pi Server Protocol — Draft
 
-**Proposed, not implemented. Target wire version: `2` (provisional).**
+**Cutover in progress. Wire version: `2`. Production still uses v1 until the coordinated switch is verified.**
 
-A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. This draft describes behavior; exact schemas and fixtures follow separately.
+A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. The staged [v2 contract](../../packages/pi-sdk/typescript/src/contract/v2.ts), [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/valid.json) implement the message shapes below. They are not negotiated or exported as a second live transport. The runtime/SDK/application cutover is not complete yet.
 
 ## 1. Boundaries
 
@@ -387,11 +387,19 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 
 ## 8. Open decisions and rollout
 
-- Final envelope choice (custom versus JSON-RPC) and wire version confirmation.
-- Admission handoff against Pi's SDK; whether operation outcomes need querying after reconnect.
-- Whether full in-progress assistant drafts are required in snapshots.
-- Message/work limits, heartbeat/timeouts and partial teardown failure behavior. Required events must not be silently dropped under load.
+Implementation decisions for slice 5:
+
+- Use the custom envelopes in section 3 and wire version **2**, not JSON-RPC. Responses carry no method; SDK correlation validates the successful result against the original request's method-specific schema. Error codes are open strings so new structured failures remain readable.
+- Negotiate requested optional capability names by intersection. Unknown requested optional names are ignored; unselected optional operations return `unsupportedOperation`. Unknown core methods return `unsupportedOperation`; malformed known requests return `invalidRequest`.
+- Validate identity/scope/capabilities and admission guards before acceptance. Enqueue the accepted response before invoking the admitted asynchronous work, so synchronous Pi callbacks cannot overtake it. Work still runs directly through Pi; no new scheduler or durable journal is introduced. A later handoff/execution failure produces `operation.finished`, never a second response. Steering settlement means Pi accepted the submission, not that the active run finished.
+- Do not add an operation query/journal. Operation outcomes can be lost across reconnect. Reinitialize state and expose unknown outcomes; never automatically resend a mutation. `server.restart` is exceptional: its receipt acknowledges the attempt before shutdown; `server.stopping` is best effort and there is no promised post-restart operation outcome.
+- Retain the section 6 draft limitation: no promise to recover an unfinished answer's streamed prefix. Drop partial drafts on reconnect; same-process gaps recover from snapshots with bounded buffering.
+- Use a 16 MiB text-frame limit, at most 64 concurrent requests, 128-character non-control IDs, safe-integer counters, a 10-second initialization deadline and a 10-second SDK request-wait default. Bound the per-connection seen-ID set at 4,096 requests and require a new connection at exhaustion. Local wait expiry never cancels server work. No automatic heartbeat initially; `server.ping` is the explicit liveness operation.
+- Never drop required events silently on transport overload: close/resynchronize rather than publish a valid-looking incomplete projection. Browser origins must match an explicitly allowed origin (including configured proxy origins); origin-less native clients remain allowed on the private backend.
+- Retain a closing runtime entry if teardown fails; reject new work and return structured failure details indicating possible partial teardown. Only confirmed teardown emits final `session.closed` and removes inventory. Retrying explicit close may finish cleanup. No rollback promise for irreversible side effects.
+
+These decisions guide the remaining runtime implementation; staged schemas passing tests alone do not establish those server guarantees.
 
 Keep current v1 runtime/UI behavior during SDK extraction, then cut over the server and Pi Chat together to v2. No v1 compatibility or dual-protocol period is required; clients using v1 are unsupported after cutover. Swift targets v2. Remove wire-level tabs/focus and move project-session selection to clients. Closing a Pi Chat client tab continues to call `session.close`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
 
-See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. No implementation or passing conformance tests are implied by this draft.
+See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. The staged contract has schema/fixture conformance tests; runtime conformance remains incomplete until the coordinated cutover is verified.
