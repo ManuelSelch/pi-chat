@@ -130,6 +130,30 @@ These are source-level findings, not newly implemented fixes:
 
 V2 method names use `resource.action` uniformly: `session.create/open/list/snapshot/close`, `project.list`, `message.send`, `run.abort`, `prompt.answer`, `model.select`, `thinking.level`, `session.compact/reload`, `extension.run`, `directory.browse`, `command.complete`, `session.archive`, `project.pin/remove`, `file.open`, and `server.initialize/ping/restart`. Slash-separated suffixes here abbreviate distinct methods (for example `session.create` and `session.open`), not literal wire names. V1 names above remain the observed baseline; SDK method names may remain idiomatic.
 
+### V2 event naming
+
+V2 event names follow the same dot-separated namespace convention as methods, describing state or outcomes rather than requested actions. Payloads and sequencing semantics are unchanged by renaming. The observed v1 event names elsewhere in this inventory remain unchanged.
+
+| V1 event or earlier v2 draft name | V2 event name |
+|---|---|
+| `snapshot` | `session.snapshot` |
+| `runtimeStatus` | `runtime.status` |
+| `sessionClosed` (v2 draft) | `session.closed` |
+| `tabs` / `sessionsChanged` (v2 draft) | `session.list.changed` (runtime inventory only; navigation remains local) |
+| `sessionReplaced` (v2 draft) | `session.replaced` |
+| `serverStopping` (v2 draft) | `server.stopping` |
+| `assistantDelta` | `message.delta` |
+| `thinkingDelta` | `message.thinking.delta` |
+| `messageFinal` | `message.finalized` |
+| `toolEvent` | `tool.updated` |
+| `steeringQueue` | `steering.queue.changed` |
+| `settingsChanged` (v2 draft) | `settings.changed` |
+| `operationFinished` (v2 draft) | `operation.finished` |
+| `notification` | `notification.created` |
+| `prompts` | `prompt.list.changed` |
+| `widgets` / `footer` / `presentationChanged` (v2 draft) | `presentation.changed` (complete optional presentation view) |
+| `catalogue` / `catalogueChanged` (v2 draft) | `project.list.changed` |
+
 The v2 draft lives in [PROTOCOL.md](PROTOCOL.md). This inventory does not resolve its remaining protocol questions or authorize runtime changes.
 
 ## External protocol comparison: fix, document, defer

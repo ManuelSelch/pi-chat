@@ -41,7 +41,7 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 
 ## 4. Operations
 
-Request methods use namespaced `resource.action` values directly in the request/response envelope, with typed `params` and results. There is no `runFeature`/`featureId` wrapper in v2. SDK convenience methods may use idiomatic names: `client.createSession()` sends `method: "session.create"`. Event names below are unchanged.
+Request methods use namespaced `resource.action` values directly in the request/response envelope, with typed `params` and results. There is no `runFeature`/`featureId` wrapper in v2. SDK convenience methods may use idiomatic names: `client.createSession()` sends `method: "session.create"`. Event names use the same dot-separated namespaces, but describe state or outcomes rather than requested actions (for example `session.close` → `session.closed`). Payload field names and envelope `type` values are unaffected.
 
 ### 4.1 Session lifecycle and navigation
 
@@ -97,10 +97,10 @@ Paths refer to the server. `file.open` opens there, not on iOS. Removing a proje
 
 - `message.send` preserves Pi behavior: plain input starts a run or steers an active run; slash commands and `!`/`!!` use existing command/bash rules. Pi owns scheduling and queues. Equal text submissions remain distinct.
 - Long operations return `{state: accepted, operationId}` after validation/handoff, not after model completion. Publish acceptance before related events. Failures after acceptance are operation outcomes, not second responses.
-- `operationFinished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
-- Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `sessionClosed` is its final event, followed by inventory removal.
+- `operation.finished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
+- Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `session.closed` is its final event, followed by inventory removal.
 - `run.abort` stops execution without closing the session. Disconnect leaves runtimes alive; server restart may interrupt them. This is not durable execution.
-- SDK-driven session switching emits `sessionReplaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`. Updating client navigation is application-owned.
+- SDK-driven session switching emits `session.replaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`. Updating client navigation is application-owned.
 - A completed mutation remains successful even if a later catalogue refresh fails. Rejections must not falsely settle another active run.
 
 ## 6. State and recovery
@@ -109,50 +109,52 @@ Paths refer to the server. `file.open` opens there, not on iOS. Removing a proje
 - Messages retain existing text/thinking, skill, tool, bash, custom-message and truncation data. Snapshots reflect Pi's current context; compaction may shorten history. Live/final/snapshot entries use consistent IDs within a runtime.
 - Core session events increment a per-runtime `sequence`. Snapshot watermarks do not increment it. Prepare asynchronously, then capture current state/watermark and enqueue synchronously; never stamp stale state with a newer sequence.
 - Apply only non-stale snapshots and events above the watermark. On a gap, recover through a fresh snapshot with bounded buffering; overflow requires reconnect. New process/runtime identities reset the projection.
-- `sessionsChanged` and `catalogueChanged` carry complete replacement views with independent revisions. Optional `presentationChanged` also uses its own revision, not the core sequence, so capability filtering creates no gaps.
+- `session.list.changed` and `project.list.changed` carry complete replacement views with independent revisions. Optional `presentation.changed` also uses its own revision, not the core sequence, so capability filtering creates no gaps.
 - Reconnect repeats initialization and receives current state, not missed-event replay. Drop obsolete socket callbacks and incomplete drafts; reconcile local navigation against inventory. Transient notifications and operation outcomes may be lost.
 - The current draft does not guarantee recovering an unfinished answer's already-streamed prefix. Clients may show running state until a complete final message arrives. Complete current-draft snapshots remain a review question.
 - Runtime errors survive snapshots until new execution begins. Optional widgets/footer/slots are rendering hints; core settings must not be parsed from formatted UI text.
 
 ### Server events
 
-The event stream is grouped by domain here for readability. The actual wire envelope is unchanged: each event still carries `type: event`, `event`, `sessionId` when applicable, and `serverInstanceId`.
+The event stream is grouped by domain here for readability. Each event carries `type: event`, its namespaced `event` name, `sessionId` when applicable, and `serverInstanceId`. The method `session.snapshot` and event `session.snapshot` are distinguished by their request/event envelopes.
+
+Core session events use `sequence`; `session.snapshot` carries its existing `throughSequence` watermark without incrementing it. Optional `presentation.changed` uses its own revision instead of a core sequence. Server-wide replacement lists carry independent revisions. Naming changes do not change payloads or recovery rules.
 
 #### Session lifecycle and inventory events
 
 | Event | Scope | `data` / application rule |
 |---|---|---|
-| `snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
-| `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
-| `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
-| `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
-| `sessionReplaced` | Server | `previousSessionId` and new `snapshot` with a fresh `sessionId`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
-| `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
+| `session.snapshot` | Session | Complete `SessionSnapshot`; replace authoritative projection |
+| `runtime.status` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
+| `session.closed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
+| `session.list.changed` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
+| `session.replaced` | Server | `previousSessionId` and new `snapshot` with a fresh `sessionId`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `server.stopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
 
 #### Message and execution events
 
 | Event | Scope | `data` / application rule |
 |---|---|---|
-| `assistantDelta`, `thinkingDelta` | Session | `runId`, `delta`; append to that run's draft |
-| `messageFinal` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
-| `toolEvent` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
-| `steeringQueue` | Session | `messages: string[]`; replace queued text, preserving duplicates |
-| `settingsChanged` | Session | Complete `SessionSettings` |
-| `operationFinished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
-| `notification` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
+| `message.delta`, `message.thinking.delta` | Session | `runId`, `delta`; append to that run's draft |
+| `message.finalized` | Session | `runId`, `message`; upsert by message ID and clear the matching assistant draft |
+| `tool.updated` | Session | `runId`, `tool`; merge by toolCallId without regressing terminal status |
+| `steering.queue.changed` | Session | `messages: string[]`; replace queued text, preserving duplicates |
+| `settings.changed` | Session | Complete `SessionSettings` |
+| `operation.finished` | Session | `operationId`, `requestId`, `outcome: completed / failed / aborted`, `error?` |
+| `notification.created` | Session | `level: info / warning / error`, `message`; transient, no acknowledgment |
 
 #### TUI and presentation events
 
 | Event | Scope | `data` / application rule |
 |---|---|---|
-| `prompts` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
-| `presentationChanged` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
+| `prompt.list.changed` | Session | `prompts: Prompt[]`; replace pending questions; missing IDs are resolved/cancelled |
+| `presentation.changed` | Session, optional | Complete `Presentation`; replace widgets/footer/contributions; removal is represented by absence from the new collection |
 
 #### Project and catalogue events
 
 | Event | Scope | `data` / application rule |
 |---|---|---|
-| `catalogueChanged` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
+| `project.list.changed` | Server | `revision`, `catalogue: ProjectCatalogue`; replace catalogue |
 
 ### Server models
 
@@ -367,11 +369,11 @@ Catalogue fields retain existing semantics. `SavedSessionSummary.id` is Pi's per
 | `confirm(title, message)` | `Prompt` kind confirm with `message` | `prompt.answer`: boolean or cancellation |
 | `input(title, placeholder)` | `Prompt` kind input with `placeholder?` | `prompt.answer`: string or cancellation |
 | `editor(title, prefill)` | `Prompt` kind editor with `prefill?` | `prompt.answer`: string or cancellation |
-| `notify(message, level)` | `notification` event | Display only |
+| `notify(message, level)` | `notification.created` event | Display only |
 | `setWidget(key, lines, placement)` | Updated `Presentation.widgets` | Render if supported; clearing removes the keyed widget |
 | `setStatus(key, text)` | Updated keyed `Presentation.footer` item | Render if supported; clearing removes the item |
 
-The server publishes prompts before waiting for answers. New/changed prompts appear in `prompts` events and snapshots, independently of model turns. Widget/status updates use optional `presentationChanged` events and snapshots. Mobile may use native controls and different placement.
+The server publishes prompts before waiting for answers. New/changed prompts appear in `prompt.list.changed` events and snapshots, independently of model turns. Widget/status updates use optional `presentation.changed` events and snapshots. Mobile may use native controls and different placement.
 
 Arbitrary `ui.custom()` components, component-factory widgets, raw terminal input, custom headers/footers and terminal editor components are **not transported**. They remain unsupported/inert as in the current host unless a future declarative capability is designed. Slash commands and LLM model choices are separate from these UI models.
 
