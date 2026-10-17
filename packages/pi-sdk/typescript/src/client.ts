@@ -1,8 +1,12 @@
-import { CONTROLLER_REPLACED_CODE, clientMessageSchema, serverMessageSchema, type ClientMessage, type ProjectCatalogue, type ServerMessage, type Tab, type WebFeature } from "./contract/index.js";
+import { CONTROLLER_REPLACED_CODE, clientMessageSchema, serverMessageSchema, type ClientMessage, type ProjectCatalogue, type ServerMessage, type Tab, type WebFeature, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse, type DirectoryListing, type CommandCompletionItem } from "./contract/index.js";
 import { SDKError } from "./errors.js";
-import { defaultScheduler, type Scheduler } from "./platform.js";
+import { defaultScheduler, type Scheduler, type CancellationSignal } from "./platform.js";
 import { initialSessionState, reduceSessionMessage, type SessionState } from "./session-state.js";
 import type { Transport, TransportFactory } from "./transport.js";
+import { FolderRequests } from "./requests/folder-requests.js";
+import { CompletionRequests } from "./requests/completion-requests.js";
+import { ProjectRequests } from "./requests/project-requests.js";
+import { FileRequests } from "./requests/file-requests.js";
 
 export type ReadonlyDeep<T> = T extends readonly (infer U)[] ? readonly ReadonlyDeep<U>[] : T extends object ? { readonly [K in keyof T]: ReadonlyDeep<T[K]> } : T;
 export type ConnectionPhase = "stopped" | "connecting" | "synchronizing" | "ready" | "reconnecting" | "superseded" | "failed" | "disposed";
@@ -23,7 +27,10 @@ export interface PiClientOptions {
   maxMessageCharacters?: number;
   maxSessions?: number;
   maxBufferedMessages?: number;
+  maxPendingRequests?: number;
+  requestTimeoutMs?: number;
 }
+export interface RequestOptions { signal?: CancellationSignal }
 
 function freeze<T>(value: T): T {
   const pending: unknown[] = [value];
@@ -50,11 +57,17 @@ export class PiClient {
   private readonly inbox: { text: string; generation: number }[] = [];
   private bufferedCharacters = 0;
   private processing = false;
+  private readonly folders: FolderRequests;
+  private readonly completions: CompletionRequests;
+  private readonly projects: ProjectRequests;
+  private readonly files: FileRequests;
+  private requestSequence = 0;
   private transport?: Transport;
   private timer?: unknown;
   private watchdog?: unknown;
   private generation = 0;
   private running = false;
+  private shuttingDown = false;
   private retryMs = 250;
   private inventoryReceived = false;
   private catalogueReceived = false;
@@ -67,9 +80,16 @@ export class PiClient {
     this.maxMessageCharacters = options.maxMessageCharacters ?? 16_777_216;
     this.maxSessions = options.maxSessions ?? 256;
     this.maxBufferedMessages = options.maxBufferedMessages ?? 64;
-    for (const value of [this.connectTimeoutMs, this.maxMessageCharacters, this.maxSessions, this.maxBufferedMessages]) {
+    const requestTimeoutMs = options.requestTimeoutMs ?? 10_000;
+    const maxPendingRequests = options.maxPendingRequests ?? 64;
+    for (const value of [this.connectTimeoutMs, this.maxMessageCharacters, this.maxSessions, this.maxBufferedMessages, requestTimeoutMs, maxPendingRequests]) {
       if (!Number.isSafeInteger(value) || value <= 0) throw new SDKError("invalidRequest", "Client limits must be positive safe integers.");
     }
+    const policy = { scheduler: this.scheduler, timeoutMs: requestTimeoutMs, budget: { used: 0, limit: maxPendingRequests } };
+    this.folders = new FolderRequests(policy);
+    this.completions = new CompletionRequests(policy);
+    this.projects = new ProjectRequests(policy);
+    this.files = new FileRequests(policy);
   }
 
   getState(): ReadonlyDeep<ClientState> { return this.state; }
@@ -94,8 +114,9 @@ export class PiClient {
     if (this.running || this.state.connection.phase === "superseded") return;
     this.running = true;
     this.retryMs = 250;
+    const generation = this.generation;
     this.publish({ ...this.state, connection: { phase: "connecting" } });
-    if (this.running) this.timer = this.scheduler.setTimeout(() => this.connect(), 0);
+    if (this.active(generation)) this.timer = this.scheduler.setTimeout(() => this.connect(), 0);
   }
   /** Only an explicit user action should call this after close code 4001. */
   takeControl(): void {
@@ -114,11 +135,70 @@ export class PiClient {
     if (!parsed.success) throw new SDKError("invalidRequest", "Invalid v1 command.");
     if (!this.transport || !["synchronizing", "ready"].includes(this.state.connection.phase)) throw new SDKError("notConnected", "Not connected to the Pi server.");
     try { this.transport.send(JSON.stringify(parsed.data)); }
-    catch { throw new SDKError("transportError", "Unable to send; the server outcome is unknown. No retry was sent.", "unknown"); }
+    catch (error) {
+      if (error instanceof SDKError) throw error;
+      throw new SDKError("transportError", "Unable to send; the server outcome is unknown. No retry was sent.", "unknown");
+    }
+  }
+
+  prompt(sessionId: string, message: string): void { this.send({ version: 1, type: "prompt", sessionId, message }); }
+  abort(sessionId: string): void { this.send({ version: 1, type: "abort", sessionId }); }
+  respondToPrompt(sessionId: string, promptId: string, result: UiPromptResult): void { this.send({ version: 1, type: "uiPromptResponse", sessionId, promptId, result }); }
+  selectModel(sessionId: string, model: string): void { this.send({ version: 1, type: "runFeature", sessionId, featureId: "model.select", input: { model } }); }
+  setThinkingLevel(sessionId: string, level: ThinkingLevel): void { this.send({ version: 1, type: "runFeature", sessionId, featureId: "thinking.level", input: { level } }); }
+  compactSession(sessionId: string): void { this.send({ version: 1, type: "runFeature", sessionId, featureId: "session.compact", input: {} }); }
+  runExtensionAction(sessionId: string, actionId: string): void { this.send({ version: 1, type: "runExtensionAction", sessionId, actionId }); }
+  focusSession(sessionId: string): void { this.send({ version: 1, type: "focusTab", sessionId }); }
+  openSession(path: string): void { this.send({ version: 1, type: "openSession", path }); }
+  openProject(path: string): void { this.send({ version: 1, type: "openProject", path }); }
+  restartServer(): void { this.send({ version: 1, type: "runFeature", sessionId: "app", featureId: "app.restart", input: {} }); }
+  closeSession(sessionId: string): void {
+    this.send({ version: 1, type: "closeTab", sessionId });
+    this.files.closeSession(sessionId); this.completions.closeSession(sessionId);
+  }
+  async browseDirectories(request: DirectoryBrowse, options: RequestOptions = {}): Promise<DirectoryListing> {
+    const command = { ...request, version: 1 as const, type: "browseDirectories" as const, requestId: this.nextId() };
+    const reply = await this.request(command, () => this.folders.request(command, (message) => this.send(message), options.signal));
+    if (reply.type !== "directoryListing") throw new SDKError("invalidMessage", "Unexpected directory response.");
+    return reply.listing;
+  }
+  async createSession(projectPath?: string, options: RequestOptions = {}): Promise<string> {
+    const command = { version: 1 as const, type: "newSession" as const, requestId: this.nextId(), ...(projectPath === undefined ? {} : { path: projectPath }) };
+    const reply = await this.request(command, () => this.folders.request(command, (message) => this.send(message), options.signal));
+    if (reply.type !== "sessionOpened") throw new SDKError("invalidMessage", "Unexpected session response.");
+    return reply.sessionId;
+  }
+  completeCommandArguments(sessionId: string, commandName: string, argumentPrefix: string, options: RequestOptions = {}): Promise<CommandCompletionItem[]> {
+    const command = { version: 1 as const, type: "completeCommandArguments" as const, sessionId, commandName, argumentPrefix, requestId: this.nextId() };
+    return this.request(command, () => this.completions.request(command, (message) => this.send(message), options.signal));
+  }
+  openFile(sessionId: string, path: string, options: RequestOptions = {}): Promise<void> {
+    const command = { version: 1 as const, type: "openFile" as const, sessionId, path, requestId: this.nextId() };
+    return this.request(command, () => this.files.request(command, (message) => this.send(message), options.signal));
+  }
+  archiveSession(path: string, archived: boolean, options: RequestOptions = {}): Promise<void> { return this.projectMutation({ version: 1, type: "setSessionArchived", path, archived, requestId: this.nextId() }, options); }
+  pinProject(path: string, pinned: boolean, options: RequestOptions = {}): Promise<void> { return this.projectMutation({ version: 1, type: "pinProject", path, pinned, requestId: this.nextId() }, options); }
+  removeProject(path: string, options: RequestOptions = {}): Promise<void> { return this.projectMutation({ version: 1, type: "removeProject", path, requestId: this.nextId() }, options); }
+
+  private projectMutation(command: Extract<ClientMessage, { type: "setSessionArchived" | "pinProject" | "removeProject" }>, options: RequestOptions): Promise<void> {
+    return this.request(command, () => this.projects.request(command, (message) => this.send(message), options.signal));
+  }
+  private nextId(): string {
+    if (this.requestSequence >= Number.MAX_SAFE_INTEGER) throw new SDKError("limitExceeded", "Request identifier space exhausted; create a fresh client.");
+    return `sdk-${++this.requestSequence}`;
+  }
+  private request<T>(command: ClientMessage, invoke: () => Promise<T>): Promise<T> {
+    try {
+      this.assertAlive();
+      if (!clientMessageSchema.safeParse(command).success) throw new SDKError("invalidRequest", "Invalid v1 command.", "notSent", "requestId" in command ? command.requestId : undefined);
+      if (!this.transport || !["synchronizing", "ready"].includes(this.state.connection.phase)) throw new SDKError("notConnected", "Not connected to the Pi server.");
+      return invoke();
+    } catch (error) { return Promise.reject(error); }
   }
 
   private assertAlive(): void {
     if (this.state.connection.phase === "disposed") throw new SDKError("disposed", "PiClient is disposed.");
+    if (this.shuttingDown) throw new SDKError("stopped", "PiClient is stopping.");
   }
   private active(generation: number): boolean { return this.running && generation === this.generation; }
   private connect(): void {
@@ -176,10 +256,14 @@ export class PiClient {
     const parsed = serverMessageSchema.safeParse(input);
     if (!parsed.success) { this.fail(new SDKError("invalidMessage", "Unsupported or malformed v1 server message.")); return; }
     const message = parsed.data;
+    // Correlated replies never become transcript entries or implicit navigation.
+    this.folders.receive(message); this.completions.receive(message); this.projects.receive(message); this.files.receive(message);
     let next = this.state;
     if (message.type === "tabs") {
       if (message.tabs.length > this.maxSessions) { this.fail(new SDKError("limitExceeded", "Runtime inventory exceeds the client limit.")); return; }
       this.inventoryReceived = true;
+      const sessionIds = message.tabs.map((tab) => tab.sessionId);
+      this.files.retainSessions(sessionIds); this.completions.retainSessions(sessionIds);
       for (const id of this.snapshots) if (!message.tabs.some((tab) => tab.sessionId === id)) this.snapshots.delete(id);
       next = { ...next, inventory: message.tabs, serverActiveSessionId: message.activeSessionId,
         sessions: Object.fromEntries(Object.entries(next.sessions).filter(([id]) => message.tabs.some((tab) => tab.sessionId === id))) };
@@ -222,8 +306,9 @@ export class PiClient {
     try { transport.dispose(); } catch { /* Keep cleanup best-effort. */ }
     try { transport.close(); } catch { /* No runtime close is sent. */ }
   }
-  private detach(): void {
+  private detach(reason = new SDKError("disconnected", "Connection lost.")): void {
     ++this.generation;
+    this.folders.disconnect(reason); this.completions.disconnect(reason); this.projects.disconnect(reason); this.files.disconnect(reason);
     this.inbox.length = 0; this.bufferedCharacters = 0;
     if (this.timer !== undefined) this.scheduler.clearTimeout(this.timer);
     if (this.watchdog !== undefined) this.scheduler.clearTimeout(this.watchdog);
@@ -235,23 +320,29 @@ export class PiClient {
     return Object.fromEntries(Object.entries(this.state.sessions).map(([id, state]) => [id, reduceSessionMessage(state, { type: superseded ? "superseded" : "connectionLost" })]));
   }
   private lost(error: SDKError, superseded = false): void {
-    this.detach();
+    this.detach(error);
+    const generation = this.generation;
     if (superseded) this.running = false;
     this.publish({ ...this.state, sessions: this.disconnectedSessions(superseded), connection: { phase: superseded ? "superseded" : "reconnecting", error: { code: error.code, message: error.message } } });
     this.report(error);
-    if (!this.running) return;
+    if (!this.active(generation)) return;
     this.timer = this.scheduler.setTimeout(() => this.connect(), this.retryMs);
     this.retryMs = Math.min(this.retryMs * 2, 5000);
   }
   private fail(error: SDKError): void {
-    this.running = false; this.detach();
+    this.running = false; this.detach(error);
     this.publish({ ...this.state, sessions: this.disconnectedSessions(), connection: { phase: "failed", error: { code: error.code, message: error.message } } });
     this.report(error);
   }
   private shutdown(phase: "stopped" | "disposed"): void {
-    if (this.state.connection.phase === "disposed") return;
-    this.running = false; this.detach();
-    this.publish({ ...this.state, sessions: this.disconnectedSessions(), connection: { phase } });
-    this.stateListeners.clear(); this.messageListeners.clear(); this.errorListeners.clear();
+    if (this.state.connection.phase === "disposed" || this.shuttingDown) return;
+    this.shuttingDown = true;
+    try {
+      this.running = false; this.detach(new SDKError(phase, `PiClient ${phase}.`));
+      this.publish({ ...this.state, sessions: this.disconnectedSessions(), connection: { phase } });
+    } finally {
+      this.stateListeners.clear(); this.messageListeners.clear(); this.errorListeners.clear();
+      this.shuttingDown = false;
+    }
   }
 }

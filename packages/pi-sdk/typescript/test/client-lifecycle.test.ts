@@ -155,6 +155,23 @@ describe("PiClient v1 connection lifecycle", () => {
     client.dispose(); expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("does not schedule duplicate connections when subscribers explicitly take over during reconnect", () => {
+    const { client, socket, sockets } = setup();
+    client.subscribe((state) => { if (state.connection.phase === "reconnecting") client.takeControl(); });
+    socket.end(); vi.advanceTimersByTime(1000);
+    expect(sockets).toHaveLength(2);
+    client.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("makes stop terminal for synchronous subscriber reentry", () => {
+    const { client, sockets } = setup();
+    client.subscribe((state) => { if (state.connection.phase === "stopped") { client.stop(); client.start(); } });
+    client.stop(); vi.advanceTimersByTime(1000);
+    expect(client.getState().connection.phase).toBe("stopped");
+    expect(sockets).toHaveLength(1);
+    client.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("safely handles opaque IDs that match Object prototype properties", () => {
     const { client, socket } = setup(); socket.open();
     expect(client.getSession("toString")).toBeUndefined();

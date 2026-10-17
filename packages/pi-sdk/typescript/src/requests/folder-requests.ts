@@ -1,41 +1,26 @@
 import type { ClientMessage, ServerMessage } from "../contract/index.js";
+import type { SDKError } from "../errors.js";
 import type { CancellationSignal } from "../platform.js";
+import { PendingRequests, type TrackerOptions } from "./pending-requests.js";
 
 type FolderReply = Extract<ServerMessage, { type: "directoryListing" | "directoryBrowseError" | "sessionOpened" | "sessionOpenError" }>;
 type FolderCommand = Extract<ClientMessage, { type: "newSession" | "browseDirectories" }> & { requestId: string };
 
-/** Request-scoped state stays outside transcript snapshots and is disposed on disconnect. */
 export class FolderRequests {
-  private readonly pending = new Map<string, { resolve: (reply: FolderReply) => void; reject: (error: Error) => void }>();
-
+  private readonly pending: PendingRequests<FolderReply>;
+  constructor(options: TrackerOptions = {}) { this.pending = new PendingRequests(options, { cancelled: "Folder request cancelled.", disconnected: "Connection lost. Reconnect to browse server folders." }); }
   request(command: FolderCommand, send: (command: ClientMessage) => void, signal?: CancellationSignal): Promise<FolderReply> {
-    return new Promise((resolve, reject) => {
-      const cancel = () => finish(undefined, new Error("Folder request cancelled."));
-      const finish = (reply?: FolderReply, error?: Error) => {
-        this.pending.delete(command.requestId);
-        signal?.removeEventListener("abort", cancel);
-        if (error) reject(error);
-        else resolve(reply!);
-      };
-      if (signal?.aborted) { reject(new Error("Folder request cancelled.")); return; }
-      this.pending.set(command.requestId, { resolve: (reply) => finish(reply), reject: (error) => finish(undefined, error) });
-      signal?.addEventListener("abort", cancel, { once: true });
-      try { send(command); } catch (error) { finish(undefined, error instanceof Error ? error : new Error("Unable to send folder request.")); }
-    });
+    return this.pending.request(command.requestId, { kind: command.type }, () => send(command), signal);
   }
-
   receive(message: ServerMessage): boolean {
     if (message.type !== "directoryListing" && message.type !== "directoryBrowseError" && message.type !== "sessionOpened" && message.type !== "sessionOpenError") return false;
-    const pending = this.pending.get(message.requestId);
-    if (pending) {
-      if ("error" in message) pending.reject(new Error(message.error));
-      else pending.resolve(message);
+    const entry = this.pending.get(message.requestId);
+    const kind = message.type === "sessionOpened" || message.type === "sessionOpenError" ? "newSession" : "browseDirectories";
+    if (entry?.kind === kind) {
+      if ("error" in message) this.pending.reject(message.requestId, message.error);
+      else this.pending.resolve(message.requestId, message);
     }
     return true;
   }
-
-  disconnect(): void {
-    for (const pending of this.pending.values()) pending.reject(new Error("Connection lost. Reconnect to browse server folders."));
-    this.pending.clear();
-  }
+  disconnect(reason?: SDKError): void { this.pending.disconnect(reason); }
 }

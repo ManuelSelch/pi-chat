@@ -1,3 +1,5 @@
+import { SDKError } from "./errors.js";
+
 export interface TransportHandlers {
   open(): void;
   message(text: string): void;
@@ -22,6 +24,7 @@ interface SocketEvents {
 /** Structural WebSocket subset, satisfied by standard browser/Node WebSocket. */
 export interface WebSocketLike {
   readonly readyState: number;
+  readonly bufferedAmount: number;
   send(text: string): void;
   close(): void;
   addEventListener<K extends keyof SocketEvents>(type: K, listener: (event: SocketEvents[K]) => void): void;
@@ -29,7 +32,9 @@ export interface WebSocketLike {
 }
 
 /** No global WebSocket lookup: the application supplies its own constructor. */
-export function createWebSocketTransport(createSocket: (endpoint: string) => WebSocketLike): TransportFactory {
+export function createWebSocketTransport(createSocket: (endpoint: string) => WebSocketLike, options: { maxBufferedBytes?: number } = {}): TransportFactory {
+  const maxBufferedBytes = options.maxBufferedBytes ?? 4_194_304;
+  if (!Number.isSafeInteger(maxBufferedBytes) || maxBufferedBytes <= 0) throw new SDKError("invalidRequest", "maxBufferedBytes must be a positive safe integer.");
   return (endpoint, handlers) => {
     const socket = createSocket(endpoint);
     const open = () => handlers.open();
@@ -45,7 +50,13 @@ export function createWebSocketTransport(createSocket: (endpoint: string) => Web
     socket.addEventListener("error", error);
     return {
       send(text) {
-        if (socket.readyState !== 1) throw new Error("WebSocket is not open.");
+        if (socket.readyState !== 1) throw new SDKError("notConnected", "WebSocket is not open.");
+        let bytes = 0;
+        for (const character of text) {
+          const code = character.codePointAt(0)!;
+          bytes += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4;
+        }
+        if (socket.bufferedAmount + bytes > maxBufferedBytes) throw new SDKError("limitExceeded", "WebSocket send buffer is full. No request was sent.");
         socket.send(text);
       },
       close: () => socket.close(),
