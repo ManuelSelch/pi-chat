@@ -63,9 +63,20 @@ Session operations require the target runtime's `sessionId`. Server operations d
 |---|---|---|
 | `sendMessage` | Session; `message` | Accepted operation receipt; new chat/steering/command/bash input, not a dialog answer |
 | `abortRun` | Session | Accepted abort receipt, or completed no-op if idle |
-| `setModel`, `setThinkingLevel` | Session; selected value | Completed change and structured settings |
-| `compactSession`, `reloadSession` | Session | Accepted operation receipt |
+| `runFeature` | `featureId`, typed `input`; scope depends on feature below | Completed result or accepted operation receipt, depending on feature |
 | `answerPrompt` | Session; `promptId`, `result` | Question settled |
+
+Keep the existing `runFeature` structure: `params: { featureId, input }`, with namespaced `feature.name` IDs and a typed input/result for each feature. This is a domain API, not a UI-rendering instruction. SDK convenience methods such as `setModel()` may wrap it; they are not separate wire methods.
+
+| `featureId` | Scope / `input` | Response meaning |
+|---|---|---|
+| `model.select` | Session; `{ model: string }` | Completed change and structured settings |
+| `thinking.level` | Session; `{ level: ThinkingLevel }` | Completed change and structured settings |
+| `session.compact` | Session; `{}` | Accepted operation receipt |
+| `session.reload` | Session; `{}` | Accepted operation receipt |
+| `app.restart` | Server, optional capability; `{}` | Acknowledgment before shutdown where supported; disconnect alone does not prove restart succeeded |
+
+Unknown feature IDs or unsupported optional features return an explicit error. Session features require `sessionId`; `app.restart` does not require a session or use a placeholder ID.
 
 ### 4.3 Extensions and UI
 
@@ -75,7 +86,7 @@ Session operations require the target runtime's `sessionId`. Server operations d
 
 ### 4.4 Optional capability operations
 
-Optional capabilities expose `browseDirectories`, `completeCommandArguments`, `setSessionArchived`, `pinProject`, `removeProject`, `openFile`, `restartServer` and presentation contributions. Clients use only advertised/selected capabilities. Directory/completion/catalogue data retain existing field semantics; exact models follow in schemas.
+Optional capabilities expose `browseDirectories`, `completeCommandArguments`, `setSessionArchived`, `pinProject`, `removeProject`, `openFile`, `runFeature` with `featureId: app.restart`, and presentation contributions. Clients use only advertised/selected capabilities. Directory/completion/catalogue data retain existing field semantics; exact models follow in schemas.
 
 Paths refer to the server. `openFile` opens there, not on iOS. Removing a project removes catalogue membership, not files. Archiving rejects busy runtimes, persists metadata, then closes an open runtime; partial success must be reported rather than hidden.
 

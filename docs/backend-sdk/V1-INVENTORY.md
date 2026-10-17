@@ -88,10 +88,10 @@ All messages include `version: 1`. Session events below carry `sessionId` and `s
 
 | `runFeature.featureId` | Input and actual completion boundary | V2 mapping |
 |---|---|---|
-| `thinking.level` | `{level}`; app rejects streaming state, then sets Pi thinking level | `setThinkingLevel` |
-| `model.select` | `{model}`; resolves offered provider/model ID and awaits Pi `setModel` | `setModel` |
-| `session.compact` | `{}`; awaits Pi compaction, publishes running/idle and refreshes snapshots | `compactSession` |
-| `app.restart` | `{}`; only advertised with a restart service; may shut down before any reply | Optional server-scoped `restartServer`, acknowledged before shutdown where supported |
+| `thinking.level` | `{level}`; app rejects streaming state, then sets Pi thinking level | Retain `runFeature` / `thinking.level`; correlated completed result and structured settings |
+| `model.select` | `{model}`; resolves offered provider/model ID and awaits Pi `setModel` | Retain `runFeature` / `model.select`; correlated completed result and structured settings |
+| `session.compact` | `{}`; awaits Pi compaction, publishes running/idle and refreshes snapshots | Retain `runFeature` / `session.compact`; accepted receipt and terminal outcome |
+| `app.restart` | `{}`; only advertised with a restart service; may shut down before any reply | Retain `runFeature` / `app.restart` as an optional server-scoped feature; acknowledgment before shutdown where supported |
 
 | Tracker | Local policy | Server cancellation/replay |
 |---|---|---|
@@ -122,7 +122,7 @@ These are source-level findings, not newly implemented fixes:
 | V1 `sessionId` follows Pi's session identity and may recur when history is reopened | V2 assigns a unique runtime `sessionId`, independent of Pi's history ID; reconnect retains it, but runtime replacement or close/reopen gets a fresh ID. No separate `sessionInstanceId` |
 | `tabs`, `activeSessionId`, `focusTab`, `closeTab` are wire-level | Tabs/focus stay application-owned; server exposes session inventory/lifecycle. Pi Chat still calls `closeSession` when a tab closes |
 | Many commands have no correlated acceptance/result; error shape varies by command | Uniform request/response/error envelope; operation contract states admission versus completed mutation |
-| Runtime UI features are represented by `runFeature` IDs and footer formatting | Typed core operations/settings; optional declarative presentation is separate |
+| Domain features use `runFeature` IDs; footer includes formatted settings text | Retain namespaced `featureId` values and typed inputs/results; expose structured core settings separately from optional presentation |
 | Separate `prompts`, `widgets`, and `footer` events share core session sequence | Proposed full prompt/presentation models and independently revised optional presentation state; core sequencing remains gap-free |
 | `tabs` and `catalogue` have no revision | Complete replacement inventory/catalogue views have independent revisions |
 | Snapshot has no runtime incarnation and no in-progress assistant draft | Use a unique runtime `sessionId`; snapshot draft completeness remains an explicit v2 review question |
