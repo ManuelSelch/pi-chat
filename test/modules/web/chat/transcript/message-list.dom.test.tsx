@@ -40,11 +40,15 @@ describe("MessageList", () => {
       { id: "c", role: "assistant", text: "Final answer" },
     ], undefined, true);
     const groups = screen.getAllByTestId("tool-group") as HTMLDetailsElement[];
-    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual(["Used 2 read, 1 write", "Used 1 bash"]);
+    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual(["Used 2 read, 1 write, 1 bash"]);
     expect(groups.every((group) => !group.open)).toBe(true);
     const first = groups[0]!;
-    expect(first.querySelectorAll("[data-testid='tool-card']")).toHaveLength(3);
-    expect(Array.from(container.querySelector("section")!.children).map((row) => row.tagName)).toEqual(["ARTICLE", "DETAILS", "ARTICLE", "DETAILS", "ARTICLE"]);
+    expect(first.querySelectorAll("[data-testid='tool-card']")).toHaveLength(4);
+    expect(first.querySelectorAll("[data-testid='thinking-panel']")).toHaveLength(2);
+    expect(Array.from(first.querySelectorAll("[data-testid]")).map((row) => row.getAttribute("data-testid"))).toEqual([
+      "thinking-panel", "tool-card", "tool-card", "tool-card", "thinking-panel", "tool-card",
+    ]);
+    expect(Array.from(container.querySelector("section")!.children).map((row) => row.tagName)).toEqual(["DETAILS", "ARTICLE"]);
     first.open = true;
     fireEvent(first, new Event("toggle"));
     const card = first.querySelector("[data-testid='tool-card']") as HTMLDetailsElement;
@@ -55,15 +59,80 @@ describe("MessageList", () => {
     expect(await screen.findByText("Final answer")).not.toBeNull();
   });
 
+  it("moves the final answer's thinking into the group without hiding its text", async () => {
+    renderMessages([tool("r", "read"), { id: "answer", role: "assistant", text: "Final answer", thinking: "Conclusion" }], undefined, true);
+    const group = screen.getByTestId("tool-group");
+    expect(group.querySelectorAll("[data-testid='thinking-panel']")).toHaveLength(1);
+    expect(group.textContent).not.toContain("Final answer");
+    expect(await screen.findByText("Final answer")).not.toBeNull();
+  });
+
+  it("keeps streaming thinking collapsed inside the same group through updates", () => {
+    const { rerender, container } = renderMessages([], { runId: "run", text: "", thinking: "Start" }, true);
+    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
+    expect(group.open).toBe(false);
+    expect((screen.getByTestId("thinking-panel") as HTMLDetailsElement).open).toBe(false);
+    expect(container.querySelector(".stream-cursor")).toBeNull();
+    rerender(<MantineProvider><MessageList messages={[]} draft={{ runId: "run", text: "", thinking: "Start more" }} compact /></MantineProvider>);
+    expect(screen.getByTestId("tool-group")).toBe(group);
+    expect(group.open).toBe(false);
+    group.open = true;
+    fireEvent(group, new Event("toggle"));
+    rerender(<MantineProvider><MessageList messages={[]} draft={{ runId: "run", text: "Answer", thinking: "Start more" }} compact /></MantineProvider>);
+    expect(screen.getByTestId("tool-group")).toBe(group);
+    expect(group.open).toBe(true);
+    expect((screen.getByTestId("thinking-panel") as HTMLDetailsElement).open).toBe(false);
+    expect(group.textContent).not.toContain("Answer");
+  });
+
+  it("appends live thinking to the preceding tools without opening the group", () => {
+    renderMessages([tool("r", "read")], { runId: "run", text: "", thinking: "Checking" }, true);
+    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
+    expect(group.open).toBe(false);
+    expect(group.querySelectorAll("[data-testid='thinking-panel']")).toHaveLength(1);
+    expect(group.querySelector("summary")?.textContent).toBe("Used 1 read");
+  });
+
+  it("keeps mixed thinking and tools complete at the history boundary", () => {
+    renderMessages([
+      { id: "u", role: "user", text: "Start" },
+      ...Array.from({ length: 24 }, (_, i): ChatMessage[] => [
+        { id: `a${i}`, role: "assistant", text: "", thinking: `Thought ${i}` }, tool(`r${i}`, "read"),
+      ]).flat(),
+      { id: "answer", role: "assistant", text: "Answer", thinking: "Conclusion" },
+    ], undefined, true);
+    expect(screen.getByText("Used 24 read")).not.toBeNull();
+    expect(screen.getByText("Show earlier messages (1)")).not.toBeNull();
+    expect(screen.getAllByTestId("thinking-panel")).toHaveLength(25);
+  });
+
   it("leaves comfortable tools ungrouped", () => {
     renderMessages([tool("r1", "read"), tool("r2", "read")]);
     expect(screen.queryByTestId("tool-group")).toBeNull();
     expect(screen.getAllByTestId("tool-card")).toHaveLength(2);
   });
 
-  it("does not group across non-tool messages", () => {
-    renderMessages([tool("r1", "read"), { id: "n", role: "notice", level: "info", text: "Notice" }, tool("r2", "read")], undefined, true);
+  it.each<ChatMessage>([
+    { id: "boundary", role: "notice", level: "info", text: "Notice" },
+    { id: "boundary", role: "user", text: "Next request" },
+    { id: "boundary", role: "custom", customType: "extension", text: "Extension output" },
+    { id: "boundary", role: "assistant", text: "Progress update", thinking: "Reasoning" },
+  ])("does not group across visible $role messages", (boundary) => {
+    renderMessages([tool("r1", "read"), boundary, tool("r2", "read")], undefined, true);
     expect(screen.getAllByTestId("tool-group")).toHaveLength(2);
+  });
+
+  it("preserves an expanded tool group when live thinking becomes a final answer", async () => {
+    const messages = [tool("r", "read")];
+    const { rerender } = renderMessages(messages, { runId: "run", text: "", thinking: "Checking" }, true);
+    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
+    group.open = true;
+    fireEvent(group, new Event("toggle"));
+    rerender(<MantineProvider><MessageList messages={[...messages, { id: "answer", role: "assistant", text: "Done", thinking: "Checked" }]} draft={undefined} compact /></MantineProvider>);
+    expect(screen.getByTestId("tool-group")).toBe(group);
+    expect(group.open).toBe(true);
+    expect(group.querySelectorAll("[data-testid='thinking-panel']")).toHaveLength(1);
+    expect(await screen.findByText("Done")).not.toBeNull();
   });
 
   it("keeps a complete tool group at the visible history boundary", () => {
