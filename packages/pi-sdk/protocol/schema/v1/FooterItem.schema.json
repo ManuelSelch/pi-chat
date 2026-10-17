@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "align": {
+      "default": "left",
+      "type": "string",
+      "enum": [
+        "left",
+        "right"
+      ]
+    },
+    "variant": {
+      "default": "plain",
+      "type": "string",
+      "enum": [
+        "badge",
+        "plain"
+      ]
+    }
+  },
+  "required": [
+    "key",
+    "text"
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "const": "bash"
+        },
+        "bash": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "output": {
+              "type": "string",
+              "maxLength": 20000
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "success",
+                "error",
+                "cancelled"
+              ]
+            },
+            "exitCode": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "excludeFromContext": {
+              "type": "boolean"
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "fullOutputPath": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "output",
+            "status",
+            "excludeFromContext",
+            "truncated"
+          ]
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "bash"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "user",
+            "assistant",
+            "system"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "skill": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "location": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "location",
+            "content"
+          ]
+        },
+        "thinking": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "const": "tool"
+        },
+        "tool": {
+          "type": "object",
+          "properties": {
+            "toolCallId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "success",
+                "error"
+              ]
+            },
+            "argsText": {
+              "type": "string"
+            },
+            "outputText": {
+              "type": "string"
+            },
+            "writeContent": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 102400
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "text",
+                "truncated"
+              ]
+            },
+            "editDiff": {
+              "type": "object",
+              "properties": {
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "unified",
+                    "pi-display"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 102400
+                },
+                "truncated": {
+                  "type": "boolean"
+                },
+                "firstChangedLine": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "format",
+                "text",
+                "truncated"
+              ]
+            }
+          },
+          "required": [
+            "toolCallId",
+            "name",
+            "status"
+          ]
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "tool"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "const": "custom"
+        },
+        "customType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "customType",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "const": "notice"
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "anchor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "level",
+        "text"
+      ]
+    }
+  ]
+}

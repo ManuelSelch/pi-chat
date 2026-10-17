@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "cancelled": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "cancelled"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "cancelled": {
+          "type": "boolean",
+          "const": false
+        },
+        "value": {
+          "type": [
+            "string",
+            "boolean"
+          ]
+        }
+      },
+      "required": [
+        "cancelled",
+        "value"
+      ]
+    }
+  ]
+}
