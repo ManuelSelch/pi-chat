@@ -102,7 +102,7 @@ describe("MessageList", () => {
       { id: "answer", role: "assistant", text: "Answer", thinking: "Conclusion" },
     ], undefined, true);
     expect(screen.getByText("Used 24 read")).not.toBeNull();
-    expect(screen.getByText("Show earlier messages (1)")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Show earlier messages/ })).toBeNull();
     expect(screen.getAllByTestId("thinking-panel")).toHaveLength(25);
   });
 
@@ -141,7 +141,45 @@ describe("MessageList", () => {
       ...Array.from({ length: 45 }, (_, i) => tool(`r${i}`, "read")),
     ], undefined, true);
     expect(screen.getByText("Used 45 read")).not.toBeNull();
-    expect(screen.getByText("Show earlier messages (1)")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /Show earlier messages/ })).toBeNull();
+  });
+
+  it("shows 40 grouped rows and reveals 100 more per click", () => {
+    const { container } = renderMessages(Array.from({ length: 75 }, (_, i): ChatMessage[] => [
+      { id: `a${i}`, role: "assistant", text: "", thinking: `Thought ${i}` },
+      tool(`r${i}`, "read"),
+      { id: `answer${i}`, role: "assistant", text: `Answer ${i}`, thinking: "Conclusion" },
+    ]).flat(), undefined, true);
+    const section = container.querySelector("section")!;
+    expect(section.children).toHaveLength(41); // 40 rows plus the button
+    expect(screen.getAllByTestId("tool-group")).toHaveLength(20);
+    expect(screen.getAllByTestId("thinking-panel")).toHaveLength(40);
+    fireEvent.click(screen.getByRole("button", { name: "Show earlier messages (110)" }));
+    expect(section.children).toHaveLength(141);
+    expect(screen.getAllByTestId("tool-group")).toHaveLength(70);
+    fireEvent.click(screen.getByRole("button", { name: "Show earlier messages (10)" }));
+    expect(section.children).toHaveLength(150);
+    expect(screen.queryByRole("button", { name: /Show earlier messages/ })).toBeNull();
+  });
+
+  it("does not reduce visible history when streaming thinking extends a group", () => {
+    const messages: ChatMessage[] = [
+      ...Array.from({ length: 39 }, (_, i): ChatMessage => ({ id: `u${i}`, role: "user", text: `Request ${i}` })),
+      tool("r", "read"),
+    ];
+    const { rerender, container } = renderMessages(messages, undefined, true);
+    const group = screen.getByTestId("tool-group");
+    rerender(<MantineProvider><MessageList messages={messages} draft={{ runId: "run", text: "", thinking: "Checking" }} compact /></MantineProvider>);
+    expect(container.querySelector("section")!.children).toHaveLength(40);
+    expect(screen.getByTestId("tool-group")).toBe(group);
+    expect(screen.queryByRole("button", { name: /Show earlier messages/ })).toBeNull();
+  });
+
+  it("keeps comfortable pagination based on individual messages", () => {
+    renderMessages(Array.from({ length: 41 }, (_, i) => tool(`r${i}`, "read")));
+    expect(screen.getAllByTestId("tool-card")).toHaveLength(40);
+    fireEvent.click(screen.getByRole("button", { name: "Show earlier messages (1)" }));
+    expect(screen.getAllByTestId("tool-card")).toHaveLength(41);
   });
 
   it("preserves an expanded group during live tool updates and exposes running/errors", () => {

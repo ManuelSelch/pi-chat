@@ -100,27 +100,13 @@ interface MessageListProps {
 
 export const MessageList = memo(function MessageList({ messages, draft, onLocalLink, compact = false }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
-  let start = Math.max(0, messages.length - visible);
-  // Include the whole activity group, even when its last thinking accompanies prose.
-  if (compact) {
-    while (start > 0) {
-      const current = messages[start]!;
-      const previous = messages[start - 1]!;
-      const startsWithActivity = current.role === "tool" || (current.role === "assistant" && !!current.thinking);
-      const endsWithActivity = previous.role === "tool" || (previous.role === "assistant" && !!previous.thinking && previous.text === "");
-      if (!startsWithActivity || !endsWithActivity) break;
-      start--;
-    }
-  }
-  const shown = messages.slice(start);
-  const hidden = start;
   const rows: (ChatMessage | [ActivityMessage, ...ActivityMessage[]])[] = [];
   const appendActivity = (message: ActivityMessage) => {
     const previous = rows[rows.length - 1];
     if (Array.isArray(previous)) previous.push(message);
     else rows.push([message]);
   };
-  for (const message of shown) {
+  for (const message of messages) {
     if (compact && message.role === "tool") {
       appendActivity(message);
     } else if (compact && message.role === "assistant" && message.thinking) {
@@ -131,6 +117,10 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
   if (compact && draft?.thinking) {
     appendActivity({ id: `draft:${draft.runId}`, role: "thinking", thinking: draft.thinking, streaming: true });
   }
+  // Paginate presentation rows, not raw messages: a collapsed activity group
+  // occupies one row regardless of how many tools and thoughts it contains.
+  const hidden = Math.max(0, rows.length - visible);
+  const shown = rows.slice(hidden);
 
   return (
     <>
@@ -151,7 +141,7 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
             Show earlier messages ({hidden})
           </Button>
         ) : null}
-        {rows.map((row) => Array.isArray(row)
+        {shown.map((row) => Array.isArray(row)
           ? <ToolGroup key={`tools:${row[0].id}`} messages={row} onLocalLink={onLocalLink} />
           : <MessageRow key={row.id} message={row} onLocalLink={onLocalLink} compact={compact} />)}
         {draft && (!compact || draft.text) ? (
