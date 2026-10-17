@@ -10,7 +10,7 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 - **SDK:** transport, typed requests/results, session projections and reconnect.
 - **Application:** tabs, focus, navigation, layout and input drafts. These have no protocol messages.
 - The client chooses which saved session to open, or creates a new one. Selecting a project's latest session is not a server operation.
-- Pi Chat currently closes a runtime when its tab closes. That remains an application policy: call `closeSession`, then remove the local tab. Failure retains/restores the tab. Hiding a view or disconnecting does not itself close anything.
+- Pi Chat currently closes a runtime when its tab closes. That remains an application policy: call `session.close`, then remove the local tab. Failure retains/restores the tab. Hiding a view or disconnecting does not itself close anything.
 
 ## 2. Connection
 
@@ -18,7 +18,7 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 - Remote access uses HTTPS/WSS through the homelab reverse proxy, which owns TLS termination and authentication. Pi Server and the SDK implement no application authentication or OAuth flow initially; the backend must remain loopback/private so remote clients cannot bypass the proxy. Apply browser-origin validation. OAuth could be added later at the proxy/transport boundary without changing v2 session operations or events. Default binding remains loopback.
 - One controller connection may operate multiple concurrent sessions. A remote connection admitted by the proxy (or a local loopback connection) becomes controller only after initialization.
 - Replaced connections close with code `4001`. They must not automatically reconnect until the user explicitly takes control.
-- First request: `initialize`, carrying client name/version and requested optional capabilities.
+- First request: `server.initialize`, carrying client name/version and requested optional capabilities.
 - Result: protocol/server versions, `serverInstanceId`, `connectionId`, selected capabilities, complete open-session inventory, project catalogue and snapshots for all open sessions.
 - Initialization is the readiness barrier: apply the whole result before processing later events or sending work. No navigation state is exchanged.
 - Every message carries `version: 2`. Unsupported versions fail explicitly; unknown optional fields are ignored. Unknown required core variants are compatibility errors. Software/package versions are independent of wire versions.
@@ -41,7 +41,7 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 
 ## 4. Operations
 
-This draft groups operations by domain, but the wire format stays the same: a request/response envelope with `method` and `params`.
+Request methods use namespaced `resource.action` values directly in the request/response envelope, with typed `params` and results. There is no `runFeature`/`featureId` wrapper in v2. SDK convenience methods may use idiomatic names: `client.createSession()` sends `method: "session.create"`. Event names below are unchanged.
 
 ### 4.1 Session lifecycle and navigation
 
@@ -49,54 +49,57 @@ Session operations require the target runtime's `sessionId`. Server operations d
 
 | Method | Scope / input | Response meaning |
 |---|---|---|
-| `createSession` | Server; optional `projectPath` | Created summary and snapshot; omitted path uses server default |
-| `openSession` | Server; `sessionPath` | Loaded/existing summary and snapshot; concurrent opens converge to one runtime |
-| `listOpenSessions` | Server | Complete runtime inventory |
-| `getSessionSnapshot` | Session | Current state and event watermark |
-| `closeSession` | Session | Teardown completed; saved history is not deleted |
-| `getCatalogue` | Server | Projects and nested saved-session summaries |
-| `ping` | Server | Completed liveness check |
+| `session.create` | Server; optional `projectPath` | Created summary and snapshot; omitted path uses server default |
+| `session.open` | Server; `sessionPath` | Loaded/existing summary and snapshot; concurrent opens converge to one runtime |
+| `session.list` | Server | Complete runtime inventory |
+| `session.snapshot` | Session | Current state and event watermark |
+| `session.close` | Session | Teardown completed; saved history is not deleted |
+| `catalogue.get` | Server | Projects and nested saved-session summaries |
+| `server.ping` | Server | Completed liveness check |
 
 ### 4.2 Message, run and model control
 
 | Method | Scope / input | Response meaning |
 |---|---|---|
-| `sendMessage` | Session; `message` | Accepted operation receipt; new chat/steering/command/bash input, not a dialog answer |
-| `abortRun` | Session | Accepted abort receipt, or completed no-op if idle |
-| `runFeature` | `featureId`, typed `input`; scope depends on feature below | Completed result or accepted operation receipt, depending on feature |
-| `answerPrompt` | Session; `promptId`, `result` | Question settled |
-
-Keep the existing `runFeature` structure: `params: { featureId, input }`, with namespaced `feature.name` IDs and a typed input/result for each feature. This is a domain API, not a UI-rendering instruction. SDK convenience methods such as `setModel()` may wrap it; they are not separate wire methods.
-
-| `featureId` | Scope / `input` | Response meaning |
-|---|---|---|
+| `message.send` | Session; `message` | Accepted operation receipt; new chat/steering/command/bash input, not a dialog answer |
+| `run.abort` | Session | Accepted abort receipt, or completed no-op if idle |
+| `prompt.answer` | Session; `promptId`, `result` | Question settled |
 | `model.select` | Session; `{ model: string }` | Completed change and structured settings |
 | `thinking.level` | Session; `{ level: ThinkingLevel }` | Completed change and structured settings |
 | `session.compact` | Session; `{}` | Accepted operation receipt |
 | `session.reload` | Session; `{}` | Accepted operation receipt |
-| `app.restart` | Server, optional capability; `{}` | Acknowledgment before shutdown where supported; disconnect alone does not prove restart succeeded |
 
-Unknown feature IDs or unsupported optional features return an explicit error. Session features require `sessionId`; `app.restart` does not require a session or use a placeholder ID.
+Unknown methods or unsupported optional operations return an explicit error. Session operations require `sessionId`; server operations do not require a session or use a placeholder ID.
 
 ### 4.3 Extensions and UI
 
 | Method | Scope / input | Response meaning |
 |---|---|---|
-| `runExtensionAction` | Session; `actionId` | Accepted operation receipt |
+| `extension.run` | Session; `actionId` | Accepted operation receipt |
 
 ### 4.4 Optional capability operations
 
-Optional capabilities expose `browseDirectories`, `completeCommandArguments`, `setSessionArchived`, `pinProject`, `removeProject`, `openFile`, `runFeature` with `featureId: app.restart`, and presentation contributions. Clients use only advertised/selected capabilities. Directory/completion/catalogue data retain existing field semantics; exact models follow in schemas.
+Optional capabilities expose these operations and presentation contributions. Clients use only advertised/selected capabilities. Directory/completion/catalogue data retain existing field semantics; exact models follow in schemas.
 
-Paths refer to the server. `openFile` opens there, not on iOS. Removing a project removes catalogue membership, not files. Archiving rejects busy runtimes, persists metadata, then closes an open runtime; partial success must be reported rather than hidden.
+| Method | Scope / purpose |
+|---|---|
+| `directory.browse` | Server; list server-local directories |
+| `command.complete` | Session; complete slash-command arguments |
+| `session.archive` | Server; set saved-history archive state by path, including unarchive |
+| `project.pin` | Server; set project pin state |
+| `project.remove` | Server; remove catalogue membership |
+| `file.open` | Session; open a server-local file |
+| `server.restart` | Server; acknowledge before shutdown where supported; disconnect alone does not prove restart succeeded |
+
+Paths refer to the server. `file.open` opens there, not on iOS. Removing a project removes catalogue membership, not files. Archiving rejects busy runtimes, persists metadata, then closes an open runtime; partial success must be reported rather than hidden.
 
 ## 5. Execution and lifecycle
 
-- `sendMessage` preserves Pi behavior: plain input starts a run or steers an active run; slash commands and `!`/`!!` use existing command/bash rules. Pi owns scheduling and queues. Equal text submissions remain distinct.
+- `message.send` preserves Pi behavior: plain input starts a run or steers an active run; slash commands and `!`/`!!` use existing command/bash rules. Pi owns scheduling and queues. Equal text submissions remain distinct.
 - Long operations return `{state: accepted, operationId}` after validation/handoff, not after model completion. Publish acceptance before related events. Failures after acceptance are operation outcomes, not second responses.
 - `operationFinished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
 - Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `sessionClosed` is its final event, followed by inventory removal.
-- `abortRun` stops execution without closing the session. Disconnect leaves runtimes alive; server restart may interrupt them. This is not durable execution.
+- `run.abort` stops execution without closing the session. Disconnect leaves runtimes alive; server restart may interrupt them. This is not durable execution.
 - SDK-driven session switching emits `sessionReplaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`. Updating client navigation is application-owned.
 - A completed mutation remains successful even if a later catalogue refresh fails. Rejections must not falsely settle another active run.
 
@@ -200,7 +203,7 @@ interface SessionSettings {
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
 interface SlashCommand {
-  name: string; // Invoke /name ... through sendMessage.
+  name: string; // Invoke /name ... through message.send.
   description?: string;
   argumentHint?: string;
   source?: "native" | "extension" | "prompt" | "skill";
@@ -249,7 +252,7 @@ interface BashCard {
 
 ```typescript
 interface PromptBase {
-  id: string; // Passed as promptId to answerPrompt.
+  id: string; // Passed as promptId to prompt.answer.
   title: string;
 }
 
@@ -299,7 +302,7 @@ interface ExtensionButton {
   slot: Slot;
   label: string;
   icon?: string;
-  actionId: string; // Invoked through runExtensionAction.
+  actionId: string; // Invoked through extension.run.
 }
 
 interface ExtensionBadge {
@@ -360,10 +363,10 @@ Catalogue fields retain existing semantics. `SavedSessionSummary.id` is Pi's per
 
 | Pi UI call | Server output | Client action |
 |---|---|---|
-| `select(title, options)` | `Prompt` kind select with `options` | `answerPrompt`: offered string or cancellation |
-| `confirm(title, message)` | `Prompt` kind confirm with `message` | `answerPrompt`: boolean or cancellation |
-| `input(title, placeholder)` | `Prompt` kind input with `placeholder?` | `answerPrompt`: string or cancellation |
-| `editor(title, prefill)` | `Prompt` kind editor with `prefill?` | `answerPrompt`: string or cancellation |
+| `select(title, options)` | `Prompt` kind select with `options` | `prompt.answer`: offered string or cancellation |
+| `confirm(title, message)` | `Prompt` kind confirm with `message` | `prompt.answer`: boolean or cancellation |
+| `input(title, placeholder)` | `Prompt` kind input with `placeholder?` | `prompt.answer`: string or cancellation |
+| `editor(title, prefill)` | `Prompt` kind editor with `prefill?` | `prompt.answer`: string or cancellation |
 | `notify(message, level)` | `notification` event | Display only |
 | `setWidget(key, lines, placement)` | Updated `Presentation.widgets` | Render if supported; clearing removes the keyed widget |
 | `setStatus(key, text)` | Updated keyed `Presentation.footer` item | Render if supported; clearing removes the item |
@@ -377,7 +380,7 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 - Select/confirm/input/editor questions are snapshot-backed session state, including when no model turn is active. Clients choose modal, sheet or inline rendering.
 - Answers are cancelled or typed values: boolean for confirm, an offered string for select, string for input/editor. Validate against the pending question. First valid answer settles once; invalid/late answers receive explicit errors.
 - Defaults: five-minute total timeout and sixty-second no-controller grace, including questions created while disconnected. Reconnect cancels grace, not the total timeout. Expiration/teardown cancels questions. State does not survive process restart.
-- Cancelling a local wait, timeout or disconnect does not cancel server execution. Use `abortRun` or answer a question as cancelled explicitly.
+- Cancelling a local wait, timeout or disconnect does not cancel server execution. Use `run.abort` or answer a question as cancelled explicitly.
 - Lost mutation responses are uncertain outcomes. Never automatically resend input/create/actions/file-open/restart. Request IDs provide correlation, not idempotency. Recover current state before deciding what to do next.
 
 ## 8. Open decisions and rollout
@@ -387,6 +390,6 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 - Whether full in-progress assistant drafts are required in snapshots.
 - Message/work limits, heartbeat/timeouts and partial teardown failure behavior. Required events must not be silently dropped under load.
 
-Keep current v1 runtime/UI behavior during SDK extraction, then cut over the server and Pi Chat together to v2. No v1 compatibility or dual-protocol period is required; clients using v1 are unsupported after cutover. Swift targets v2. Remove wire-level tabs/focus and move project-session selection to clients. Closing a Pi Chat client tab continues to call `closeSession`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
+Keep current v1 runtime/UI behavior during SDK extraction, then cut over the server and Pi Chat together to v2. No v1 compatibility or dual-protocol period is required; clients using v1 are unsupported after cutover. Swift targets v2. Remove wire-level tabs/focus and move project-session selection to clients. Closing a Pi Chat client tab continues to call `session.close`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
 
 See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. No implementation or passing conformance tests are implied by this draft.
