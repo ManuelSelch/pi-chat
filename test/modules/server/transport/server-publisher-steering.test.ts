@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { WebSocket } from "ws";
+import { serverMessageSchema } from "@manuelselch/pi-sdk/contract";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";
 import type { ChatApplicationService } from "../../../../src/server/application/chat-application-service.js";
 
@@ -26,6 +28,16 @@ describe("runtime error logging", () => {
 });
 
 describe("steering command failures", () => {
+  it("uses a valid app-scoped v1 error when Home has no active session", () => {
+    const send = vi.fn();
+    const socket = { readyState: WebSocket.OPEN, send } as unknown as WebSocket;
+    const chat = { tabs: () => [], activeSessionId: () => "" } as unknown as ChatApplicationService;
+    const publisher = new ServerPublisher(chat, () => socket);
+    publisher.publishError("", new Error("Unable to open session"));
+    const message = JSON.parse(send.mock.calls[0]![0]);
+    expect(serverMessageSchema.safeParse(message).success).toBe(true);
+    expect(message).toEqual({ version: 1, type: "protocolError", error: "Unable to open session" });
+  });
   it("keeps the original run running when another submission is rejected", () => {
     const chat = { tabs: () => [{ sessionId: "s1", status: "running" }] } as unknown as ChatApplicationService;
     const publisher = new ServerPublisher(chat, () => undefined);

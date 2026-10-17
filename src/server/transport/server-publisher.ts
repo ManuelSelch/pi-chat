@@ -81,6 +81,9 @@ export class ServerPublisher {
       errorName: error instanceof Error ? error.name : "NonError",
       message: redactRuntimeError(text),
     });
+    // Home has no runtime identity. Never emit an invalid session-scoped frame
+    // that a contract-validating SDK must treat as a broken connection.
+    if (!sessionId) { this.send(this.protocolError(text)); return; }
     // A rejected steering/command submission does not settle the ongoing run.
     const tab = this.chat.tabs().find((entry) => entry.sessionId === sessionId);
     const status = tab && tab.status !== "idle" ? "running" : "idle";
