@@ -128,7 +128,7 @@ These are source-level findings, not newly implemented fixes:
 | Snapshot has no runtime incarnation and no in-progress assistant draft | Use a unique runtime `sessionId`; snapshot draft completeness remains an explicit v2 review question |
 | V1 project/file/folder semantics are server-local | Preserve them as typed, explicitly scoped v2 operations/capabilities |
 
-V2 method names use `resource.action` uniformly: `session.create/open/list/snapshot/close`, `catalogue.get`, `message.send`, `run.abort`, `prompt.answer`, `model.select`, `thinking.level`, `session.compact/reload`, `extension.run`, `directory.browse`, `command.complete`, `session.archive`, `project.pin/remove`, `file.open`, and `server.initialize/ping/restart`. Slash-separated suffixes here abbreviate distinct methods (for example `session.create` and `session.open`), not literal wire names. V1 names above remain the observed baseline; SDK method names may remain idiomatic.
+V2 method names use `resource.action` uniformly: `session.create/open/list/snapshot/close`, `project.list`, `message.send`, `run.abort`, `prompt.answer`, `model.select`, `thinking.level`, `session.compact/reload`, `extension.run`, `directory.browse`, `command.complete`, `session.archive`, `project.pin/remove`, `file.open`, and `server.initialize/ping/restart`. Slash-separated suffixes here abbreviate distinct methods (for example `session.create` and `session.open`), not literal wire names. V1 names above remain the observed baseline; SDK method names may remain idiomatic.
 
 The v2 draft lives in [PROTOCOL.md](PROTOCOL.md). This inventory does not resolve its remaining protocol questions or authorize runtime changes.
 

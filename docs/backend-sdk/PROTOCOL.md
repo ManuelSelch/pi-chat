@@ -54,7 +54,7 @@ Session operations require the target runtime's `sessionId`. Server operations d
 | `session.list` | Server | Complete runtime inventory |
 | `session.snapshot` | Session | Current state and event watermark |
 | `session.close` | Session | Teardown completed; saved history is not deleted |
-| `catalogue.get` | Server | Projects and nested saved-session summaries |
+| `project.list` | Server | Known projects with metadata and nested saved-session summaries; not all server directories |
 | `server.ping` | Server | Completed liveness check |
 
 ### 4.2 Message, run and model control
