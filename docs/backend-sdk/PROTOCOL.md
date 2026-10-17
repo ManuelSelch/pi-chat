@@ -86,27 +86,209 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 
 ### Server models
 
-`?` marks an optional field. Collections in snapshots are complete current values, not append-only updates. Models are application-owned data, not serialized Pi SDK/TUI objects.
+Illustrative TypeScript definitions, not implemented SDK exports. `?` means optional; unions describe distinct wire shapes. Collections are complete current values. Schemas will enforce bounds and cross-field rules; local notification bubbles are not authoritative history.
 
-| Model | Fields / meaning |
-|---|---|
-| `OpenSessionSummary` | `sessionId`, `sessionInstanceId`, `title`, `sessionPath?`, `projectPath`, `projectName`, `status: idle / running / blocked / closing` |
-| `SessionSnapshot` | Session identities, `throughSequence`, `sessionPath?`, `sessionName?`, `projectPath`, `messages`, `runtime`, `steeringMessages`, `settings`, `commands`, `prompts`, `presentation?` |
-| `RuntimeState` | `status: idle / running / aborting / closing`, `runId?`, `lastError?`; summary status is blocked when prompts are pending |
-| `ChatMessage` | `id`, `role`, `timestamp?`; user/assistant/system have `text`, `thinking?`, `skill?`; tool has `tool`; bash has `bash`; custom has `customType` and `text` |
-| `ToolCard` | `toolCallId`, `name`, `status: running / success / error`, `argsText?`, `outputText?`, bounded `writeContent?` and `editDiff?` |
-| `BashCard` | `command`, bounded `output`, `status: running / success / error / cancelled`, `exitCode?`, `excludeFromContext`, `truncated`, `fullOutputPath?` |
-| `SessionSettings` | `model`, `availableModels`, `thinkingLevel`, `availableThinkingLevels`; model values are opaque server-offered IDs |
-| `SlashCommand` | `name`, `description?`, `argumentHint?`, `source?`; invoke by sending `/name ...` through `sendMessage` |
-| `Prompt` | `id`, `kind`, `title`, `message?`, `options?`, `placeholder?`, `prefill?`; see question types below |
-| `PromptResult` | Either `cancelled: true`, or `cancelled: false` with typed `value`; sent through `answerPrompt` using the prompt's `id` as `promptId` |
-| `Presentation` | `revision`, `widgets`, `footer`, `extensions`; optional rendering contributions, not core execution state |
-| `Widget` | `key`, plain-text `lines`, `placement: aboveEditor / belowEditor`; placement is a hint, not a required layout |
-| `FooterItem` | `key`, `text`, `align: left / right`, `variant: badge / plain`; includes keyed extension status text |
-| `ExtensionContributions` | `buttons`, `badges`, namespaced JSON `state`; button has `id`, `slot`, `label`, `icon?`, `actionId`; badge has `id`, `slot`, `label`, `tone` |
-| `ProjectCatalogue` | `projects`; project paths/names, worktree/quick-chat/pin metadata and nested saved-session summaries retain the [existing catalogue fields](../../src/shared/protocol.ts) |
+**Sessions and messages**
 
-Messages retain existing nested skill, diff, output and truncation fields from the v1 schemas. Local notification bubbles are not authoritative `ChatMessage` history. Exact bounds and optional-value validation belong to the later schemas.
+```typescript
+interface SessionIdentity {
+  sessionId: string;
+  sessionInstanceId: string;
+}
+
+interface OpenSessionSummary extends SessionIdentity {
+  title: string;
+  sessionPath?: string;
+  projectPath: string;
+  projectName: string;
+  status: "idle" | "running" | "blocked" | "closing";
+}
+
+interface SessionSnapshot extends SessionIdentity {
+  throughSequence: number;
+  sessionPath?: string;
+  sessionName?: string;
+  projectPath: string;
+  messages: ChatMessage[];
+  runtime: RuntimeState;
+  steeringMessages: string[];
+  settings: SessionSettings;
+  commands: SlashCommand[];
+  prompts: Prompt[];
+  presentation?: Presentation;
+}
+
+interface RuntimeState {
+  status: "idle" | "running" | "aborting" | "closing";
+  runId?: string;
+  lastError?: string;
+}
+
+interface SessionSettings {
+  model: string; // Opaque server-offered ID.
+  availableModels: string[];
+  thinkingLevel: ThinkingLevel;
+  availableThinkingLevels: ThinkingLevel[];
+}
+
+type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+
+interface SlashCommand {
+  name: string; // Invoke /name ... through sendMessage.
+  description?: string;
+  argumentHint?: string;
+  source?: "native" | "extension" | "prompt" | "skill";
+}
+
+interface MessageIdentity {
+  id: string;
+  timestamp?: number;
+}
+
+type ChatMessage = MessageIdentity & (
+  | { role: "user" | "assistant" | "system"; text: string; thinking?: string;
+      skill?: { name: string; location: string; content: string } }
+  | { role: "tool"; tool: ToolCard }
+  | { role: "bash"; bash: BashCard }
+  | { role: "custom"; customType: string; text: string }
+);
+
+interface ToolCard {
+  toolCallId: string;
+  name: string;
+  status: "running" | "success" | "error";
+  argsText?: string;
+  outputText?: string;
+  writeContent?: { text: string; truncated: boolean };
+  editDiff?: {
+    format: "unified" | "pi-display";
+    text: string;
+    truncated: boolean;
+    firstChangedLine?: number;
+  };
+}
+
+interface BashCard {
+  command: string;
+  output: string;
+  status: "running" | "success" | "error" | "cancelled";
+  exitCode?: number;
+  excludeFromContext: boolean;
+  truncated: boolean;
+  fullOutputPath?: string;
+}
+```
+
+**Questions and optional presentation**
+
+```typescript
+interface PromptBase {
+  id: string; // Passed as promptId to answerPrompt.
+  title: string;
+}
+
+type Prompt = PromptBase & (
+  | { kind: "select"; options: string[] }
+  | { kind: "confirm"; message: string }
+  | { kind: "input"; placeholder?: string }
+  | { kind: "editor"; prefill?: string }
+);
+
+type PromptResult =
+  | { cancelled: true }
+  | { cancelled: false; value: string | boolean };
+// Server validates value against the pending prompt kind and offered options.
+
+interface Presentation {
+  revision: number;
+  widgets: Widget[];
+  footer: FooterItem[];
+  extensions: ExtensionContributions;
+}
+
+interface Widget {
+  key: string;
+  lines: string[];
+  placement: "aboveEditor" | "belowEditor"; // Layout hint.
+}
+
+interface FooterItem {
+  key: string;
+  text: string;
+  align: "left" | "right";
+  variant: "badge" | "plain";
+}
+
+type Slot = "session.header.right" | "composer.right" | "composer.below"
+  | "session.status" | "settings.section";
+
+interface ExtensionContributions {
+  buttons: ExtensionButton[];
+  badges: ExtensionBadge[];
+  state: Record<string, JsonValue>; // Namespaced by extension.
+}
+
+interface ExtensionButton {
+  id: string;
+  slot: Slot;
+  label: string;
+  icon?: string;
+  actionId: string; // Invoked through runExtensionAction.
+}
+
+interface ExtensionBadge {
+  id: string;
+  slot: Slot;
+  label: string;
+  tone: "neutral" | "green" | "yellow" | "red";
+}
+
+type JsonValue = null | boolean | number | string | JsonValue[]
+  | { [key: string]: JsonValue };
+```
+
+**Project catalogue and saved history**
+
+```typescript
+interface ProjectCatalogue {
+  projects: ProjectSummary[];
+}
+
+interface ProjectSummary {
+  path: string;
+  displayPath: string;
+  name: string;
+  exists: boolean;
+  modified: number;
+  sessionCount: number;
+  pinned?: boolean;
+  quickChats?: boolean;
+  sessions: SavedSessionSummary[];
+  repositoryPath?: string;
+  repositoryName?: string;
+  worktree?: {
+    branch?: string;
+    commit?: string;
+    detached: boolean;
+    primary: boolean;
+  };
+}
+
+interface SavedSessionSummary {
+  path: string;
+  id: string;
+  title: string;
+  name?: string;
+  nameSource: "manual" | "auto" | "none";
+  firstMessage?: string;
+  modified: number;
+  created: number;
+  messageCount: number;
+  archivedAt?: number;
+}
+```
+
+Catalogue fields retain v1 semantics. `SavedSessionSummary.id` identifies history; it does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
 
 ### Server events
 
