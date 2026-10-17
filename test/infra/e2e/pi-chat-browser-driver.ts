@@ -45,8 +45,8 @@ export class PiChatBrowserDriver {
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService } = {}): Promise<PiChatBrowserDriver> {
-    const world = new TestWorld(options.extensions, true);
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {
+    const world = new TestWorld(options.extensions, true, options.projectName);
     let server: PiChatServer | undefined;
     try {
       const projectSessions = new ProjectSessionService(

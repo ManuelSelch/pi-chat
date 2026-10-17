@@ -1,0 +1,18 @@
+{
+  "layout": "Product first",
+  "mockModel": true,
+  "realUI": true,
+  "viewport": {
+    "width": 1120,
+    "height": 780
+  },
+  "deviceScaleFactor": 2,
+  "files": [
+    "workspace.png",
+    "projects.png",
+    "quick-switcher.png",
+    "light.png",
+    "pi-chat-showcase.png",
+    "preview.html"
+  ]
+}

@@ -20,6 +20,8 @@ export interface AssistantResponse {
 export interface TestSessionResources {
   skills?: readonly { name: string; instructions: string }[];
   enableSkillCommands?: boolean;
+  /** Optional readable fixture folder name, still isolated inside a temporary directory. */
+  projectName?: string;
 }
 
 interface OwnedSession {
@@ -30,9 +32,10 @@ interface OwnedSession {
 
 /** Only model responses are mocked; every created adapter hosts a real Pi session. */
 export class TestWorld {
-  readonly projectPath = realpathSync(mkdtempSync(join(tmpdir(), "pi-chat-driver-")));
+  private readonly ownedRoot: string;
+  readonly projectPath: string;
   private readonly sessions = new Map<string, OwnedSession>();
-  readonly sessionDir = join(this.projectPath, ".pi-sessions");
+  readonly sessionDir: string;
   private readonly controlledResponses = new Map<string, () => void>();
   private readonly creating = new Set<Promise<PiRuntimeAdapter>>();
   private reservation?: { responses: readonly AssistantResponse[]; resources: TestSessionResources; started: boolean };
@@ -41,7 +44,12 @@ export class TestWorld {
   private readonly extensions: readonly ExtensionFactory[];
   private readonly allowHomeSession: boolean;
 
-  constructor(extensions: readonly ExtensionFactory[] = [], allowHomeSession = false) {
+  constructor(extensions: readonly ExtensionFactory[] = [], allowHomeSession = false, projectName?: string) {
+    assert(!projectName || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectName), "Fixture project name must be a safe directory name");
+    this.ownedRoot = realpathSync(mkdtempSync(join(tmpdir(), "pi-chat-driver-")));
+    this.projectPath = projectName ? join(this.ownedRoot, projectName) : this.ownedRoot;
+    mkdirSync(this.projectPath, { recursive: true });
+    this.sessionDir = join(this.projectPath, ".pi-sessions");
     this.extensions = [...extensions];
     this.allowHomeSession = allowHomeSession;
   }
@@ -88,7 +96,10 @@ export class TestWorld {
   }
 
   private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<PiRuntimeAdapter> {
-    const cwd = resources.skills ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
+    assert(!resources.projectName || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resources.projectName), "Fixture project name must be a safe directory name");
+    const sessionRoot = resources.skills || resources.projectName ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
+    const cwd = resources.projectName ? join(sessionRoot, resources.projectName) : sessionRoot;
+    mkdirSync(cwd, { recursive: true });
     for (const skill of resources.skills ?? []) {
       assert(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skill.name), "Fixture skill name must be a safe directory name");
       const dir = join(cwd, "skills", skill.name);
@@ -201,7 +212,7 @@ export class TestWorld {
       // removing the project directory, then release every remaining adapter.
       await Promise.allSettled([...this.creating]);
       const results = await Promise.allSettled([...this.sessions.values()].map(session => session.adapter.dispose()));
-      rmSync(this.projectPath, { recursive: true, force: true });
+      rmSync(this.ownedRoot, { recursive: true, force: true });
       const failures = results.flatMap(result => result.status === "rejected" ? [result.reason] : []);
       if (failures.length) throw new AggregateError(failures, "Test world cleanup failed");
     })();
