@@ -24,6 +24,8 @@
     "pretest": "npm run build",
     "test": "vitest run --config vitest.config.ts",
     "contract:generate": "tsx scripts/export-contract.ts",
+    "probe:swift:generate": "tsx scripts/generate-swift-probe.ts",
+    "probe:swift": "swift test --package-path ..",
     "prepack": "npm run build"
   },
   "dependencies": {
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^26.5.1",
     "ajv": "8.20.0",
+    "quicktype-core": "26.0.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.0"
