@@ -1,9 +1,9 @@
 # Reusable Pi Backend and Client SDKs — Requirements
 
 ## Goal
-Make Pi Chat's current backend reusable by the existing web client and a future native iOS application. Establish a small, documented client/server contract and UI-independent TypeScript and Swift SDKs without replacing Pi's runtime or adopting a larger agent protocol. Prove the boundaries inside this repository, then move the server, protocol and SDKs together into a dedicated repository after the web and Swift milestones pass.
+Migrate Pi Chat from the current v1 protocol to a versioned v2 contract by extracting a small reusable backend SDK from the existing server/transport/runtime boundary, proving the SDK in Pi Chat, and then moving the server, protocol and SDKs together into a dedicated repository. Keep the current runtime and behavior stable while introducing a clear client/server contract and UI-independent TypeScript and Swift SDKs without adopting a larger agent protocol or replacing Pi itself.
 
-This is a planning deliverable, not approval to implement. The existing [steering/snapshot requirements](../steering/REQUIREMENTS.md) remain unchanged; this feature plan follows the repository's docs/<feature>/REQUIREMENTS.md convention.
+This is a planning deliverable, not approval to implement. The existing [steering/snapshot requirements](../steering/REQUIREMENTS.md) remain unchanged; this feature plan follows the repository's docs/<feature>/REQUIREMENTS.md convention and specifically targets the v1-to-v2 migration path.
 
 ## Scope
 ### In Scope
@@ -65,10 +65,10 @@ This is a planning deliverable, not approval to implement. The existing [steerin
 
 ## Implementation Plan
 ### 1. Protocol Inventory and Behavioral Specification
-Description: Inventory src/shared/protocol.ts, directories/files schemas, transport handlers/publisher, runtime contracts, browser reducers and the four request trackers. Write a protocol specification and operation-contract table covering current behavior and shortcomings. Classify AHP/pi-server findings as fix, document or defer. Record ambiguous acceptance/completion and snapshot semantics without changing code. Verify every current command/event family is covered and preserve the [steering/snapshot requirements](../steering/REQUIREMENTS.md).
+Description: Freeze the current v1 contract as the migration baseline and inventory src/shared/protocol.ts, directories/files schemas, transport handlers/publisher, runtime contracts, browser reducers and the four request trackers. Write a protocol specification and operation-contract table covering current behavior and shortcomings. Classify AHP/pi-server findings as fix, document or defer. Record ambiguous acceptance/completion and snapshot semantics without changing code. Verify every current command/event family is covered and preserve the [steering/snapshot requirements](../steering/REQUIREMENTS.md).
 
 ### 2. Shared Contract Package and Fixtures
-Description: Depends on slice 1. Introduce a separately buildable local protocol package and move schemas/types without behavior changes. Export language-neutral schemas, representative wire fixtures and public package entry points. Update server/web/tests incrementally; preserve intentional compatibility surfaces. Verify package imports, current protocol tests, typechecking, production build and that no runtime/UI dependency leaks into the contract. Validate Swift generation feasibility on message unions, optional values, enums and extension JSON; document the selected approach before generating the full Swift model set.
+Description: Depends on slice 1. Introduce a separately buildable local protocol package and move schemas/types without behavior changes. Export language-neutral schemas, representative wire fixtures and public package entry points. Update server/web/tests incrementally; preserve intentional compatibility surfaces. Verify package imports, current protocol tests, typechecking, production build and that no runtime/UI dependency leaks into the contract. Validate Swift generation feasibility on message unions, optional values, enums and extension JSON; document the selected approach before generating the full Swift model set. This extract becomes the migration baseline for the v2 wire contract.
 
 ### 3. UI-Independent TypeScript Client
 Description: Depends on slice 2. Extract socket lifecycle, request trackers and session projection/reducer logic into a TypeScript SDK. Split out browser-only notices/presentation/navigation as needed without changing current wire behavior. Provide explicit endpoint configuration, observable immutable state and typed operations behind a fake transport seam. Verify readiness, reconnect/backoff, replaced-controller handling, cleanup, local cancellation, session routing and pending-request failures without React or browser globals.
