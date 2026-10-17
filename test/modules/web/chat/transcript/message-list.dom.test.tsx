@@ -21,6 +21,16 @@ function tool(id: string, name: string, status: "running" | "success" | "error" 
 }
 
 describe("MessageList", () => {
+  it.each([true, false])("shows Pi labels only outside compact mode (compact=%s)", async (compact) => {
+    renderMessages([
+      { id: "thinking", role: "assistant", text: "", thinking: "Inspect first" },
+      { id: "answer", role: "assistant", text: "Final answer" },
+    ], { runId: "live", text: "Streaming answer", thinking: "Still thinking" }, compact);
+    expect(screen.queryAllByText("Pi")).toHaveLength(compact ? 0 : 3);
+    expect(await screen.findByText("Final answer")).not.toBeNull();
+    expect(await screen.findByText("Streaming answer")).not.toBeNull();
+  });
+
   it("groups consecutive compact tools by name and keeps reasoning and answer in order", async () => {
     const { container } = renderMessages([
       { id: "a", role: "assistant", text: "", thinking: "Inspect first" },

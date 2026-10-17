@@ -59,7 +59,7 @@ const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: {
 
   return (
     <Box component="article">
-      {message.role === "assistant" ? (
+      {message.role === "assistant" && !compact ? (
         <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
       ) : null}
       {message.role === "assistant" && message.thinking ? (
@@ -140,7 +140,9 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
           : <MessageRow key={row.id} message={row} onLocalLink={onLocalLink} compact={compact} />)}
         {draft ? (
           <Box component="article">
-            <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
+            {!compact ? (
+              <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
+            ) : null}
             {draft.thinking ? (
               // Still "streaming" once prose starts arriving is deliberate: the
               // panel only settles when the turn does, so it does not collapse
