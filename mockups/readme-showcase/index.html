@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f5f7" />
+    <title>Pi Chat — README Showcase Directions</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./main.js"></script>
+  </head>
+  <body>
+    <main class="review-shell">
+      <header class="review-bar">
+        <div class="review-brand"><span class="brand-mark">π</span><span>README showcase directions</span></div>
+        <div class="revision-tag">CONCEPT 01 <span>·</span> NOT FINAL ASSETS</div>
+      </header>
+
+      <nav class="direction-switch" aria-label="Showcase direction">
+        <button class="direction-button is-active" data-layout="product" aria-pressed="true">
+          <span class="direction-number">01</span>
+          <span><strong>Product first</strong><small>Clean crops, quiet framing</small></span>
+        </button>
+        <button class="direction-button" data-layout="editorial" aria-pressed="false">
+          <span class="direction-number">02</span>
+          <span><strong>Editorial collage</strong><small>More atmosphere, feature callouts</small></span>
+        </button>
+      </nav>
+
+      <article class="readme-preview" id="readme-preview" data-layout="product">
+        <section class="showcase" aria-label="Proposed README showcase images">
+          <div class="showcase-intro">
+            <h2><strong>Workspace</strong></h2>
+          </div>
+
+          <figure class="hero-figure" data-shot="rich-chat">
+            <div class="app-frame dark-frame">
+              <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><div class="address"><span class="tiny-pi">π</span> 127.0.0.1:8788</div><div class="frame-actions"><span>•••</span></div></div>
+              <div class="app-topbar"><div class="app-brand"><span class="app-logo">π</span><span>pi-chat</span></div><div class="top-project">⌂ <span>pi-chat</span><b>⌄</b></div><div class="top-state"><i></i> Ready</div><span class="gear">⚙</span></div>
+              <div class="workspace">
+                <aside class="project-rail">
+                  <div class="rail-heading">WORKSPACES <span>＋</span></div>
+                  <div class="project-selected"><span class="folder-icon">▣</span><span><b>pi-chat</b><small>~/code/pi-chat</small></span><span class="chevron">⌄</span></div>
+                  <div class="rail-heading sessions-heading">RECENT SESSIONS <span>⌕</span></div>
+                  <div class="session-item active"><span class="session-dot"></span><span>Trace retry behavior</span><small>now</small></div>
+                  <div class="session-item"><span class="session-dot muted"></span><span>Polish the project picker</span><small>2h</small></div>
+                  <div class="session-item"><span class="session-dot muted"></span><span>Document keyboard shortcuts</span><small>Tue</small></div>
+                  <div class="rail-footer"><span class="avatar">M</span><span><b>Local session</b><small>Connected to Pi</small></span><span class="more">···</span></div>
+                </aside>
+                <section class="conversation">
+                  <div class="conversation-head"><div><span class="crumb-muted">pi-chat</span><span class="crumb-sep">/</span><b>Trace retry behavior</b></div><button class="more-button">···</button></div>
+                  <div class="transcript">
+                    <div class="user-message"><span class="avatar user-avatar">M</span><p>Can you find why a retried request starts a fresh session instead of continuing the original one?</p></div>
+                    <div class="assistant-message"><div class="assistant-mark">π</div><div class="message-copy"><p>I traced it to the retry path: it creates a new client for each attempt, so the follow-up request loses the original session context.</p><p>Here’s the handoff point that causes it:</p>
+                      <div class="tool-card"><div class="tool-title"><span class="tool-status">✓</span><strong>read</strong><code>src/server/retry-handler.ts</code><span class="tool-time">0.2s</span><span class="tool-caret">⌄</span></div><div class="tool-body"><div class="code-line"><span>42</span><code><em>const</em> client = <b>createClient</b>();</code></div><div class="code-line highlight"><span>43</span><code><em>return</em> client.<b>send</b>(request); <i>← new session on every retry</i></code></div><div class="code-line"><span>44</span><code><em>await</em> client.<b>close</b>();</code></div></div></div>
+                      <div class="answer-note"><span>✦</span><span><b>Suggested fix</b> — reuse the session-bound client across retry attempts.</span></div>
+                      <div class="response-footer"><span>↻ 1.2s</span><span>·</span><span>gpt-5</span><span class="response-actions">♡ &nbsp; ⧉ &nbsp; ···</span></div>
+                    </div></div>
+                  </div>
+                  <div class="composer"><div class="composer-placeholder">Ask Pi anything…</div><div class="composer-foot"><span>＋ &nbsp; Add context</span><span>gpt-5 <b>⌄</b> &nbsp; <button class="send-button">↑</button></span></div></div>
+                </section>
+              </div>
+            </div>
+            <figcaption><span>Rich responses · tool details · project context</span></figcaption>
+          </figure>
+
+          <div class="supporting-grid">
+            <figure class="support-figure navigation-figure" data-shot="navigation">
+              <div class="mini-window dark-frame"><div class="mini-top"><span class="mini-dots">● ● ●</span><span>π &nbsp; 127.0.0.1:8788</span><span>⌕</span></div><div class="mini-navigation"><div class="mini-sidebar"><div class="mini-label">PROJECTS <span>＋</span></div><div class="mini-project current"><span>▣</span><b>pi-chat</b><small>3</small></div><div class="mini-project"><span>▣</span> flux</div><div class="mini-project"><span>▣</span> notesToGo</div><div class="mini-label mini-recent">RECENT SESSIONS</div><div class="mini-session selected"><i></i> Trace retry behavior</div><div class="mini-session"><i></i> Polish project picker</div><div class="mini-session"><i></i> Add keyboard shortcuts</div><div class="mini-label mini-recent">QUICK CHATS</div><div class="mini-session"><i></i> Personal notes</div></div><div class="mini-empty"><div class="mini-bubbles">▤</div><b>Pick up right where you left off.</b><p>Projects and sessions stay together,<br>ready when you are.</p><span class="mini-open">Open session&nbsp; →</span></div></div></div>
+              <figcaption><b>Projects & sessions</b></figcaption>
+            </figure>
+
+            <figure class="support-figure command-figure" data-shot="commands">
+              <div class="mini-window dark-frame command-window"><div class="mini-top"><span class="mini-dots">● ● ●</span><span>π &nbsp; 127.0.0.1:8788</span><span>⌕</span></div><div class="command-backdrop"><div class="ghost-bubble ghost-one"></div><div class="ghost-bubble ghost-two"></div><div class="palette"><div class="palette-query"><span>/</span> <b>re</b><i>name session</i><span class="esc">ESC</span></div><div class="palette-row"><span class="command-glyph">⌘</span><span><b>/reload</b><small>Reload the current Pi session</small></span><kbd>↵</kbd></div><div class="palette-row chosen"><span class="command-glyph">✎</span><span><b>/rename</b><small>Give this session a name</small></span><span class="native-tag">NATIVE</span></div><div class="palette-row"><span class="command-glyph">◷</span><span><b>/resume</b><small>Continue a previous session</small></span><span class="extension-tag">EXTENSION</span></div><div class="palette-row"><span class="command-glyph">⌕</span><span><b>/review</b><small>Review the current changes</small></span><span class="extension-tag">EXTENSION</span></div><div class="palette-hint"><span>↑↓ Navigate</span><span>↵ Run command</span><span>esc Close</span></div></div><div class="fake-composer">/re<span class="cursor"></span></div></div></div>
+              <figcaption><b>Commands Panel</b></figcaption>
+            </figure>
+
+            <figure class="support-figure theme-figure" data-shot="light">
+              <div class="mini-window light-frame"><div class="mini-top"><span class="mini-dots">● ● ●</span><span>π &nbsp; 127.0.0.1:8788</span><span>◐</span></div><div class="light-chat"><div class="light-chat-top"><span class="light-brand">π &nbsp; pi-chat</span><span class="light-tabs">Trace retry behavior</span><span class="light-ready"><i></i> Ready</span></div><div class="light-content"><div class="light-user">Could you summarize the fix and show the changed lines?</div><div class="light-response"><div class="light-pi">π</div><div><p>The retry handler now reuses its session client. That keeps each attempt in the same Pi conversation.</p><div class="light-tool"><div class="light-tool-heading"><span>✓ &nbsp;<b>edit</b></span><code>src/server/retry-handler.ts</code></div><div class="diff-line removed"><span>−</span><code>const client = createClient();</code></div><div class="diff-line added"><span>+</span><code>const client = session.client;</code></div></div><div class="light-result">✓ &nbsp; Updated one file <span>· 2 lines changed</span></div></div></div><div class="light-composer">Ask Pi anything… <span>gpt-5 &nbsp; ⌄ &nbsp; <b>↑</b></span></div></div></div></div>
+              <figcaption><b>Light mode</b></figcaption>
+            </figure>
+          </div>
+        </section>
+
+      </article>
+      <p class="review-note">Everything inside the app frames is fictional demo content. These are composition studies, not screenshots of the current app and not final assets.</p>
+    </main>
+  </body>
+</html>

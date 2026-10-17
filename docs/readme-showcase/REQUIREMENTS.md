@@ -18,7 +18,8 @@ Replace the current five large, repetitive, mostly unframed screenshots with a s
 
 ## Requirements
 - The showcase must use a small set of distinct images (target: 2–4), each with a clear purpose; avoid multiple near-identical transcript shots.
-- At least one image must show the actual chat interface in a rich, readable, non-empty state. Other images should each demonstrate a separate user-visible capability.
+- At least one image must show the chat interface in a rich, readable, non-empty state. Other images should demonstrate project/session navigation and the command panel.
+- Include one light-mode image alongside dark-mode imagery to demonstrate theme support.
 - Capture the application itself; any decorative framing or labels must not obscure controls or imply unsupported behavior.
 - Demo content must be curated and repeatable, and must not reveal real user prompts, project names, file paths, account details, tokens, or other private information.
 - Images must be cropped to remove excessive empty desktop/browser margins, legible at typical README display width, and stored in an appropriate web-friendly format without needless resolution or file size.
@@ -29,6 +30,7 @@ Replace the current five large, repetitive, mostly unframed screenshots with a s
 ## Assumptions
 - Pi Chat's existing UI is the source of truth; the improvement should come primarily from better story selection, capture state, crop, and presentation rather than production UI changes.
 - A deterministic local runtime/demo fixture is preferable to capturing a personal live session; existing test infrastructure can be evaluated as a starting point.
+- The visual direction is still undecided; compare a clean product-focused treatment with a more editorial composition before selecting one.
 - The first delivery is aimed at desktop README readers. A separate mobile-specific asset is not required unless review shows the chosen composition fails at narrow widths.
 
 ## Implementation Plan
@@ -45,6 +47,4 @@ Description: Capture each storyboard state, then apply consistent crop, scale, s
 Description: Replace the current five-image block with the chosen ordered set, useful alt text, and short captions; check layout and links in a rendered GitHub-style README view, including a narrow viewport. Completion is verified by confirming all assets load, the sequence reads clearly, and no redundant legacy screenshots remain referenced.
 
 ## Open Questions
-1. Should the visual direction be clean, tightly cropped product screenshots, or a more designed editorial composition with subtle backgrounds, device/browser framing, and brief callouts?
-2. Which 2–4 capabilities should the showcase prioritize: rich chat/tool output, native steering, project/session navigation, command discovery/completion, or light/dark appearance?
-3. Should the set be dark-mode only for consistency, or include one light-mode image to demonstrate theme support?
+1. Which visual direction should be used: clean, tightly cropped product screenshots, or a more editorial composition with subtle backgrounds, browser framing, and brief callouts?
