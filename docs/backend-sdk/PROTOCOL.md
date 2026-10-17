@@ -15,8 +15,8 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 ## 2. Connection
 
 - WebSocket `/ws`, one JSON object per text message. No batches or binary messages initially.
-- Remote access uses HTTPS/WSS through the homelab reverse proxy. Authentication and browser-origin validation are required; TLS alone is not authentication. Authentication is a connection/transport concern, not a session-operation payload. SDK transports accept replaceable credential providers so OAuth can be added later without changing v2 operations or events. Default binding remains loopback.
-- One controller connection may operate multiple concurrent sessions. Only successful authentication and initialization replace the controller.
+- Remote access uses HTTPS/WSS through the homelab reverse proxy, which owns TLS termination and authentication. Pi Server and the SDK implement no application authentication or OAuth flow initially; the backend must remain loopback/private so remote clients cannot bypass the proxy. Apply browser-origin validation. OAuth could be added later at the proxy/transport boundary without changing v2 session operations or events. Default binding remains loopback.
+- One controller connection may operate multiple concurrent sessions. A remote connection admitted by the proxy (or a local loopback connection) becomes controller only after initialization.
 - Replaced connections close with code `4001`. They must not automatically reconnect until the user explicitly takes control.
 - First request: `initialize`, carrying client name/version and requested optional capabilities.
 - Result: protocol/server versions, `serverInstanceId`, `connectionId`, selected capabilities, complete open-session inventory, project catalogue and snapshots for all open sessions.
@@ -372,7 +372,6 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 
 ## 8. Open decisions and rollout
 
-- Authentication ownership/mechanism for browser and Swift behind the reverse proxy; OAuth can be introduced later through the transport credential-provider boundary.
 - Final envelope choice (custom versus JSON-RPC) and wire version confirmation.
 - Admission handoff against Pi's SDK; whether operation outcomes need querying after reconnect.
 - Whether full in-progress assistant drafts are required in snapshots.
