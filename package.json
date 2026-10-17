@@ -22,6 +22,7 @@
     "test:e2e": "npm run build && playwright test",
     "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
     "measure:server-memory": "npm run build && node scripts/compare-server-memory.mjs",
+    "capture:readme": "tsx scripts/capture-readme.ts",
     "test:watch": "vitest"
   },
   "engines": {
