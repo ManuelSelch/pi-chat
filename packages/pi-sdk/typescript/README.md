@@ -158,14 +158,21 @@ There is no application heartbeat or durable request journal.
 
 ## Migration boundary
 
-Slice 3 extracts the common session reducer and four trackers. The existing web
-hook still owns its socket and local application state until slice 4. Its old
-tracker import paths temporarily re-export `@manuelselch/pi-sdk/migration`, an
-internal migration surface, **not a supported alternative client API**. These
-bridge constructors retain v1 defaults (only file requests historically had a
-cap/deadline); the public `PiClient` configures bounds for every request family.
+Slice 4 is complete: Pi Chat's `usePiChat` owns one PiClient per mounted
+controller and invokes its typed operations. The browser provides the explicit
+WebSocket endpoint and logging adapter. React cleanup disposes only the client,
+not server runtimes. `bindPiChat` is shared with domain integration tests; SDK
+projections are not reduced a second time in the web application.
 
-The browser's notice anchoring and navigation remain web-owned. Slice 4 replaces
-the hook's remaining connection/request ownership with one PiClient. Slice 5
+Browser notice anchoring, dismissed errors, optimistic navigation, input drafts
+and focus remain web-owned. The old web tracker bridges and `./migration` export
+are removed; their regression tests now live beside the internal SDK trackers.
+All request families used by Pi Chat now have the SDK's limits/deadlines. Session
+creation uses the existing correlated v1 reply; unknown outcomes are displayed
+without replay. Invalid required input is surfaced as a connection failure, not
+silently ignored. A pre-existing server Home error bug is corrected by using the
+existing v1 `protocolError` instead of an invalid empty-session runtime event.
+
+This does not add atomic readiness or change the v1 schemas/fixtures. Slice 5
 replaces the v1 contract in a coordinated v2-only cutover; these temporary legacy
 operations do not imply permanent v1 support.

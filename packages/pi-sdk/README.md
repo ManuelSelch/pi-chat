@@ -4,12 +4,14 @@ This directory is the future `pi-sdk` repository boundary. It contains one npm
 package, `@manuelselch/pi-sdk`, and a root SwiftPM package/product named `PiSDK`.
 There is no standalone protocol/client package. Nothing is published.
 
-**Current implementation: slice 3, UI-independent v1 TypeScript SDK.**
+**Current implementation: slice 4, Pi Chat integrated with the v1 TypeScript SDK.**
 [`PiClient`](typescript/README.md) owns injectable transport lifecycle, typed
 operations, bounded request tracking, immutable state and session projections.
-Pi Chat's React hook is not yet switched to PiClient (slice 4); its tracker and
-session-reducer logic already delegate to the SDK through migration bridges.
-Swift's public target is a scaffold, not a working client. The [v2 draft](../../docs/backend-sdk/PROTOCOL.md) is still
+Pi Chat's React hook now uses PiClient for connection lifecycle, all operations,
+request tracking and session projections. Browser navigation, optimistic UI,
+notice anchors and focus stay application-owned; the old tracker migration
+bridges have been removed. Swift's public target is a scaffold, not a working
+client. The [v2 draft](../../docs/backend-sdk/PROTOCOL.md) is still
 unimplemented. V1 is a temporary baseline, not an ongoing compatibility promise.
 
 ## Layout

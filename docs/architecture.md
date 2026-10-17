@@ -6,9 +6,11 @@ The unchanged v1 wire schemas/types now live in the local
 [`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Both sides consume
 its public contract entry point through temporary `src/shared` re-exports.
 The SDK also contains the UI-independent TypeScript `PiClient` with injectable
-transport, request tracking and immutable session projections. The existing web
-hook already delegates its common trackers/session reducer to the SDK, but its
-socket ownership moves to PiClient in slice 4. The proposed v2 cutover is later.
+transport, request tracking and immutable session projections. Pi Chat now uses
+one PiClient per mounted controller: `use-pi-chat.ts` binds its lifecycle and typed
+operations to React, while `bindPiChat` composes SDK state with browser-only
+presentation. No web-owned wire parser, request trackers or session reducer
+remain. The proposed v2 cutover is later; the live contract is still v1.
 
 ```mermaid
 flowchart LR
@@ -24,12 +26,12 @@ flowchart TD
 
     subgraph Coordination
         Controller[App controller]
-        Connection[WebSocket connection]
+        Connection[PiClient SDK]
     end
 
     subgraph State
         AppState[App state]
-        ChatState[Chat state per session]
+        ChatState[SDK session projections plus local notice views]
     end
 
     subgraph Features
@@ -61,11 +63,18 @@ flowchart TD
     Settings --> Preferences
 ```
 
-- `App` manages the WebSocket connection and application state.
+- `App` mounts the controller; `usePiChat` creates/disposes PiClient and exposes
+  typed actions. The browser supplies the explicit endpoint (including the page
+  query string) and a logging transport adapter. SDK lifecycle owns backoff,
+  takeover, initial-sync timeout, cancellation, request limits and sequencing.
 - Chat, Sessions, Settings, and Extensions provide the main web features.
 - Shared UI and browser preferences support the features.
-- Common session projection and request trackers come from the SDK. Browser-local
-  notification bubbles/anchors and optimistic navigation remain in web code.
+- `app/state` composes read-only SDK projections without reducing wire events
+  again. It owns transient notification bubbles/anchors, dismissed-error masks,
+  optimistic opening/closing placeholders and rollback after local send failures.
+  SDK snapshots remain immutable; views accept read-only props. Navigation, input
+  drafts and composer focus remain browser-owned. The domain integration driver
+  uses the same SDK/view binding, rather than a second WebSocket/reducer path.
 
 ## Server
 
