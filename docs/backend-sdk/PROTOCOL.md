@@ -27,15 +27,15 @@ A shared contract for TypeScript and Swift clients. The existing [v1 schemas](..
 
 | Kind | Fields |
 |---|---|
-| Request | `version`, `type: request`, `requestId`, `method`, `params`; session identities when scoped |
+| Request | `version`, `type: request`, `requestId`, `method`, `params`; `sessionId` when scoped |
 | Response | `version`, `type: response`, `requestId`, `ok`; either `result` or `error` |
-| Session event | `version`, `type: event`, `event`, `serverInstanceId`, `sessionId`, `sessionInstanceId`, `sequence`, `data` |
+| Session event | `version`, `type: event`, `event`, `serverInstanceId`, `sessionId`, `sequence`, `data` |
 | Server event | `version`, `type: event`, `event`, `serverInstanceId`, `data` |
 | Protocol error | `version`, `type: protocolError`, `error` |
 
 - Requests receive one response while their originating connection remains current and writable. Responses never move to a replacement connection. Duplicate request IDs on one connection are protocol errors.
 - Errors contain machine-readable `code`, readable `message` and optional `details`. Examples: `invalidRequest`, `unsupportedVersion`, `unsupportedOperation`, `sessionNotFound`, `sessionReplaced`, `sessionBusy`, `invalidPromptAnswer`, `permissionDenied`, `operationFailed`.
-- `serverInstanceId` changes on process restart; `sessionInstanceId` changes whenever a runtime is loaded/replaced. Session requests name both `sessionId` and `sessionInstanceId`, preventing stale commands from targeting a reopened runtime.
+- `serverInstanceId` changes on process restart. `sessionId` is a fresh opaque unique ID assigned whenever a runtime is created, loaded or replaced; it is not Pi's persisted session ID. Reconnect and opening an already-loaded session retain its ID; closing and reopening saved history creates a new ID. In-place resource reload retains the ID unless it replaces the runtime. Session requests name only `sessionId`; IDs are never reused, so stale commands cannot target a reopened runtime. No separate `sessionInstanceId` is needed.
 - `sessionPath` identifies saved history on the server filesystem. It may be absent before Pi saves a session. `runId`, `promptId` and `operationId` identify execution, a question and admitted asynchronous work respectively.
 - IDs are opaque. Timestamps use epoch milliseconds; counters use safe JSON integers. Optional fields are omitted unless their schema explicitly permits null.
 
@@ -45,7 +45,7 @@ This draft groups operations by domain, but the wire format stays the same: a re
 
 ### 4.1 Session lifecycle and navigation
 
-Session operations require the target runtime identities. Server operations do not depend on a focused session.
+Session operations require the target runtime's `sessionId`. Server operations do not depend on a focused session.
 
 | Method | Scope / input | Response meaning |
 |---|---|---|
@@ -86,7 +86,7 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 - `operationFinished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
 - Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `sessionClosed` is its final event, followed by inventory removal.
 - `abortRun` stops execution without closing the session. Disconnect leaves runtimes alive; server restart may interrupt them. This is not durable execution.
-- SDK-driven session switching emits `sessionReplaced` with old/new identities and a new snapshot. Updating client navigation is application-owned.
+- SDK-driven session switching emits `sessionReplaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`. Updating client navigation is application-owned.
 - A completed mutation remains successful even if a later catalogue refresh fails. Rejections must not falsely settle another active run.
 
 ## 6. State and recovery
@@ -102,7 +102,7 @@ Paths refer to the server. `openFile` opens there, not on iOS. Removing a projec
 
 ### Server events
 
-The event stream is grouped by domain here for readability. The actual wire envelope is unchanged: each event still carries `type: event`, `event`, `sessionId`/`sessionInstanceId` when applicable, and `serverInstanceId`.
+The event stream is grouped by domain here for readability. The actual wire envelope is unchanged: each event still carries `type: event`, `event`, `sessionId` when applicable, and `serverInstanceId`.
 
 #### Session lifecycle and inventory events
 
@@ -112,7 +112,7 @@ The event stream is grouped by domain here for readability. The actual wire enve
 | `runtimeStatus` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
 | `sessionClosed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
 | `sessionsChanged` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
-| `sessionReplaced` | Server | Previous session identities and new `snapshot`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `sessionReplaced` | Server | `previousSessionId` and new `snapshot` with a fresh `sessionId`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
 | `serverStopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
 
 #### Message and execution events
@@ -148,8 +148,7 @@ Illustrative TypeScript definitions, not implemented SDK exports. `?` means opti
 
 ```typescript
 interface SessionIdentity {
-  sessionId: string;
-  sessionInstanceId: string;
+  sessionId: string; // Unique runtime ID, not the persisted Pi session ID.
 }
 
 interface OpenSessionSummary extends SessionIdentity {
@@ -344,7 +343,7 @@ interface SavedSessionSummary {
 }
 ```
 
-Catalogue fields retain existing semantics. `SavedSessionSummary.id` identifies history; it does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
+Catalogue fields retain existing semantics. `SavedSessionSummary.id` is Pi's persisted history ID, not the runtime `sessionId`; use `sessionPath` to associate a loaded runtime with saved history. A saved history entry does not prove a runtime is loaded. Summary status is blocked when prompts are pending; detailed runtime status remains in `RuntimeState`.
 
 ### Pi extension UI mapping
 

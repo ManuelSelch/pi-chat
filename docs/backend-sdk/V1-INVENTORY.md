@@ -64,13 +64,13 @@ The authoritative v1 definitions are `src/shared/protocol.ts`, `src/shared/direc
 |---|---|
 | Connect immediately replaces controller; server pushes state without a ready barrier | `initialize` response is the readiness barrier; identity/capabilities/inventory/snapshots are explicit |
 | Version 1; no compatibility negotiation | Coordinated v2-only cutover; v1 clients are unsupported afterward |
-| Session operations identify only `sessionId` | Session-scoped operations also identify `sessionInstanceId`; events identify server/runtime incarnations |
+| V1 `sessionId` follows Pi's session identity and may recur when history is reopened | V2 assigns a unique runtime `sessionId`, independent of Pi's history ID; reconnect retains it, but runtime replacement or close/reopen gets a fresh ID. No separate `sessionInstanceId` |
 | `tabs`, `activeSessionId`, `focusTab`, `closeTab` are wire-level | Tabs/focus stay application-owned; server exposes session inventory/lifecycle. Pi Chat still calls `closeSession` when a tab closes |
 | Many commands have no correlated acceptance/result; error shape varies by command | Uniform request/response/error envelope; operation contract states admission versus completed mutation |
 | Runtime UI features are represented by `runFeature` IDs and footer formatting | Typed core operations/settings; optional declarative presentation is separate |
 | Separate `prompts`, `widgets`, and `footer` events share core session sequence | Proposed full prompt/presentation models and independently revised optional presentation state; core sequencing remains gap-free |
 | `tabs` and `catalogue` have no revision | Complete replacement inventory/catalogue views have independent revisions |
-| Snapshot has no runtime incarnation and no in-progress assistant draft | Add runtime identities; snapshot draft completeness remains an explicit v2 review question |
+| Snapshot has no runtime incarnation and no in-progress assistant draft | Use a unique runtime `sessionId`; snapshot draft completeness remains an explicit v2 review question |
 | V1 project/file/folder semantics are server-local | Preserve them as typed, explicitly scoped v2 operations/capabilities |
 
 The v2 draft lives in [PROTOCOL.md](PROTOCOL.md). This inventory does not resolve its remaining protocol questions or authorize runtime changes.
