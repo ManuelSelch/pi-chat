@@ -3,11 +3,7 @@
 - A local browser chat for [Pi](https://github.com/earendil-works/pi)
 - running on the real Pi runtime: your credentials, extensions, tools, and persistent session files.
 
-![Pi-Chat Home](./docs/images/pi-chat-home.png)
-![Pi-Chat Session](./docs/images/pi-chat-session.png)
-![Pi-Chat Session](./docs/images/pi-chat-latex.png)
-![Pi-Chat Session](./docs/images/pi-chat-commands.png)
-![Pi-Chat Session](./docs/images/pi-chat-session-light.png)
+[![Pi Chat workspace, project and session navigation, Quick Switcher, and light mode](./docs/images/showcase/pi-chat-showcase.png)](./docs/images/showcase/pi-chat-showcase.png)
 
 ## Features
 
