@@ -21,6 +21,20 @@ function tool(id: string, name: string, status: "running" | "success" | "error" 
 }
 
 describe("MessageList", () => {
+  it.each([true, false])("preserves user newlines without changing assistant Markdown (compact=%s)", async (compact) => {
+    const { container } = renderMessages([
+      { id: "user", role: "user", text: "A\nB\nC\n\n**Bold**\nNext line\n\n```text\nx\ny\n```" },
+      { id: "assistant", role: "assistant", text: "Assistant\ncontinuation" },
+    ], undefined, compact);
+
+    await screen.findByText("Bold");
+    const articles = container.querySelectorAll("article");
+    expect(articles[0]?.querySelector("p")?.innerHTML).toBe("A<br>\nB<br>\nC");
+    expect(articles[0]?.querySelector("strong")?.textContent).toBe("Bold");
+    expect(articles[0]?.querySelector("pre code")?.textContent).toBe("x\ny\n");
+    expect(articles[1]?.querySelector(".markdown p")?.innerHTML).toBe("Assistant\ncontinuation");
+  });
+
   it.each([true, false])("shows Pi labels only outside compact mode (compact=%s)", async (compact) => {
     renderMessages([
       { id: "thinking", role: "assistant", text: "", thinking: "Inspect first" },

@@ -72,7 +72,7 @@ const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: {
           {message.skill ? <SkillInvocation skill={message.skill} compact={compact} onLocalLink={onLocalLink} /> : null}
           {message.text ? (
             <Paper bg={THEME.surface.panelHover} radius="lg" p="sm" px="md" ml="auto" maw="82%" mt={message.skill ? "sm" : undefined}>
-              <div className="markdown"><Markdown onLocalLink={onLocalLink}>{message.text}</Markdown></div>
+              <div className="markdown"><Markdown preserveLineBreaks onLocalLink={onLocalLink}>{message.text}</Markdown></div>
             </Paper>
           ) : null}
         </>

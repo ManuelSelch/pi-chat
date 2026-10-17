@@ -3,6 +3,7 @@ import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
 import { remarkDisplayMath } from "./remark-display-math.js";
 import { localPathFromHref } from "./local-link.js";
@@ -53,10 +54,10 @@ function SafeLink({ href, children, onLocalLink, ...rest }: AnchorHTMLAttributes
  *   model output can never inject markup or scripts.
  * - Code fences get highlight.js classes via rehype-highlight.
  */
-export const Markdown = memo(function Markdown({ children, disableImages = false, onLocalLink }: { children: string; disableImages?: boolean; onLocalLink?: (path: string) => void }) {
+export const Markdown = memo(function Markdown({ children, disableImages = false, preserveLineBreaks = false, onLocalLink }: { children: string; disableImages?: boolean; preserveLineBreaks?: boolean; onLocalLink?: (path: string) => void }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath]}
+      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath, ...(preserveLineBreaks ? [remarkBreaks] : [])]}
       rehypePlugins={[rehypeKatex, rehypeHighlight]}
       urlTransform={(url) => /^file:/i.test(url) ? url : defaultUrlTransform(url)}
       components={{ a: (props) => <SafeLink {...props} onLocalLink={onLocalLink} />, ...(disableImages ? { img: ({ alt }: { alt?: string }) => <span>{alt ?? ""}</span> } : {}) }}
