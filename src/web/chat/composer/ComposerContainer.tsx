@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { argumentContext, applyArgumentCompletion } from "./argument-completion.js";
 import { useArgumentCompletion } from "./use-argument-completion.js";
@@ -10,6 +10,7 @@ import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
 import { placeWidgets, WIDGET_DOCK_QUERY } from "../../extensions/widgets/widget-placement.js";
 import { ComposerView } from "./ComposerView.js";
+import { focusComposer } from "../../ui/focus/composer-focus.js";
 
 interface ComposerContainerProps {
   onHeightChange: (height: number) => void;
@@ -35,6 +36,9 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
   const loading = app.openingTabs > 0 || !app.activeSessionId;
+  const focus = useCallback(() => {
+    if (!home && !loading && !overlays.anyOpen && state.prompts.length === 0) focusComposer(composerRef.current);
+  }, [home, loading, overlays.anyOpen, state.prompts.length]);
 
   const footerItems = [
     ...state.footer,
@@ -80,14 +84,14 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
 
   useLayoutEffect(() => {
     if (pendingCaret.current === undefined) return;
-    composerRef.current?.focus();
+    focus();
     composerRef.current?.setSelectionRange(pendingCaret.current, pendingCaret.current);
     pendingCaret.current = undefined;
-  }, [input, selection]);
+  }, [input, selection, focus]);
 
   function openCommandMenu(): void {
     changeInput("/");
-    composerRef.current?.focus();
+    focus();
   }
 
   useHotkeys(
@@ -161,11 +165,10 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   }
 
   useLayoutEffect(() => {
-    // A prompt can linger during handover after state.prompts becomes empty;
-    // other portalled dialogs (including confirmations) also still own focus.
-    if (home || loading || overlays.anyOpen || state.prompts.length > 0 || document.querySelector('[role="dialog"]')) return;
-    composerRef.current?.focus();
-  }, [app.activeSessionId, home, loading, overlays.anyOpen, state.prompts.length]);
+    // Readiness/tab changes request focus; overlay exit callbacks finish any
+    // request blocked by a still-mounted dialog or its exit transition.
+    focus();
+  }, [app.activeSessionId, focus]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;

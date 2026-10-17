@@ -5,6 +5,7 @@ import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
 import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
 import { usePointerModality } from "../../ui/usePointerModality.js";
+import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 import type { SessionAction } from "../actions/session-actions.js";
 
@@ -44,6 +45,7 @@ function resultContext(item: QuickOpenItem): string {
 
 /** Scoped entity search and a small set of existing application actions. */
 export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, actions = [] }: QuickOpenProps) {
+  const focusReturn = useComposerFocusReturn(opened);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const activeRef = useRef<HTMLButtonElement | null>(null);
@@ -123,6 +125,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
 
   return (
     <Modal
+      {...focusReturn}
       opened={opened}
       onClose={onClose}
       withCloseButton={false}

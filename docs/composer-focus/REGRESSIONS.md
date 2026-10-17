@@ -1,25 +1,34 @@
-# Composer focus regression baseline — slices 1–2
+# Composer focus regressions — completed slices 1–4
 
-This is an intentionally **red, tests-only** stage of [the focus plan](REQUIREMENTS.md). Production focus behavior has not been changed. Do not skip these tests or mark them as expected failures: slice 3 must make them green.
+All slices of [the focus plan](REQUIREMENTS.md) are complete. The regressions were first committed red, then made green by the production focus fix. All assertions remain enabled; no tests are skipped or marked as expected failures.
 
-## Results against current production behavior
+## Verified red → green
 
-| Check | Result |
-|---|---|
-| Full Vitest suite | 945 passed, 8 failed (953 total) |
-| New DOM focus file | 8 passed, 8 failed (16 total) |
-| Full Playwright suite | 22 passed, 10 failed (32 total) |
-| New browser focus file | 4 passed, 10 failed (14 total) |
-| TypeScript / production build | Passed |
-| Existing tests | All 937 Vitest tests and all 18 browser tests passed |
+| Check | Before focus fix | After focus fix |
+|---|---|---|
+| Full Vitest suite | 945 passed, 8 failed | 953 passed |
+| DOM focus file | 8 passed, 8 failed | 16 passed |
+| Full Playwright suite | 22 passed, 10 failed | 32 passed |
+| Browser focus file | 4 passed, 10 failed | 14 passed |
+| Browser focus file repeated three times | Not run | 42 passed |
+| TypeScript / production build | Passed | Passed |
+| Existing tests | 937 Vitest and 18 browser tests passed | Still passing |
 
-All remaining failures are assertions about the composer not receiving focus. Fixture/data errors and missing-control selectors found during test development were corrected before this baseline was recorded. The failing focus cases reproduced in both focused and full-suite runs.
+The original failures were composer-focus assertions, not fixture/selector errors. They reproduced in focused and full-suite runs. After correcting the simulated-clock helper to commit React between lifecycle phases, temporarily reversing only the production fix still reproduced the same 8 DOM failures. No focus assertions were weakened.
+
+## Slice 3: guarded restoration
+
+`src/web/ui/focus/composer-focus.ts` owns the guarded composer focus operation and a shared overlay lifecycle hook. Ready-session/tab changes and completion acceptance reuse the guarded operation. Managed dialogs/drawers disable Mantine's early trigger restoration and restore after `onExitTransitionEnd`, using one animation frame so React can remove the exiting portal first. There is no polling or animation-duration timeout.
+
+A remaining dialog keeps ownership; a nested confirmation can restore its still-connected parent trigger without focusing the composer or overriding a newer dialog. Home and disabled/hidden composers are protected. Extension prompts retain the existing handover interval, then run a real Mantine exit transition instead of unmounting immediately. Stream/snapshot updates do not become focus triggers.
+
+`test/infra/ui/finish-ui-transitions.ts` drains controlled timers one lifecycle phase at a time, allowing React to commit before a post-exit animation frame. A single large fake-clock advance batches these commits and incorrectly runs the restoration callback against the old DOM.
 
 ## Slice 1: DOM integration coverage
 
 `test/modules/web/app/composer-focus.dom.test.tsx` mounts the actual `App`, overlay controller, confirmation provider, composer, dialogs/drawers, portals, and Mantine focus handling. Only the controller/transport boundary is stubbed. Controlled timers advance entry/exit animations and extension-prompt handover; no real-time sleeps or calls to a proposed focus helper are used.
 
-Red cases:
+Cases that failed before the fix:
 - Settings and Projects closed from their focused header triggers return focus to the trigger rather than the composer.
 - Loading finishes while Settings owns focus; closing Settings still leaves focus outside the composer.
 - Projects hands over to the folder picker correctly, but cancelling the picker strands focus on `body`.
@@ -43,7 +52,7 @@ Existing loading, completion-acceptance, and prompt-containment tests remain ena
 
 `BrowserFocusDriver` asserts the composer is focused **before** typing via `page.keyboard.type()`. It never repairs composer focus with `fill()`, a click, or `.focus()`. Filling a dialog answer is allowed; that is the control the user is interacting with. Overlay exit waits observe detachment, not a fixed delay or merely a hidden animation frame.
 
-Red cases:
+Cases that failed before the fix:
 - Closing Settings, Projects, or the folder picker.
 - Accepting the folder picker and opening a new session.
 - Closing Settings after cancelling a nested confirmation.
@@ -57,7 +66,7 @@ Passing protections:
 - A deferred extension factory holds startup until the test releases it: input remains disabled, cannot receive typing, and is focused when ready.
 - New sessions and tab switching preserve draft text and focus; keyboard Tab can leave the composer.
 
-The DOM/browser difference is intentional evidence for keeping both layers: close-session restoration passes in jsdom but fails in Chromium; quick open differs by its original focus owner. Real browser focus behavior must not be inferred solely from jsdom timers.
+The baseline DOM/browser difference demonstrates why both layers are retained: close-session restoration originally passed in jsdom but failed in Chromium; quick open differed by its original focus owner. Real browser focus behavior must not be inferred solely from jsdom timers. All of these cases now pass in both layers.
 
 ## Reproduce
 
@@ -65,10 +74,11 @@ The DOM/browser difference is intentional evidence for keeping both layers: clos
 npm test -- test/modules/web/app/composer-focus.dom.test.tsx
 npm run build
 npx playwright test test/e2e/composer-focus.spec.ts
+npx playwright test test/e2e/composer-focus.spec.ts --repeat-each=3
 
-# Includes the intentionally red cases above:
+# Full verification, including all focus regressions:
 npm test
 npx playwright test
 ```
 
-Playwright retains screenshots and traces for failures under `test-results/`. Logs for this run were saved as `/tmp/pi-chat-focus-full.log` and `/tmp/pi-chat-focus-browser-full.log`; those temporary files are not required to reproduce the failures.
+Playwright is configured to retain screenshots and traces for failures under `test-results/`. Final green-suite logs were saved as `/tmp/pi-chat-focus-final-tests.log` and `/tmp/pi-chat-focus-final-browser.log`; these temporary files are not required to rerun verification.

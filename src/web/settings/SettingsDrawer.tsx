@@ -6,6 +6,7 @@ import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
 import { SectionHeader } from "../ui/SectionHeader.js";
 import { Panel } from "../ui/Panel.js";
+import { useComposerFocusReturn } from "../ui/focus/composer-focus.js";
 
 interface SettingsDrawerProps {
   opened: boolean;
@@ -28,6 +29,7 @@ interface SettingsDrawerProps {
 }
 
 export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
+  const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
@@ -39,7 +41,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel,
     state.extensions.badges.some((badge) => badge.slot === "settings.section");
 
   return (
-    <Drawer opened={opened} onClose={onClose} title="Settings" size="md" position="right">
+    <Drawer {...focusReturn} opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
         <Panel>
           <SectionHeader icon={<IconBell size={16} />}>Sounds</SectionHeader>

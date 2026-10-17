@@ -7,6 +7,7 @@ import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/proto
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
 import styles from "./ProjectSessionDrawer.module.css";
+import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;
@@ -34,6 +35,7 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
 }
 
 export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
+  const focusReturn = useComposerFocusReturn(opened);
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [expandedArchive, setExpandedArchive] = useState<Record<string, boolean>>({});
@@ -145,6 +147,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
 
   return (
     <Drawer
+      {...focusReturn}
       opened={opened}
       onClose={onClose}
       title="Projects"

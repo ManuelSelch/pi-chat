@@ -3,6 +3,7 @@ import { Button, Group, Modal, ScrollArea, Stack, Text, Textarea, TextInput, Uns
 import { THEME } from "../../ui/theme.js";
 import type { UiPrompt, UiPromptResult } from "../../../shared/protocol.js";
 import { usePromptFocus } from "./use-prompt-focus.js";
+import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 interface PromptModalProps {
   prompt?: UiPrompt;
@@ -57,6 +58,8 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   // What is on screen: the live prompt, or the one just answered while its
   // successor is still in flight.
   const [shown, setShown] = useState<UiPrompt | undefined>(prompt);
+  const [closing, setClosing] = useState(false);
+  const focusReturn = useComposerFocusReturn(Boolean(shown) && !closing);
   const previous = useRef<UiPrompt | undefined>(undefined);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -85,9 +88,10 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
   useEffect(() => {
     if (prompt) {
       setShown(prompt);
+      setClosing(false);
       return;
     }
-    const timer = setTimeout(() => setShown(undefined), HANDOVER_MS);
+    const timer = setTimeout(() => setClosing(true), HANDOVER_MS);
     return () => clearTimeout(timer);
   }, [prompt]);
 
@@ -187,8 +191,14 @@ export function PromptModal({ prompt, onRespond }: PromptModalProps) {
 
   return (
     <Modal
+      {...focusReturn}
       ref={dialogRef}
-      opened
+      opened={!closing}
+      onExitTransitionEnd={() => {
+        if (!closing) return;
+        setShown(undefined);
+        focusReturn.onExitTransitionEnd();
+      }}
       onClose={cancel}
       // An accidental outside click must not answer a permission gate.
       closeOnClickOutside={false}

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UiPrompt } from "../../../../../src/shared/protocol.js";
 import { PromptModal } from "../../../../../src/web/extensions/prompts/PromptModal.js";
+import { finishUiTransitions } from "../../../../infra/ui/finish-ui-transitions.js";
 
 afterEach(cleanup);
 
@@ -233,7 +234,7 @@ describe("PromptModal menu loops", () => {
     try {
       const { rerender } = showRerenderable(menu("m3", 3, ["[x] a", "[x] b", "[x] c"]));
       rerender(undefined);
-      await vi.advanceTimersByTimeAsync(1000);
+      await finishUiTransitions();
       rerender(undefined);
       expect(screen.queryByRole("dialog")).toBeNull();
       const composer = document.createElement("textarea");

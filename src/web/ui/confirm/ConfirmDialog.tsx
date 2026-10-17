@@ -3,6 +3,7 @@ import { Modal, Stack, Text } from "@mantine/core";
 import { DialogActions } from "../DialogActions.js";
 import { MANTINE_COLOR } from "../theme.js";
 import { useConfirmOnEnter } from "./confirm-enter.js";
+import { useComposerFocusReturn } from "../focus/composer-focus.js";
 
 export interface ConfirmOptions {
   title: string;
@@ -16,11 +17,12 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ options, onResolve }: ConfirmDialogProps) {
+  const focusReturn = useComposerFocusReturn(Boolean(options));
   const resolve = useCallback((confirmed: boolean) => onResolve(confirmed), [onResolve]);
   useConfirmOnEnter({ enabled: Boolean(options), onConfirm: () => resolve(true) });
 
   return (
-    <Modal opened={Boolean(options)} onClose={() => resolve(false)} title={options?.title} centered size="sm" zIndex={400}>
+    <Modal {...focusReturn} opened={Boolean(options)} onClose={() => resolve(false)} title={options?.title} centered size="sm" zIndex={400}>
       <Stack gap="md">
         <Text size="sm">{options?.body}</Text>
         <DialogActions

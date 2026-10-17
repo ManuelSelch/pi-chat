@@ -6,6 +6,7 @@ import { App } from "../../../../src/web/app/App.js";
 import type { AppController } from "../../../../src/web/app/AppControllerContext.js";
 import { initialAppState } from "../../../../src/web/app/state/app-state.js";
 import { initialChatState, type ChatState } from "../../../../src/web/app/state/chat-state.js";
+import { finishUiTransitions as finishTransitions } from "../../../infra/ui/finish-ui-transitions.js";
 
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
@@ -22,9 +23,6 @@ function update(state: Partial<ChatState>) {
   controller.app = { ...controller.app, sessions: { ...controller.app.sessions, [controller.app.activeSessionId]: controller.state } };
   redraw();
 }
-// Advance controlled lifecycle timers (Mantine entry/exit and prompt handover),
-// not wall-clock sleeps. Keep a separate pre-exit assertion where timing matters.
-async function finishTransitions() { await act(async () => { await vi.advanceTimersByTimeAsync(1000); }); }
 function click(element: HTMLElement) { element.focus(); fireEvent.click(element); }
 function escape() { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape", code: "Escape", bubbles: true }); }
 function expectDialogFocus(name: string) { expect(dialog(name).contains(document.activeElement)).toBe(true); }

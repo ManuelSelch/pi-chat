@@ -2,6 +2,7 @@ import { Modal, Stack, Text } from "@mantine/core";
 import { DialogActions } from "../../ui/DialogActions.js";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import type { Tab } from "../../../shared/protocol.js";
+import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 interface CloseSessionDialogProps {
   tab: Tab | undefined;
@@ -10,8 +11,9 @@ interface CloseSessionDialogProps {
 }
 
 export function CloseSessionDialog({ tab, onClose, onConfirm }: CloseSessionDialogProps) {
+  const focusReturn = useComposerFocusReturn(Boolean(tab));
   return (
-    <Modal opened={Boolean(tab)} onClose={onClose} title="Close running session?" centered size="sm">
+    <Modal {...focusReturn} opened={Boolean(tab)} onClose={onClose} title="Close running session?" centered size="sm">
       <Stack gap="md">
         <Text size="sm">“{tab?.title}” is still running. Closing stops the run.</Text>
         <DialogActions

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Breadcrumbs, Button, Checkbox, Group, Loader, Modal, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { Notice } from "../../ui/Notice.js";
+import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 import { IconFolder } from "@tabler/icons-react";
 import type { DirectoryBrowse, DirectoryListing } from "../../../shared/directories.js";
 
@@ -14,6 +15,7 @@ interface FolderPickerProps {
 }
 
 export function FolderPicker({ opened, connected, initialPath, onClose, browseDirectories, startSession }: FolderPickerProps) {
+  const focusReturn = useComposerFocusReturn(opened);
   const [listing, setListing] = useState<DirectoryListing>();
   const [input, setInput] = useState("");
   const [hidden, setHidden] = useState(false);
@@ -100,7 +102,7 @@ export function FolderPicker({ opened, connected, initialPath, onClose, browseDi
 
   const browse = (path: string) => { if (connected && !starting) void navigate(path, hiddenRef.current); };
   return (
-    <Modal opened={opened} onClose={() => { if (!starting) { invalidate(); onClose(); } }} title="Open server folder" size="lg" centered
+    <Modal {...focusReturn} opened={opened} onClose={() => { if (!starting) { invalidate(); onClose(); } }} title="Open server folder" size="lg" centered
       closeOnEscape={!starting} closeOnClickOutside={!starting} withCloseButton={!starting}
       onKeyDown={(event) => {
         if (event.key !== "Enter" || event.nativeEvent.isComposing || (event.target as HTMLElement).closest("button")) return;

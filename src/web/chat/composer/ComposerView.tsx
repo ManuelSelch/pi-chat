@@ -125,6 +125,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
             <Textarea
               ref={composerRef}
               aria-label="Message Pi"
+              data-pi-composer
               autosize
               minRows={2}
               maxRows={8}
