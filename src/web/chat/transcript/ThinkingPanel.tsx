@@ -13,18 +13,19 @@ import { THEME } from "../../ui/theme.js";
  * automatic moves is dropped the moment the reader operates the panel: their
  * choice outranks the default for as long as that message is on screen.
  *
+ * Compact activity groups disable automatic expansion, including while streaming.
  * Native details/summary keeps it keyboard-operable and searchable by the
  * browser's own find when open.
  */
-export function ThinkingPanel({ thinking, streaming, onLocalLink }: { thinking: string; streaming: boolean; onLocalLink?: (path: string) => void }) {
-  const [open, setOpen] = useState(streaming);
+export function ThinkingPanel({ thinking, streaming, autoExpand = true, onLocalLink }: { thinking: string; streaming: boolean; autoExpand?: boolean; onLocalLink?: (path: string) => void }) {
+  const [open, setOpen] = useState(streaming && autoExpand);
   const touched = useRef(false);
   const body = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (touched.current) return;
-    setOpen(streaming);
-  }, [streaming]);
+    setOpen(streaming && autoExpand);
+  }, [streaming, autoExpand]);
 
   // The panel is its own scroller, so a long chain cannot push the answer off
   // screen; while it streams it stays pinned to the newest line.

@@ -7,7 +7,7 @@ import { ThinkingPanel } from "./ThinkingPanel.js";
 import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import { SkillInvocation } from "./SkillInvocation.js";
-import { ToolGroup, type ToolMessage } from "./ToolGroup.js";
+import { ToolGroup, type ActivityMessage } from "./ToolGroup.js";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import type { ChatState } from "../../app/state/chat-state.js";
 import { THEME } from "../../ui/theme.js";
@@ -100,21 +100,27 @@ interface MessageListProps {
 
 export const MessageList = memo(function MessageList({ messages, draft, onLocalLink, compact = false }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
-  let start = Math.max(0, messages.length - visible);
-  // Never show a partial count when pagination cuts through a tool group.
-  if (compact) {
-    while (start > 0 && messages[start]?.role === "tool" && messages[start - 1]?.role === "tool") start--;
-  }
-  const shown = messages.slice(start);
-  const hidden = start;
-  const rows: (ChatMessage | [ToolMessage, ...ToolMessage[]])[] = [];
-  for (const message of shown) {
+  const rows: (ChatMessage | [ActivityMessage, ...ActivityMessage[]])[] = [];
+  const appendActivity = (message: ActivityMessage) => {
     const previous = rows[rows.length - 1];
+    if (Array.isArray(previous)) previous.push(message);
+    else rows.push([message]);
+  };
+  for (const message of messages) {
     if (compact && message.role === "tool") {
-      if (Array.isArray(previous)) previous.push(message);
-      else rows.push([message]);
+      appendActivity(message);
+    } else if (compact && message.role === "assistant" && message.thinking) {
+      appendActivity({ id: message.id, role: "thinking", thinking: message.thinking });
+      if (message.text) rows.push({ ...message, thinking: undefined });
     } else rows.push(message);
   }
+  if (compact && draft?.thinking) {
+    appendActivity({ id: `draft:${draft.runId}`, role: "thinking", thinking: draft.thinking, streaming: true });
+  }
+  // Paginate presentation rows, not raw messages: a collapsed activity group
+  // occupies one row regardless of how many tools and thoughts it contains.
+  const hidden = Math.max(0, rows.length - visible);
+  const shown = rows.slice(hidden);
 
   return (
     <>
@@ -135,15 +141,15 @@ export const MessageList = memo(function MessageList({ messages, draft, onLocalL
             Show earlier messages ({hidden})
           </Button>
         ) : null}
-        {rows.map((row) => Array.isArray(row)
-          ? <ToolGroup key={`tools:${row[0].id}`} messages={row} />
+        {shown.map((row) => Array.isArray(row)
+          ? <ToolGroup key={`tools:${row[0].id}`} messages={row} onLocalLink={onLocalLink} />
           : <MessageRow key={row.id} message={row} onLocalLink={onLocalLink} compact={compact} />)}
-        {draft ? (
+        {draft && (!compact || draft.text) ? (
           <Box component="article">
             {!compact ? (
               <Text size="xs" fw={650} c="dimmed" tt="uppercase" lts={1} mb={4}>Pi</Text>
             ) : null}
-            {draft.thinking ? (
+            {!compact && draft.thinking ? (
               // Still "streaming" once prose starts arriving is deliberate: the
               // panel only settles when the turn does, so it does not collapse
               // out from under a reader mid-sentence.
