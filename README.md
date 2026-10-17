@@ -1,168 +1,33 @@
 # Pi Chat
 
-- A local browser chat for [Pi](https://github.com/earendil-works/pi)
-- running on the real Pi runtime: your credentials, extensions, tools, and persistent session files.
+A local browser workspace for [Pi](https://github.com/earendil-works/pi), using your existing credentials, extensions, tools, and persistent sessions.
 
 [![Pi Chat workspace, project and session navigation, Quick Switcher, and light mode](./docs/images/showcase/pi-chat-showcase.png)](./docs/images/showcase/pi-chat-showcase.png)
 
 ## Features
 
-- streaming assistant text, tool cards, Markdown + KaTeX
-- native Pi steering: send directions during a run, with reconnect-safe queued messages
-- filename-based syntax highlighting for read/write previews and edit diffs, with rendered Markdown previews
-- multiple tabs over persistent Pi sessions, with project/session browsing
-- server folder picker to start sessions in folders without previous Pi history
-- slash commands with Pi extension argument completion, a command palette, and quick-open
-- native `!command` / `!!command` bash execution from the composer (output is shown after completion)
-- extension UI support: `notify`, dialogs, `setWidget` panels, `setStatus` footer labels, and experimental web extension slots/actions/hooks
+- Streaming chat with Markdown, LaTeX, and light/dark themes.
+- Tool cards with highlighted code, edit diffs, and file previews.
+- Persistent session tabs, project browsing, and a Quick Switcher.
+- Native steering to guide Pi during a run.
+- Pi commands, skills, argument completion, and bash execution.
+- Extension dialogs, widgets, status labels, and experimental web UI hooks.
 
-## Install
+## Get started
 
-```bash
+Install the Pi package:
+
+```sh
 pi install git:github.com/ManuelSelch/pi-chat
 ```
 
-That clones the repo into `~/.pi/agent/git/pi-chat` and registers the extension,
-which adds three commands to any Pi session:
-- `/pi-chat-start`: start pi-chat server
-- `/pi-chat-stop`: stop pi-chat server
-- `/pi-chat`: show status
+Run `/pi-chat-start`, then open [localhost:8788](http://localhost:8788).
+Use `/pi-chat-stop` to stop the server or `/pi-chat` to check its status.
 
-`/pi-chat-start` builds the production web UI and backend on each new start, then
-runs the compiled backend with Node. Generated `dist/` artifacts are local and
-are not committed. For development, use `npm run dev`; it runs the server with
-`tsx watch`.
+## Documentation
 
-Production checks and a repeatable fresh-process memory comparison:
-
-```sh
-npm run test:production-smoke
-npm run measure:server-memory
-```
-
-The memory comparison starts both launch modes without open sessions; it is a
-baseline, not a prediction for a long-running server with large transcripts.
-
-## Keyboard shortcuts
-
-| Shortcut | Effect |
-| --- | --- |
-| `⌘⇧O` / `Ctrl+Shift+O` | Quick-open: type a session or project name |
-| `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
-| `⌘K` / `Ctrl+K` | Session actions (new, archive, close tab) plus every Pi slash command |
-| `Esc` | Stop the current run; an open dialog or menu closes first |
-| `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
-
-Invoke a loaded skill with `/skill:name [task]`. Skill instructions appear as a collapsed **[skill] name** disclosure; expand it to inspect the source path and instructions. Any task text appears separately as your message. Agent reads of `SKILL.md` use the same compact label. Pi's `enableSkillCommands` setting controls menu discovery, not manually typed invocations.
-
-Type `/archive` to archive the current idle session and close its tab without deleting its transcript. Archived sessions remain available under **Archived** in Projects, where they can be restored. The delete-session command is no longer available.
-
-Type `!command` to run bash in the session's server-side working directory. Its output is included in the next model prompt. Use `!!command` to show the result without including it in model context. Bash output is displayed after the command completes; bash-only sessions are not guaranteed to survive a restart before an assistant response creates the session file.
-
-
-
-## Steering
-
-Press Enter with ordinary text while Pi is running to steer the ongoing task.
-Pi receives it after the current assistant turn and its tool calls, without
-aborting the run. Pending messages appear above the composer until Pi consumes
-them, and survive browser reconnects/reloads through the native Pi queue.
-Shift+Enter still inserts a newline; Escape stops the run. Slash commands and
-argument completion remain available during a run: Pi executes extension
-commands immediately and queues expanded skill/prompt templates as steering.
-`/compact` uses Pi's native behavior: stop the active turn, then compact without
-resuming it. `/reload` delegates to the SDK even during a run (unlike the terminal's
-UI-level reload restriction). Bash (`!` / `!!`) still waits until idle.
-Follow-up queuing is not exposed.
-
-## Command argument completion
-
-After `/command `, Pi Chat shows suggestions from the extension's existing
-`getArgumentCompletions(prefix)` callback, including async providers. Use arrows
-to navigate, Enter/Tab or the mouse to insert, and Escape to dismiss. Selecting
-an argument does not execute the command; press Enter again to submit.
-
-The prefix is the full first-line argument text before the caret. Selecting a
-suggestion replaces that prefix with its `value`, preserving text after the
-caret. Pi owns filtering and ordering. No Pi Chat-specific extension API is
-needed. Native command dialogs, filesystem completion, and general
-`addAutocompleteProvider()` hooks are not part of this support.
-
-## File content previews
-
-Expanded `read` and `write` cards render `.md`/`.markdown` files as Markdown
-(with remote images disabled) and highlight common source/config formats using
-the filename extension. Unknown formats stay literal text. Edit diffs retain
-line numbers and red/green backgrounds with syntax colours on the code lines;
-line-by-line highlighting may not capture multiline strings/comments fully.
-Arguments, errors, and non-file tool results remain plain text. Highlighting is
-loaded on demand and uses the same light/dark palette as Markdown code fences.
-
-## Architecture
-
-See the [high-level web and server architecture](docs/architecture.md) for components,
-data flow, and ownership boundaries.
-
-## Server organization
-
-`src/server/index.ts` remains the process entry point. Server code is grouped by ownership:
-
-- `bootstrap/`: HTTP server composition and process restart
-- `application/`: chat coordination and open-session registry
-- `transport/`: WebSocket connections and protocol handling
-- `runtime/contracts.ts`: runtime adapter, factory, event and snapshot contracts; `runtime/pi/` contains the Pi adapter, browser UI bridge and SDK cache workaround
-- `projects/`: session catalogue and directory browsing
-- `extensions/`: web extension registry; `extensions/ui/` contains prompt, widget and status registries
-
-The test fake lives in `test/infra/fake-runtime-adapter.ts`, separate from production contracts. Runtime implementation extraction is deferred.
-
-Tests are grouped under `test/modules/` (production modules), `test/scenarios/` (user workflows), and `test/infra-tests/` (tests of reusable machinery). The reusable machinery itself lives under `test/infra/`. See [test/README.md](test/README.md) for placement rules and focused commands.
-The old `src/server/extension-registry.ts` import remains a deprecated compatibility re-export of `extensions/extension-registry.ts`.
-
-## Frontend organization
-
-`src/web/` has six responsibility owners:
-
-- `app/`: startup, composition, state/transport, shell, overlays, and global keyboard routing.
-- `chat/`: transcript, Markdown, tool results, and composer.
-- `sessions/`: Home, tabs, project/folder browsing, quick-open, and session dialogs.
-- `settings/`: settings controls and persistent browser preferences.
-- `extensions/`: runtime slots, prompts, widgets, and footer metadata.
-- `ui/`: application-independent primitives, theme, and generic confirmation.
-
-Application services depend on shared types and other services, not presentation.
-Feature containers may consume app context/state and overlay coordination; views
-stay prop-driven. Only app composition imports the shell and `AppOverlays`.
-Shared UI has no app/feature dependencies; extension views do not import chat or
-shell components. Use direct file imports, including type-only imports, without
-barrels or compatibility shims.
-
-`AppOverlays` assembles overlays in their existing order; providers remain in
-`App`. Settings stays mounted while closed to preserve chime playback. App owns
-Home/transcript selection, composer height, and widget docking.
-
-See [the grouping plan and verification record](docs/web-organization/REQUIREMENTS.md)
-for detailed boundaries and migration history.
-
-## Troubleshooting WebSocket connections
-
-Pi Chat writes structured server logs to `~/.pi/agent/logs/pi-chat.log`. The active
-file is limited to 5 MiB, with three rotated files retained alongside it. Follow
-new events with `tail -f ~/.pi/agent/logs/pi-chat.log`; browser WebSocket close
-codes, reasons, and clean/unclean status are also printed in the browser
-Developer Console with the `[pi-chat] websocket.close` prefix.
-
-Set `PI_CHAT_LOG_DIR` to choose another log directory,
-`PI_CHAT_LOG_MAX_BYTES` to change the per-file limit, and
-`PI_CHAT_LOG_RETAINED_FILES` to change the number of rotated files. Logs include
-connection lifecycle metadata and redacted runtime error messages, not chat
-frames, prompts, model output, or tool content.
-
-## Environment variables
-
-| Variable | Meaning |
-| --- | --- |
-| `PI_CHAT_PORT` | Port to listen on (default `8788`) |
-| `PI_CHAT_CWD` | Pi project directory for new sessions |
-| `PI_CHAT_MODEL` | Model override for this server |
-| `PI_CHAT_HOME` | Path to this checkout, when the extension is not inside it |
+- [Usage](docs/usage.md) — shortcuts, sessions, steering, commands, and file previews.
+- [Configuration](docs/configuration.md) — server settings, environment variables, and troubleshooting.
+- [Development](docs/development.md) — local setup, testing, source organization, and screenshot capture.
+- [Architecture](docs/architecture.md) — components and data flow.
+- [Extension API](docs/extension-api.md) — experimental web UI extension integration.
