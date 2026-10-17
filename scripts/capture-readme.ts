@@ -114,11 +114,25 @@ async function sendWithRetry(request: Request) {
 
   await page.setViewportSize({ width: 420, height: 780 });
   const composer = page.getByRole("textbox", { name: "Message Pi" });
-  await composer.fill("/");
+  // A real filtered menu fits without a half-visible row at the scroll boundary.
+  await composer.fill("/session");
   const commands = page.getByRole("listbox", { name: "Commands", exact: true });
   await expect(commands.getByRole("option", { name: /New session/ })).toBeVisible();
+  const options = commands.getByRole("option");
+  const panelBox = await commands.boundingBox();
+  const lastOptionBox = await options.last().boundingBox();
+  if (!panelBox || !lastOptionBox || lastOptionBox.y + lastOptionBox.height > panelBox.y + panelBox.height) {
+    throw new Error("Commands Panel must show every filtered option without clipping");
+  }
+  const composerBox = await composer.boundingBox();
+  if (!composerBox) throw new Error("Composer is not visible");
   await settle();
-  await commands.screenshot({ path: join(output, "commands.png"), animations: "disabled", caret: "hide" });
+  // Include the query/composer for context, but no unrelated transcript or empty screen.
+  await page.screenshot({
+    path: join(output, "commands.png"), animations: "disabled", caret: "hide",
+    clip: { x: panelBox.x, y: panelBox.y, width: panelBox.width,
+      height: composerBox.y + composerBox.height - panelBox.y },
+  });
   await composer.press("Escape");
   await composer.fill("");
   await page.setViewportSize({ width: 1120, height: 780 });
@@ -140,6 +154,7 @@ async function sendWithRetry(request: Request) {
     await document.fonts.ready;
     await Promise.all([...document.images].map(image => image.decode()));
   });
+  await expect(assembly.locator(".commands img")).toHaveCSS("object-fit", "contain");
   await assembly.locator(".showcase").screenshot({ path: join(output, "pi-chat-showcase.png"), animations: "disabled" });
   await writeFile(join(output, "preview.html"), html);
   await writeFile(join(output, "manifest.json"), JSON.stringify({

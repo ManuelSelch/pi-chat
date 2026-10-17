@@ -20,7 +20,7 @@ h1{margin:0 0 20px;font-size:24px;font-weight:700;letter-spacing:-.5px}figure{ma
 .hero img{display:block;width:100%;height:auto}.summary{margin:10px 2px 0;font-size:12px;color:#747b88}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:26px}
 .grid .frame{height:320px}.grid img{display:block;width:100%;height:100%;object-fit:cover;object-position:top left}
-.grid .commands img{object-fit:cover;object-position:top left}.grid .light{border-color:#e1e3e9;background:#fafafa}.grid .light img{object-fit:cover;object-position:top center}
+.grid .commands img{object-fit:contain;object-position:center}.grid .light{border-color:#e1e3e9;background:#fafafa}.grid .light img{object-fit:cover;object-position:top center}
 figcaption{padding:11px 1px 0;font-size:13px;font-weight:600}
 </style></head><body><main class="showcase"><h1>Workspace</h1>
 <figure class="hero"><div class="frame">${image("workspace", "Pi Chat conversation with rich Markdown and tool output")}</div></figure>

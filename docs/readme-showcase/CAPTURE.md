@@ -30,7 +30,7 @@ The default output directory is `docs/images/showcase/`:
 | --- | --- |
 | `workspace.png` | Populated dark-mode chat, three named session tabs, a real completed skill-read tool card, highlighted TypeScript, and a Markdown table |
 | `projects.png` | Actual Projects drawer with expanded, isolated demo projects and sessions |
-| `commands.png` | Actual command menu, captured at a narrow viewport for readable labels in the supporting card |
+| `commands.png` | Complete command menu filtered by `/session`, with its composer query, captured at a narrow viewport |
 | `light.png` | The same populated session in the application's light theme |
 | `pi-chat-showcase.png` | Assembled Product first layout: bold Workspace heading, large hero, three supporting cards with names only |
 | `preview.html` | Self-contained image composition for local inspection; ignored by Git |
@@ -51,7 +51,7 @@ Suggested integration after reviewing the generated image:
 - The script uses accessible UI interactions and waits for meaningful rendered state, not arbitrary sleeps. Page JavaScript errors fail the run.
 - Folder paths are hidden through the application's own Settings switch. Capture fixture folders have readable names (`pi-chat-demo` and `retry-review`) without changing production behavior.
 - PNG captures are framed/cropped only at assembly time. The script does not alter the real app DOM, CSS, transcript content, or controls to make them resemble the illustrative mockup.
-- The real project navigation is a drawer, not the mockup's invented permanent sidebar. The real command panel initially shows session actions. The tool card is shown in its native collapsed state so the prompt and answer fit in the hero.
+- The real project navigation is a drawer, not the mockup's invented permanent sidebar. The command capture uses `/session` to show a native command and session actions without a partially visible scroll row; assembly fits the entire capture without cropping. The tool card is shown in its native collapsed state so the prompt and answer fit in the hero.
 - Browser/font/platform differences can change rasterization; the script guarantees curated reproducible scenarios, not byte-identical PNGs across machines.
 
 ## Verification
