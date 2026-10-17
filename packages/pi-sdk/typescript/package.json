@@ -16,6 +16,10 @@
       "types": "./dist/contract/index.d.ts",
       "import": "./dist/contract/index.js"
     },
+    "./migration": {
+      "types": "./dist/migration.d.ts",
+      "import": "./dist/migration.js"
+    },
     "./protocol/*": "./dist/protocol/*"
   },
   "scripts": {
