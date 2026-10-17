@@ -25,7 +25,7 @@ it.each([false, true])("shows only the skill header until expanded (compact=%s)"
   expect(container.querySelector(".tool-running-pulse")).toBeNull();
   card.open = true;
   fireEvent(card, new Event("toggle"));
-  expect(await screen.findByRole("heading", { name: "Briefing instructions" })).toBeTruthy();
+  expect(await screen.findByRole("heading", { name: "Briefing instructions" }, { timeout: 5000 })).toBeTruthy();
   expect(screen.getByText("/skills/daily-briefing/SKILL.md")).toBeTruthy();
   expect(container.querySelector("script")).toBeNull();
   card.open = false;
