@@ -1,10 +1,11 @@
 import { join, resolve } from "node:path";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { ProjectSessionService } from "../../../src/server/projects/project-session-service.js";
 import { ProjectMetadataStore } from "../../../src/server/projects/project-metadata-store.js";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
+import type { RestartService } from "../../../src/server/bootstrap/restart-service.js";
 import { TestWorld } from "../pi-chat/test-world.js";
 import { BrowserBrowserDriver } from "./browser-browser-driver.js";
 import { BrowserChatDriver } from "./browser-chat-driver.js";
@@ -12,6 +13,7 @@ import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
+import { BrowserFocusDriver } from "./browser-focus-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
@@ -21,6 +23,7 @@ export class PiChatBrowserDriver {
   readonly Tabs: BrowserTabsDriver;
   readonly Skills: BrowserSkillsDriver;
   readonly Projects: BrowserProjectsDriver;
+  readonly Focus: BrowserFocusDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -36,10 +39,11 @@ export class PiChatBrowserDriver {
     this.Tabs = new BrowserTabsDriver(page, world);
     this.Skills = new BrowserSkillsDriver(page, this.composer);
     this.Projects = new BrowserProjectsDriver(page);
+    this.Focus = new BrowserFocusDriver(page, this.composer, world);
   }
 
-  static async start(page: Page): Promise<PiChatBrowserDriver> {
-    const world = new TestWorld([], true);
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService } = {}): Promise<PiChatBrowserDriver> {
+    const world = new TestWorld(options.extensions, true);
     let server: PiChatServer | undefined;
     try {
       const projectSessions = new ProjectSessionService(
@@ -48,7 +52,7 @@ export class PiChatBrowserDriver {
         undefined,
         new ProjectMetadataStore(join(world.projectPath, ".pi-chat", "projects.json")),
       );
-      server = createPiChatServer(undefined, resolve("dist/web"), world.factory, undefined, undefined, undefined, undefined, projectSessions);
+      server = createPiChatServer(undefined, resolve("dist/web"), world.factory, options.restart, undefined, undefined, undefined, projectSessions);
       await new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
         server!.httpServer.listen(0, "127.0.0.1", () => {

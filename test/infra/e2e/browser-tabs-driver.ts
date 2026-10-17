@@ -58,9 +58,13 @@ export class BrowserTabsDriver {
     await expect(this.tabs()).toHaveCount(count);
   }
 
+  async RequestClose(handle: BrowserTabHandle): Promise<void> {
+    await this.tab(handle).getByRole("button", { name: /^Close / }).click();
+  }
+
   async Close(handle: BrowserTabHandle): Promise<void> {
     const count = await this.tabs().count();
-    await this.tab(handle).getByRole("button", { name: /^Close / }).click();
+    await this.RequestClose(handle);
     await expect(this.tabs()).toHaveCount(count - 1);
   }
 }
