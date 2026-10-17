@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PiClient } from "../src/client.js";
+import { SDKError } from "../src/errors.js";
 import { fakeTransport, snapshot, tabs, catalogue } from "./fake-transport.js";
 
 beforeEach(() => vi.useFakeTimers());
@@ -116,7 +117,31 @@ describe("typed v1 client operations", () => {
     socket.message(tabs()); await reject; client.dispose(); expect(vi.getTimerCount()).toBe(0);
   });
 
-  it("reports not-sent requests while offline, validates before allocating, and handles send failures", async () => {
+  it.each(["unknown", "notSent"] as const)("cleans a synchronous send failure with %s outcome", async (outcome) => {
+    const fake = fakeTransport();
+    const client = new PiClient({ endpoint: "ws://example/ws", transport: (endpoint, handlers) => {
+      const transport = fake.factory(endpoint, handlers);
+      return { ...transport, send() { throw outcome === "unknown" ? new Error("socket failed") : new SDKError("limitExceeded", "buffer full"); } };
+    } });
+    client.start(); vi.advanceTimersByTime(0);
+    const socket = fake.sockets[0]!; socket.open(); socket.message(tabs()); socket.message(catalogue);
+    await expect(client.createSession()).rejects.toMatchObject({ outcome, requestId: expect.any(String) });
+    client.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps separately cancellable file-open waits independent", async () => {
+    const { client, socket, sent } = setup();
+    const abort = new AbortController();
+    const first = client.openFile("s", "/file", { signal: abort.signal });
+    const second = client.openFile("s", "/file", { signal: new AbortController().signal });
+    const rejected = expect(first).rejects.toMatchObject({ code: "cancelled" });
+    abort.abort(); await rejected;
+    expect(sent()).toHaveLength(2);
+    socket.message({ version: 1, type: "fileOpenResult", sessionId: "s", requestId: sent()[1].requestId, result: { ok: true } });
+    await second; client.dispose(); expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("reports not-sent requests while offline and validates before allocating", async () => {
     const { client, socket } = setup();
     await expect(client.openFile("s", "https://example.com")).rejects.toMatchObject({ code: "invalidRequest", outcome: "notSent" });
     socket.end();

@@ -4,10 +4,12 @@ This directory is the future `pi-sdk` repository boundary. It contains one npm
 package, `@manuelselch/pi-sdk`, and a root SwiftPM package/product named `PiSDK`.
 There is no standalone protocol/client package. Nothing is published.
 
-**Current implementation: slice 2, v1 contract extraction only.** The TypeScript
-SDK exports the unchanged live Pi Chat schemas/types; it does not yet own socket
-lifecycle, request tracking or projections. Swift's public target is a scaffold,
-not a working client. The [v2 draft](../../docs/backend-sdk/PROTOCOL.md) is still
+**Current implementation: slice 3, UI-independent v1 TypeScript SDK.**
+[`PiClient`](typescript/README.md) owns injectable transport lifecycle, typed
+operations, bounded request tracking, immutable state and session projections.
+Pi Chat's React hook is not yet switched to PiClient (slice 4); its tracker and
+session-reducer logic already delegate to the SDK through migration bridges.
+Swift's public target is a scaffold, not a working client. The [v2 draft](../../docs/backend-sdk/PROTOCOL.md) is still
 unimplemented. V1 is a temporary baseline, not an ongoing compatibility promise.
 
 ## Layout
@@ -24,6 +26,9 @@ pi-sdk/
     package.json                  # @manuelselch/pi-sdk
     src/contract/                 # Authoritative Zod schemas and inferred types
     src/index.ts                  # SDK public entry point
+    src/client.ts                 # Transport lifecycle and typed operations
+    src/session-state.ts          # Shared session projection (no notice bubbles)
+    src/requests/                 # Correlation, cancellation and request bounds
     scripts/                      # Export/generation/package verification
     test/                         # Schema, fixture and generation checks
 ```
@@ -36,7 +41,9 @@ import { parseClientMessage, type ClientMessage } from "@manuelselch/pi-sdk";
 import { serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk/contract";
 ```
 
-Both entry points currently expose the same contract. The package's **only
+Both entry points expose the same contract; only the root also exports PiClient,
+transport/platform interfaces, projections and SDK errors. See the
+[TypeScript API and v1 limitations](typescript/README.md). The package's **only
 runtime dependency is Zod**. It builds without DOM, React, Mantine, WebSocket or
 Pi runtime types. Markdown-link interpretation stays application-owned.
 `src/shared/{protocol,directories,files}.ts` in Pi Chat are temporary import
@@ -72,8 +79,9 @@ running dev process, run `npm run build:sdk` explicitly. This avoids concurrent
 Vite/server processes rebuilding the same package outputs.
 
 `verify:package` creates a local tarball, installs it offline into a temporary
-consumer outside this checkout and verifies ESM imports, declarations, v1
-fixtures, public schema/fixture exports and runtime dependency isolation. It
+consumer outside this checkout and verifies ESM imports, ES-only declarations,
+v1 fixtures, public schema/fixture exports, PiClient lifecycle/operations,
+contract-only import isolation and runtime dependency isolation. It
 never publishes or pushes. The temporary consumer is removed afterward.
 
 ## Contract source and fixtures

@@ -172,6 +172,16 @@ describe("PiClient v1 connection lifecycle", () => {
     client.dispose(); expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("bounds runtime inventory and projection counts", () => {
+    for (const viaInventory of [true, false]) {
+      const { client, socket } = setup({ maxSessions: 1 }); socket.open();
+      if (viaInventory) socket.message(tabs("a", "b"));
+      else { socket.message(snapshot("a")); socket.message(snapshot("b")); }
+      expect(client.getState().connection).toMatchObject({ phase: "failed", error: { code: "limitExceeded" } });
+      client.dispose(); expect(vi.getTimerCount()).toBe(0);
+    }
+  });
+
   it("safely handles opaque IDs that match Object prototype properties", () => {
     const { client, socket } = setup(); socket.open();
     expect(client.getSession("toString")).toBeUndefined();

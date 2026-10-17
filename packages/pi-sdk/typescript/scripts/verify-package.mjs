@@ -22,12 +22,19 @@ try {
   assert(!modules.some((name) => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
 
   await writeFile(join(temporary, "consumer.ts"), `
-import { PROTOCOL_VERSION, parseClientMessage, type ClientMessage } from "@manuelselch/pi-sdk";
+import { PiClient, PROTOCOL_VERSION, parseClientMessage, type ClientMessage, type TransportFactory } from "@manuelselch/pi-sdk";
 import { serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk/contract";
 const command: ClientMessage = { version: PROTOCOL_VERSION, type: "abort", sessionId: "runtime" };
 const event: ServerMessage = { version: 1, type: "protocolError", error: "example" };
 parseClientMessage(command);
 serverMessageSchema.parse(event);
+const transport: TransportFactory = (_endpoint, _handlers) => ({ send(_text) {}, close() {}, dispose() {} });
+const client = new PiClient({ endpoint: "ws://example/ws", transport });
+const pendingSession: Promise<string> = client.createSession();
+// @ts-expect-error Published state is deeply readonly, including collection elements.
+client.getState().inventory.push({});
+// @ts-expect-error Routing is explicit, not browser focus-dependent.
+client.prompt("message without a target session");
 // @ts-expect-error Session commands must retain their required identity.
 const missingSession: ClientMessage = { version: 1, type: "abort" };
 // @ts-expect-error This is still v1, not the proposed v2 contract.
@@ -52,9 +59,30 @@ for (const file of ["valid", "invalid"]) {
 }
 const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@manuelselch/pi-sdk/protocol/schema/v1/ClientMessage.schema.json")), "utf8"));
 assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
+assert.equal(contract.PiClient, undefined);
+const callbacks = new Map(); let timerSequence = 0; let handlers; const sent = [];
+const scheduler = { setTimeout(callback) { const id = ++timerSequence; callbacks.set(id, callback); return id; }, clearTimeout(id) { callbacks.delete(id); } };
+const client = new sdk.PiClient({ endpoint: "wss://example/ws", scheduler, transport(endpoint, events) {
+  assert.equal(endpoint, "wss://example/ws"); handlers = events;
+  return { send(text) { sent.push(JSON.parse(text)); }, close() {}, dispose() {} };
+} });
+client.start();
+const [timer, callback] = callbacks.entries().next().value; callbacks.delete(timer); callback();
+handlers.open();
+handlers.message(JSON.stringify({ version: 1, type: "tabs", tabs: [], activeSessionId: "" }));
+handlers.message(JSON.stringify({ version: 1, type: "catalogue", catalogue: { projects: [] } }));
+assert.equal(client.getState().connection.phase, "ready");
+assert(Object.isFrozen(client.getState().inventory));
+const created = client.createSession("/example");
+assert.equal(sent[0].type, "newSession");
+handlers.message(JSON.stringify({ version: 1, type: "sessionOpened", requestId: sent[0].requestId, sessionId: "created" }));
+assert.equal(await created, "created");
+client.prompt("created", "hello"); assert.equal(sent[1].type, "prompt");
+client.dispose(); assert.equal(callbacks.size, 0);
+assert.equal(client.getState().connection.phase, "disposed");
 `);
   execFileSync(process.execPath, ["consumer.mjs"], { cwd: temporary, stdio: "pipe" });
-  console.log("Packed SDK installs offline and passes ESM imports, exported artifacts, v1 fixtures, dependency isolation and independent TypeScript checks.");
+  console.log("Packed SDK installs offline and passes ESM imports, contract isolation, v1 fixtures, PiClient lifecycle/operations, dependency isolation and ES-only TypeScript checks.");
 } catch (error) {
   if (error.stdout) console.error(error.stdout.toString());
   if (error.stderr) console.error(error.stderr.toString());

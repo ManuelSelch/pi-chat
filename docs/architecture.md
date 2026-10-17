@@ -5,7 +5,10 @@ The server owns agent sessions; the client displays state and sends commands.
 The unchanged v1 wire schemas/types now live in the local
 [`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Both sides consume
 its public contract entry point through temporary `src/shared` re-exports.
-Client transport/state extraction and the proposed v2 cutover are separate later slices.
+The SDK also contains the UI-independent TypeScript `PiClient` with injectable
+transport, request tracking and immutable session projections. The existing web
+hook already delegates its common trackers/session reducer to the SDK, but its
+socket ownership moves to PiClient in slice 4. The proposed v2 cutover is later.
 
 ```mermaid
 flowchart LR
@@ -61,6 +64,8 @@ flowchart TD
 - `App` manages the WebSocket connection and application state.
 - Chat, Sessions, Settings, and Extensions provide the main web features.
 - Shared UI and browser preferences support the features.
+- Common session projection and request trackers come from the SDK. Browser-local
+  notification bubbles/anchors and optimistic navigation remain in web code.
 
 ## Server
 
