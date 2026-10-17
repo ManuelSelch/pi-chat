@@ -112,29 +112,26 @@ async function sendWithRetry(request: Request) {
   await page.getByRole("dialog", { name: "Projects", exact: true }).screenshot({ path: join(output, "projects.png"), animations: "disabled", caret: "hide" });
   await driver.Projects.Close();
 
-  await page.setViewportSize({ width: 420, height: 780 });
-  const composer = page.getByRole("textbox", { name: "Message Pi" });
-  // A real filtered menu fits without a half-visible row at the scroll boundary.
-  await composer.fill("/session");
-  const commands = page.getByRole("listbox", { name: "Commands", exact: true });
-  await expect(commands.getByRole("option", { name: /New session/ })).toBeVisible();
-  const options = commands.getByRole("option");
-  const panelBox = await commands.boundingBox();
+  await page.setViewportSize({ width: 520, height: 780 });
+  await page.locator("body").press("Meta+o");
+  const switcher = page.getByRole("dialog");
+  const search = page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" });
+  await expect(search).toBeFocused();
+  // A populated Sessions scope shows clean project names without temporary folder paths.
+  await switcher.getByRole("button", { name: "@ Sessions", exact: true }).click();
+  const options = switcher.getByRole("option");
+  await expect(options).toHaveCount(3);
+  await expect(options.filter({ hasText: "Review retry behavior" })).toBeVisible();
+  const list = switcher.getByRole("listbox");
+  const listBox = await list.boundingBox();
   const lastOptionBox = await options.last().boundingBox();
-  if (!panelBox || !lastOptionBox || lastOptionBox.y + lastOptionBox.height > panelBox.y + panelBox.height) {
-    throw new Error("Commands Panel must show every filtered option without clipping");
+  if (!listBox || !lastOptionBox || lastOptionBox.y + lastOptionBox.height > listBox.y + listBox.height) {
+    throw new Error("Quick Switcher must show every session without clipping");
   }
-  const composerBox = await composer.boundingBox();
-  if (!composerBox) throw new Error("Composer is not visible");
   await settle();
-  // Include the query/composer for context, but no unrelated transcript or empty screen.
-  await page.screenshot({
-    path: join(output, "commands.png"), animations: "disabled", caret: "hide",
-    clip: { x: panelBox.x, y: panelBox.y, width: panelBox.width,
-      height: composerBox.y + composerBox.height - panelBox.y },
-  });
-  await composer.press("Escape");
-  await composer.fill("");
+  await switcher.screenshot({ path: join(output, "quick-switcher.png"), animations: "disabled", caret: "hide" });
+  await search.press("Escape");
+  await expect(switcher).not.toBeVisible();
   await page.setViewportSize({ width: 1120, height: 780 });
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveAttribute("data-mantine-color-scheme", "light");
@@ -144,7 +141,7 @@ async function sendWithRetry(request: Request) {
   const captures = {
     workspace: (await readFile(join(output, "workspace.png"))).toString("base64"),
     projects: (await readFile(join(output, "projects.png"))).toString("base64"),
-    commands: (await readFile(join(output, "commands.png"))).toString("base64"),
+    switcher: (await readFile(join(output, "quick-switcher.png"))).toString("base64"),
     light: (await readFile(join(output, "light.png"))).toString("base64"),
   };
   const html = assembleShowcaseHtml(captures);
@@ -154,14 +151,14 @@ async function sendWithRetry(request: Request) {
     await document.fonts.ready;
     await Promise.all([...document.images].map(image => image.decode()));
   });
-  await expect(assembly.locator(".commands img")).toHaveCSS("object-fit", "contain");
+  await expect(assembly.locator(".switcher img")).toHaveCSS("object-fit", "contain");
   await assembly.locator(".showcase").screenshot({ path: join(output, "pi-chat-showcase.png"), animations: "disabled" });
   await writeFile(join(output, "preview.html"), html);
   await writeFile(join(output, "manifest.json"), JSON.stringify({
     layout: "Product first", mockModel: true, realUI: true, viewport: { width: 1120, height: 780 }, deviceScaleFactor: 2,
-    files: ["workspace.png", "projects.png", "commands.png", "light.png", "pi-chat-showcase.png", "preview.html"],
+    files: ["workspace.png", "projects.png", "quick-switcher.png", "light.png", "pi-chat-showcase.png", "preview.html"],
   }, null, 2) + "\n");
-  console.log(`Showcase written to ${output}\nREADME: ![Pi Chat workspace, projects, commands, and light mode](./docs/images/showcase/pi-chat-showcase.png)`);
+  console.log(`Showcase written to ${output}\nREADME: ![Pi Chat workspace, projects, Quick Switcher, and light mode](./docs/images/showcase/pi-chat-showcase.png)`);
 } finally {
   // Attempt every cleanup even if another one fails. Never touches the user's server.
   try { await app?.dispose(); }
