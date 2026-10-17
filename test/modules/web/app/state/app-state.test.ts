@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../../../../../src/shared/protocol.js";
-import { activeSession, initialAppState, reduceAppMessage, visibleError, visibleTabs, atHome } from "../../../../../src/web/app/state/app-state.js";
+import { activeSession, initialAppState, visibleError, visibleTabs, atHome } from "../../../../../src/web/app/state/app-state.js";
+
+import { createAppReducer } from "./sdk-harness.js";
+let harness: ReturnType<typeof createAppReducer>;
+beforeEach(() => { harness = createAppReducer(); });
+afterEach(() => harness.client.dispose());
+const reduceAppMessage: ReturnType<typeof createAppReducer>["reduce"] = (state, action) => harness.reduce(state, action);
 
 const snapshot = (sessionId: string, text: string): ServerMessage => ({
   version: PROTOCOL_VERSION,
@@ -83,7 +89,7 @@ describe("app state", () => {
     state = reduceAppMessage(state, { type: "connectionLost", error: "gone" });
 
     expect(state.connection).toBe("connecting");
-    expect(state.error).toBe("gone");
+    expect(state.error).toBe("Waiting for the Pi Chat server…");
     expect(state.sessions.a!.messages).toHaveLength(1);
     expect(state.sessions.b!.status).toBe("connecting");
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ServerMessage } from "../../../../../src/shared/protocol.js";
-import { initialChatState, reduceServerMessage, type ChatState } from "../../../../../src/web/app/state/chat-state.js";
+import { initialChatState, reduceServerMessage, type ChatState } from "../../../../infra/pi-chat/browser-session-view.js";
 
 describe("chat state", () => {
   it("restores steering on reconnect and accepts only fresh queue updates", () => {

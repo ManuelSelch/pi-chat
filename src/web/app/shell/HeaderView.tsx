@@ -8,7 +8,7 @@ import { MANTINE_COLOR } from "../../ui/theme.js";
 interface HeaderViewProps {
   home: boolean;
   title: string;
-  tabs: Tab[];
+  tabs: readonly Tab[];
   openingTabs: number;
   activeSessionId: string;
   buttons: readonly PiChatButton[];

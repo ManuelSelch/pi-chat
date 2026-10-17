@@ -16,6 +16,7 @@ vi.mock("../../../../../src/web/sessions/projects/SessionRow.js", async () => {
 class Socket extends EventTarget {
   static OPEN = 1;
   static current: Socket;
+  bufferedAmount = 0;
   readyState = 1;
   sent: any[] = [];
   constructor() { super(); Socket.current = this; }
@@ -37,6 +38,7 @@ function start() {
   render(<MantineProvider><AppControllerProvider><OverlayController><Panel /></OverlayController></AppControllerProvider></MantineProvider>);
   act(() => void vi.advanceTimersByTime(0));
   const socket = Socket.current;
+  act(() => socket.dispatchEvent(new Event("open")));
   act(() => socket.deliver({ type: "snapshot", sessionId: "s-0-0", sequence: 0, throughSequence: 0, projectPath: "/project-0", messages: [], isStreaming: true, catalogue }));
   fireEvent.click(screen.getByText("Show projects"));
   act(() => void vi.advanceTimersByTime(500));
@@ -75,6 +77,6 @@ describe("project/session drawer rendering", () => {
     expect(screen.getByRole("button", { name: "Archive Chat 1-0" }).hasAttribute("disabled")).toBe(true);
     expect(screen.getByText("Chat 1-0").closest('button')?.getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("button", { name: "New session in Project 1" }));
-    expect(socket.sent.at(-1)).toEqual({ version: 1, type: "newSession", path: "/project-1" });
+    expect(socket.sent.at(-1)).toEqual({ version: 1, type: "newSession", path: "/project-1", requestId: expect.any(String) });
   });
 });

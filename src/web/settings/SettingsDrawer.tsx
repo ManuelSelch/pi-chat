@@ -1,7 +1,7 @@
 import { Button, Drawer, SegmentedControl, Select, Stack, Switch, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../ui/theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconMessageCircle, IconPuzzle, IconRefresh } from "@tabler/icons-react";
-import type { ThinkingLevel, WebFeature } from "../../shared/protocol.js";
+import type { ThinkingLevel, WebFeature } from "../app/state/view-types.js";
 import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
 import { SectionHeader } from "../ui/SectionHeader.js";
@@ -17,7 +17,7 @@ interface SettingsDrawerProps {
   setModel: (model: string) => void;
   compactSession: () => void;
   restartServer: () => void;
-  appFeatures: WebFeature[];
+  appFeatures: readonly WebFeature[];
   chimesEnabled: boolean;
   setChimesEnabled: (value: boolean) => void;
   chimesAvailable: boolean;

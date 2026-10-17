@@ -1,243 +1,91 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import {
-  CONTROLLER_REPLACED_CODE,
-  PROTOCOL_VERSION,
-  serverMessageSchema,
-  type ClientMessage,
-  type ThinkingLevel,
-  type UiPromptResult,
-} from "../../shared/protocol.js";
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "./state/app-state.js";
-import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
-import { FolderRequests } from "./connection/folder-requests.js";
-import { CompletionRequests } from "./connection/completion-requests.js";
-import { FileRequests } from "./connection/file-requests.js";
-import { ProjectRequests } from "./connection/project-requests.js";
+import { browserTransport } from "./connection/browser-transport.js";
+import { bindPiChat } from "./connection/sdk-binding.js";
 
-const FIRST_RETRY_MS = 250;
-const MAX_RETRY_MS = 5_000;
-
-/**
- * The Pi runtime needs several seconds to start, while the dev server is ready
- * almost immediately, so the first connection attempt is normally refused.
- * Reconnecting with backoff is what makes the app usable from a cold start.
- */
+/** React lifecycle and browser presentation over one UI-independent SDK client. */
 export function usePiChat() {
   const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
-  const socketRef = useRef<WebSocket | undefined>(undefined);
-  const folderRequests = useRef(new FolderRequests());
-  const folderRequestSequence = useRef(0);
-  const completionRequests = useRef(new CompletionRequests());
-  const completionSequence = useRef(0);
-  const fileRequests = useRef(new FileRequests());
-  const fileSequence = useRef(0);
-  const projectRequests = useRef(new ProjectRequests());
-  const projectSequence = useRef(0);
-  // Bumping this re-runs the effect, which is how a superseded tab takes the
-  // controller slot back on an explicit user action.
-  const [claim, setClaim] = useState(0);
+  const clientRef = useRef<PiClient | undefined>(undefined);
 
   useEffect(() => {
-    let disposed = false;
-    let retryMs = FIRST_RETRY_MS;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
-
-    function connect(): void {
-      if (disposed) return;
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const socket = new WebSocket(`${protocol}://${window.location.host}/ws${window.location.search}`);
-      socketRef.current = socket;
-
-      socket.addEventListener("open", () => {
-        retryMs = FIRST_RETRY_MS;
-        console.info("[pi-chat] websocket.open", { timestamp: new Date().toISOString() });
-      });
-
-      socket.addEventListener("error", (event) => {
-        console.warn("[pi-chat] websocket.error", {
-          timestamp: new Date().toISOString(),
-          message: event instanceof ErrorEvent ? event.message : undefined,
-        });
-      });
-
-      socket.addEventListener("message", (event) => {
-        if (disposed || socketRef.current !== socket) return;
-        let value: unknown;
-        try {
-          value = JSON.parse(String(event.data));
-        } catch {
-          return;
-        }
-        const parsed = serverMessageSchema.safeParse(value);
-        if (parsed.success) {
-          if (parsed.data.type === "tabs") fileRequests.current.retainSessions(parsed.data.tabs.map((tab) => tab.sessionId));
-          if (!projectRequests.current.receive(parsed.data) && !fileRequests.current.receive(parsed.data) && !folderRequests.current.receive(parsed.data) && !completionRequests.current.receive(parsed.data)) dispatch(parsed.data);
-        }
-      });
-
-      // A refused connection fires error and then close on its own, so close is
-      // the single place that schedules a retry. Calling close() from the error
-      // handler would only abort a still-connecting socket and log
-      // "closed before the connection is established".
-      socket.addEventListener("close", (event) => {
-        if (disposed || socketRef.current !== socket) return;
-        console.info("[pi-chat] websocket.close", {
-          timestamp: new Date().toISOString(),
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-        });
-        socketRef.current = undefined;
-        folderRequests.current.disconnect();
-        completionRequests.current.disconnect();
-        fileRequests.current.disconnect();
-        projectRequests.current.disconnect();
-        if (event.code === CONTROLLER_REPLACED_CODE) {
-          dispatch({ type: "superseded" });
-          return;
-        }
-        dispatch({ type: "connectionLost", error: "Waiting for the Pi Chat server…" });
-        retryTimer = setTimeout(connect, retryMs);
-        retryMs = Math.min(retryMs * 2, MAX_RETRY_MS);
-      });
-    }
-
-    // Deferred by a tick so React StrictMode's throwaway first mount is cancelled
-    // before a socket exists. Connecting immediately would open a socket that the
-    // probe's cleanup closes mid-handshake, which the browser reports as
-    // "WebSocket is closed before the connection is established".
-    retryTimer = setTimeout(connect, 0);
-
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const client = new PiClient({ endpoint: `${protocol}://${window.location.host}/ws${window.location.search}`, transport: browserTransport });
+    clientRef.current = client;
+    const unbind = bindPiChat(client, dispatch);
+    const stopErrors = client.onError((error) => {
+      if (error.code === "listenerError") console.warn("[pi-chat] SDK subscriber failed", error);
+    });
+    client.start(); // SDK defers a tick, so StrictMode's probe never opens a socket.
     return () => {
-      disposed = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      folderRequests.current.disconnect();
-      completionRequests.current.disconnect();
-      fileRequests.current.disconnect();
-      projectRequests.current.disconnect();
-      socketRef.current?.close();
-      socketRef.current = undefined;
+      unbind(); stopErrors();
+      if (clientRef.current === client) clientRef.current = undefined;
+      client.dispose(); // Disconnecting the UI never closes a server runtime.
     };
-  }, [claim]);
-
-  const send = useCallback((message: ClientMessage) => {
-    const socket = socketRef.current;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      dispatch({ type: "connectionLost", error: "Not connected to the Pi Chat server yet." });
-      return;
-    }
-    // Only asking for new work dismisses a reported failure. Clearing on every
-    // message meant background traffic such as focusing a tab or answering a
-    // dialog wiped an error the user had not read yet.
-    if (message.type === "prompt" || message.type === "abort") dispatch({ type: "clearError" });
-    socket.send(JSON.stringify(message));
   }, []);
 
-  const folderRequest = useCallback((command: Omit<Extract<ClientMessage, { type: "browseDirectories" }>, "requestId"> | Omit<Extract<ClientMessage, { type: "newSession" }>, "requestId">, signal?: AbortSignal) => {
-    const requestId = `folder-${++folderRequestSequence.current}`;
-    return folderRequests.current.request({ ...command, requestId }, (message) => {
-      const socket = socketRef.current;
-      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
-      socket.send(JSON.stringify(message));
-    }, signal);
+  const requireClient = useCallback(() => {
+    if (!clientRef.current) throw new SDKError("notConnected", "Not connected to the Pi Chat server yet.");
+    return clientRef.current;
   }, []);
+  const request = useCallback(<T,>(invoke: (client: PiClient) => Promise<T>): Promise<T> => {
+    try { return invoke(requireClient()); } catch (error) { return Promise.reject(error); }
+  }, [requireClient]);
+  const control = useCallback((invoke: (client: PiClient) => void, optimistic: { opening?: boolean; closingSessionId?: string } = {}) => {
+    try { invoke(requireClient()); }
+    catch (error) { dispatch({ type: "commandFailed", error: error instanceof Error ? error.message : String(error), ...optimistic }); }
+  }, [requireClient]);
 
-  const browseDirectories = useCallback(async (request: DirectoryBrowse, signal?: AbortSignal): Promise<DirectoryListing> => {
-    const reply = await folderRequest({ version: PROTOCOL_VERSION, type: "browseDirectories", ...request }, signal);
-    if (reply.type !== "directoryListing") throw new Error("Unexpected folder response.");
-    return reply.listing;
-  }, [folderRequest]);
-
-  const startFolderSession = useCallback(async (path: string, signal?: AbortSignal): Promise<string> => {
-    const reply = await folderRequest({ version: PROTOCOL_VERSION, type: "newSession", path }, signal);
-    if (reply.type !== "sessionOpened") throw new Error("Unexpected session response.");
-    return reply.sessionId;
-  }, [folderRequest]);
-
-  const completeCommandArguments = useCallback((sessionId: string, commandName: string, argumentPrefix: string, signal?: AbortSignal) => {
-    return completionRequests.current.request({ version: PROTOCOL_VERSION, type: "completeCommandArguments", sessionId, requestId: `completion-${++completionSequence.current}`, commandName, argumentPrefix }, (message) => {
-      const socket = socketRef.current;
-      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
-      socket.send(JSON.stringify(message));
-    }, signal);
-  }, []);
-
-  const openFile = useCallback((sessionId: string, path: string) => {
-    return fileRequests.current.request({ version: PROTOCOL_VERSION, type: "openFile", sessionId, requestId: `file-${++fileSequence.current}`, path }, (message) => {
-      const socket = socketRef.current;
-      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
-      socket.send(JSON.stringify(message));
-    });
-  }, []);
-
-  type ProjectMutation =
-    | { type: "setSessionArchived"; path: string; archived: boolean }
-    | { type: "pinProject"; path: string; pinned: boolean }
-    | { type: "removeProject"; path: string };
-  const projectMutation = useCallback((command: ProjectMutation) => {
-    return projectRequests.current.request({ ...command, version: PROTOCOL_VERSION, requestId: `project-${++projectSequence.current}` }, (message) => {
-      const socket = socketRef.current;
-      if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error("Not connected to the Pi Chat server.");
-      socket.send(JSON.stringify(message));
-    });
-  }, []);
-  const archiveSession = useCallback((path: string, archived: boolean) => projectMutation({ type: "setSessionArchived", path, archived }), [projectMutation]);
-  const pinProject = useCallback((path: string, pinned: boolean) => projectMutation({ type: "pinProject", path, pinned }), [projectMutation]);
-  const removeProject = useCallback((path: string) => projectMutation({ type: "removeProject", path }), [projectMutation]);
-
+  const browseDirectories = useCallback((query: DirectoryBrowse, signal?: AbortSignal) => request((client) => client.browseDirectories(query, { signal })), [request]);
+  const startFolderSession = useCallback((path: string, signal?: AbortSignal) => request((client) => client.createSession(path, { signal })), [request]);
+  const completeCommandArguments = useCallback((sessionId: string, name: string, prefix: string, signal?: AbortSignal) => request((client) => client.completeCommandArguments(sessionId, name, prefix, { signal })), [request]);
+  const openFile = useCallback((sessionId: string, path: string) => request((client) => client.openFile(sessionId, path)), [request]);
+  const archiveSession = useCallback((path: string, archived: boolean) => request((client) => client.archiveSession(path, archived)), [request]);
+  const pinProject = useCallback((path: string, pinned: boolean) => request((client) => client.pinProject(path, pinned)), [request]);
+  const removeProject = useCallback((path: string) => request((client) => client.removeProject(path)), [request]);
   const openSession = useCallback((path: string) => {
-    dispatch({ type: "openPending" });
-    send({ version: PROTOCOL_VERSION, type: "openSession", path });
-  }, [send]);
+    dispatch({ type: "openPending" }); control((client) => client.openSession(path), { opening: true });
+  }, [control]);
+  const openProject = useCallback((path: string) => {
+    dispatch({ type: "openPending" }); control((client) => client.openProject(path), { opening: true });
+  }, [control]);
   const newSession = useCallback((path?: string) => {
     dispatch({ type: "openPending" });
-    send({ version: PROTOCOL_VERSION, type: "newSession", ...(path ? { path } : {}) });
-  }, [send]);
+    const owner = clientRef.current;
+    void request((client) => client.createSession(path || undefined)).catch((error: unknown) => {
+      if (clientRef.current !== owner) return;
+      const message = error instanceof Error ? error.message : String(error);
+      dispatch({ type: "commandFailed", opening: true, error: error instanceof SDKError && error.outcome === "unknown" ? `${message} The server outcome is unknown; no retry was sent.` : message });
+    });
+  }, [request]);
+  const closeTab = useCallback((sessionId: string) => {
+    dispatch({ type: "closePending", sessionId });
+    control((client) => client.closeSession(sessionId), { closingSessionId: sessionId });
+  }, [control]);
+  const takeControl = useCallback(() => control((client) => client.takeControl()), [control]);
 
-  // Commands act on the tab the user is looking at unless one is named.
+  // User-visible focus remains application-owned; the SDK always gets an ID.
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
-
   return {
-    app,
-    state: session,
-    browseDirectories,
-    startFolderSession,
-    completeCommandArguments,
-    openFile,
-    prompt: (message: string, sessionId?: string) =>
-      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "prompt", message }),
-    abort: (sessionId?: string) => send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "abort" }),
-    respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) =>
-      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "uiPromptResponse", promptId, result }),
-    openProject: (path: string) => {
-      dispatch({ type: "openPending" });
-      send({ version: PROTOCOL_VERSION, type: "openProject", path });
+    app, state: session, browseDirectories, startFolderSession, completeCommandArguments,
+    openFile, archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
+    prompt: (message: string, sessionId?: string) => {
+      const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
+      control((client) => client.prompt(id, message));
     },
-    openSession,
-    newSession,
-    focusTab: (sessionId: string) => send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId }),
-    archiveSession,
-    pinProject,
-    removeProject,
-    closeTab: (sessionId: string) => {
-      fileRequests.current.closeSession(sessionId);
-      dispatch({ type: "closePending", sessionId });
-      send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId });
+    abort: (sessionId?: string) => {
+      const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
+      control((client) => client.abort(id));
     },
-    setModel: (model: string) =>
-      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "model.select", input: { model } }),
-    compactSession: () =>
-      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "session.compact", input: {} }),
-    // The server goes down before it can answer, so the socket simply closes and
-    // the usual reconnect loop waits for the successor.
-    restartServer: () =>
-      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId || "app", type: "runFeature", featureId: "app.restart", input: {} }),
-    setThinkingLevel: (level: ThinkingLevel) =>
-      send({ version: PROTOCOL_VERSION, sessionId: app.activeSessionId, type: "runFeature", featureId: "thinking.level", input: { level } }),
-    runExtensionAction: (actionId: string, sessionId?: string) =>
-      send({ version: PROTOCOL_VERSION, sessionId: target(sessionId), type: "runExtensionAction", actionId }),
+    respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) => control((client) => client.respondToPrompt(target(sessionId), promptId, result)),
+    focusTab: (sessionId: string) => control((client) => client.focusSession(sessionId)),
+    setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
+    compactSession: () => control((client) => client.compactSession(app.activeSessionId)),
+    restartServer: () => control((client) => client.restartServer()),
+    setThinkingLevel: (level: ThinkingLevel) => control((client) => client.setThinkingLevel(app.activeSessionId, level)),
+    runExtensionAction: (actionId: string, sessionId?: string) => control((client) => client.runExtensionAction(target(sessionId), actionId)),
     dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
-    takeControl: () => setClaim((value) => value + 1),
   };
 }

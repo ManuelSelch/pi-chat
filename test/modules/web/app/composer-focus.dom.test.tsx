@@ -199,7 +199,7 @@ describe("composer focus across real app overlays", () => {
 
   it("restores steering focus after cancelling a running-session close", async () => {
     controller.app.tabs = [tab("s1", "running")];
-    controller.state.status = "running";
+    controller.state = { ...controller.state, status: "running" };
     mount();
     click(screen.getByRole("button", { name: "Close s1" }));
     await finishTransitions();
@@ -212,7 +212,7 @@ describe("composer focus across real app overlays", () => {
 
   it("restores the remaining session after confirming a running-session close", async () => {
     controller.app.tabs = [tab("s2"), tab("s1", "running")];
-    controller.state.status = "running";
+    controller.state = { ...controller.state, status: "running" };
     mount();
     click(screen.getByRole("button", { name: "Close s1" }));
     await finishTransitions();

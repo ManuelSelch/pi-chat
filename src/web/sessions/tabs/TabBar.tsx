@@ -10,7 +10,7 @@ const STATUS_LABEL: Record<TabStatus, string> = {
 };
 
 interface TabBarProps {
-  tabs: Tab[];
+  tabs: readonly Tab[];
   /** Sessions whose runtime the server is still creating. */
   opening: number;
   activeSessionId: string;

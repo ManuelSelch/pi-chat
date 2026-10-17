@@ -6,7 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { PROTOCOL_VERSION, serverMessageSchema } from "../../../../../src/shared/protocol.js";
 import { projectSnapshot } from "../../../../../src/server/runtime/pi/snapshot.js";
 import { initialAppState } from "../../../../../src/web/app/state/app-state.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { HeaderContainer } from "../../../../../src/web/app/shell/HeaderContainer.js";
 
 const chat = { app: { ...initialAppState }, state: initialChatState };

@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { MessageList } from "../../../../../src/web/chat/transcript/MessageList.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION, type ChatMessage } from "../../../../../src/shared/protocol.js";
 
 afterEach(cleanup);

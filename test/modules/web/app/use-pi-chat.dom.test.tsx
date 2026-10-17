@@ -5,6 +5,7 @@ import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CONTROLLER_REPLACED_CODE, PROTOCOL_VERSION } from "../../../../src/shared/protocol.js";
 import { usePiChat } from "../../../../src/web/app/use-pi-chat.js";
+import { PiClient } from "@manuelselch/pi-sdk";
 import { AppControllerProvider } from "../../../../src/web/app/AppControllerContext.js";
 import { SessionActionsProvider } from "../../../../src/web/sessions/actions/SessionActionsProvider.js";
 import { ComposerContainer } from "../../../../src/web/chat/composer/ComposerContainer.js";
@@ -19,6 +20,7 @@ class FakeWebSocket {
   static readonly CLOSED = 3;
   static instances: FakeWebSocket[] = [];
 
+  bufferedAmount = 0;
   readyState = FakeWebSocket.CONNECTING;
   closedWhileConnecting = false;
   private readonly listeners = new Map<string, Set<(event: unknown) => void>>();
@@ -31,6 +33,10 @@ class FakeWebSocket {
     const existing = this.listeners.get(type) ?? new Set();
     existing.add(listener);
     this.listeners.set(type, existing);
+  }
+
+  removeEventListener(type: string, listener: (event: unknown) => void): void {
+    this.listeners.get(type)?.delete(listener);
   }
 
   close(code = 1000, reason = "", wasClean = true): void {
@@ -91,6 +97,37 @@ function FolderProbe() {
 }
 
 describe("usePiChat connection lifecycle", () => {
+  it("uses one PiClient for lifecycle and projections and disposes it on unmount", () => {
+    const start = vi.spyOn(PiClient.prototype, "start");
+    const dispose = vi.spyOn(PiClient.prototype, "dispose");
+    const { result, unmount } = renderHook(() => usePiChat());
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => {
+      socket.acceptConnection();
+      socket.deliver({ version: 1, type: "snapshot", sessionId: "s", sequence: 0, throughSequence: 0, projectPath: "/p", messages: [], isStreaming: false });
+    });
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(Object.isFrozen(result.current.app.sessions.s)).toBe(true);
+    unmount(); expect(dispose).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+    start.mockRestore(); dispose.mockRestore();
+  });
+
+  it("uses SDK request deadlines instead of keeping folder waits indefinitely", async () => {
+    const { result } = renderHook(() => usePiChat());
+    act(() => void vi.advanceTimersByTime(0));
+    act(() => {
+      const socket = FakeWebSocket.instances[0]!;
+      socket.acceptConnection();
+      socket.deliver({ version: 1, type: "tabs", tabs: [], activeSessionId: "" });
+      socket.deliver({ version: 1, type: "catalogue", catalogue: { projects: [] } });
+    });
+    const pending = result.current.browseDirectories({ path: "/p" });
+    const rejected = expect(pending).rejects.toMatchObject({ code: "timeout", outcome: "unknown" });
+    await act(async () => vi.advanceTimersByTime(10_000));
+    await rejected;
+  });
   it("keeps file actions stable, session-scoped and separate from runtime errors", async () => {
     const { result } = renderHook(() => usePiChat());
     act(() => void vi.advanceTimersByTime(0));
@@ -134,7 +171,7 @@ describe("usePiChat connection lifecycle", () => {
     act(() => next.acceptConnection());
     expect(next.sent).toEqual([]);
     const third = result.current.openFile("other", "report.pdf");
-    const disposed = expect(third).rejects.toMatchObject({ name: "AbortError" });
+    const disposed = expect(third).rejects.toMatchObject({ code: "disposed", outcome: "unknown" });
     await act(async () => unmount());
     await disposed;
   });
@@ -237,6 +274,7 @@ describe("usePiChat connection lifecycle", () => {
     cleanup();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("never aborts a half-open handshake under StrictMode's double mount", () => {

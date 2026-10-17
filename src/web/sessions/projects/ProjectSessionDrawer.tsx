@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Tooltip,
 import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
-import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
+import type { ChatSessionSummary, ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
 import styles from "./ProjectSessionDrawer.module.css";

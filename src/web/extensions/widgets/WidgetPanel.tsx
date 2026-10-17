@@ -1,7 +1,7 @@
 import { Box, Group, Text, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { useState } from "react";
-import type { Widget } from "../../../shared/protocol.js";
+import type { Widget } from "../../app/state/view-types.js";
 import { Markdown } from "../../chat/markdown/Markdown.js";
 import { Panel } from "../../ui/Panel.js";
 
@@ -40,7 +40,7 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
   );
 }
 
-export function WidgetPanel({ widgets }: { widgets: Widget[] }) {
+export function WidgetPanel({ widgets }: { widgets: readonly Widget[] }) {
   if (widgets.length === 0) return null;
   return (
     <Box>

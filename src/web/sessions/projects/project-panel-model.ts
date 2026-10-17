@@ -1,4 +1,4 @@
-import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
+import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../app/state/view-types.js";
 
 /** One session as it appears inline under its project or worktree row. */
 export interface PanelSession {
@@ -32,7 +32,7 @@ export interface PanelGroup {
  * checkout of a repository that has another visible checkout. Quick Chats is
  * rendered separately and is never folded into repository grouping.
  */
-function isVisibleCheckout(project: ChatProjectSummary, projects: ChatProjectSummary[], currentPath: string): boolean {
+function isVisibleCheckout(project: ChatProjectSummary, projects: readonly ChatProjectSummary[], currentPath: string): boolean {
   if (project.pinned || project.path === currentPath) return true;
   if (!project.worktree) return project.sessionCount > 0 || project.sessions.length > 0;
   // Keep projects with archived-only history visible too: the quick switcher

@@ -1,4 +1,4 @@
-import type { ProjectCatalogue } from "../../../shared/protocol.js";
+import type { ProjectCatalogue } from "../../app/state/view-types.js";
 
 import type { SessionAction } from "../actions/session-actions.js";
 

@@ -43,6 +43,8 @@ describe("Pi Chat persisted tab workflows", () => {
       app.Tabs.Open("/definitely/missing/pi-chat-session.jsonl"),
     ).rejects.toThrow();
 
+    app.Browser.ShouldShowError("Only isolated test sessions may be opened");
+    app.Browser.DismissError();
     app.Browser.ShouldBeAtHome();
     app.Tabs.ShouldHaveCount(0);
   }, 15000);

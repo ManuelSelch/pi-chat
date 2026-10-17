@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { ToolCard } from "../../../../../src/web/chat/tools/ToolCard.js";
 import { toolFilePath } from "../../../../../src/web/chat/tools/ToolCard.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION, type ToolCard as Card } from "../../../../../src/shared/protocol.js";
 
 afterEach(cleanup);

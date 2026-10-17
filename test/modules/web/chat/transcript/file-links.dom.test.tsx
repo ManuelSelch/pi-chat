@@ -15,6 +15,7 @@ vi.mock("react-markdown", async () => {
 class Socket extends EventTarget {
   static OPEN = 1;
   static current: Socket;
+  bufferedAmount = 0;
   readyState = 1;
   sent: any[] = [];
   constructor() { super(); Socket.current = this; }
@@ -34,6 +35,7 @@ function start() {
   render(<MantineProvider><AppControllerProvider><MessageListContainer footerHeight={100} /></AppControllerProvider></MantineProvider>);
   act(() => void vi.advanceTimersByTime(0));
   const socket = Socket.current;
+  act(() => socket.dispatchEvent(new Event("open")));
   act(() => socket.deliver({ type: "snapshot", sessionId: "first", sequence: 0, throughSequence: 0, projectPath: "/first", isStreaming: true, messages: [
     { id: "old", role: "assistant", text: historicalText, thinking: "[Thinking file](./thought.md)" },
     { id: "custom", role: "custom", customType: "test", text: "[Custom file](./custom.md)" },

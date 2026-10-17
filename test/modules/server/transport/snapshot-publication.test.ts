@@ -6,7 +6,7 @@ import type { ProjectSessionService } from "../../../../src/server/projects/proj
 import type { ProjectCatalogue } from "../../../../src/shared/protocol.js";
 import type { RuntimeSnapshot } from "../../../../src/server/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";
-import { initialChatState, reduceServerMessage } from "../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import type { ServerMessage } from "../../../../src/shared/protocol.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 

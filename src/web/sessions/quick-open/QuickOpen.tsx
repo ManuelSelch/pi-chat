@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { IconBolt, IconFolder, IconFolderPlus, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
-import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
+import type { ProjectCatalogue, Tab } from "../../app/state/view-types.js";
 import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
 import { usePointerModality } from "../../ui/usePointerModality.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
@@ -13,7 +13,7 @@ interface QuickOpenProps {
   opened: boolean;
   onClose: () => void;
   catalogue: ProjectCatalogue;
-  tabs: Tab[];
+  tabs: readonly Tab[];
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: (path: string) => void;

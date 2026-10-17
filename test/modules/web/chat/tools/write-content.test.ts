@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { toolCardFromCall } from "../../../../../src/server/runtime/pi/tool-mapping.js";
 import { mergeEntriesById } from "../../../../../src/server/runtime/pi/message-mapping.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION } from "../../../../../src/shared/protocol.js";
 
 it("projects complete content independently of truncated argument JSON", () => {

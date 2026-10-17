@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import type { ReadonlyDeep } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION, type UiPrompt, type UiPromptResult, type WidgetPlacement } from "../../../src/shared/protocol.js";
 import { check, requireSession, type DriverContext } from "./driver-context.js";
 import type { BrowserClient } from "./browser-client.js";
@@ -35,7 +36,7 @@ export class ExtensionDriver {
   async WaitForPrompt(title: string): Promise<PromptHandle> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.WaitForPrompt");
-    let prompt: UiPrompt | undefined;
+    let prompt: ReadonlyDeep<UiPrompt> | undefined;
     await client.wait("Extensions.WaitForPrompt", `prompt ${JSON.stringify(title)}`, () => {
       prompt = client.chat.prompts.find(item => item.title === title);
       return Boolean(prompt);

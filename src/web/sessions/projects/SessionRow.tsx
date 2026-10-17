@@ -2,7 +2,7 @@ import { ActionIcon, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArchive, IconArchiveOff, IconGitBranch } from "@tabler/icons-react";
 import styles from "./SessionRow.module.css";
 import { MANTINE_COLOR } from "../../ui/theme.js";
-import type { ChatSessionSummary } from "../../../shared/protocol.js";
+import type { ChatSessionSummary } from "../../app/state/view-types.js";
 
 interface SessionRowProps {
   session: ChatSessionSummary;
