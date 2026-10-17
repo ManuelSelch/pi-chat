@@ -1,0 +1,20 @@
+{
+  "name": "@manuelselch/pi-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Pi Server contract and client SDK (local migration workspace)",
+  "files": ["dist"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./contract": { "types": "./dist/contract/index.d.ts", "import": "./dist/contract/index.js" }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config vitest.config.ts",
+    "prepack": "npm run build"
+  },
+  "dependencies": { "zod": "^4.6.4" },
+  "devDependencies": { "typescript": "^7.0.2", "vitest": "^5.0.0", "tsx": "^4.23.13", "@types/node": "^26.5.1" },
+  "engines": { "node": ">=22.19" }
+}
