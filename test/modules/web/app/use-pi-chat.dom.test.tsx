@@ -128,6 +128,53 @@ describe("usePiChat connection lifecycle", () => {
     await act(async () => vi.advanceTimersByTime(10_000));
     await rejected;
   });
+  it("routes controls and correlated project mutations through the public SDK", async () => {
+    const prompt = vi.spyOn(PiClient.prototype, "prompt");
+    const model = vi.spyOn(PiClient.prototype, "selectModel");
+    const create = vi.spyOn(PiClient.prototype, "createSession");
+    const pin = vi.spyOn(PiClient.prototype, "pinProject");
+    const { result } = renderHook(() => usePiChat());
+    act(() => void vi.advanceTimersByTime(0));
+    const socket = FakeWebSocket.instances[0]!;
+    act(() => {
+      socket.acceptConnection();
+      socket.deliver({ version: 1, type: "snapshot", sessionId: "s", sequence: 0, throughSequence: 0, projectPath: "/p", messages: [], isStreaming: false });
+      socket.deliver({ version: 1, type: "tabs", activeSessionId: "s", tabs: [{ sessionId: "s", title: "s", projectPath: "/p", projectName: "p", status: "idle" }] });
+      socket.deliver({ version: 1, type: "catalogue", catalogue: { projects: [] } });
+    });
+    act(() => {
+      result.current.prompt("hello", "background");
+      result.current.setModel("provider/model");
+      result.current.newSession("/new");
+    });
+    expect(prompt).toHaveBeenCalledWith("background", "hello");
+    expect(model).toHaveBeenCalledWith("s", "provider/model");
+    expect(create).toHaveBeenCalledWith("/new");
+    expect(result.current.app.openingTabs).toBe(1);
+    const created = JSON.parse(socket.sent[2]!);
+    expect(created).toMatchObject({ type: "newSession", requestId: expect.any(String) });
+    await act(async () => socket.deliver({ version: 1, type: "sessionOpenError", requestId: created.requestId, error: "Permission denied" }));
+    expect(result.current.app.openingTabs).toBe(0);
+    expect(result.current.app.error).toBe("Permission denied");
+    const pinned = result.current.pinProject("/p", true);
+    expect(pin).toHaveBeenCalledWith("/p", true);
+    const command = JSON.parse(socket.sent[3]!);
+    expect(command).toMatchObject({ type: "pinProject", path: "/p", pinned: true, requestId: expect.any(String) });
+    await act(async () => socket.deliver({ version: 1, type: "projectMutationResult", requestId: command.requestId }));
+    await pinned;
+    expect(result.current.app.error).toBe("Permission denied");
+    expect(result.current.app.sessions.s?.messages).toEqual([]);
+  });
+
+  it("rolls back optimistic tabs when offline controls fail locally", () => {
+    const { result } = renderHook(() => usePiChat());
+    act(() => result.current.openProject("/p"));
+    expect(result.current.app.openingTabs).toBe(0);
+    expect(result.current.app.error).toContain("Not connected");
+    act(() => result.current.closeTab("s"));
+    expect(result.current.app.closingSessionIds).toEqual([]);
+  });
+
   it("keeps file actions stable, session-scoped and separate from runtime errors", async () => {
     const { result } = renderHook(() => usePiChat());
     act(() => void vi.advanceTimersByTime(0));

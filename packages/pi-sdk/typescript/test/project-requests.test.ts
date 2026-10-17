@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ProjectRequests } from "../../../../src/web/app/connection/project-requests.js";
-import { PROTOCOL_VERSION } from "../../../../src/shared/protocol.js";
+import { ProjectRequests } from "../src/requests/project-requests.js";
+import { PROTOCOL_VERSION } from "../src/contract/protocol.js";
 const command = { version: PROTOCOL_VERSION, type: "setSessionArchived" as const, path: "/a.jsonl", archived: true, requestId: "one" };
 describe("project requests", () => {
   it("waits for its own correlated result and rejects server errors", async () => {

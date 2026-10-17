@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FileRequests } from "../../../../../src/web/app/connection/file-requests.js";
-import type { ClientMessage, ServerMessage } from "../../../../../src/shared/protocol.js";
+import { FileRequests } from "../src/requests/file-requests.js";
+import type { ClientMessage, ServerMessage } from "../src/contract/protocol.js";
 const command = (requestId = "file-1", path = "report.pdf", sessionId = "s1"): Extract<ClientMessage, { type: "openFile" }> => ({ version: 1, type: "openFile", requestId, path, sessionId });
 const reply = (requestId = "file-1", sessionId = "s1"): ServerMessage => ({ version: 1, type: "fileOpenResult", requestId, sessionId, result: { ok: true } });
 afterEach(() => vi.useRealTimers());

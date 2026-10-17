@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CompletionRequests } from "../../../../../src/web/app/connection/completion-requests.js";
+import { CompletionRequests } from "../src/requests/completion-requests.js";
 
 describe("completion requests", () => {
   it("correlates replies and leaves folder replies alone", async () => {
