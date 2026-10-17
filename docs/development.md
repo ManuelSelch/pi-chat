@@ -1,7 +1,5 @@
 # Development
 
-[← README](../README.md) · [Architecture](architecture.md) · [Extension API](extension-api.md)
-
 ## Local workflow
 
 Use Node.js 22.19 or newer. From the repository checkout:

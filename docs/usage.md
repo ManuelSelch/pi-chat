@@ -1,7 +1,5 @@
 # Using Pi Chat
 
-[← README](../README.md)
-
 ## Keyboard shortcuts
 
 | Shortcut | Effect |

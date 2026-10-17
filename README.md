@@ -26,8 +26,8 @@ Use `/pi-chat-stop` to stop the server or `/pi-chat` to check its status.
 
 ## Documentation
 
-- [Usage](docs/usage.md) — shortcuts, sessions, steering, commands, and file previews.
-- [Configuration](docs/configuration.md) — server settings, environment variables, and troubleshooting.
-- [Development](docs/development.md) — local setup, testing, source organization, and screenshot capture.
-- [Architecture](docs/architecture.md) — components and data flow.
-- [Extension API](docs/extension-api.md) — experimental web UI extension integration.
+- [Usage](docs/usage.md): shortcuts, sessions, steering, commands, and file previews.
+- [Configuration](docs/configuration.md): server settings, environment variables, and troubleshooting.
+- [Development](docs/development.md): local setup, testing, source organization, and screenshot capture.
+- [Architecture](docs/architecture.md): components and data flow.
+- [Extension API](docs/extension-api.md): experimental web UI extension integration.

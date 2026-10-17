@@ -1,7 +1,5 @@
 # Configuration and troubleshooting
 
-[← README](../README.md)
-
 ## Server lifecycle
 
 Installing with `pi install git:github.com/ManuelSelch/pi-chat` clones the repo
