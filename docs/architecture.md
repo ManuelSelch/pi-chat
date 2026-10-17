@@ -2,6 +2,10 @@
 
 Pi Chat is a local web client backed by a server running Pi.
 The server owns agent sessions; the client displays state and sends commands.
+The unchanged v1 wire schemas/types now live in the local
+[`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Both sides consume
+its public contract entry point through temporary `src/shared` re-exports.
+Client transport/state extraction and the proposed v2 cutover are separate later slices.
 
 ```mermaid
 flowchart LR

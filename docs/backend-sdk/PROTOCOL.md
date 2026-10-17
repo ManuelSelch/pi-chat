@@ -2,7 +2,7 @@
 
 **Proposed, not implemented. Target wire version: `2` (provisional).**
 
-A shared contract for TypeScript and Swift clients. The existing [v1 schemas](../../src/shared/protocol.ts) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. This draft describes behavior; exact schemas and fixtures follow separately.
+A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. This draft describes behavior; exact schemas and fixtures follow separately.
 
 ## 1. Boundaries
 

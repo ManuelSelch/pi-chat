@@ -2,6 +2,8 @@
 
 This document records the implemented v1 behavior observed in the repository at `b708f07` (runtime source unchanged by this documentation slice). It is an inventory, not a promise that v1 behavior is desirable or that the proposed v2 protocol is implemented. The coordinated migration is v2-only; v1 compatibility is not required.
 
+Slice 2 extraction note: the unchanged live schemas now reside in the [SDK contract module](../../packages/pi-sdk/typescript/src/contract/protocol.ts), with `src/shared` re-export bridges. See the [workspace handover](../../packages/pi-sdk/README.md) for shared schemas/fixtures and Swift generation findings. The observed v1 semantics below remain the baseline, not implemented v2 behavior.
+
 Coverage: all **16 client message types (19 schema variants, including four `runFeature` variants)** and **21 server message types** are accounted for below. Source review and focused regression checks establish the extraction baseline; they do not establish v2 conformance.
 
 ## Current architecture and connection lifecycle

@@ -26,6 +26,7 @@
     "contract:generate": "tsx scripts/export-contract.ts",
     "probe:swift:generate": "tsx scripts/generate-swift-probe.ts",
     "probe:swift": "swift test --package-path ..",
+    "verify:package": "node scripts/verify-package.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
