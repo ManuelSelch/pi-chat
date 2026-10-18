@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { OverlayController, useOverlays } from "../../../../../src/web/app/overlays/OverlayController.js";
-import type { ProjectCatalogue, Tab } from "../../../../../src/shared/protocol.js";
+import type { ProjectCatalogue, Tab } from "../../../../../src/web/app/state/view-types.js";
 import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
 import { ConfirmDialogProvider } from "../../../../../src/web/ui/confirm/ConfirmDialogProvider.js";
 import { initialChatState } from "../../../../../src/web/app/state/chat-state.js";

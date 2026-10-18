@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { PROTOCOL_VERSION } from "../../../src/shared/protocol.js";
 import { check, requireSession, type DriverContext } from "./driver-context.js";
 import type { BrowserClient } from "./browser-client.js";
 
@@ -23,12 +22,11 @@ export class ChatDriver {
       assert.equal(text.trim(), expected, "Prompt does not match the next scripted response");
     });
     const after = client.mark();
-    client.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId, message: text });
+    await client.sdk.prompt(sessionId, text);
     this.pendingTurns.set(sessionId, { client, after });
-    // There is no command-accepted ACK; the new user final confirms acceptance.
-    // A history match must not acknowledge an identical prompt from an old turn.
+    // Receipt confirms admission; a fresh user final confirms consumption.
     await client.waitForMessage("Chat.SendPrompt", "new accepted user message", after, m =>
-      m.type === "messageFinal" && m.sessionId === sessionId && m.message.role === "user" && m.message.text === text.trim());
+      m.type === "event" && m.event === "message.finalized" && m.sessionId === sessionId && m.data.message.role === "user" && m.data.message.text === text.trim());
   }
 
   async Steer(text: string): Promise<void> {
@@ -36,9 +34,9 @@ export class ChatDriver {
     const sessionId = requireSession(this.context, "Chat.Steer");
     check(this.context, "Chat.Steer", () => assert.equal(client.chat.status, "running", "Conversation must be running to steer"));
     const after = client.mark();
-    client.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId, message: text });
+    await client.sdk.prompt(sessionId, text);
     await client.waitForMessage("Chat.Steer", "native steering queued", after, message =>
-      message.type === "steeringQueue" && message.sessionId === sessionId && message.messages.includes(text));
+      message.type === "event" && message.event === "steering.queue.changed" && message.sessionId === sessionId && message.data.messages.includes(text));
   }
 
   ShouldHaveQueuedSteering(messages: readonly string[]): void {
@@ -55,9 +53,9 @@ export class ChatDriver {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.Abort");
     const after = client.mark();
-    client.send({ version: PROTOCOL_VERSION, type: "abort", sessionId });
+    await client.sdk.abort(sessionId);
     await client.waitForMessage("Chat.Abort", "aborted turn settled", after, message =>
-      message.type === "runtimeStatus" && message.sessionId === sessionId && message.status === "idle");
+      message.type === "event" && message.event === "runtime.status" && message.sessionId === sessionId && message.data.status === "idle");
     await client.wait("Chat.Abort", "current conversation idle", () => client.chat.status === "idle");
     check(this.context, "Chat.Abort", () => assert.equal(client.chat.error, undefined, "Runtime failed while aborting"));
     this.pendingTurns.delete(sessionId);
@@ -77,7 +75,7 @@ export class ChatDriver {
     if (pending?.client === client) {
       const { after } = pending;
       await client.waitForMessage("Chat.WaitUntilIdle", "new turn settled", after, m =>
-        m.type === "runtimeStatus" && m.sessionId === sessionId && m.status === "idle");
+        m.type === "event" && m.event === "runtime.status" && m.sessionId === sessionId && m.data.status === "idle");
     }
     await client.wait("Chat.WaitUntilIdle", "current conversation idle", () => client.chat.status === "idle");
     check(this.context, "Chat.WaitUntilIdle", () => assert.equal(client.chat.error, undefined, "Runtime failed"));

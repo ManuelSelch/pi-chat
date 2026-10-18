@@ -2,7 +2,7 @@
 
 This document records the implemented v1 behavior observed in the repository at `b708f07` (runtime source unchanged by this documentation slice). It is an inventory, not a promise that v1 behavior is desirable or that the proposed v2 protocol is implemented. The coordinated migration is v2-only; v1 compatibility is not required.
 
-Slice 2 extraction note: the unchanged live schemas now reside in the [SDK contract module](../../packages/pi-sdk/typescript/src/contract/protocol.ts), with `src/shared` re-export bridges. See the [workspace handover](../../packages/pi-sdk/README.md) for shared schemas/fixtures and Swift generation findings. The observed v1 semantics below remain the baseline, not implemented v2 behavior.
+Historical source note: slice 2 extracted v1 schemas into the SDK workspace; slice 5 removed the v1 wire contract/artifacts during the coordinated v2-only cutover. The source at commit `f63a463` is the migration baseline. This file records historical observed v1 semantics, not a supported protocol; see the [workspace handover](../../packages/pi-sdk/README.md) and [v2 cutover verification](CUTOVER.md).
 
 Coverage: all **16 client message types (19 schema variants, including four `runFeature` variants)** and **21 server message types** are accounted for below. Source review and focused regression checks establish the extraction baseline; they do not establish v2 conformance.
 

@@ -73,19 +73,20 @@ export class PiChatDriver {
         client,
         projectPath: world.projectPath,
         reserveSession: responses => world.reserveSession(responses),
-        remainingResponses: () => world.remainingResponses(context.client.appState.activeSessionId),
-        nextPrompt: () => world.nextPrompt(context.client.appState.activeSessionId),
-        releaseControlledResponse: () => world.releaseControlledResponse(context.client.appState.activeSessionId),
+        remainingResponses: () => world.remainingResponses(context.client.chat.sessionPath ?? context.client.appState.activeSessionId),
+        nextPrompt: () => world.nextPrompt(context.client.chat.sessionPath ?? context.client.appState.activeSessionId),
+        releaseControlledResponse: () => world.releaseControlledResponse(context.client.chat.sessionPath ?? context.client.appState.activeSessionId),
         async reconnect() {
+          const active = context.client.appState.activeSessionId;
           await context.client.close();
           // Fresh state requires authoritative snapshots instead of keeping a
           // cached transcript that could hide a broken reconnect.
-          context.client = new BrowserClient(listeningServer, timeoutMs);
+          context.client = new BrowserClient(listeningServer, timeoutMs, active);
           await context.client.ready("Browser.Reconnect");
         },
         async takeControl() {
           const previous = context.client;
-          const next = new BrowserClient(listeningServer, timeoutMs);
+          const next = new BrowserClient(listeningServer, timeoutMs, previous.appState.activeSessionId);
           await next.ready("Browser.TakeControl");
           await previous.waitForClose();
           context.client = next;

@@ -1,7 +1,7 @@
 import type { Server, IncomingMessage } from "node:http";
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
-import { snapshotSchema, operationSchemas, type Capability, type ServerMessage, type Event } from "@manuelselch/pi-sdk/contract/v2";
+import { snapshotSchema, operationSchemas, type Capability, type ServerMessage, type Event } from "@manuelselch/pi-sdk/contract";
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
 import { executeOperation } from "./command-handler.js";
@@ -88,7 +88,7 @@ export class WebSocketTransport {
     socket.on("message", (data, binary) => { if (binary) { socket.close(1003, "Text JSON frames required"); return; } connection.receive(data.toString()); });
     socket.on("error", error => this.logger?.error("websocket.error", { connectionId, message: error.message }));
     socket.on("close", (code, reason) => {
-      this.logger?.info("websocket.close", { connectionId, code, reason: reason.toString("utf8").slice(0, 256), controller: this.controller?.socket === socket, runtimeActive: this.chat.tabs().some(tab => tab.status !== "idle") });
+      this.logger?.info("websocket.close", { connectionId, code, reason: reason.toString("utf8").slice(0, 256), controller: this.controller?.socket === socket, runtimeActive: this.chat.openSessionSnapshots().some(snapshot => snapshot.isStreaming) });
       connection.dispose(); if (this.controller?.socket !== socket) return; this.controller = undefined; this.chat.suspendPrompts();
     });
   }

@@ -1,9 +1,10 @@
-import { initialSessionState, type ReadonlyDeep, type SessionState, type ServerMessage, type ChatMessage } from "@manuelselch/pi-sdk";
+import { initialSessionState, widgetSchema, footerItemSchema, piChatButtonSchema, piChatBadgeSchema, uiPromptSchema, type Widget, type FooterItem, type PiChatExtensions, type UiPrompt, type ReadonlyDeep, type SessionState, type ServerMessage, type ChatMessage } from "@manuelselch/pi-sdk";
 
-export type ChatState = ReadonlyDeep<SessionState>;
-export const initialChatState: ChatState = initialSessionState;
-type Message = ReadonlyDeep<ChatMessage>;
-type NoticeMessage = Extract<Message, { role: "notice" }>;
+export type ChatState = ReadonlyDeep<Omit<SessionState, "messages" | "widgets" | "footer" | "extensions" | "prompts"> & { messages: (ChatMessage | NoticeMessage)[]; widgets: Widget[]; footer: FooterItem[]; extensions: PiChatExtensions; prompts: UiPrompt[] }>;
+export const initialChatState: ChatState = { ...initialSessionState, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} }, prompts: [] };
+type NoticeMessage = { id: string; role: "notice"; level: "info" | "warning" | "error"; text: string; anchor?: number; timestamp?: number };
+export type ChatViewMessage = ReadonlyDeep<ChatMessage | NoticeMessage>;
+type Message = ChatViewMessage;
 interface AnchoredNotice { notice: NoticeMessage; anchor: number }
 
 /** Only snapshots resolve/clamp persisted anchors; live appends keep blind notices in place. */
@@ -29,14 +30,24 @@ export function mergeNotices(next: readonly Message[], previous: readonly Messag
 }
 
 /** Compose browser-only notices/error dismissal over an already-reduced SDK projection. */
-export function projectChatState(next: ChatState, previous = initialChatState, message?: ReadonlyDeep<ServerMessage>, hiddenError?: string, source?: ChatState): ChatState {
-  let messages = source?.messages === next.messages ? previous.messages : mergeNotices(next.messages, previous.messages, message?.type === "snapshot");
-  if (message?.type === "notification" && message.sequence > previous.sequence) {
+export function projectChatState(next: ReadonlyDeep<SessionState>, previous = initialChatState, message?: ReadonlyDeep<ServerMessage>, hiddenError?: string, source?: ReadonlyDeep<SessionState>): ChatState {
+  const event = message?.type === "event" ? message : undefined;
+  const authoritativeSnapshot = event?.event === "session.snapshot" || (message?.type === "response" && source?.sequence !== undefined && source.sequence !== next.sequence);
+  let messages = source?.messages === next.messages ? previous.messages : mergeNotices(next.messages, previous.messages, authoritativeSnapshot);
+  if (event?.event === "notification.created" && event.sequence > previous.sequence && next.sequence === event.sequence) {
     messages = [...messages, {
-      id: `notice:${message.sequence}`, role: "notice", level: message.level, text: message.message,
+      id: `notice:${event.sequence}`, role: "notice", level: event.data.level, text: event.data.message,
       ...(previous.sequence < 0 ? {} : { anchor: messages.filter((item) => item.role !== "notice").length }),
     }];
   }
   const error = hiddenError !== undefined && next.error === hiddenError ? undefined : next.error;
-  return messages === next.messages && error === next.error ? next : { ...next, messages, error };
+  const widgets = source?.widgets === next.widgets ? previous.widgets : next.widgets.flatMap(value => { const parsed = widgetSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
+  const footer = source?.footer === next.footer ? previous.footer : next.footer.flatMap(value => { const parsed = footerItemSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
+  // Unknown optional slots/styles are ignored by web views, not by core decoding.
+  const extensions = source?.extensions === next.extensions ? previous.extensions : {
+    buttons: next.extensions.buttons.flatMap(value => { const parsed = piChatButtonSchema.safeParse(value); return parsed.success ? [parsed.data] : []; }),
+    badges: next.extensions.badges.flatMap(value => { const parsed = piChatBadgeSchema.safeParse(value); return parsed.success ? [parsed.data] : []; }), state: next.extensions.state,
+  };
+  const prompts = source?.prompts === next.prompts ? previous.prompts : next.prompts.map(value => uiPromptSchema.parse(value));
+  return { ...next, messages, error, widgets, footer, extensions, prompts };
 }

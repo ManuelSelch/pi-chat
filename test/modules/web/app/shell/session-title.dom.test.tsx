@@ -3,10 +3,10 @@ import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import { AppShell, MantineProvider } from "@mantine/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { PROTOCOL_VERSION, serverMessageSchema } from "../../../../../src/shared/protocol.js";
+import { snapshotEvent } from "../../../../infra/v2-fixtures.js";
 import { projectSnapshot } from "../../../../../src/server/runtime/pi/snapshot.js";
 import { initialAppState } from "../../../../../src/web/app/state/app-state.js";
-import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
+import { initialChatState, reduceServerMessage } from "../../../../infra/pi-chat/browser-session-view.js";
 import { HeaderContainer } from "../../../../../src/web/app/shell/HeaderContainer.js";
 
 const chat = { app: { ...initialAppState }, state: initialChatState };
@@ -19,11 +19,8 @@ function snapshot(name: string | undefined, sequence: number, isStreaming = fals
     sessionId: "s1", sessionName: name, isIdle: !isStreaming, thinkingLevel: "off",
     supportsThinking: () => false, getAvailableThinkingLevels: () => ["off"],
   } as unknown as AgentSessionRuntime["session"];
-  const message = serverMessageSchema.parse({
-    version: PROTOCOL_VERSION, type: "snapshot", sequence, throughSequence: sequence,
-    ...projectSnapshot({ session, cwd: "/project", messages: [], inFlightTools: new Set(), models: [], commands: [], prompts: [], widgets: [], statuses: [] }),
-  });
-  if (message.type !== "snapshot") throw new Error("Expected snapshot");
+  const snapshot = projectSnapshot({ session, cwd: "/project", messages: [], inFlightTools: new Set(), models: [], commands: [], prompts: [], widgets: [], statuses: [] });
+  const message = snapshotEvent({ sessionId: snapshot.sessionId, sessionName: snapshot.sessionName, throughSequence: sequence, projectPath: snapshot.projectPath, runtime: { status: snapshot.isStreaming ? "running" : "idle" } });
   chat.state = reduceServerMessage(chat.state, message);
 }
 

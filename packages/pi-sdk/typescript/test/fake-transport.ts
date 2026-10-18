@@ -21,6 +21,3 @@ export function fakeTransport() {
   };
   return { factory, sockets, endpoints };
 }
-export const snapshot = (sessionId = "s", sequence = 0) => ({ version: 1, type: "snapshot", sessionId, sequence, throughSequence: sequence, projectPath: "/example", messages: [], isStreaming: false });
-export const tabs = (...ids: string[]) => ({ version: 1, type: "tabs", activeSessionId: ids[0] ?? "", tabs: ids.map((sessionId) => ({ sessionId, title: sessionId, projectPath: "/example", projectName: "example", status: "idle" })) });
-export const catalogue = { version: 1, type: "catalogue", catalogue: { projects: [] } };

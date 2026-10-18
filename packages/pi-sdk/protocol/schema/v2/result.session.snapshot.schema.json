@@ -32,7 +32,9 @@
             "properties": {
               "id": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
               },
               "role": {
                 "type": "string",
@@ -81,7 +83,8 @@
                 ]
               },
               "timestamp": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0
               }
             },
             "required": [
@@ -163,7 +166,9 @@
                 "properties": {
                   "toolCallId": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                   },
                   "name": {
                     "type": "string",

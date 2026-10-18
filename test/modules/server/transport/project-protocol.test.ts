@@ -1,10 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { clientMessageSchema, PROTOCOL_VERSION, serverMessageSchema } from "../../../../src/shared/protocol.js";
-describe("project mutation protocol", () => {
-  it("accepts correlated archive and pin commands without a live session", () => {
-    expect(clientMessageSchema.safeParse({ version: PROTOCOL_VERSION, type: "setSessionArchived", path: "/sessions/a.jsonl", archived: true, requestId: "a" }).success).toBe(true);
-    expect(clientMessageSchema.safeParse({ version: PROTOCOL_VERSION, type: "pinProject", path: "/work", pinned: true, requestId: "b" }).success).toBe(true);
-    expect(clientMessageSchema.safeParse({ version: PROTOCOL_VERSION, type: "pinProject", path: "/work", pinned: true }).success).toBe(false);
-    expect(serverMessageSchema.safeParse({ version: PROTOCOL_VERSION, type: "projectMutationResult", requestId: "a", error: "disk full" }).success).toBe(true);
-  });
+import { expect, it } from "vitest";
+import { requestSchema, parseResponse } from "@manuelselch/pi-sdk/contract";
+it("accepts correlated v2 archive/pin commands and structured results without a live runtime", () => {
+  for (const [method, params] of [["session.archive", { path: "/history.jsonl", archived: true }], ["project.pin", { path: "/work", pinned: true }]]) {
+    const command = { version: 2, type: "request", requestId: "r", method, params };
+    expect(requestSchema.safeParse(command).success).toBe(true); expect(requestSchema.safeParse({ ...command, requestId: undefined }).success).toBe(false);
+  }
+  expect(parseResponse("project.pin", { version: 2, type: "response", requestId: "r", ok: false, error: { code: "permissionDenied", message: "Unable to persist" } })).toMatchObject({ ok: false, error: { code: "permissionDenied" } });
 });

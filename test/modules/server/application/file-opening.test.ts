@@ -28,7 +28,7 @@ describe("session-owned file opening", () => {
     const before = first.snapshot();
     expect(await chat.openFile("first", "report.pdf")).toEqual({ ok: true });
     expect(open).toHaveBeenCalledWith("/first-project", "report.pdf");
-    expect(chat.activeSessionId()).toBe("second");
+    expect(chat.openSessionIds()).toContain("second");
     expect(first.snapshot()).toBe(before);
     for (const spy of [prompt, abort, secondPrompt, events, catalogue]) expect(spy).not.toHaveBeenCalled();
     await chat.dispose();

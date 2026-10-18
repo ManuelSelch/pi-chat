@@ -4,31 +4,29 @@
   "properties": {
     "key": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
     },
     "text": {
       "type": "string",
       "minLength": 1
     },
     "align": {
-      "default": "left",
       "type": "string",
-      "enum": [
-        "left",
-        "right"
-      ]
+      "minLength": 1,
+      "maxLength": 128
     },
     "variant": {
-      "default": "plain",
       "type": "string",
-      "enum": [
-        "badge",
-        "plain"
-      ]
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "required": [
     "key",
-    "text"
+    "text",
+    "align",
+    "variant"
   ]
 }

@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { toolCardFromCall } from "../../../../../src/server/runtime/pi/tool-mapping.js";
 import { mergeEntriesById } from "../../../../../src/server/runtime/pi/message-mapping.js";
 import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
-import { PROTOCOL_VERSION } from "../../../../../src/shared/protocol.js";
+import { coreEvent, snapshotEvent } from "../../../../infra/v2-fixtures.js";
 
 it("projects complete content independently of truncated argument JSON", () => {
   const content = "# Title\n" + "a".repeat(5000);
@@ -23,9 +23,8 @@ it("preserves content through history merges and live completion then snapshot",
   const tool = toolCardFromCall({ id: "w", name: "write", arguments: { content: "# Saved" } });
   const history = mergeEntriesById([{ id: "tool:w", role: "tool", tool }, { id: "tool:w", role: "tool", tool: { toolCallId: "w", name: "write", status: "success" } }]);
   expect(history[0]).toMatchObject({ tool: { writeContent: { text: "# Saved" } } });
-  const base = { version: PROTOCOL_VERSION, sessionId: "s", runId: "r" };
-  const start = reduceServerMessage(initialChatState, { ...base, type: "toolEvent", sequence: 1, tool });
-  const end = reduceServerMessage(start, { ...base, type: "toolEvent", sequence: 2, tool: { toolCallId: "w", name: "write", status: "success" } });
-  const snapshot = reduceServerMessage(end, { ...base, type: "snapshot", sequence: 3, throughSequence: 3, projectPath: "/p", messages: history, isStreaming: false });
+  const start = reduceServerMessage(initialChatState, coreEvent("tool.updated", { runId: "r", tool }, "s", 1));
+  const end = reduceServerMessage(start, coreEvent("tool.updated", { runId: "r", tool: { toolCallId: "w", name: "write", status: "success" } }, "s", 2));
+  const snapshot = reduceServerMessage(end, snapshotEvent({ sessionId: "s", throughSequence: 3, projectPath: "/p", messages: history }));
   expect(end.messages).toEqual(snapshot.messages);
 });

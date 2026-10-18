@@ -43,7 +43,7 @@ describe("command argument completion", () => {
       continueProject: async () => second, openSession: async () => second, newSession: async () => second,
     });
     await chat.openSession("second.jsonl");
-    expect(chat.activeSessionId()).toBe("second");
+    expect(chat.openSessionIds()).toContain("second");
     expect(await chat.completeCommandArguments("first", "deploy", "st")).toEqual([{ value: "first-value", label: "First" }]);
     expect(completeFirst).toHaveBeenCalledWith("deploy", "st");
     expect(completeSecond).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe("archiving closed sessions", () => {
     const { chat, archiveSpy } = service();
     await chat.archiveSession("/sessions/project/other.jsonl", true);
     expect(archiveSpy).toHaveBeenCalledWith("/sessions/project/other.jsonl", true);
-    expect(chat.tabs()).toHaveLength(1);
+    expect(chat.openSessionIds()).toHaveLength(1);
   });
 });
 
@@ -70,8 +70,8 @@ describe("startup home", () => {
     const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
     const chat = new ChatApplicationService(undefined, factory, projectSessions);
 
-    expect(chat.tabs()).toEqual([]);
-    expect(chat.activeSessionId()).toBe("");
+    expect(chat.openSessionIds()).toEqual([]);
+    expect(chat.openSessionIds()).toEqual([]);
     await expect(chat.currentCatalogue()).resolves.toEqual({ projects: [] });
   });
 });
@@ -79,38 +79,38 @@ describe("startup home", () => {
 describe("closing the last tab", () => {
   it("leaves no session open", async () => {
     const { chat } = service();
-    const only = chat.activeSessionId();
+    const only = chat.openSessionIds()[0]!;
 
     await chat.closeTab(only);
 
-    expect(chat.tabs()).toEqual([]);
-    expect(chat.activeSessionId()).toBe("");
+    expect(chat.openSessionIds()).toEqual([]);
+    expect(chat.openSessionIds()).toEqual([]);
   });
 
   it("still serves a catalogue with nothing open, for the home screen", async () => {
     const { chat } = service();
-    await chat.closeTab(chat.activeSessionId());
+    await chat.closeTab(chat.openSessionIds()[0]!);
 
     await expect(chat.currentCatalogue()).resolves.toEqual({ projects: [] });
   });
 
   it("opens a default home-directory session when none is open", async () => {
     const { chat, newSessionSpy } = service();
-    await chat.closeTab(chat.activeSessionId());
+    await chat.closeTab(chat.openSessionIds()[0]!);
 
     await chat.newSession();
 
     expect(newSessionSpy).toHaveBeenCalledWith(homedir());
-    expect(chat.tabs()).toHaveLength(1);
+    expect(chat.openSessionIds()).toHaveLength(1);
   });
 
   it("opens a session from the home screen", async () => {
     const { chat } = service();
-    await chat.closeTab(chat.activeSessionId());
+    await chat.closeTab(chat.openSessionIds()[0]!);
 
     await chat.openSession("/sessions/project/other.jsonl");
 
-    expect(chat.tabs()).toHaveLength(1);
+    expect(chat.openSessionIds()).toHaveLength(1);
   });
 });
 
@@ -130,7 +130,7 @@ describe("Pi Chat extension registry integration", () => {
     chat.subscribe((_sessionId, event) => { if (event.type === "notification") notifications.push(event.message); });
 
     await expect(chat.snapshot()).resolves.toMatchObject({ extensions: { buttons: [{ id: "demo" }] } });
-    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: chat.activeSessionId(), actionId: "demo.sayHello" });
+    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: chat.openSessionIds()[0]!, actionId: "demo.sayHello" });
 
     expect(notifications).toEqual(["Demo action clicked"]);
   });
@@ -183,7 +183,7 @@ describe("/reload", () => {
     const reload = vi.fn(async () => {});
     Object.assign(runtime, { reload });
     const dispose = vi.spyOn(runtime, "dispose");
-    await chat.prompt(chat.activeSessionId(), "/reload");
+    await chat.prompt(chat.openSessionIds()[0]!, "/reload");
     expect(reload).toHaveBeenCalledOnce();
     expect(openSession).not.toHaveBeenCalled();
     expect(dispose).not.toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe("/reload", () => {
     const { chat, runtime, openSession, reload } = reloadable();
     const disposed = vi.spyOn(runtime, "dispose");
     reload.mockRejectedValueOnce(new Error("Reload failed"));
-    await expect(chat.prompt(chat.activeSessionId(), "/reload")).rejects.toThrow("Reload failed");
+    await expect(chat.prompt(chat.openSessionIds()[0]!, "/reload")).rejects.toThrow("Reload failed");
     expect(openSession).not.toHaveBeenCalled();
     expect(disposed).not.toHaveBeenCalled();
   });
@@ -208,7 +208,7 @@ describe("/reload", () => {
 
   it("keeps the same runtime and tab", async () => {
     const { chat, runtime, replacement, openSession } = reloadable();
-    const sessionId = chat.activeSessionId();
+    const sessionId = chat.openSessionIds()[0]!;
     const disposed = vi.spyOn(runtime, "dispose");
     const notices: string[] = [];
     chat.subscribe((_sessionId, event) => { if (event.type === "notification") notices.push(event.message); });
@@ -220,8 +220,8 @@ describe("/reload", () => {
     expect(runtime.snapshot().messages).toEqual(messages);
     expect(openSession).not.toHaveBeenCalled();
     expect(disposed).not.toHaveBeenCalled();
-    expect(chat.tabs()).toHaveLength(1);
-    expect(chat.activeSessionId()).toBe(sessionId);
+    expect(chat.openSessionIds()).toHaveLength(1);
+    expect(chat.openSessionIds()).toContain(sessionId);
     expect(notices.some((message) => /reloaded/i.test(message))).toBe(true);
 
     // Later prompts still reach the existing runtime.
@@ -235,7 +235,7 @@ describe("/reload", () => {
     vi.spyOn(runtime, "snapshot").mockReturnValue({ ...runtime.snapshot(), isStreaming: true });
     let finish!: () => void;
     vi.spyOn(runtime, "prompt").mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
-    const sessionId = chat.activeSessionId();
+    const sessionId = chat.openSessionIds()[0]!;
     const run = chat.prompt(sessionId, "Start");
     try {
       await chat.prompt(sessionId, "/reload");
@@ -252,7 +252,7 @@ describe("/reload", () => {
     const { sessionPath: _dropped, ...withoutFile } = runtime.snapshot();
     vi.spyOn(runtime, "snapshot").mockReturnValue(withoutFile as any);
 
-    await chat.prompt(chat.activeSessionId(), "/reload");
+    await chat.prompt(chat.openSessionIds()[0]!, "/reload");
     expect(reload).toHaveBeenCalledOnce();
   });
 
@@ -265,7 +265,7 @@ describe("/reload", () => {
     });
     const prompted = vi.spyOn(runtime, "prompt");
 
-    await chat.prompt(chat.activeSessionId(), "/reload");
+    await chat.prompt(chat.openSessionIds()[0]!, "/reload");
 
     expect(prompted).toHaveBeenCalledWith("/reload");
     expect(openSession).not.toHaveBeenCalled();

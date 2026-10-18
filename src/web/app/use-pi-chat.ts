@@ -32,33 +32,36 @@ export function usePiChat() {
   const request = useCallback(<T,>(invoke: (client: PiClient) => Promise<T>): Promise<T> => {
     try { return invoke(requireClient()); } catch (error) { return Promise.reject(error); }
   }, [requireClient]);
-  const control = useCallback((invoke: (client: PiClient) => void, optimistic: { opening?: boolean; closingSessionId?: string } = {}) => {
-    try { invoke(requireClient()); }
-    catch (error) { dispatch({ type: "commandFailed", error: error instanceof Error ? error.message : String(error), ...optimistic }); }
+  const control = useCallback((invoke: (client: PiClient) => unknown, optimistic: { opening?: boolean; closingSessionId?: string } = {}) => {
+    const owner = clientRef.current;
+    const failed = (error: unknown) => { if (clientRef.current === owner) dispatch({ type: "commandFailed", error: error instanceof Error ? error.message : String(error), ...optimistic }); };
+    try { const result = invoke(requireClient()); if (result instanceof Promise) void result.catch(failed); }
+    catch (error) { failed(error); }
   }, [requireClient]);
 
   const browseDirectories = useCallback((query: DirectoryBrowse, signal?: AbortSignal) => request((client) => client.browseDirectories(query, { signal })), [request]);
-  const startFolderSession = useCallback((path: string, signal?: AbortSignal) => request((client) => client.createSession(path, { signal })), [request]);
+  const startFolderSession = useCallback(async (path: string, signal?: AbortSignal) => {
+    const id = await request((client) => client.createSession(path, { signal })); dispatch({ type: "focusSession", sessionId: id }); return id;
+  }, [request]);
   const completeCommandArguments = useCallback((sessionId: string, name: string, prefix: string, signal?: AbortSignal) => request((client) => client.completeCommandArguments(sessionId, name, prefix, { signal })), [request]);
   const openFile = useCallback((sessionId: string, path: string) => request((client) => client.openFile(sessionId, path)), [request]);
   const archiveSession = useCallback((path: string, archived: boolean) => request((client) => client.archiveSession(path, archived)), [request]);
   const pinProject = useCallback((path: string, pinned: boolean) => request((client) => client.pinProject(path, pinned)), [request]);
   const removeProject = useCallback((path: string) => request((client) => client.removeProject(path)), [request]);
-  const openSession = useCallback((path: string) => {
-    dispatch({ type: "openPending" }); control((client) => client.openSession(path), { opening: true });
-  }, [control]);
-  const openProject = useCallback((path: string) => {
-    dispatch({ type: "openPending" }); control((client) => client.openProject(path), { opening: true });
-  }, [control]);
-  const newSession = useCallback((path?: string) => {
-    dispatch({ type: "openPending" });
-    const owner = clientRef.current;
-    void request((client) => client.createSession(path || undefined)).catch((error: unknown) => {
+  const openRuntime = useCallback((invoke: (client: PiClient) => Promise<string>) => {
+    dispatch({ type: "openPending" }); const owner = clientRef.current;
+    void request(invoke).then(sessionId => { if (clientRef.current === owner) dispatch({ type: "sessionOpened", sessionId }); }, (error: unknown) => {
       if (clientRef.current !== owner) return;
       const message = error instanceof Error ? error.message : String(error);
       dispatch({ type: "commandFailed", opening: true, error: error instanceof SDKError && error.outcome === "unknown" ? `${message} The server outcome is unknown; no retry was sent.` : message });
     });
   }, [request]);
+  const openSession = useCallback((path: string) => openRuntime(client => client.openSession(path)), [openRuntime]);
+  const newSession = useCallback((path?: string) => openRuntime(client => client.createSession(path || undefined)), [openRuntime]);
+  const openProject = useCallback((path: string) => {
+    const history = app.catalogue.projects.find(project => project.path === path)?.sessions.filter(session => session.archivedAt === undefined).toSorted((a, b) => b.modified - a.modified)[0];
+    if (history) openSession(history.path); else newSession(path);
+  }, [app.catalogue, openSession, newSession]);
   const closeTab = useCallback((sessionId: string) => {
     dispatch({ type: "closePending", sessionId });
     control((client) => client.closeSession(sessionId), { closingSessionId: sessionId });
@@ -80,7 +83,7 @@ export function usePiChat() {
       control((client) => client.abort(id));
     },
     respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) => control((client) => client.respondToPrompt(target(sessionId), promptId, result)),
-    focusTab: (sessionId: string) => control((client) => client.focusSession(sessionId)),
+    focusTab: (sessionId: string) => dispatch({ type: "focusSession", sessionId }),
     setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
     compactSession: () => control((client) => client.compactSession(app.activeSessionId)),
     restartServer: () => control((client) => client.restartServer()),

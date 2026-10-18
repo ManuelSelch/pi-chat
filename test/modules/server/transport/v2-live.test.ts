@@ -2,7 +2,7 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { afterEach, expect, it, vi } from "vitest";
-import { serverMessageSchema } from "@manuelselch/pi-sdk/contract/v2";
+import { serverMessageSchema } from "@manuelselch/pi-sdk/contract";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 

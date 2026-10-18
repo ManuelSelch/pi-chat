@@ -52,7 +52,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
 
-  const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId), actions);
+  const items = buildQuickOpenItems(catalogue, tabs.flatMap((tab) => tab.sessionPath ? [tab.sessionPath] : []), actions);
   const scopeKind = parseQuickOpenQuery(query).kind;
   const rankedResults = rankQuickOpen(items, query);
   const results = query.trim() ? folderSearchChoices(rankedResults) : rankedResults;

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { Request } from "@manuelselch/pi-sdk/contract/v2";
-import type { ChatApplicationService } from "../application/chat-application-service.js";
+import type { Request } from "@manuelselch/pi-sdk/contract";
+import { SessionBusyError, type ChatApplicationService } from "../application/chat-application-service.js";
 import type { ServerPublisher } from "./server-publisher.js";
+import { DirectoryOperationError } from "../projects/directory-browser-service.js";
 import { V2OperationError, type V2Execution } from "./v2-connection.js";
 
 /** Validates/admit synchronously; no admitted work runs before its receipt. */
@@ -12,10 +13,14 @@ export async function executeOperation(command: Exclude<Request, Request<"server
   const refresh = async () => { publisher.inventoryChanged(); await publisher.refreshProjects(); };
   const finishWork = async (run: () => Promise<unknown>) => {
     await run();
-    if (raw && chat.openSessionIds().includes(raw)) { publisher.settingsChanged(raw); await publisher.sendSnapshot(raw); }
-    await refresh();
+    try {
+      if (raw && chat.openSessionIds().includes(raw)) { publisher.settingsChanged(raw); await publisher.sendSnapshot(raw); }
+      await refresh();
+    } catch { /* Work succeeded; failed nonessential publication cannot reject it. */ }
   };
   try {
+    if (raw && !["session.snapshot", "prompt.answer", "run.abort", "command.complete", "file.open"].includes(command.method)) chat.assertMutable(raw);
+    if (raw && ["model.select", "thinking.level"].includes(command.method) && chat.captureSnapshot(raw).isStreaming) throw new V2OperationError("sessionBusy", "Wait for the current run before changing settings.");
     switch (command.method) {
       case "server.ping": return completed();
       case "session.list": return completed(publisher.inventory());
@@ -40,7 +45,10 @@ export async function executeOperation(command: Exclude<Request, Request<"server
       case "project.remove": await chat.removeProject(command.params.path); return completed(undefined, refresh);
       case "session.archive":
         try { await chat.archiveSession(command.params.path, command.params.archived); }
-        catch (error) { throw new V2OperationError("operationFailed", error instanceof Error ? error.message : "Archiving failed.", { mayHavePersisted: true }); }
+        catch (error) {
+          if (error instanceof SessionBusyError) throw error;
+          throw new V2OperationError("operationFailed", "Archiving failed; metadata may already have changed.", { mayHavePersisted: true });
+        }
         return completed(undefined, refresh);
       case "prompt.answer": {
         const prompt = chat.captureSnapshot(raw!).prompts.find(prompt => prompt.id === command.params.promptId);
@@ -71,6 +79,8 @@ export async function executeOperation(command: Exclude<Request, Request<"server
     }
   } catch (error) {
     if (error instanceof V2OperationError) throw error;
+    if (error instanceof DirectoryOperationError || error instanceof SessionBusyError) throw new V2OperationError(error.code, error.message);
+    if (command.method === "session.open" && (error as { code?: string })?.code === "ENOENT") throw new V2OperationError("notFound", "Saved session not found on the server.");
     throw new V2OperationError("operationFailed", "The server operation failed.");
   }
 }

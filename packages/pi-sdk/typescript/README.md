@@ -1,178 +1,148 @@
-# @manuelselch/pi-sdk — TypeScript client
+# `@manuelselch/pi-sdk` — TypeScript client
 
-Local, unpublished migration SDK. **Currently v1 only**, matching the live Pi
-Chat server. The [proposed v2 contract](../../../docs/backend-sdk/PROTOCOL.md)
-is not implemented here. There is no dual-version negotiation or new scheduler.
+UI-independent TypeScript client for the Pi Server v2 protocol. The coordinated
+Pi Chat server, SDK and application cutover is complete. **V2 only:** v1 envelopes
+are rejected; no compatibility or automatic mutation replay is implemented.
 
-## Connect
+## Connect and initialize
 
-```typescript
+```ts
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
 
 const client = new PiClient({
-  endpoint: "wss://pi.example.test/ws", // Explicit; never derived from window.location.
-  transport: createWebSocketTransport((url) => new WebSocket(url)),
+  endpoint: "wss://pi.example.test/ws", // explicit; never read from window.location
+  transport: createWebSocketTransport(url => new WebSocket(url)),
 });
-const unsubscribe = client.subscribe((state) => {
-  console.log(state.connection.phase, state.inventory, state.sessions);
-});
-const stopEvents = client.onMessage((message) => {
-  // Transient notifications are delivered here, not inserted into history.
-  if (message.type === "notification") console.log(message.message);
-});
-const stopErrors = client.onError((error) => console.warn(error.code, error.message));
-const ready = new Promise<void>((resolve, reject) => {
-  const off = client.subscribe(({ connection }) => {
-    if (connection.phase === "ready") { off(); resolve(); }
-    else if (["failed", "superseded", "disposed", "stopped"].includes(connection.phase)) {
-      off(); reject(new Error(connection.error?.message ?? connection.phase));
-    }
-  });
+const stopState = client.subscribe(state => console.log(state.connection.phase, state.inventory));
+const stopEvents = client.onMessage(message => {
+  if (message.type === "event" && message.event === "notification.created") console.log(message.data.message);
 });
 client.start();
-await ready;
+// Wait for connection.phase === "ready" before user operations.
+const runtimeId = await client.createSession("/server/project");
+const admission = await client.prompt(runtimeId, "Hello");
+// { state: "accepted", operationId }; assistant completion is a later event.
 
-// Explicit session routing avoids focus races.
-const sessionId = await client.createSession("/server/project");
-client.prompt(sessionId, "Hello");
-
-unsubscribe(); stopEvents(); stopErrors();
-client.dispose(); // Closes the socket and local waits, NOT server runtimes.
+stopState(); stopEvents(); client.dispose(); // disconnects the client; does not close runtimes
 ```
 
-Supply the host's WebSocket constructor (browser or modern Node); the SDK does
-not read a global WebSocket or import a socket implementation. `TransportFactory`
-and `Scheduler` are structural injection seams for embedders and deterministic
-tests. `CancellationSignal` accepts standard AbortSignals without exposing DOM
-or Node types in the SDK declarations. No React, Mantine, Pi runtime, filesystem,
-window, authentication or OAuth dependency is required. The server-only
-`@manuelselch/pi-sdk/contract` entry point does not import the client.
+Supply the host's WebSocket constructor (browser or modern Node). The SDK does
+not import a socket implementation, inspect browser globals, require React/Pi,
+or implement authentication/OAuth. `TransportFactory` and `Scheduler` are
+injectable. `CancellationSignal` accepts AbortSignals without exposing DOM or
+Node types in declarations.
 
-## Lifecycle and state
+## State, synchronization and recovery
 
-- Construction is inert. `start()` schedules the initial connection one tick
-  later; repeated starts are idempotent. Connection phases are `stopped`,
-  `connecting`, `synchronizing`, `ready`, `reconnecting`, `superseded`, `failed`
-  and `disposed`.
-- Reconnect delays are 250, 500, 1000, 2000, 4000, then 5000 ms, reset on socket
-  open. Errors do not schedule a second retry; close/factory failure/initial-sync
-  timeout own retries. Reconnect creates a fresh transport and receives snapshots.
-- Close code **4001** enters `superseded` without automatic retry. `start()` does
-  not override it. Only an explicit user action should call `takeControl()`.
-- `ready` on **v1 is observational, not atomic**: this connection has received
-  catalogue, inventory and snapshots for the advertised initial sessions. V1
-  can interleave live messages with those sends. There is no initialize request,
-  readiness receipt, process identity or event replay.
-- `getState()` returns a stable, deeply frozen/read-only snapshot until the next
-  publication. `getSession(id)` reads one projection. `subscribe` registers a
-  synchronous change callback; read `getState()` for the current value when
-  subscribing. Callbacks must not block the host event loop.
-- `onMessage` delivers validated raw v1 messages, including replies and stale
-  sequenced events. Projections, not raw callbacks, apply the stale-event guard.
-  There is no retained event log or async subscriber backlog. A subscriber
-  exception reports `listenerError` without breaking other subscribers/cleanup.
-- Session projections include transcript/draft, Pi-owned steering, questions,
-  action registry, widgets/footer and extension data. SDK history does not invent
-  browser-local notice bubbles. The web application owns their display/anchors.
-- `inventory` and `serverActiveSessionId` expose legacy **server-sent v1** data;
-  they do not own local tabs, optimistic opening/closing or application navigation.
-- Disconnect drops incomplete drafts but keeps cached history until snapshots
-  replace it. Running same-session snapshots preserve an existing local draft.
-  Snapshots accept lower watermarks after restart, as the v1 reducer did. V1 does
-  **not** detect sequence gaps, recover a missing streamed prefix, upsert an
-  existing final message or match an assistant final's run before clearing draft.
-  Unique runtime/process identities and those v2 guarantees wait for slice 5.
-- `stop()`/`dispose()` detach transport listeners, invalidate old callbacks,
-  cancel retry/watchdog/request timers, reject pending waits and remove all
-  subscriptions. `stop()` permits a later start with new subscriptions; disposal
-  is permanent. Neither sends runtime-close commands. `takeControl()` retains
-  subscriptions but invalidates the previous connection and pending work.
+- Construction is inert. `start()` schedules connection one tick later. Phases:
+  `stopped`, `connecting`, `synchronizing`, `ready`, `reconnecting`,
+  `superseded`, `failed`, `disposed`.
+- The first wire request is `server.initialize`. `ready` is published only after
+  the correlated result has been method-validated and its inventory, selected
+  capabilities and exactly matching snapshots have been atomically applied.
+  Each connection receives a new `connectionId`; `serverInstanceId` changes on
+  process restart.
+- The new connection replaces state from initialization. Navigation/focus stay
+  local; an application can retain its selected `sessionId` if present in the
+  new inventory, otherwise choose a remaining runtime. Disconnect does not close
+  runtimes.
+- Close code `4001` enters `superseded` without retry. Only explicit user action
+  calls `takeControl()`; it never starts automatic controller-fighting loops.
+- `getState()`/`getSession(id)` return deeply frozen projections. `subscribe`,
+  `onMessage` and `onError` listeners are synchronous and isolated. Listener
+  failures report `listenerError` without breaking transport cleanup.
+- Core session events use contiguous per-runtime sequences; snapshots include a
+  `throughSequence` watermark. Stale events/snapshots are ignored. Bounded gaps
+  trigger one `session.snapshot` request with bounded event buffering; failure
+  to heal or overflow fails the connection and reconnects. Inventory,
+  project-catalogue and optional presentation revisions are independent.
+- A same-process running snapshot preserves an already observed draft only when
+  its `runId` matches. Initialization/reconnect has no cached incomplete draft.
+  The protocol does not guarantee recovering a partially streamed answer prefix.
+  Finalized messages are deduplicated by message ID; only a matching run's final
+  assistant event clears its draft. Notices are transient app-owned view data,
+  never SDK transcript history.
+- `stop()`/`dispose()` detach listeners, invalidate stale callbacks, cancel local
+  timers/waits and reject outstanding requests. Neither sends runtime-close.
+  `stop()` can be followed by `start()`; disposal is permanent.
 
-## Operations and response meaning
+## Typed API
 
-Every session-level method takes `sessionId` explicitly. Paths are on the server.
+Every session method takes an explicit opaque runtime `sessionId`. Saved Pi
+history is addressed by server-local `sessionPath`; these are different
+identities. A fresh runtime ID is assigned on create/open/replacement and after
+close/reopen; in-place resource reload and reconnect retain it.
 
-| API | V1 meaning |
-|---|---|
-| `prompt(sessionId, text)`, `abort(sessionId)` | Sent locally; Pi still owns execution/steering |
-| `respondToPrompt(sessionId, promptId, result)` | Sent locally; no v1 settlement acknowledgment |
-| `selectModel`, `setThinkingLevel`, `compactSession`, `runExtensionAction` | Explicit session first; sent locally, no correlated receipt |
-| `openSession(path)`, `openProject(path)`, `focusSession(sessionId)` | Sent locally; v1 server still selects/focuses a session |
-| `restartServer()` | Legacy `app.restart` with `sessionId: "app"`; disconnect is not proof of success |
-| `closeSession(sessionId)` | Sends `closeTab`, cancels local session-scoped waits; **no teardown acknowledgment** |
-| `createSession(projectPath?, options?)` | Correlated `newSession`; resolves runtime ID, not full UI/snapshot readiness |
-| `browseDirectories(request, options?)` | Resolves a directory listing, including pagination metadata |
-| `completeCommandArguments(sessionId, name, prefix, options?)` | Resolves completion items |
-| `openFile(sessionId, path, options?)` | Resolves when server OS accepts opening; no file download/display guarantee |
-| `archiveSession(path, archived, options?)`, `pinProject(path, pinned, options?)`, `removeProject(path, options?)` | Resolves v1 project-mutation reply; no file deletion |
-| `send(command)` | Validated low-level v1 send; no invented admission/completion promise |
+| Convenience method | V2 method | Meaning |
+|---|---|---|
+| `createSession(projectPath?)`, `openSession(sessionPath)` | `session.create`, `session.open` | Completed runtime creation/load; resolves to the new `sessionId` and updates projections before the promise resolves |
+| `request("session.list", {})`, `request("project.list", {})` | `session.list`, `project.list` | Correlated current replacement views |
+| `request("session.snapshot", {}, id)` | `session.snapshot` | Current same-process snapshot/recovery |
+| `closeSession(id)` | `session.close` | Resolves only after runtime teardown; failure can indicate partial teardown, so retry explicitly |
+| `prompt(id, text)` | `message.send` | Resolves to admission receipt; settlement is a later `operation.finished` event |
+| `abort(id)` | `run.abort` | Admission/completion receipt; does not close runtime |
+| `compactSession(id)`, `reloadSession(id)` | `session.compact`, `session.reload` | Accepted asynchronous Pi work; eventual operation event |
+| `respondToPrompt(id, promptId, result)` | `prompt.answer` | Completed prompt answer submission; valid kind/options checked server-side |
+| `selectModel(id, model)`, `setThinkingLevel(id, level)` | `model.select`, `thinking.level` | Completed structured settings update |
+| `runExtensionAction(id, actionId)` | `extension.run` | Accepted async extension action |
+| `restartServer()` | `server.restart` | Accepted restart attempt; disconnect is not proof of success |
+| `browseDirectories(query)` | `directory.browse` | Server-local paginated directory listing |
+| `completeCommandArguments(id, name, prefix)` | `command.complete` | Session-scoped completion items |
+| `openFile(id, path)` | `file.open` | Server OS accepted opening; does not transfer or display file contents |
+| `archiveSession(path, archived)` | `session.archive` | Completed saved-history metadata mutation; may report persistence uncertainty |
+| `pinProject(path, pinned)`, `removeProject(path)` | `project.pin`, `project.remove` | Completed project metadata mutations |
+| `request("server.ping", {})` | `server.ping` | Explicit liveness operation; no automatic heartbeat |
 
-Promise-returning methods accept `{ signal: abortController.signal }`. Cancelling
-only stops the local wait, never aborts a run or reverses a server mutation. Use
-`abort` or an explicit cancelled prompt response for those domain actions.
+The generic `request<M extends Method>(method, params, sessionId?, options?)`
+exposes all methods with method-specific `Params<M>` and `Result<M>`.
+Optional capabilities are intersected during initialize; calling an unselected
+optional operation rejects with `unsupportedOperation`. Unknown requested
+capabilities are ignored.
 
-`SDKError` exposes `code`, `outcome` and, for tracked requests, `requestId`:
+## Outcomes, cancellation and bounds
 
-- `notSent`: rejected locally before handoff (validation, pre-abort, offline,
-  request limit or adapter send-buffer limit).
-- `unknown`: an attempted send lost its reply through timeout, cancellation,
-  disconnect or stop. **The server may still perform the operation.**
-- `rejected`: a correlated server error. V1 supplies mostly text, not the v2
-  structured operation-error contract.
+Promise resolution means the operation's documented response meaning above,
+not necessarily completion of a model run. Server rejection is an `SDKError`
+with structured `code`, `message`, optional `details`, `outcome: "rejected"` and
+`requestId`. Local pre-send validation/offline/capability/limit errors use
+`outcome: "notSent"`. Local timeout, cancellation after handoff, disconnection,
+stop or disposal use `outcome: "unknown"`: the server may still execute. No
+request is automatically resent. Query/reinitialize state or ask the user to
+explicitly decide what to do.
 
-The SDK never retries or replays any command. Request IDs are correlation, not
-idempotency. IDs are monotonic for a client's lifetime, including reconnects.
-V1 uncorrelated controls return `void`; errors subsequently appear in runtime
-state or `protocolError` messages, not a fabricated per-operation result.
-
-Unsignalled same-session/path file opens share one pending promise. Calls with
-signals are independent and do not cancel one another. Inventory removal or an
-explicit close cancels pending file/completion waits for that session. Request
-families and reply session IDs must match before a wait can settle; late replies
-cannot resurrect completed/cancelled waits.
-
-## Bounds and recovery
-
-`PiClient` defaults (all configurable positive safe integers):
+`PiClient` defaults (configurable positive safe integers):
 
 | Option | Default |
-|---|---|
-| `connectTimeoutMs` (open plus initial synchronization) | 10,000 ms |
+|---|---:|
+| `connectTimeoutMs` (connect and initialization) | 10,000 ms |
 | `requestTimeoutMs` | 10,000 ms |
-| `maxPendingRequests` (shared across request families) | 64 |
-| File-family pending cap | 32 |
-| `maxMessageCharacters` (one incoming frame and aggregate queued characters) | 16,777,216 UTF-16 code units |
-| `maxBufferedMessages` (reentrant inbound deliveries) | 64 |
-| `maxSessions` (inventory/projection count) | 256 |
+| `maxPendingRequests` (shared requests) | 64 |
+| `maxMessageCharacters` | 16,777,216 UTF-16 code units |
+| `maxBufferedMessages` (inbound reentrancy and recovery) | 64 |
+| `maxSessions` | 256 |
+| `capabilities` | All known optional capabilities |
 
-The standard WebSocket adapter bounds outbound buffering with `maxBufferedBytes`
-(default 4,194,304), including UTF-8 size of the proposed send. Custom transports
-must provide their own equivalent backpressure; `send` may throw an `SDKError`
-with `notSent` when rejecting before handoff.
+The transport bounds outgoing buffering (`maxBufferedBytes`, 4 MiB by default).
+The client reconnects with exponential 250 ms–5 s backoff after failures. It caps
+per-connection unique request IDs and reconnects before the server's 4,096-ID
+budget is exhausted. No hidden queue, replay journal, offline submission,
+automatic heartbeat or cancellation of server work exists. Unsignalled duplicate
+file opens for the same runtime/path share one promise; signalled waits remain
+independent.
 
-Invalid JSON/unsupported required wire variants and incoming overload enter
-`failed`, close/detach the socket and reject pending waits. Required events are
-not silently dropped while pretending the projection is valid. Call `start()`
-explicitly after addressing the failure to obtain fresh server snapshots.
-There is no application heartbeat or durable request journal.
+## Contract and package checks
 
-## Migration boundary
+`src/contract/v2.ts` is authoritative; `models.ts` holds shared domain schemas,
+not a legacy envelope. Regenerate schemas and examples:
 
-Slice 4 is complete: Pi Chat's `usePiChat` owns one PiClient per mounted
-controller and invokes its typed operations. The browser provides the explicit
-WebSocket endpoint and logging adapter. React cleanup disposes only the client,
-not server runtimes. `bindPiChat` is shared with domain integration tests; SDK
-projections are not reduced a second time in the web application.
+```sh
+npm run contract:generate --workspace @manuelselch/pi-sdk
+npm test --workspace @manuelselch/pi-sdk
+npm run typecheck --workspace @manuelselch/pi-sdk
+npm run verify:package --workspace @manuelselch/pi-sdk
+```
 
-Browser notice anchoring, dismissed errors, optimistic navigation, input drafts
-and focus remain web-owned. The old web tracker bridges and `./migration` export
-are removed; their regression tests now live beside the internal SDK trackers.
-All request families used by Pi Chat now have the SDK's limits/deadlines. Session
-creation uses the existing correlated v1 reply; unknown outcomes are displayed
-without replay. Invalid required input is surfaced as a connection failure, not
-silently ignored. A pre-existing server Home error bug is corrected by using the
-existing v1 `protocolError` instead of an invalid empty-session runtime event.
-
-This does not add atomic readiness or change the v1 schemas/fixtures. Slice 5
-replaces the v1 contract in a coordinated v2-only cutover; these temporary legacy
-operations do not imply permanent v1 support.
+`@manuelselch/pi-sdk/contract` imports no client state/transport. Shared schema,
+fixture, loopback host, lifecycle, cancellation, recovery and offline packed
+consumer tests are part of slice-5 verification. The Swift probe remains a
+scaffold; production Swift networking/dialog/reconnect parity is slice 7/8.

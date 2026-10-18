@@ -28,8 +28,8 @@ Swift 6's `CodingKey`/`Sendable` requirements without unsafe annotations.
 ## Results
 
 - Compiles through SwiftPM in Swift 6 language mode.
-- Decodes 16 representative valid inputs, including every message role from the
-  rich snapshot, omitted optionals, enums, booleans/strings and Unicode text.
+- Decodes 15 representative valid v2 domain inputs, including every wire
+  message role, omitted optionals, enums, booleans/strings and Unicode text.
 - Nested extension JSON preserves objects, arrays, strings, booleans, numbers
   and null on encode/decode. Unknown additive fields are ignored.
 - Unknown required enum values are rejected.

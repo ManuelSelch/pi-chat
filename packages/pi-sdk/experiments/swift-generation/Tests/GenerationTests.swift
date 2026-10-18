@@ -7,7 +7,7 @@ final class GenerationTests: XCTestCase {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
-            .appendingPathComponent("protocol/fixtures/v1")
+            .appendingPathComponent("protocol/fixtures/v2")
     }
 
     private func fixtures(_ file: String) throws -> [[String: Any]] {
@@ -33,7 +33,7 @@ final class GenerationTests: XCTestCase {
     func testGeneratedModelsDecodeAllRepresentativeValidFixtures() throws {
         let supported = Set(["ChatMessage", "ThinkingLevel", "ExtensionContributions", "FooterItem", "PromptResult"])
         var count = 0
-        for fixture in try fixtures("valid.json") {
+        for fixture in try fixtures("domain-valid.json") {
             let schema = try XCTUnwrap(fixture["schema"] as? String)
             if supported.contains(schema) {
                 XCTAssertNoThrow(try decode(schema, data(try XCTUnwrap(fixture["input"]))), fixture["name"] as? String ?? "")
@@ -47,11 +47,11 @@ final class GenerationTests: XCTestCase {
                 }
             }
         }
-        XCTAssertEqual(count, 16)
+        XCTAssertEqual(count, 15)
     }
 
     func testExtensionJSONRoundTripPreservesNestedValues() throws {
-        let fixture = try XCTUnwrap(try fixtures("valid.json").first { $0["name"] as? String == "extension JSON values" })
+        let fixture = try XCTUnwrap(try fixtures("domain-valid.json").first { $0["name"] as? String == "extension JSON values" })
         let input = try XCTUnwrap(fixture["input"] as? [String: Any])
         let decoded = try JSONDecoder().decode(ExtensionContributions.self, from: data(input))
         let roundTrip = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(decoded)) as? [String: Any])
@@ -85,13 +85,8 @@ final class GenerationTests: XCTestCase {
         XCTAssertNoThrow(try decode("PromptResult", data(["cancelled": false])))
     }
 
-    func testSchemaDefaultsAreNotAppliedByCodable() throws {
-        let footer = try JSONDecoder().decode(FooterItem.self, from: data(["key": "mode", "text": "Ready"]))
-        XCTAssertNil(footer.align)
-        XCTAssertNil(footer.variant)
-        let extensions = try JSONDecoder().decode(ExtensionContributions.self, from: data([String: String]()))
-        XCTAssertNil(extensions.buttons)
-        XCTAssertNil(extensions.badges)
-        XCTAssertNil(extensions.state)
+    func testV2PresentationRequiredFieldsAreNotV1Defaults() throws {
+        XCTAssertThrowsError(try JSONDecoder().decode(FooterItem.self, from: data(["key": "mode", "text": "Ready"])))
+        XCTAssertThrowsError(try JSONDecoder().decode(ExtensionContributions.self, from: data([String: String]())))
     }
 }

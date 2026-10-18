@@ -1,15 +1,11 @@
-import { initialSessionState, reduceSessionMessage, type SessionState, type SessionAction } from "@manuelselch/pi-sdk";
-import { projectChatState } from "../../../src/web/app/state/chat-state.js";
-
-export { initialSessionState as initialChatState };
-export type ChatState = SessionState;
-
-/** Historical browser-view fixtures exercise the SDK first, not a web-owned projection. */
-export function reduceServerMessage(state: SessionState, message: SessionAction): SessionState {
-  const source = { ...state, messages: state.messages.filter((entry) => entry.role !== "notice") };
+import { reduceSessionMessage, type SessionState, type SessionAction } from "@manuelselch/pi-sdk";
+import { initialChatState, projectChatState, type ChatState } from "../../../src/web/app/state/chat-state.js";
+export { initialChatState };
+export type { ChatState };
+/** Pure view fixtures run the SDK reducer before composing application-owned notices. */
+export function reduceServerMessage(state: ChatState, message: SessionAction): ChatState {
+  const source = structuredClone({ ...state, messages: state.messages.filter(entry => entry.role !== "notice") }) as SessionState;
   const next = reduceSessionMessage(source, message);
   if (next === source) return state;
-  const view = projectChatState(next, state, "version" in message ? message : undefined);
-  // Test builders deliberately return independent mutable fixture data.
-  return structuredClone(view) as SessionState;
+  return projectChatState(next, state, "version" in message ? message : undefined);
 }

@@ -6,7 +6,9 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
         },
         "role": {
           "type": "string",
@@ -55,7 +57,8 @@
           ]
         },
         "timestamp": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
@@ -69,7 +72,9 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
         },
         "role": {
           "type": "string",
@@ -80,6 +85,9 @@
           ]
         },
         "text": {
+          "type": "string"
+        },
+        "thinking": {
           "type": "string"
         },
         "skill": {
@@ -103,11 +111,9 @@
             "content"
           ]
         },
-        "thinking": {
-          "type": "string"
-        },
         "timestamp": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
@@ -121,7 +127,9 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
         },
         "role": {
           "type": "string",
@@ -132,7 +140,9 @@
           "properties": {
             "toolCallId": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
             },
             "name": {
               "type": "string",
@@ -205,7 +215,8 @@
           ]
         },
         "timestamp": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
@@ -219,7 +230,9 @@
       "properties": {
         "id": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
         },
         "role": {
           "type": "string",
@@ -233,51 +246,14 @@
           "type": "string"
         },
         "timestamp": {
-          "type": "number"
+          "type": "number",
+          "minimum": 0
         }
       },
       "required": [
         "id",
         "role",
         "customType",
-        "text"
-      ]
-    },
-    {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "role": {
-          "type": "string",
-          "const": "notice"
-        },
-        "level": {
-          "type": "string",
-          "enum": [
-            "info",
-            "warning",
-            "error"
-          ]
-        },
-        "text": {
-          "type": "string"
-        },
-        "anchor": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "timestamp": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "id",
-        "role",
-        "level",
         "text"
       ]
     }

@@ -1,7 +1,7 @@
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
-import { capabilitySchema, serverMessageSchema, type ServerMessage, type Result } from "@manuelselch/pi-sdk/contract/v2";
+import { capabilitySchema, serverMessageSchema, type ServerMessage, type Result } from "@manuelselch/pi-sdk/contract";
 import type { PiChatServer } from "../../src/server/bootstrap/server.js";
 
 /** Keep every frame so tests never race response/event listener registration. */
@@ -26,6 +26,6 @@ export async function v2Socket(server: PiChatServer) {
     send("server.initialize", "init", { client: { name: "test", version: "1" }, capabilities });
     const reply = await response("init"); if (!reply.ok) throw new Error(reply.error.message);
     // Method-specific parsing also validates the full atomic readiness barrier.
-    return (await import("@manuelselch/pi-sdk/contract/v2")).initializeResultSchema.parse(reply.result);
+    return (await import("@manuelselch/pi-sdk/contract")).initializeResultSchema.parse(reply.result);
   } };
 }

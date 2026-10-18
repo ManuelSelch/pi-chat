@@ -1,8 +1,5 @@
 import { z } from "zod";
-import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
-import { fileOpenRequestSchema, fileOpenResultSchema, fileRequestIdSchema } from "./files.js";
 
-export const PROTOCOL_VERSION = 1 as const;
 
 /**
  * Close code the server uses when a newer browser takes the single controller
@@ -84,20 +81,6 @@ export const chatMessageSchema = z.discriminatedUnion("role", [
     role: z.literal("custom"),
     customType: z.string().min(1),
     text: z.string(),
-    timestamp: z.number().optional(),
-  }),
-  /** Extension output from `ctx.ui.notify`, e.g. the result of a slash command. */
-  z.object({
-    id: z.string().min(1),
-    role: z.literal("notice"),
-    level: z.enum(["info", "warning", "error"]),
-    text: z.string(),
-    /**
-     * How many real messages preceded this notice. A notice is client-only, so
-     * an authoritative snapshot has to put it back where it was said rather
-     * than at the end, which made old output look like a new notification.
-     */
-    anchor: z.number().int().nonnegative().optional(),
     timestamp: z.number().optional(),
   }),
 ]);
@@ -306,117 +289,4 @@ export const piChatExtensionsSchema = z.object({
 });
 export type PiChatExtensions = z.infer<typeof piChatExtensionsSchema>;
 
-export const tabStatusSchema = z.enum(["idle", "running", "blocked"]);
-export type TabStatus = z.infer<typeof tabStatusSchema>;
 
-/** One open session in the tab bar. Status drives the coloured dot. */
-export const tabSchema = z.object({
-  sessionId: z.string().min(1),
-  title: z.string(),
-  projectPath: z.string(),
-  projectName: z.string(),
-  status: tabStatusSchema,
-});
-
-export type Tab = z.infer<typeof tabSchema>;
-
-const baseClientMessage = { version: z.literal(PROTOCOL_VERSION) };
-/** Every session-scoped command names its tab: several sessions are live at once. */
-const sessionScoped = { ...baseClientMessage, sessionId: z.string().min(1) };
-
-export const clientMessageSchema = z.union([
-  fileOpenRequestSchema.extend({ ...baseClientMessage, type: z.literal("openFile") }),
-  z.object({ ...sessionScoped, type: z.literal("completeCommandArguments"), requestId: z.string().min(1), commandName: z.string().min(1), argumentPrefix: z.string() }),
-  z.object({ ...sessionScoped, type: z.literal("prompt"), message: z.string().trim().min(1) }),
-  z.object({ ...sessionScoped, type: z.literal("abort") }),
-  z.object({
-    ...sessionScoped,
-    type: z.literal("uiPromptResponse"),
-    promptId: z.string().min(1),
-    result: uiPromptResultSchema,
-  }),
-  z.object({ ...baseClientMessage, type: z.literal("openProject"), path: z.string().min(1) }),
-  z.object({ ...baseClientMessage, type: z.literal("openSession"), path: z.string().min(1) }),
-  z.object({ ...baseClientMessage, type: z.literal("newSession"), path: z.string().min(1).optional(), requestId: z.string().min(1).max(128).optional() }),
-  directoryBrowseSchema.extend({ ...baseClientMessage, type: z.literal("browseDirectories"), requestId: z.string().min(1).max(128) }),
-  z.object({ ...baseClientMessage, type: z.literal("setSessionArchived"), path: z.string().min(1), archived: z.boolean(), requestId: z.string().min(1).max(128) }),
-  z.object({ ...baseClientMessage, type: z.literal("pinProject"), path: z.string().min(1), pinned: z.boolean(), requestId: z.string().min(1).max(128) }),
-  z.object({ ...baseClientMessage, type: z.literal("removeProject"), path: z.string().min(1), requestId: z.string().min(1).max(128) }),
-  z.object({ ...baseClientMessage, type: z.literal("closeTab"), sessionId: z.string().min(1) }),
-  z.object({ ...baseClientMessage, type: z.literal("focusTab"), sessionId: z.string().min(1) }),
-  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("thinking.level"), input: z.object({ level: thinkingLevelSchema }) }),
-  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("model.select"), input: z.object({ model: z.string().min(1) }) }),
-  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("session.compact"), input: z.object({}) }),
-  z.object({ ...sessionScoped, type: z.literal("runFeature"), featureId: z.literal("app.restart"), input: z.object({}) }),
-  z.object({ ...sessionScoped, type: z.literal("runExtensionAction"), actionId: z.string().min(1) }),
-]);
-
-export type ClientMessage = z.infer<typeof clientMessageSchema>;
-
-const sequenced = {
-  version: z.literal(PROTOCOL_VERSION),
-  /** Monotonic per session, so a busy tab cannot suppress a quiet one. */
-  sequence: z.number().int().nonnegative(),
-  sessionId: z.string().min(1),
-};
-
-export const serverMessageSchema = z.discriminatedUnion("type", [
-  z.object({ ...baseClientMessage, type: z.literal("projectMutationResult"), requestId: z.string(), error: z.string().optional() }),
-  z.object({ ...baseClientMessage, type: z.literal("fileOpenResult"), sessionId: fileRequestIdSchema, requestId: fileRequestIdSchema, result: fileOpenResultSchema }),
-  z.object({ ...sessionScoped, type: z.literal("commandArgumentCompletions"), requestId: z.string(), items: z.array(commandCompletionItemSchema), error: z.string().optional() }),
-  z.object({ ...baseClientMessage, type: z.literal("directoryListing"), requestId: z.string(), listing: directoryListingSchema }),
-  z.object({ ...baseClientMessage, type: z.literal("directoryBrowseError"), requestId: z.string(), error: z.string() }),
-  z.object({ ...baseClientMessage, type: z.literal("sessionOpened"), requestId: z.string(), sessionId: z.string() }),
-  z.object({ ...baseClientMessage, type: z.literal("sessionOpenError"), requestId: z.string(), error: z.string() }),
-  z.object({
-    ...sequenced,
-    type: z.literal("snapshot"),
-    throughSequence: z.number().int().nonnegative(),
-    sessionName: z.string().optional(),
-    sessionPath: z.string().optional(),
-    projectPath: z.string(),
-    messages: z.array(chatMessageSchema),
-    isStreaming: z.boolean(),
-    steeringMessages: z.array(z.string()).optional(),
-    /** How the last turn failed; absent once a new run starts. */
-    lastError: z.string().optional(),
-    catalogue: projectCatalogueSchema.optional(),
-    actions: actionRegistrySchema.optional(),
-    prompts: z.array(uiPromptSchema).optional(),
-    widgets: z.array(widgetSchema).optional(),
-    footer: z.array(footerItemSchema).optional(),
-    extensions: piChatExtensionsSchema.optional(),
-  }),
-  z.object({ ...sequenced, type: z.literal("prompts"), prompts: z.array(uiPromptSchema) }),
-  z.object({ ...sequenced, type: z.literal("widgets"), widgets: z.array(widgetSchema) }),
-  z.object({ ...sequenced, type: z.literal("steeringQueue"), messages: z.array(z.string()) }),
-  z.object({ ...sequenced, type: z.literal("footer"), footer: z.array(footerItemSchema) }),
-  z.object({ ...sequenced, type: z.literal("assistantDelta"), runId: z.string(), delta: z.string() }),
-  z.object({ ...sequenced, type: z.literal("thinkingDelta"), runId: z.string(), delta: z.string() }),
-  z.object({ ...sequenced, type: z.literal("messageFinal"), runId: z.string(), message: chatMessageSchema }),
-  z.object({ ...sequenced, type: z.literal("toolEvent"), runId: z.string(), tool: toolCardSchema }),
-  z.object({ ...sequenced, type: z.literal("runtimeStatus"), status: z.enum(["idle", "running", "aborting"]), error: z.string().optional() }),
-  z.object({
-    ...sequenced,
-    type: z.literal("notification"),
-    level: z.enum(["info", "warning", "error"]),
-    message: z.string(),
-  }),
-  z.object({ ...baseClientMessage, type: z.literal("protocolError"), error: z.string() }),
-  z.object({ ...baseClientMessage, type: z.literal("tabs"), tabs: z.array(tabSchema), activeSessionId: z.string() }),
-  // Sent on its own because the home screen needs projects with no session open.
-  // Also carries the app-level features, which the home screen cannot get from
-  // a session snapshot because no session is open there.
-  z.object({
-    ...baseClientMessage,
-    type: z.literal("catalogue"),
-    catalogue: projectCatalogueSchema,
-    features: z.array(webFeatureSchema).optional(),
-  }),
-]);
-
-export type ServerMessage = z.infer<typeof serverMessageSchema>;
-
-export function parseClientMessage(input: unknown): ClientMessage {
-  return clientMessageSchema.parse(input);
-}

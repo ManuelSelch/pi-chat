@@ -1,8 +1,8 @@
-# Pi Server Protocol — Draft
+# Pi Server Protocol — V2
 
-**Cutover in progress. Wire version: `2`. This branch is mid-cutover: server v2 is wired, but the SDK/application switch and end-to-end verification are incomplete. Do not deploy this intermediate checkpoint.**
+**Implemented wire version: `2`. The coordinated server, TypeScript SDK and Pi Chat cutover is complete; v1 is unsupported.**
 
-A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. The staged [v2 contract](../../packages/pi-sdk/typescript/src/contract/v2.ts), [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/valid.json) implement the message shapes below. The server exposes v2 only; there is no v1 compatibility transport or negotiation. The runtime/SDK/application cutover is not complete yet; see the [implementation checkpoint](CUTOVER.md) for verified work and remaining integration.
+The shared contract is owned by the [Pi SDK workspace](../../packages/pi-sdk/README.md): [Zod source](../../packages/pi-sdk/typescript/src/contract/v2.ts), reusable [domain schemas](../../packages/pi-sdk/typescript/src/contract/models.ts), generated [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/). The server exposes v2 only, with no v1 negotiation or compatibility path. See the [cutover verification](CUTOVER.md).
 
 ## 1. Boundaries
 
@@ -385,9 +385,9 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 - Cancelling a local wait, timeout or disconnect does not cancel server execution. Use `run.abort` or answer a question as cancelled explicitly.
 - Lost mutation responses are uncertain outcomes. Never automatically resend input/create/actions/file-open/restart. Request IDs provide correlation, not idempotency. Recover current state before deciding what to do next.
 
-## 8. Open decisions and rollout
+## 8. Implementation decisions and rollout
 
-Implementation decisions for slice 5:
+Implemented v2 cutover decisions:
 
 - Treat the known presentation placements/slots/styles in section 6 as rendering hints, not closed core variants. The wire schemas accept future hint strings; clients ignore unsupported hints/contributions without rejecting required session state.
 - Use the custom envelopes in section 3 and wire version **2**, not JSON-RPC. Responses carry no method; SDK correlation validates the successful result against the original request's method-specific schema. Error codes are open strings so new structured failures remain readable.
@@ -396,11 +396,11 @@ Implementation decisions for slice 5:
 - Do not add an operation query/journal. Operation outcomes can be lost across reconnect. Reinitialize state and expose unknown outcomes; never automatically resend a mutation. `server.restart` is exceptional: its receipt acknowledges the attempt before shutdown; `server.stopping` is best effort and there is no promised post-restart operation outcome.
 - Retain the section 6 draft limitation: no promise to recover an unfinished answer's streamed prefix. Drop partial drafts on reconnect; same-process gaps recover from snapshots with bounded buffering.
 - Use a 16 MiB text-frame limit, at most 64 concurrent requests, 128-character non-control IDs, safe-integer counters, a 10-second initialization deadline and a 10-second SDK request-wait default. Bound the per-connection seen-ID set at 4,096 requests and require a new connection at exhaustion. Local wait expiry never cancels server work. No automatic heartbeat initially; `server.ping` is the explicit liveness operation.
-- Never drop required events silently on transport overload: close/resynchronize rather than publish a valid-looking incomplete projection. Browser origins must match an explicitly allowed origin (including configured proxy origins); origin-less native clients remain allowed on the private backend.
+- Never drop required events silently on transport overload: close/resynchronize rather than publish a valid-looking incomplete projection. A browser Origin must be valid HTTP(S) and match the request Host; origin-less native/CLI clients remain allowed on the private backend. Proxy authentication/TLS is not duplicated by the server.
 - Retain a closing runtime entry if teardown fails; reject new work and return structured failure details indicating possible partial teardown. Only confirmed teardown emits final `session.closed` and removes inventory. Retrying explicit close may finish cleanup. No rollback promise for irreversible side effects.
 
-These decisions guide the remaining runtime implementation; staged schemas passing tests alone do not establish those server guarantees.
+These decisions are implemented and covered by SDK, application, transport and browser tests; schema conformance alone is not treated as proof of runtime behavior.
 
-Keep current v1 runtime/UI behavior during SDK extraction, then cut over the server and Pi Chat together to v2. No v1 compatibility or dual-protocol period is required; clients using v1 are unsupported after cutover. Swift targets v2. Remove wire-level tabs/focus and move project-session selection to clients. Closing a Pi Chat client tab continues to call `session.close`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
+The v1-to-v2 server/SDK/Pi Chat cutover is coordinated and complete. There is no v1 compatibility or dual-protocol period; v1 clients are unsupported. The current Swift package remains a generation probe/scaffold; its production vertical slice is deferred. Wire-level tabs/focus/project continuation have been removed and project-session selection is client-owned. Closing a Pi Chat client tab calls `session.close`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
 
-See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. The staged contract has schema/fixture conformance tests; runtime conformance remains incomplete until the coordinated cutover is verified.
+See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. V2 schema/fixture conformance is supplemented by real loopback server tests, SDK tests, web/domain drivers, browser e2e and production smoke verification; summary and limits are recorded in [CUTOVER.md](CUTOVER.md).

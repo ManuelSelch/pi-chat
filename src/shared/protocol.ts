@@ -1,2 +1,2 @@
-// Temporary application import path; the SDK owns the authoritative v1 schemas.
+// Application import bridge to the SDK-owned authoritative v2 contract.
 export * from "@manuelselch/pi-sdk/contract";

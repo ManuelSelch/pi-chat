@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   VERSION, idSchema, initializeResultSchema, operationSchemas, requestSchema,
   type Request, type Result, type Capability, type ProtocolError, type ServerMessage, type JsonValue,
-} from "@manuelselch/pi-sdk/contract/v2";
+} from "@manuelselch/pi-sdk/contract";
 
 export class V2OperationError extends Error {
   constructor(readonly code: string, message: string, readonly details?: JsonValue) { super(message); }

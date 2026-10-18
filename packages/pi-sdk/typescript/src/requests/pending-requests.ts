@@ -58,9 +58,10 @@ export class PendingRequests<T> {
     return promise;
   }
   resolve(id: string, value: T): void { this.entries.get(id)?.finish(value); }
+  rejectError(id: string, error: SDKError): void { this.entries.get(id)?.finish(undefined, error); }
   reject(id: string, message: string): void { this.entries.get(id)?.finish(undefined, this.error("serverError", message, "rejected", id)); }
-  closeSession(sessionId: string): void {
-    for (const [id, entry] of this.entries) if (entry.sessionId === sessionId) entry.finish(undefined, this.error("cancelled", this.messages.cancelled, entry.sent ? "unknown" : "notSent", id));
+  closeSession(sessionId: string, exceptKind?: string): void {
+    for (const [id, entry] of this.entries) if (entry.sessionId === sessionId && entry.kind !== exceptKind) entry.finish(undefined, this.error("cancelled", this.messages.cancelled, entry.sent ? "unknown" : "notSent", id));
   }
   retainSessions(ids: readonly string[]): void {
     for (const entry of this.entries.values()) if (entry.sessionId !== undefined && !ids.includes(entry.sessionId)) this.closeSession(entry.sessionId);

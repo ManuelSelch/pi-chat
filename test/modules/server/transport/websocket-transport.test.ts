@@ -3,7 +3,7 @@ import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
-import { initializeResultSchema, type Result } from "@manuelselch/pi-sdk/contract/v2";
+import { initializeResultSchema, type Result } from "@manuelselch/pi-sdk/contract";
 
 describe("v2 WebSocket transport", () => {
   let server: PiChatServer;

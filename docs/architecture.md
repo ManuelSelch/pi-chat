@@ -1,16 +1,14 @@
 # High-level architecture
 
-Pi Chat is a local web client backed by a server running Pi.
-The server owns agent sessions; the client displays state and sends commands.
-The unchanged v1 wire schemas/types now live in the local
-[`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Both sides consume
-its public contract entry point through temporary `src/shared` re-exports.
-The SDK also contains the UI-independent TypeScript `PiClient` with injectable
-transport, request tracking and immutable session projections. Pi Chat now uses
-one PiClient per mounted controller: `use-pi-chat.ts` binds its lifecycle and typed
-operations to React, while `bindPiChat` composes SDK state with browser-only
-presentation. No web-owned wire parser, request trackers or session reducer
-remain. The proposed v2 cutover is later; the live contract is still v1.
+Pi Chat is a local web client backed by a server running Pi. The server owns
+runtime execution; navigation and focus are application-owned. The coordinated
+v2-only contract and UI-independent TypeScript `PiClient` live in the local
+[`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Server and
+application use the same public contract. Pi Chat uses one client per mounted
+controller: `use-pi-chat.ts` binds its lifecycle/typed operations to React and
+`bindPiChat` composes SDK projections with browser-only presentation. No web-owned
+wire parser, request trackers or session reducer remain. Slice 5's coordinated
+server/SDK/application cutover is complete; there is no live v1 path.
 
 ```mermaid
 flowchart LR

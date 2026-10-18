@@ -68,3 +68,335 @@ export function validExamples() {
     protocolError: { version: 2, type: "protocolError", serverInstanceId: "server", error: { code: "unsupportedVersion", message: "Only v2 is supported" } },
   };
 }
+
+export const domainExamples: { name: string; schema: string; input: unknown }[] = [
+  {
+    "name": "rich user message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "user-1",
+      "role": "user",
+      "text": "task",
+      "skill": {
+        "name": "demo",
+        "location": "/example/SKILL.md",
+        "content": "instructions"
+      },
+      "timestamp": 1700000000000
+    }
+  },
+  {
+    "name": "rich assistant message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "assistant-1",
+      "role": "assistant",
+      "text": "Hello 🌍",
+      "thinking": "Reasoning"
+    }
+  },
+  {
+    "name": "rich system message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "system-1",
+      "role": "system",
+      "text": "Context"
+    }
+  },
+  {
+    "name": "rich tool message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "tool:call-1",
+      "role": "tool",
+      "tool": {
+        "toolCallId": "call-1",
+        "name": "edit",
+        "status": "success",
+        "argsText": "{}",
+        "outputText": "updated",
+        "writeContent": {
+          "text": "hello",
+          "truncated": false
+        },
+        "editDiff": {
+          "format": "unified",
+          "text": "+hello",
+          "truncated": false,
+          "firstChangedLine": 1
+        }
+      }
+    }
+  },
+  {
+    "name": "rich bash message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "bash-1",
+      "role": "bash",
+      "bash": {
+        "command": "pwd",
+        "output": "/example/project",
+        "status": "success",
+        "exitCode": 0,
+        "excludeFromContext": false,
+        "truncated": false,
+        "fullOutputPath": "/example/output.txt"
+      }
+    }
+  },
+  {
+    "name": "rich custom message",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "custom-1",
+      "role": "custom",
+      "customType": "demo",
+      "text": "Extension output"
+    }
+  },
+  {
+    "name": "thinking enum",
+    "schema": "ThinkingLevel",
+    "input": "xhigh"
+  },
+  {
+    "name": "empty extension contributions",
+    "schema": "ExtensionContributions",
+    "input": {
+      "buttons": [],
+      "badges": [],
+      "state": {}
+    }
+  },
+  {
+    "name": "extension JSON values",
+    "schema": "ExtensionContributions",
+    "input": {
+      "state": {
+        "demo": {
+          "nothing": null,
+          "enabled": true,
+          "count": 3,
+          "text": "hello",
+          "array": [
+            false,
+            1.5,
+            {
+              "key": "value"
+            }
+          ]
+        }
+      },
+      "future": true,
+      "buttons": [],
+      "badges": []
+    }
+  },
+  {
+    "name": "cancel question",
+    "schema": "PromptResult",
+    "input": {
+      "cancelled": true
+    }
+  },
+  {
+    "name": "text question answer",
+    "schema": "PromptResult",
+    "input": {
+      "cancelled": false,
+      "value": "one"
+    }
+  },
+  {
+    "name": "boolean question answer",
+    "schema": "PromptResult",
+    "input": {
+      "cancelled": false,
+      "value": false
+    }
+  },
+  {
+    "name": "required footer hints",
+    "schema": "FooterItem",
+    "input": {
+      "key": "mode",
+      "text": "Ready",
+      "align": "left",
+      "variant": "plain"
+    }
+  },
+  {
+    "name": "chat with omitted optional values",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "assistant-3",
+      "role": "assistant",
+      "text": "Hello"
+    }
+  },
+  {
+    "name": "chat additive optional field",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "user-2",
+      "role": "user",
+      "text": "Hello",
+      "future": {
+        "unknown": true
+      }
+    }
+  }
+];
+export const invalidExamples: { name: string; schema: string; input: unknown }[] = [
+  {
+    "name": "unknown message role",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "future",
+      "text": "x"
+    }
+  },
+  {
+    "name": "tool missing payload",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "tool"
+    }
+  },
+  {
+    "name": "invalid message identity",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "bad\u0000id",
+      "role": "assistant",
+      "text": "x"
+    }
+  },
+  {
+    "name": "null optional timestamp",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "assistant",
+      "text": "x",
+      "timestamp": null
+    }
+  },
+  {
+    "name": "unknown thinking level",
+    "schema": "ThinkingLevel",
+    "input": "future"
+  },
+  {
+    "name": "non-string boolean prompt result",
+    "schema": "PromptResult",
+    "input": {
+      "cancelled": false,
+      "value": 1
+    }
+  },
+  {
+    "name": "footer null alignment",
+    "schema": "FooterItem",
+    "input": {
+      "key": "demo",
+      "text": "Demo",
+      "align": null
+    }
+  },
+  {
+    "name": "v1 request",
+    "schema": "Request",
+    "input": {
+      "version": 1,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "unknown method",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "future.method",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "blank prompt",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "   "
+      }
+    }
+  },
+  {
+    "name": "missing session",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "invalid id",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "bad\u0000id",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "untyped failure",
+    "schema": "Response",
+    "input": {
+      "version": 2,
+      "type": "response",
+      "requestId": "r",
+      "ok": false,
+      "error": "failure"
+    }
+  },
+  {
+    "name": "unknown required event",
+    "schema": "Event",
+    "input": {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "s",
+      "event": "future.required",
+      "data": {}
+    }
+  }
+];

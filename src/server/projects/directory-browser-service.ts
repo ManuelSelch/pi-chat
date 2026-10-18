@@ -4,6 +4,11 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, parse, resolve, sep } from "node:path";
 import { directoryBrowseSchema, type DirectoryBrowse, type DirectoryListing } from "../../shared/directories.js";
 
+/** Only explicitly classified, safe domain messages may cross the transport. */
+export class DirectoryOperationError extends Error {
+  constructor(readonly code: "invalidPath" | "notFound" | "permissionDenied" | "listingChanged" | "operationFailed", message: string) { super(message); }
+}
+
 /** Read-only server filesystem navigation, independent of Pi session history. */
 export class DirectoryBrowserService {
   constructor(
@@ -13,14 +18,14 @@ export class DirectoryBrowserService {
   ) {}
 
   async validate(path: string, basePath?: string): Promise<string> {
-    if (!path || path.includes("\0") || path.length > 4096) throw new Error("Invalid folder path.");
+    if (!path || path.includes("\0") || path.length > 4096) throw new DirectoryOperationError("invalidPath", "Invalid folder path.");
     const expanded = path === "~" ? this.home : /^~[/\\]/.test(path) ? join(this.home, path.slice(2)) : path;
     if (!isAbsolute(expanded) && (!basePath || !isAbsolute(basePath))) {
-      throw new Error("Enter an absolute folder path, or a relative path with a base folder.");
+      throw new DirectoryOperationError("invalidPath", "Enter an absolute folder path, or a relative path with a base folder.");
     }
     try {
       const canonical = await this.fs.realpath(isAbsolute(expanded) ? expanded : resolve(basePath!, expanded));
-      if (!(await this.fs.stat(canonical)).isDirectory()) throw new Error("The path is not a folder.");
+      if (!(await this.fs.stat(canonical)).isDirectory()) throw new DirectoryOperationError("invalidPath", "The path is not a folder.");
       await this.fs.access(canonical, constants.R_OK | constants.X_OK);
       return canonical;
     } catch (error) {
@@ -47,7 +52,7 @@ export class DirectoryBrowserService {
       }
       entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
       const cursorIndex = request.cursor === undefined ? -1 : entries.findIndex((entry) => entry.name === request.cursor);
-      if (request.cursor !== undefined && cursorIndex < 0) throw new Error("Folder listing changed. Refresh to continue.");
+      if (request.cursor !== undefined && cursorIndex < 0) throw new DirectoryOperationError("listingChanged", "Folder listing changed. Refresh to continue.");
       const start = cursorIndex + 1;
       const page = entries.slice(start, start + this.pageSize);
       const parent = dirname(path);
@@ -68,10 +73,11 @@ export class DirectoryBrowserService {
   }
 
   private folderError(error: unknown): Error {
+    if (error instanceof DirectoryOperationError) return error;
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return new Error("Folder not found. It may have moved or been deleted.");
-    if (code === "EACCES" || code === "EPERM") return new Error("Permission denied for this server folder.");
-    if (code === "ENOTDIR") return new Error("The path is not a folder.");
-    return error instanceof Error ? error : new Error("Unable to read this server folder.");
+    if (code === "ENOENT") return new DirectoryOperationError("notFound", "Folder not found. It may have moved or been deleted.");
+    if (code === "EACCES" || code === "EPERM") return new DirectoryOperationError("permissionDenied", "Permission denied for this server folder.");
+    if (code === "ENOTDIR") return new DirectoryOperationError("invalidPath", "The path is not a folder.");
+    return new DirectoryOperationError("operationFailed", "Unable to read this server folder.");
   }
 }

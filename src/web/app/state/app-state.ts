@@ -1,19 +1,23 @@
-import type { ClientState, ReadonlyDeep, ServerMessage, Tab, ProjectCatalogue, WebFeature } from "@manuelselch/pi-sdk";
+import type { ClientState, ReadonlyDeep, ServerMessage, ProjectCatalogue, WebFeature } from "@manuelselch/pi-sdk";
+import type { AppTab } from "./view-types.js";
 import { initialChatState, projectChatState, type ChatState } from "./chat-state.js";
 
 export type AppAction =
   | { type: "sdkState"; state: ReadonlyDeep<ClientState>; message?: ReadonlyDeep<ServerMessage> }
   | { type: "clearError"; sessionId?: string }
+  | { type: "focusSession"; sessionId: string }
+  | { type: "sessionOpened"; sessionId: string }
   | { type: "openPending" }
   | { type: "closePending"; sessionId: string }
   | { type: "commandFailed"; error: string; opening?: boolean; closingSessionId?: string };
 
 export interface AppState {
-  tabs: ReadonlyDeep<Tab[]>;
+  tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
   /** Views share SDK projections, adding only browser notices/error dismissal. */
   sessions: Record<string, ChatState>;
   sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
+  sdkInventory: ReadonlyDeep<ClientState["inventory"]>;
   hiddenErrors: Record<string, string | undefined>;
   catalogue: ReadonlyDeep<ProjectCatalogue>;
   appFeatures: ReadonlyDeep<WebFeature[]>;
@@ -25,7 +29,7 @@ export interface AppState {
 }
 
 export const initialAppState: AppState = {
-  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, hiddenErrors: {},
+  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], hiddenErrors: {},
   catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
   tabsKnown: false, connection: "connecting",
 };
@@ -36,7 +40,7 @@ export function atHome(state: AppState): boolean {
 export function visibleError(state: AppState, session: ChatState): string | undefined {
   return state.error ?? session.error;
 }
-export function visibleTabs(state: AppState): ReadonlyDeep<Tab>[] {
+export function visibleTabs(state: AppState): ReadonlyDeep<AppTab>[] {
   return state.tabs.filter((tab) => !state.closingSessionIds.includes(tab.sessionId));
 }
 export function activeSession(state: AppState): ChatState {
@@ -46,6 +50,8 @@ export function activeSession(state: AppState): ChatState {
 
 /** Application presentation only; PiClient is the sole wire/projection owner. */
 export function reduceAppMessage(state: AppState, action: AppAction): AppState {
+  if (action.type === "focusSession") return state.tabs.some(tab => tab.sessionId === action.sessionId) ? { ...state, activeSessionId: action.sessionId } : state;
+  if (action.type === "sessionOpened") return { ...state, activeSessionId: action.sessionId, error: undefined, openingTabs: Math.max(0, state.openingTabs - 1) };
   if (action.type === "openPending") return { ...state, openingTabs: state.openingTabs + 1 };
   if (action.type === "closePending") {
     return state.closingSessionIds.includes(action.sessionId) ? state : { ...state, closingSessionIds: [...state.closingSessionIds, action.sessionId] };
@@ -65,24 +71,22 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   }
 
   const { state: sdk, message } = action;
-  // Correlated replies belong exclusively to SDK trackers, never navigation/history.
-  if (message && !("sequence" in message) && message.type !== "tabs" && message.type !== "catalogue" && message.type !== "protocolError") return state;
   const hiddenErrors = Object.fromEntries(Object.entries(state.hiddenErrors).filter(([id]) => Object.hasOwn(sdk.sessions, id)));
   const sessions = Object.fromEntries(Object.entries(sdk.sessions).map(([id, next]) => {
     const source = Object.hasOwn(state.sdkSessions, id) ? state.sdkSessions[id] : undefined;
     const previous = Object.hasOwn(state.sessions, id) ? state.sessions[id] : undefined;
     const event = message && "sessionId" in message && message.sessionId === id ? message : undefined;
     if (source === next && previous) return [id, previous];
-    if (event?.type === "snapshot" || (event?.type === "runtimeStatus" && event.sequence > (source?.sequence ?? -1) && event.error !== undefined)) delete hiddenErrors[id];
+    if ((event?.type === "event" && (event.event === "session.snapshot" || (event.event === "runtime.status" && event.sequence > (source?.sequence ?? -1) && event.data.lastError !== undefined))) || (message?.type === "response" && source?.sequence !== undefined && source.sequence < next.sequence)) delete hiddenErrors[id];
     return [id, projectChatState(next, previous, event, hiddenErrors[id], source)];
   }));
-  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, hiddenErrors,
-    tabs: sdk.inventory, activeSessionId: sdk.serverActiveSessionId, catalogue: sdk.catalogue, appFeatures: sdk.features };
-  if (message?.type === "tabs") next = { ...next, tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", error: undefined };
-  else if (message?.type === "catalogue") next = { ...next, connection: "open", error: undefined };
-  else if (message?.type === "protocolError") next = { ...next, error: message.error };
-  else if (message && "sequence" in message) next = { ...next, connection: "open" };
-  else if (!message) {
+  const tabs = sdk.inventory === state.sdkInventory ? state.tabs : sdk.inventory.map(tab => ({ ...tab, status: tab.status === "closing" ? "blocked" as const : tab.status }));
+  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, hiddenErrors,
+    tabs, activeSessionId: tabs.some(tab => tab.sessionId === state.activeSessionId) ? state.activeSessionId : tabs[0]?.sessionId ?? "",
+    closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
+    catalogue: sdk.catalogue, appFeatures: sdk.features };
+  if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };
+  else {
     const { phase, error } = sdk.connection;
     if (phase === "superseded") next = { ...next, connection: "superseded", error: undefined };
     else if (phase === "reconnecting") next = { ...next, connection: "connecting", error: "Waiting for the Pi Chat server…" };

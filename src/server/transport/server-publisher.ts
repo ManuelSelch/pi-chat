@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { VERSION, snapshotSchema, promptSchema, type Event, type SessionSnapshot, type OpenSessionSummary, type ProtocolError, type Result } from "@manuelselch/pi-sdk/contract/v2";
+import { basename } from "node:path";
+import { firstUserMessage, sessionTitle } from "../../shared/session-title.js";
+import { VERSION, snapshotSchema, promptSchema, type Event, type SessionSnapshot, type OpenSessionSummary, type ProtocolError, type Result } from "@manuelselch/pi-sdk/contract";
 import type { RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import type { ChatApplicationService } from "../application/chat-application-service.js";
 import type { FileLogger } from "../logging/file-logger.js";
@@ -42,15 +44,16 @@ export class ServerPublisher {
     const runtime = { status: entry.closing ? "closing" as const : snapshot.isStreaming ? "running" as const : "idle" as const,
       ...(entry.runtime?.runId ? { runId: entry.runtime.runId } : {}), ...(snapshot.lastError || entry.runtime?.lastError ? { lastError: snapshot.lastError ?? entry.runtime?.lastError } : {}) };
     return snapshotSchema.parse({ sessionId: id, throughSequence: entry.sequence, projectPath: snapshot.projectPath,
-      sessionPath: snapshot.sessionPath, sessionName: snapshot.sessionName, messages: snapshot.messages.filter(message => message.role !== "notice"),
+      sessionPath: snapshot.sessionPath, sessionName: snapshot.sessionName, messages: snapshot.messages,
       runtime, steeringMessages: snapshot.steeringMessages ?? [], settings: this.settings(snapshot), commands: snapshot.actions.commands, prompts: snapshot.prompts,
       presentation: { revision: entry.presentationRevision, ...presentation },
     });
   }
   inventory(): Result<"session.list"> {
-    const sessions: OpenSessionSummary[] = this.chat.tabs().map(tab => {
-      const raw = tab.sessionId; const state = this.chat.captureSnapshot(raw); this.wireId(raw);
-      return { ...tab, sessionId: this.wireId(raw), sessionPath: state.sessionPath, status: this.sessions.get(raw)!.closing ? "closing" : tab.status };
+    const sessions: OpenSessionSummary[] = this.chat.openSessionSnapshots().map(state => {
+      const raw = state.sessionId; const runtime = this.sessions.get(raw); const projectName = basename(state.projectPath) || state.projectPath;
+      const status = runtime?.closing ? "closing" : state.prompts.length ? "blocked" : state.isStreaming ? "running" : "idle";
+      return { sessionId: this.wireId(raw), ...(state.sessionPath ? { sessionPath: state.sessionPath } : {}), title: sessionTitle(state.sessionName, firstUserMessage(state.messages)), projectPath: state.projectPath, projectName, status };
     });
     return { revision: this.inventoryRevision, sessions };
   }
@@ -84,7 +87,6 @@ export class ServerPublisher {
       snapshot = this.snapshot(raw, this.chat.captureSnapshot(raw));
       this.logger?.warn("snapshot.open_refresh_failed", { message: "Using current runtime state after extension snapshot refresh failed." });
     }
-    this.inventoryChanged();
     return { snapshot, summary: this.inventory().sessions.find(session => session.sessionId === snapshot.sessionId)! };
   }
   async prepareInitial(connectionId: string, capabilities: Result<"server.initialize">["capabilities"]): Promise<() => Result<"server.initialize">> {
@@ -142,11 +144,7 @@ export class ServerPublisher {
       const entry = this.sessions.get(raw)!; entry.runtime = { status: "running", runId: event.runId };
       this.core(raw, event.type === "assistantDelta" ? "message.delta" : "message.thinking.delta", { runId: event.runId, delta: event.delta }); return;
     }
-    if (event.type === "messageFinal") {
-      if (event.message.role === "notice") this.core(raw, "notification.created", { level: event.message.level, message: event.message.text });
-      else this.core(raw, "message.finalized", { runId: event.runId, message: event.message });
-      return;
-    }
+    if (event.type === "messageFinal") { this.core(raw, "message.finalized", { runId: event.runId, message: event.message }); return; }
     if (event.type === "toolEvent") { this.core(raw, "tool.updated", { runId: event.runId, tool: event.tool }); return; }
     if (event.type === "prompts") { this.core(raw, "prompt.list.changed", { prompts: event.prompts.map(prompt => promptSchema.parse(prompt)) }); this.inventoryChanged(); return; }
     if (event.type === "steeringQueue") { this.core(raw, "steering.queue.changed", { messages: event.messages }); return; }

@@ -1,151 +1,57 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PiClient } from "../src/client.js";
 import { SDKError } from "../src/errors.js";
-import { fakeTransport, snapshot, tabs, catalogue } from "./fake-transport.js";
-
-beforeEach(() => vi.useFakeTimers());
-afterEach(() => vi.useRealTimers());
+import { capabilitySchema, requestSchema } from "../src/contract/v2.js";
+import { fakeTransport } from "./fake-transport.js";
+import { initialized, snap, event } from "./v2-fixtures.js";
+import { validExamples } from "./v2-fixture-examples.js";
+beforeEach(() => vi.useFakeTimers()); afterEach(() => vi.useRealTimers());
 function setup(options: Partial<ConstructorParameters<typeof PiClient>[0]> = {}) {
-  const fake = fakeTransport();
-  const client = new PiClient({ endpoint: "ws://example/ws", transport: fake.factory, ...options });
-  client.start(); vi.advanceTimersByTime(0); const socket = fake.sockets[0]!;
-  socket.open(); socket.message(snapshot()); socket.message(tabs("s")); socket.message(catalogue);
-  return { client, socket, ...fake, sent: () => socket.sent.map((text) => JSON.parse(text)) };
+  const fake = fakeTransport(); const client = new PiClient({ endpoint: "ws://example/ws", transport: fake.factory, ...options }); client.start(); vi.advanceTimersByTime(0); const socket = fake.sockets[0]!; socket.open();
+  const requests = () => socket.sent.map(s => JSON.parse(s));
+  const reply = (result: unknown, requestId = requests().at(-1).requestId) => socket.message({ version: 2, type: "response", requestId, ok: true, result });
+  reply({ ...initialized([snap("runtime")]), capabilities: capabilitySchema.options }); return { ...fake, client, socket, requests, reply };
 }
-
-describe("typed v1 client operations", () => {
-  it("routes explicit session controls without inventing admission receipts", () => {
-    const { client, sent } = setup();
-    client.prompt("background", "hello"); client.abort("background");
-    client.respondToPrompt("s", "question", { cancelled: false, value: true });
-    client.selectModel("s", "provider/model"); client.setThinkingLevel("s", "high");
-    client.compactSession("s"); client.runExtensionAction("s", "demo.run");
-    client.focusSession("s"); client.openSession("/history"); client.openProject("/project"); client.restartServer();
-    expect(sent()).toEqual([
-      { version: 1, type: "prompt", sessionId: "background", message: "hello" },
-      { version: 1, type: "abort", sessionId: "background" },
-      { version: 1, type: "uiPromptResponse", sessionId: "s", promptId: "question", result: { cancelled: false, value: true } },
-      { version: 1, type: "runFeature", sessionId: "s", featureId: "model.select", input: { model: "provider/model" } },
-      { version: 1, type: "runFeature", sessionId: "s", featureId: "thinking.level", input: { level: "high" } },
-      { version: 1, type: "runFeature", sessionId: "s", featureId: "session.compact", input: {} },
-      { version: 1, type: "runExtensionAction", sessionId: "s", actionId: "demo.run" },
-      { version: 1, type: "focusTab", sessionId: "s" }, { version: 1, type: "openSession", path: "/history" },
-      { version: 1, type: "openProject", path: "/project" },
-      { version: 1, type: "runFeature", sessionId: "app", featureId: "app.restart", input: {} },
-    ]);
-    expect(() => client.prompt("s", "  ")).toThrow(/Invalid/);
-    client.dispose();
+for (const example of validExamples().operations.filter(value => value.method !== "server.initialize")) {
+  it(`correlates and validates ${example.method} through the unified request path`, async () => {
+    const t = setup(); const parsed = requestSchema.parse(example.request); const pending = t.client.request(example.method, parsed.params, parsed.sessionId);
+    expect(t.requests().at(-1)).toMatchObject({ method: example.method, params: parsed.params });
+    t.socket.message({ ...example.response, requestId: "unrelated" });
+    t.reply(example.response.result); await expect(pending).resolves.toEqual(example.response.result); t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
   });
-
-  it("correlates all request families and ignores mismatched family/session replies", async () => {
-    const { client, socket, sent } = setup();
-    const browse = client.browseDirectories({ path: "/example" });
-    const create = client.createSession("/example");
-    const complete = client.completeCommandArguments("s", "demo", "a");
-    const file = client.openFile("s", "/example/file");
-    const archive = client.archiveSession("/history", true);
-    const pin = client.pinProject("/example", false);
-    const remove = client.removeProject("/example");
-    const commands = sent();
-    expect(new Set(commands.map((command) => command.requestId)).size).toBe(7);
-    let completed = false; void complete.then(() => { completed = true; });
-    socket.message({ version: 1, type: "commandArgumentCompletions", sessionId: "wrong", requestId: commands[2].requestId, items: [] });
-    await Promise.resolve(); expect(completed).toBe(false);
-    socket.message({ version: 1, type: "sessionOpened", requestId: commands[0].requestId, sessionId: "wrong-family" });
-    socket.message({ version: 1, type: "directoryListing", requestId: commands[0].requestId, listing: { path: "/example", breadcrumbs: [], entries: [] } });
-    socket.message({ version: 1, type: "sessionOpened", requestId: commands[1].requestId, sessionId: "new" });
-    socket.message({ version: 1, type: "commandArgumentCompletions", sessionId: "s", requestId: commands[2].requestId, items: [{ value: "a", label: "A" }] });
-    socket.message({ version: 1, type: "fileOpenResult", sessionId: "s", requestId: commands[3].requestId, result: { ok: true } });
-    for (const command of commands.slice(4)) socket.message({ version: 1, type: "projectMutationResult", requestId: command.requestId });
-    await expect(browse).resolves.toMatchObject({ path: "/example" });
-    await expect(create).resolves.toBe("new"); await expect(complete).resolves.toEqual([{ value: "a", label: "A" }]);
-    await Promise.all([file, archive, pin, remove]);
-    expect(client.getState().sessions).not.toHaveProperty("wrong-family");
-    client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("bounds aggregate pending requests and times out mutations as uncertain without replay", async () => {
-    const { client, socket, sockets, sent } = setup({ maxPendingRequests: 1, requestTimeoutMs: 20 });
-    const first = client.createSession();
-    const timeout = expect(first).rejects.toMatchObject({ code: "timeout", outcome: "unknown" });
-    await expect(client.pinProject("/project", true)).rejects.toMatchObject({ code: "limitExceeded", outcome: "notSent" });
-    expect(sent()).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(20); await timeout;
-    socket.end(); vi.advanceTimersByTime(250); sockets[1]!.open(); sockets[1]!.message(tabs()); sockets[1]!.message(catalogue);
-    expect(sockets[1]!.sent).toEqual([]);
-    const second = client.pinProject("/project", true); const error = expect(second).rejects.toMatchObject({ code: "serverError", outcome: "rejected" });
-    const command = JSON.parse(sockets[1]!.sent[0]!); sockets[1]!.message({ version: 1, type: "projectMutationResult", requestId: command.requestId, error: "disk full" });
-    await error; client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("cancels only local waits, handles pre-abort, and removes abort listeners", async () => {
-    const { client, sent } = setup(); const abort = new AbortController();
-    const remove = vi.spyOn(abort.signal, "removeEventListener");
-    const pending = client.createSession("/example", { signal: abort.signal });
-    const rejected = expect(pending).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" });
-    abort.abort(); await rejected; expect(remove).toHaveBeenCalledOnce(); expect(sent()).toHaveLength(1);
-    await expect(client.browseDirectories({ path: "/example" }, { signal: abort.signal })).rejects.toMatchObject({ code: "cancelled", outcome: "notSent" });
-    expect(sent()).toHaveLength(1); client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it.each(["stop", "dispose", "takeControl"] as const)("rejects outstanding waits on %s", async (action) => {
-    const { client } = setup(); const pending = client.createSession(); const rejected = expect(pending).rejects.toMatchObject({ outcome: "unknown" });
-    client[action](); await rejected; client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("rejects all outstanding families on disconnect and suppresses stale replies", async () => {
-    const { client, socket, sockets, sent } = setup();
-    const pending = [client.createSession(), client.completeCommandArguments("s", "demo", ""), client.pinProject("/project", true), client.openFile("s", "/file")];
-    const rejected = pending.map((promise) => expect(promise).rejects.toMatchObject({ code: "disconnected", outcome: "unknown" }));
-    const commands = sent(); socket.end(); await Promise.all(rejected);
-    vi.advanceTimersByTime(250); sockets[1]!.open();
-    const next = client.createSession(); const id = JSON.parse(sockets[1]!.sent[0]!).requestId;
-    expect(id).not.toBe(commands[0].requestId);
-    socket.message({ version: 1, type: "sessionOpened", requestId: id, sessionId: "obsolete" });
-    sockets[1]!.message({ version: 1, type: "sessionOpened", requestId: id, sessionId: "fresh" });
-    await expect(next).resolves.toBe("fresh"); client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("deduplicates file opens and cancels session-scoped requests when closed", async () => {
-    const { client, socket, sent } = setup();
-    const file = client.openFile("s", "/file"); expect(client.openFile("s", "/file")).toBe(file);
-    const completion = client.completeCommandArguments("s", "demo", "");
-    const rejected = [file, completion].map((promise) => expect(promise).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }));
-    client.closeSession("s"); await Promise.all(rejected);
-    expect(sent().map((command) => command.type)).toEqual(["openFile", "completeCommandArguments", "closeTab"]);
-    const next = client.openFile("s", "/other"); const reject = expect(next).rejects.toMatchObject({ code: "cancelled" });
-    socket.message(tabs()); await reject; client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it.each(["unknown", "notSent"] as const)("cleans a synchronous send failure with %s outcome", async (outcome) => {
-    const fake = fakeTransport();
-    const client = new PiClient({ endpoint: "ws://example/ws", transport: (endpoint, handlers) => {
-      const transport = fake.factory(endpoint, handlers);
-      return { ...transport, send() { throw outcome === "unknown" ? new Error("socket failed") : new SDKError("limitExceeded", "buffer full"); } };
-    } });
-    client.start(); vi.advanceTimersByTime(0);
-    const socket = fake.sockets[0]!; socket.open(); socket.message(tabs()); socket.message(catalogue);
-    await expect(client.createSession()).rejects.toMatchObject({ outcome, requestId: expect.any(String) });
-    client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("keeps separately cancellable file-open waits independent", async () => {
-    const { client, socket, sent } = setup();
-    const abort = new AbortController();
-    const first = client.openFile("s", "/file", { signal: abort.signal });
-    const second = client.openFile("s", "/file", { signal: new AbortController().signal });
-    const rejected = expect(first).rejects.toMatchObject({ code: "cancelled" });
-    abort.abort(); await rejected;
-    expect(sent()).toHaveLength(2);
-    socket.message({ version: 1, type: "fileOpenResult", sessionId: "s", requestId: sent()[1].requestId, result: { ok: true } });
-    await second; client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("reports not-sent requests while offline and validates before allocating", async () => {
-    const { client, socket } = setup();
-    await expect(client.openFile("s", "https://example.com")).rejects.toMatchObject({ code: "invalidRequest", outcome: "notSent" });
-    socket.end();
-    await expect(client.createSession()).rejects.toMatchObject({ code: "notConnected", outcome: "notSent" });
-    client.dispose(); expect(vi.getTimerCount()).toBe(0);
-  });
+}
+it("routes convenience operations to explicit session IDs and typed method names", async () => {
+  const t = setup(); const pending = [t.client.prompt("runtime", "hello"), t.client.abort("runtime"), t.client.selectModel("runtime", "p/m"), t.client.setThinkingLevel("runtime", "off"), t.client.compactSession("runtime"), t.client.runExtensionAction("runtime", "demo"), t.client.respondToPrompt("runtime", "q", { cancelled: true }), t.client.reloadSession("runtime")];
+  expect(t.requests().slice(1).map(value => [value.method, value.sessionId])).toEqual(["message.send", "run.abort", "model.select", "thinking.level", "session.compact", "extension.run", "prompt.answer", "session.reload"].map(method => [method, "runtime"]));
+  const rejected = Promise.all(pending.map(wait => expect(wait).rejects.toMatchObject({ outcome: "unknown" }))); t.client.dispose(); await rejected;
+});
+it("matches only pending IDs and fails invalid method result shapes instead of cross-family resolution", async () => {
+  const t = setup(); const pending = t.client.browseDirectories({ path: "/" }); const result = expect(pending).rejects.toMatchObject({ code: "invalidMessage", outcome: "unknown" });
+  t.reply({ state: "completed" }); await result; expect(t.client.getState().connection.phase).toBe("failed"); t.client.dispose();
+});
+it("cleans signal listeners and makes pre-abort definitively notSent", async () => {
+  const t = setup(); const abort = new AbortController(); abort.abort(); await expect(t.client.pinProject("/p", true, { signal: abort.signal })).rejects.toMatchObject({ code: "cancelled", outcome: "notSent" }); expect(t.requests()).toHaveLength(1);
+  const next = new AbortController(); const remove = vi.spyOn(next.signal, "removeEventListener"); const pending = t.client.pinProject("/p", true, { signal: next.signal }); t.reply({ state: "completed" }); await pending; expect(remove).toHaveBeenCalled(); t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
+});
+for (const action of ["stop", "dispose", "takeControl"] as const) it(`rejects all outstanding operations on ${action} without replay`, async () => {
+  const t = setup(); const requests = [t.client.browseDirectories({ path: "/" }), t.client.createSession("/p"), t.client.completeCommandArguments("runtime", "deploy", "st"), t.client.openFile("runtime", "f.pdf"), t.client.pinProject("/p", true)];
+  const rejected = Promise.all(requests.map(pending => expect(pending).rejects.toMatchObject({ outcome: "unknown" }))); t.client[action](); await rejected;
+  if (action === "takeControl") { vi.advanceTimersByTime(0); t.sockets[1]!.open(); expect(t.sockets[1]!.sent.map(value => JSON.parse(value).method)).toEqual(["server.initialize"]); }
+  t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
+});
+it("cancels only closed-runtime waits and permits the correlated close response", async () => {
+  const t = setup(); const file = t.client.openFile("runtime", "f.pdf"); const other = t.client.openFile("background", "f.pdf");
+  const cancelled = expect(file).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }); const close = t.client.closeSession("runtime");
+  t.socket.message(event("session.closed", { reason: "requested" }, 1, "runtime")); await cancelled;
+  t.reply({ state: "completed" }); await close;
+  t.reply({ state: "completed" }, t.requests()[2].requestId); await other; t.client.dispose();
+});
+for (const known of [false, true]) it(`cleans a synchronous send failure with ${known ? "notSent" : "unknown"} outcome`, async () => {
+  const fake = fakeTransport(); const client = new PiClient({ endpoint: "ws://example/ws", transport: (url, events) => { const transport = fake.factory(url, events); return { ...transport, send(text) { if (JSON.parse(text).method !== "server.initialize") throw known ? new SDKError("limitExceeded", "full") : new Error("broken"); transport.send(text); } }; } });
+  client.start(); vi.advanceTimersByTime(0); const socket = fake.sockets[0]!; socket.open(); socket.message({ version: 2, type: "response", requestId: "sdk-1", ok: true, result: initialized() });
+  await expect(client.prompt("s", "hello")).rejects.toMatchObject({ outcome: known ? "notSent" : "unknown" }); client.dispose(); expect(vi.getTimerCount()).toBe(0);
+});
+it("validates before allocating requests and rejects operations while offline or unselected", async () => {
+  const t = setup(); const count = t.requests().length; await expect(t.client.prompt("runtime", "  ")).rejects.toMatchObject({ code: "invalidRequest", outcome: "notSent" }); expect(t.requests()).toHaveLength(count);
+  t.client.stop(); await expect(t.client.createSession("/p")).rejects.toMatchObject({ code: "notConnected", outcome: "notSent" }); t.client.dispose();
 });

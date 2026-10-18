@@ -6,7 +6,7 @@ import { DirectoryBrowserService } from "../projects/directory-browser-service.j
 import type { FileOpenResult } from "../../shared/files.js";
 import { FileService } from "../files/file-service.js";
 import { fileOpenFailure } from "../files/file-open-error.js";
-import type { ChatMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
+import type { ChatMessage, UiPromptResult, WebFeature } from "../../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import { ProjectSessionService } from "../projects/project-session-service.js";
@@ -29,6 +29,8 @@ const RELOAD_COMMAND = {
   source: "native" as const,
 };
 
+export class SessionBusyError extends Error { readonly code = "sessionBusy"; }
+
 export class ChatApplicationService {
   private readonly listeners = new Set<(sessionId: string, event: RuntimeEvent) => void>();
   private readonly sessions: SessionRegistry;
@@ -49,12 +51,8 @@ export class ChatApplicationService {
     if (initialRuntime) this.sessions.add(initialRuntime);
   }
 
-  tabs(): Tab[] {
-    return this.sessions.tabs();
-  }
-
-  activeSessionId(): string {
-    return this.sessions.activeSessionId();
+  openSessionSnapshots(): RuntimeSnapshot[] {
+    return this.sessions.list().map(({ sessionId }) => this.captureSnapshot(sessionId));
   }
 
   openSessionIds(): string[] {
@@ -86,7 +84,7 @@ export class ChatApplicationService {
     };
   }
 
-  async snapshot(sessionId = this.activeSessionId()) {
+  async snapshot(sessionId = this.openSessionIds()[0] ?? "") {
     const capture = await this.prepareSnapshot(sessionId);
     const snapshot = capture();
     if (!snapshot) throw new Error(`Unknown or replaced session: ${sessionId}`);
@@ -125,14 +123,19 @@ export class ChatApplicationService {
     ];
   }
 
+  /** Admission check only: Pi still owns execution and steering, not this host. */
+  assertMutable(sessionId: string): void {
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("Wait for the current session change to finish.");
+  }
+
   async prompt(sessionId: string, message: string): Promise<string> {
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived. Try again when it finishes.");
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("That session is being archived. Try again when it finishes.");
     // Catch the fallback command here to serialize reload with session changes.
     if (this.isReloadCommand(sessionId, message)) {
       await this.reloadSession(sessionId);
       return sessionId;
     }
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived. Try again when it finishes.");
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("That session is being archived. Try again when it finishes.");
     const adapter = this.sessions.get(sessionId);
     const path = adapter.snapshot().sessionPath;
     this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
@@ -160,7 +163,7 @@ export class ChatApplicationService {
 
   /** Reload resources in place, preserving the session and every other tab. */
   async reloadSession(sessionId: string): Promise<void> {
-    if (this.sessionMutations.has(sessionId)) throw new Error("Wait for the current session change to finish before reloading.");
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("Wait for the current session change to finish before reloading.");
     this.sessionMutations.add(sessionId);
     try {
       await this.sessions.get(sessionId).reload();
@@ -208,18 +211,11 @@ export class ChatApplicationService {
     return this.directories.browse(request);
   }
 
-  async openProject(path: string): Promise<string> {
-    const target = await this.directories.validate(path);
-    await this.projectSessions.rememberProject(target);
-    return this.openTab(() => this.factory.continueProject(target));
-  }
-
-  /** Opening an already-open session focuses its tab instead of duplicating it. */
+  /** Opening an already-open saved runtime converges to its existing identity. */
   async openSession(path: string): Promise<string> {
     const open = this.sessions.findByPath(path);
     if (open) {
-      if (this.sessionMutations.has(open.sessionId)) throw new Error("That session is being archived.");
-      this.sessions.focus(open.sessionId);
+      if (this.sessionMutations.has(open.sessionId)) throw new SessionBusyError("That session is being archived.");
       return open.sessionId;
     }
     const key = (() => { try { return realpathSync(path); } catch { return resolve(path); } })();
@@ -236,18 +232,9 @@ export class ChatApplicationService {
     return this.openTab(() => this.factory.newSession(target));
   }
 
-  /**
-   * The catalogue the home screen searches. With every tab closed there is no
-   * snapshot to fold in, so the on-disk sessions stand on their own.
-   */
-  async currentCatalogue(options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
-    const active = this.activeSessionId();
-    if (!active) return this.projectSessions.catalogue(undefined, options);
-    return this.catalogue(this.sessions.get(active).snapshot(), options);
-  }
-
-  focusTab(sessionId: string): void {
-    this.sessions.focus(sessionId);
+  /** Catalogue and history are independent of local focus/navigation. */
+  currentCatalogue(options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
+    return this.projectSessions.catalogue(undefined, options);
   }
 
   async pinProject(path: string, pinned: boolean): Promise<void> {
@@ -263,7 +250,7 @@ export class ChatApplicationService {
     const open = this.sessions.findByPath(path);
     const sessionId = open?.sessionId;
     if (sessionId && (this.sessionMutations.has(sessionId) || this.pendingWork.has(sessionId) || this.sessions.get(sessionId).snapshot().isStreaming)) {
-      throw new Error("That session is still running or changing. Stop it before archiving it.");
+      throw new SessionBusyError("That session is still running or changing. Stop it before archiving it.");
     }
     if (sessionId) this.sessionMutations.add(sessionId);
     try {
@@ -275,13 +262,13 @@ export class ChatApplicationService {
 
   /** Closing the last tab is allowed: the browser falls back to the home screen. */
   async closeTab(sessionId: string): Promise<void> {
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("That session is being archived.");
     await this.sessions.close(sessionId);
   }
 
   async runFeature(message: FeatureCommand): Promise<void> {
     const sessionId = message.sessionId;
-    if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
+    if (this.sessionMutations.has(sessionId)) throw new SessionBusyError("That session is being archived.");
     const path = this.sessions.has(sessionId) ? this.sessions.get(sessionId).snapshot().sessionPath : undefined;
     this.pendingWork.set(sessionId, (this.pendingWork.get(sessionId) ?? 0) + 1);
     try {

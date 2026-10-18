@@ -9,17 +9,6 @@ export const filePathSchema = z.string().min(1).max(4096).refine(
     && !URL_SCHEME.test(path) && !/^[\\/]{2}/.test(path),
   "Invalid file path",
 );
-export const fileRequestIdSchema = z.string().min(1).max(128).refine(
-  (id) => id.trim().length > 0 && !CONTROL_CHARACTERS.test(id),
-  "Invalid file request identifier",
-);
-export const fileOpenRequestSchema = z.object({
-  sessionId: fileRequestIdSchema,
-  requestId: fileRequestIdSchema,
-  path: filePathSchema,
-});
-export type FileOpenRequest = z.infer<typeof fileOpenRequestSchema>;
-
 export const fileOpenErrorCodeSchema = z.enum([
   "invalidPath", "sessionUnavailable", "notFound", "notFile", "permissionDenied", "unsupported", "openFailed",
 ]);

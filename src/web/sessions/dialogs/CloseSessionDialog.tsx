@@ -1,7 +1,7 @@
 import { Modal, Stack, Text } from "@mantine/core";
 import { DialogActions } from "../../ui/DialogActions.js";
 import { MANTINE_COLOR } from "../../ui/theme.js";
-import type { Tab } from "../../../shared/protocol.js";
+import type { Tab } from "../../app/state/view-types.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 interface CloseSessionDialogProps {

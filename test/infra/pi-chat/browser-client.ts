@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
-import { PiClient, createWebSocketTransport, serverMessageSchema, type ClientMessage, type ServerMessage } from "@manuelselch/pi-sdk";
+import { PiClient, createWebSocketTransport, serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage, type AppState } from "../../../src/web/app/state/app-state.js";
 import { bindPiChat } from "../../../src/web/app/connection/sdk-binding.js";
 import type { PiChatServer } from "../../../src/server/bootstrap/server.js";
@@ -16,7 +16,8 @@ export class BrowserClient {
   private socket?: WebSocket;
   private readonly client: PiClient;
 
-  constructor(server: PiChatServer, private readonly timeoutMs: number) {
+  constructor(server: PiChatServer, private readonly timeoutMs: number, activeSessionId = "") {
+    this.state = { ...initialAppState, activeSessionId };
     const port = (server.httpServer.address() as AddressInfo).port;
     this.client = new PiClient({ endpoint: `ws://127.0.0.1:${port}/ws`, connectTimeoutMs: timeoutMs,
       transport: createWebSocketTransport((url) => {
@@ -35,7 +36,7 @@ export class BrowserClient {
     bindPiChat(this.client, (action) => { this.state = reduceAppMessage(this.state, action); this.notify(); });
     this.client.onMessage((message) => {
       this.messages.push(serverMessageSchema.parse(message));
-      if (message.type === "protocolError") this.failure = new Error(message.error);
+      if (message.type === "protocolError") this.failure = new Error(message.error.message);
       this.notify();
     });
     this.client.onError((error) => { this.failure ??= error; this.notify(); });
@@ -61,15 +62,21 @@ export class BrowserClient {
   async ready(operation: string): Promise<void> {
     await this.wait(operation, "tab list and authoritative session snapshots or home catalogue", () => {
       if (this.client.getState().connection.phase !== "ready" || !this.state.tabsKnown) return false;
-      if (!this.state.activeSessionId) return this.state.tabs.length === 0 && this.messages.some(m => m.type === "catalogue");
+      if (!this.state.activeSessionId) return this.state.tabs.length === 0;
       return this.state.tabs.some(tab => tab.sessionId === this.state.activeSessionId) &&
         this.state.tabs.every(tab => this.state.sessions[tab.sessionId]?.sessionId === tab.sessionId);
     });
   }
 
-  send(message: ClientMessage): void {
-    this.client.send(message);
+  get sdk(): PiClient { return this.client; }
+  focus(sessionId: string): void { this.state = reduceAppMessage(this.state, { type: "focusSession", sessionId }); this.notify(); }
+  private async openRuntime(invoke: () => Promise<string>): Promise<string> {
+    this.state = reduceAppMessage(this.state, { type: "openPending" }); this.notify();
+    try { const sessionId = await invoke(); this.state = reduceAppMessage(this.state, { type: "sessionOpened", sessionId }); this.notify(); return sessionId; }
+    catch (error) { this.state = reduceAppMessage(this.state, { type: "commandFailed", opening: true, error: error instanceof Error ? error.message : String(error) }); this.notify(); throw error; }
   }
+  create(projectPath?: string): Promise<string> { return this.openRuntime(() => this.client.createSession(projectPath)); }
+  open(sessionPath: string): Promise<string> { return this.openRuntime(() => this.client.openSession(sessionPath)); }
 
   async waitForMessage(operation: string, description: string, after: number, predicate: (m: ServerMessage) => boolean): Promise<ServerMessage> {
     let found: ServerMessage | undefined;

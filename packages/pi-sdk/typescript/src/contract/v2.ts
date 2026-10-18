@@ -2,11 +2,11 @@ import { z } from "zod";
 import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
 import { filePathSchema } from "./files.js";
 import {
-  bashMessageSchema, toolCardSchema, skillInvocationSchema, thinkingLevelSchema,
+  bashMessageSchema, toolCardSchema, skillInvocationSchema, thinkingLevelSchema, chatMessageSchema,
   projectCatalogueSchema, slashCommandSchema, commandCompletionItemSchema,
-} from "./protocol.js";
+} from "./models.js";
 
-/** V2 server contract. Root SDK exports remain v1 until the client cutover. */
+/** Authoritative v2 wire contract. No v1 negotiation or compatibility path. */
 export const VERSION = 2 as const;
 export const idSchema = z.string().min(1).max(128).regex(/^[^\u0000-\u001f\u007f-\u009f]+$/);
 export const counterSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
@@ -28,6 +28,7 @@ export const promptResultSchema = z.discriminatedUnion("cancelled", [
 // Presentation hints are open strings: clients ignore unsupported placements,
 // slots/styles rather than rejecting the required session state containing them.
 const hint = z.string().min(1).max(128);
+const v2ToolCardSchema = toolCardSchema.extend({ toolCallId: idSchema });
 export const extensionsSchema = z.object({
   buttons: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), icon: z.string().optional(), actionId: idSchema })),
   badges: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), tone: hint })),
@@ -45,9 +46,9 @@ export const settingsSchema = z.object({
 export const runtimeSchema = z.object({ status: z.enum(["idle", "running", "aborting", "closing"]), runId: idSchema.optional(), lastError: z.string().optional() });
 // Browser-local notices are not authoritative history and never cross v2 wire.
 export const messageSchema = z.discriminatedUnion("role", [
-  bashMessageSchema,
+  z.object({ ...bashMessageSchema.shape, id: idSchema, timestamp: z.number().finite().nonnegative().optional() }),
   z.object({ id: idSchema, role: z.enum(["user", "assistant", "system"]), text: z.string(), thinking: z.string().optional(), skill: skillInvocationSchema.optional(), timestamp: z.number().finite().nonnegative().optional() }),
-  z.object({ id: idSchema, role: z.literal("tool"), tool: toolCardSchema, timestamp: z.number().finite().nonnegative().optional() }),
+  z.object({ id: idSchema, role: z.literal("tool"), tool: v2ToolCardSchema, timestamp: z.number().finite().nonnegative().optional() }),
   z.object({ id: idSchema, role: z.literal("custom"), customType: z.string().min(1), text: z.string(), timestamp: z.number().finite().nonnegative().optional() }),
 ]);
 export const summarySchema = z.object({ sessionId: idSchema, title: z.string(), sessionPath: z.string().min(1).optional(), projectPath: z.string(), projectName: z.string(), status: z.enum(["idle", "running", "blocked", "closing"]) });
@@ -137,7 +138,7 @@ export const eventSchema = z.discriminatedUnion("event", [
   core("message.delta", z.object({ runId: idSchema, delta: z.string() })),
   core("message.thinking.delta", z.object({ runId: idSchema, delta: z.string() })),
   core("message.finalized", z.object({ runId: idSchema, message: messageSchema })),
-  core("tool.updated", z.object({ runId: idSchema, tool: toolCardSchema })),
+  core("tool.updated", z.object({ runId: idSchema, tool: v2ToolCardSchema })),
   core("steering.queue.changed", z.object({ messages: z.array(z.string()) })),
   core("settings.changed", settingsSchema),
   core("operation.finished", z.discriminatedUnion("outcome", [

@@ -1,266 +1,65 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { PROTOCOL_VERSION, type ChatMessage, type ServerMessage } from "../../../../../src/shared/protocol.js";
-import { activeSession, initialAppState, visibleError, visibleTabs, atHome } from "../../../../../src/web/app/state/app-state.js";
-
+import { afterEach, beforeEach, expect, it } from "vitest";
+import { activeSession, initialAppState, visibleError, visibleTabs, atHome, reduceAppMessage, type AppState } from "../../../../../src/web/app/state/app-state.js";
+import { snapshotData, snapshotEvent, coreEvent, summary } from "../../../../infra/v2-fixtures.js";
 import { createAppReducer } from "./sdk-harness.js";
-let harness: ReturnType<typeof createAppReducer>;
-beforeEach(() => { harness = createAppReducer(); });
+let harness: ReturnType<typeof createAppReducer>; let state: AppState;
+beforeEach(() => { harness = createAppReducer(); state = harness.initialize(initialAppState, [snapshotData({ sessionId: "a", messages: [{ id: "a-1", role: "user", text: "first" }] }), snapshotData({ sessionId: "b", messages: [{ id: "b-1", role: "user", text: "second" }] })]); });
 afterEach(() => harness.client.dispose());
-const reduceAppMessage: ReturnType<typeof createAppReducer>["reduce"] = (state, action) => harness.reduce(state, action);
-
-const snapshot = (sessionId: string, text: string): ServerMessage => ({
-  version: PROTOCOL_VERSION,
-  type: "snapshot",
-  sessionId,
-  sequence: 0,
-  throughSequence: 0,
-  projectPath: "/project",
-  messages: [{ id: `${sessionId}-1`, role: "user", text }],
-  isStreaming: false,
+it("keeps separate transcripts and sequences for busy and background sessions", () => {
+  for (let sequence = 1; sequence <= 5; sequence++) state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "x" }, "b", sequence));
+  state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "kept" }, "a", 1));
+  expect(state.sessions.a?.draft?.text).toBe("kept"); expect(state.sessions.b?.draft?.text).toBe("xxxxx"); expect(state.sessions.a?.messages).toHaveLength(1);
 });
-
-const textOf = (message?: ChatMessage): string => (message && "text" in message ? message.text : "");
-
-describe("app state", () => {
-  it("ignores file results without touching transcripts, runtime errors, or tabs", () => {
-    const state = { ...reduceAppMessage(initialAppState, snapshot("a", "first")), error: "Existing runtime error" };
-    for (const result of [{ ok: true } as const, { ok: false, error: { code: "notFound", message: "File not found." } } as const]) {
-      expect(reduceAppMessage(state, { version: PROTOCOL_VERSION, type: "fileOpenResult", sessionId: "closed-session", requestId: "file-1", result })).toBe(state);
-    }
-  });
-
-  it("keeps one transcript per session", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-    state = reduceAppMessage(state, snapshot("b", "second"));
-
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "b", sequence: 1, runId: "r", delta: "hello",
-    });
-
-    expect(state.sessions.a!.draft).toBeUndefined();
-    expect(state.sessions.b!.draft?.text).toBe("hello");
-    expect(state.sessions.a!.messages).toHaveLength(1);
-  });
-
-  it("does not let a busy tab's sequence suppress a quiet tab", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-    state = reduceAppMessage(state, snapshot("b", "second"));
-
-    // Session b races ahead; session a's low sequence must still be applied.
-    for (let sequence = 1; sequence <= 5; sequence++) {
-      state = reduceAppMessage(state, {
-        version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "b", sequence, runId: "r", delta: "x",
-      });
-    }
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "a", sequence: 1, runId: "r", delta: "kept",
-    });
-
-    expect(state.sessions.a!.draft?.text).toBe("kept");
-  });
-
-  it("tracks tabs and drops projections for closed ones", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-    state = reduceAppMessage(state, snapshot("b", "second"));
-
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION,
-      type: "tabs",
-      activeSessionId: "b",
-      tabs: [{ sessionId: "b", title: "Second", projectPath: "/project", projectName: "project", status: "running" }],
-    });
-
-    expect(Object.keys(state.sessions)).toEqual(["b"]);
-    expect(state.activeSessionId).toBe("b");
-    expect(textOf(activeSession(state).messages[0])).toBe("second");
-  });
-
-  it("falls back to the only session before the tab list arrives", () => {
-    const state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-
-    expect(state.activeSessionId).toBe("");
-    expect(textOf(activeSession(state).messages[0])).toBe("first");
-  });
-
-  it("reports connection loss app-wide while keeping each transcript", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-    state = reduceAppMessage(state, snapshot("b", "second"));
-
-    state = reduceAppMessage(state, { type: "connectionLost", error: "gone" });
-
-    expect(state.connection).toBe("connecting");
-    expect(state.error).toBe("Waiting for the Pi Chat server…");
-    expect(state.sessions.a!.messages).toHaveLength(1);
-    expect(state.sessions.b!.status).toBe("connecting");
-  });
+it("focuses locally with no wire command and retains focus through inventory updates", () => {
+  state = harness.reduce(state, { type: "focusSession", sessionId: "b" }); expect(state.activeSessionId).toBe("b");
+  state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.list.changed", data: { revision: 1, sessions: [summary(snapshotData({ sessionId: "a" })), summary(snapshotData({ sessionId: "b" }))] } });
+  expect(state.activeSessionId).toBe("b"); expect(activeSession(state).messages[0]).toMatchObject({ text: "second" });
 });
-
-describe("error reporting", () => {
-  it("surfaces a protocol rejection that belongs to no session", () => {
-    const state = reduceAppMessage(initialAppState, {
-      version: PROTOCOL_VERSION,
-      type: "protocolError",
-      error: "Message does not match protocol version 1.",
-    });
-
-    expect(state.error).toBe("Message does not match protocol version 1.");
-    // The regression: App rendered only the session error, so this was silent.
-    expect(visibleError(state, activeSession(state))).toBe("Message does not match protocol version 1.");
-  });
-
-  it("prefers the session error when no protocol error is pending", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("a", "first"));
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "a", sequence: 1, status: "idle", error: "run failed",
-    });
-
-    expect(visibleError(state, activeSession(state))).toBe("run failed");
-  });
-
-  it("clears a protocol rejection once another command is sent", () => {
-    let state = reduceAppMessage(initialAppState, {
-      version: PROTOCOL_VERSION, type: "protocolError", error: "nope",
-    });
-    state = reduceAppMessage(state, { type: "clearError" });
-
-    expect(visibleError(state, activeSession(state))).toBeUndefined();
-  });
+it("prunes closed projections and selects a remaining visible conversation", () => {
+  state = harness.reduce(state, coreEvent("session.closed", { reason: "requested" }, "a", 1)); expect(state.sessions.a).toBeUndefined(); expect(state.activeSessionId).toBe("b");
 });
-
-describe("optimistic tab changes", () => {
-  const tabsMessage = (ids: string[]) => ({
-    version: PROTOCOL_VERSION,
-    type: "tabs" as const,
-    activeSessionId: ids[0] ?? "",
-    tabs: ids.map((id) => ({ sessionId: id, title: id, projectPath: "/p", projectName: "p", status: "idle" as const })),
-  });
-
-  it("shows a placeholder while a session is being opened", () => {
-    let state = reduceAppMessage(initialAppState, { type: "openPending" });
-    state = reduceAppMessage(state, { type: "openPending" });
-
-    expect(state.openingTabs).toBe(2);
-
-    state = reduceAppMessage(state, tabsMessage(["a", "b"]));
-
-    // The authoritative tab list replaces every guess.
-    expect(state.openingTabs).toBe(0);
-    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["a", "b"]);
-  });
-
-  it("hides a closing tab before the server confirms", () => {
-    let state = reduceAppMessage(initialAppState, tabsMessage(["a", "b"]));
-    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
-
-    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["b"]);
-    // Still present underneath until the server says otherwise.
-    expect(state.tabs).toHaveLength(2);
-
-    state = reduceAppMessage(state, tabsMessage(["b"]));
-    expect(state.closingSessionIds).toEqual([]);
-    expect(visibleTabs(state).map((tab) => tab.sessionId)).toEqual(["b"]);
-  });
-
-  it("ignores a repeated close of the same tab", () => {
-    let state = reduceAppMessage(initialAppState, tabsMessage(["a"]));
-    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
-    const once = state;
-    state = reduceAppMessage(state, { type: "closePending", sessionId: "a" });
-
-    expect(state).toBe(once);
-  });
+it("ignores stale correlated results without transcript, error or navigation changes", () => {
+  const previous = { ...state, error: "existing" }; expect(harness.reduce(previous, { version: 2, type: "response", requestId: "missing", ok: false, error: { code: "notFound", message: "file missing" } })).toBe(previous);
 });
-
-describe("home screen", () => {
-  const tabsMessage = (tabs: { sessionId: string; title: string }[]): ServerMessage => ({
-    version: PROTOCOL_VERSION,
-    type: "tabs",
-    activeSessionId: tabs[0]?.sessionId ?? "",
-    tabs: tabs.map((tab) => ({ ...tab, status: "idle", projectPath: "/p", projectName: "p" })),
-  });
-
-  it("is not shown before the first tab list arrives", () => {
-    // Otherwise a fresh load flashes the home screen before its tabs land.
-    expect(atHome(initialAppState)).toBe(false);
-  });
-
-  it("is shown once the last tab closes", () => {
-    const open = reduceAppMessage(initialAppState, tabsMessage([{ sessionId: "a", title: "A" }]));
-    expect(atHome(open)).toBe(false);
-
-    const closed = reduceAppMessage(open, tabsMessage([]));
-    expect(atHome(closed)).toBe(true);
-  });
-
-  it("is hidden while a tab is being opened from it", () => {
-    const closed = reduceAppMessage(initialAppState, tabsMessage([]));
-    const opening = reduceAppMessage(closed, { type: "openPending" });
-
-    expect(atHome(opening)).toBe(false);
-  });
-
-  it("drops the closed session's transcript", () => {
-    const open = reduceAppMessage(initialAppState, tabsMessage([{ sessionId: "a", title: "A" }]));
-    const closed = reduceAppMessage(open, tabsMessage([]));
-
-    expect(closed.sessions).toEqual({});
-  });
-
-  it("keeps a catalogue that arrives without any session", () => {
-    const catalogue = { projects: [{ path: "/p", displayPath: "/p", name: "p", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
-    const next = reduceAppMessage(initialAppState, { version: PROTOCOL_VERSION, type: "catalogue", catalogue });
-
-    expect(next.catalogue).toEqual(catalogue);
-  });
+it("retains each transcript on connection loss and clears only connection error on ready", () => {
+  state = harness.reduce(state, { type: "focusSession", sessionId: "b" }); state = harness.reduce(state, { type: "connectionLost" });
+  expect(state.error).toBe("Waiting for the Pi Chat server…"); expect(state.sessions.a?.messages).toHaveLength(1); expect(state.sessions.b?.status).toBe("connecting");
+  state = harness.initialize(state, [snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "b" })]); expect(state.connection).toBe("open"); expect(state.error).toBeUndefined(); expect(state.activeSessionId).toBe("b");
 });
-
-describe("recovering from a server restart", () => {
-  it("clears the connection error once state arrives again", () => {
-    // A restart closes the socket, then the reconnect must take the banner down;
-    // otherwise the UI claims to be waiting over a working connection.
-    const lost = reduceAppMessage(initialAppState, { type: "connectionLost", error: "Waiting for the Pi Chat server…" });
-    expect(lost.error).toBeDefined();
-
-    const back = reduceAppMessage(lost, {
-      version: PROTOCOL_VERSION,
-      type: "tabs",
-      tabs: [{ sessionId: "s1", title: "One", projectPath: "/p", projectName: "p", status: "idle" }],
-      activeSessionId: "s1",
-    });
-
-    expect(back.error).toBeUndefined();
-    expect(back.connection).toBe("open");
-  });
-
-  it("clears the connection error when only a catalogue arrives", () => {
-    const lost = reduceAppMessage(initialAppState, { type: "connectionLost", error: "Waiting for the Pi Chat server…" });
-
-    const back = reduceAppMessage(lost, { version: PROTOCOL_VERSION, type: "catalogue", catalogue: { projects: [] } });
-
-    expect(back.error).toBeUndefined();
-  });
+it("surfaces fatal protocol rejection app-wide rather than hiding it behind Home", () => {
+  state = harness.reduce(state, { version: 2, type: "protocolError", serverInstanceId: "process", error: { code: "unsupportedVersion", message: "Only v2 is supported" } });
+  expect(visibleError(state, activeSession(state))).toContain("Only v2 is supported");
 });
-
-describe("dismissing a failed turn", () => {
-  it("clears the session error the banner is showing, not just the app one", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("s1", "hi"));
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 5, status: "idle", error: "context limit reached",
-    });
-    expect(visibleError(state, activeSession(state))).toBe("context limit reached");
-
-    state = reduceAppMessage(state, { type: "clearError", sessionId: "s1" });
-    expect(visibleError(state, activeSession(state))).toBeUndefined();
-  });
-
-  it("leaves other sessions alone", () => {
-    let state = reduceAppMessage(initialAppState, snapshot("s1", "hi"));
-    state = reduceAppMessage(state, snapshot("s2", "hi"));
-    state = reduceAppMessage(state, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s2", sequence: 5, status: "idle", error: "context limit reached",
-    });
-
-    state = reduceAppMessage(state, { type: "clearError", sessionId: "s1" });
-    expect(state.sessions.s2?.error).toBe("context limit reached");
-  });
+it("dismisses a session error locally without changing SDK or other sessions", () => {
+  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "a failed" }, "a", 1));
+  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "b failed" }, "b", 1)); state = harness.reduce(state, { type: "clearError", sessionId: "a" });
+  expect(state.sessions.a?.error).toBeUndefined(); expect(harness.client.getSession("a")?.error).toBe("a failed"); expect(state.sessions.b?.error).toBe("b failed");
+});
+it("keeps dismissed errors hidden until a new authoritative failure arrives", () => {
+  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "failed" }, "a", 1)); state = harness.reduce(state, { type: "clearError", sessionId: "a" });
+  state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "text" }, "a", 2)); expect(state.sessions.a?.error).toBeUndefined();
+  state = harness.reduce(state, snapshotEvent({ sessionId: "a", throughSequence: 3, runtime: { status: "idle", lastError: "failed" } })); expect(state.sessions.a?.error).toBe("failed");
+});
+it("hides a closing tab optimistically and restores it with original focus on failure", () => {
+  state = harness.reduce(state, { type: "closePending", sessionId: "a" }); expect(visibleTabs(state).map(tab => tab.sessionId)).toEqual(["b"]); expect(state.tabs).toHaveLength(2);
+  const once = state; expect(harness.reduce(state, { type: "closePending", sessionId: "a" })).toBe(once);
+  state = harness.reduce(state, { type: "commandFailed", closingSessionId: "a", error: "partial close; retry" }); expect(visibleTabs(state)).toHaveLength(2); expect(state.activeSessionId).toBe("a");
+});
+it("settles opening placeholders per correlated operation, not arbitrary inventory traffic", () => {
+  state = harness.reduce(state, { type: "openPending" }); state = harness.reduce(state, { type: "openPending" }); expect(state.openingTabs).toBe(2);
+  state = harness.reduce(state, { type: "sessionOpened", sessionId: "b" }); expect(state.openingTabs).toBe(1); expect(state.activeSessionId).toBe("b");
+  state = harness.reduce(state, { type: "commandFailed", opening: true, error: "failed" }); expect(state.openingTabs).toBe(0);
+});
+it("does not show Home before initialization or while opening a session", () => {
+  expect(atHome(initialAppState)).toBe(false); const home = reduceAppMessage(state, { type: "sdkState", state: { ...harness.client.getState(), inventory: [], sessions: {} } }); expect(atHome(home)).toBe(true);
+  expect(atHome(harness.reduce(home, { type: "openPending" }))).toBe(false);
+});
+it("keeps project catalogue available at Home without a runtime", () => {
+  const catalogue = { projects: [{ path: "/p", displayPath: "/p", name: "p", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
+  state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "project.list.changed", data: { revision: 1, catalogue } }); expect(state.catalogue).toEqual(catalogue);
+});
+it("adds browser notices once without adding any SDK transcript entries", () => {
+  state = harness.reduce(state, coreEvent("notification.created", { level: "info", message: "notice" }, "a", 1));
+  const notified = state; state = harness.reduce(state, coreEvent("notification.created", { level: "info", message: "notice" }, "a", 1)); expect(state.sessions.a).toBe(notified.sessions.a);
+  expect(state.sessions.a?.messages.at(-1)).toMatchObject({ role: "notice", text: "notice" }); expect(harness.client.getSession("a")?.messages).toHaveLength(1);
 });

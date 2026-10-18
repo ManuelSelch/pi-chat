@@ -1,80 +1,48 @@
+import { snapshotEvent, coreEvent, presentationEvent } from "../../../../infra/v2-fixtures.js";
 import { describe, expect, it } from "vitest";
 import { PROTOCOL_VERSION, type ServerMessage } from "../../../../../src/shared/protocol.js";
 import { initialChatState, reduceServerMessage, type ChatState } from "../../../../infra/pi-chat/browser-session-view.js";
 
 describe("chat state", () => {
   it("restores steering on reconnect and accepts only fresh queue updates", () => {
-    const restored = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 5, throughSequence: 5,
-      sessionId: "session", projectPath: "/project", messages: [], isStreaming: true,
-      steeringMessages: ["Native queued text"],
-    });
+    const restored = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/project", messages: [], steeringMessages: ["Native queued text"], runtime: { status: "running" } }));
     expect(restored.steeringMessages).toEqual(["Native queued text"]);
-    const consumed = reduceServerMessage(restored, {
-      version: PROTOCOL_VERSION, type: "steeringQueue", sessionId: "session", sequence: 6, messages: [],
-    });
+    const consumed = reduceServerMessage(restored, coreEvent("steering.queue.changed", { messages: [] }, "session", 6));
     expect(consumed.steeringMessages).toEqual([]);
-    expect(reduceServerMessage(consumed, {
-      version: PROTOCOL_VERSION, type: "steeringQueue", sessionId: "session", sequence: 5, messages: ["Stale"],
-    })).toBe(consumed);
+    expect(reduceServerMessage(consumed, coreEvent("steering.queue.changed", { messages: ["Stale"] }, "session", 5))).toBe(consumed);
   });
 
-  it("keeps the streamed answer when a queued prompt refreshes a running snapshot", () => {
+  it("drops unfinished draft on a fresh authoritative snapshot", () => {
     const state = { ...initialChatState, sessionId: "session", status: "running" as const, draft: { runId: "run", text: "Partial answer", thinking: "Reasoning" } };
-    const next = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 5, throughSequence: 5,
-      sessionId: "session", projectPath: "/project", messages: [], isStreaming: true,
-      steeringMessages: ["Change direction"],
-    });
-    expect(next.draft).toEqual(state.draft);
+    const next = reduceServerMessage(state, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/project", messages: [], steeringMessages: ["Change direction"], runtime: { status: "running" } }));
+    expect(next.draft).toBeUndefined();
   });
   it("replaces projected state with an authoritative snapshot", () => {
     const dirty = { ...initialChatState, messages: [{ id: "old", role: "user" as const, text: "old" }], sequence: 8 };
-    const next = reduceServerMessage(dirty, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 10,
-      throughSequence: 10,
-      sessionId: "session",
-      projectPath: "/project",
-      messages: [{ id: "saved", role: "assistant", text: "saved" }],
-      isStreaming: false,
-    });
+    const next = reduceServerMessage(dirty, snapshotEvent({ throughSequence: 10, sessionId: "session", projectPath: "/project", messages: [{ id: "saved", role: "assistant", text: "saved" }], runtime: { status: "idle" } }));
     expect(next.messages.map((message) => message.id)).toEqual(["saved"]);
     expect(next.sequence).toBe(10);
   });
 
   it("assembles deltas and reconciles them with the final message", () => {
-    const snapshot = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
-      sessionId: "session", projectPath: "/project", messages: [], isStreaming: false,
-    });
-    const first = reduceServerMessage(snapshot, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 1, runId: "run", delta: "Hello " });
-    const second = reduceServerMessage(first, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 2, runId: "run", delta: "world" });
-    const final = reduceServerMessage(second, {
-      version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "session", sequence: 3, runId: "run",
-      message: { id: "answer", role: "assistant", text: "Hello world" },
-    });
+    const snapshot = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 0, sessionId: "session", projectPath: "/project", messages: [], runtime: { status: "idle" } }));
+    const first = reduceServerMessage(snapshot, coreEvent("message.delta", { runId: "run", delta: "Hello " }, "session", 1));
+    const second = reduceServerMessage(first, coreEvent("message.delta", { runId: "run", delta: "world" }, "session", 2));
+    const final = reduceServerMessage(second, coreEvent("message.finalized", { runId: "run", message: { id: "answer", role: "assistant", text: "Hello world" } }, "session", 3));
     expect(second.draft?.text).toBe("Hello world");
     expect(final.draft).toBeUndefined();
     expect(final.messages).toEqual([{ id: "answer", role: "assistant", text: "Hello world" }]);
   });
 
   it("streams reasoning alongside the answer and hands it over to the final message", () => {
-    const snapshot = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
-      sessionId: "session", projectPath: "/project", messages: [], isStreaming: false,
-    });
-    const thought = reduceServerMessage(snapshot, { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 1, runId: "run", delta: "Let me " });
-    const thoughtMore = reduceServerMessage(thought, { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 2, runId: "run", delta: "check." });
+    const snapshot = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 0, sessionId: "session", projectPath: "/project", messages: [], runtime: { status: "idle" } }));
+    const thought = reduceServerMessage(snapshot, coreEvent("message.thinking.delta", { runId: "run", delta: "Let me " }, "session", 1));
+    const thoughtMore = reduceServerMessage(thought, coreEvent("message.thinking.delta", { runId: "run", delta: "check." }, "session", 2));
     // Prose arriving must not wipe the reasoning already on screen.
-    const spoke = reduceServerMessage(thoughtMore, { version: PROTOCOL_VERSION, type: "assistantDelta", sessionId: "session", sequence: 3, runId: "run", delta: "Yes" });
+    const spoke = reduceServerMessage(thoughtMore, coreEvent("message.delta", { runId: "run", delta: "Yes" }, "session", 3));
     expect(spoke.draft).toEqual({ runId: "run", thinking: "Let me check.", text: "Yes" });
 
-    const final = reduceServerMessage(spoke, {
-      version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "session", sequence: 4, runId: "run",
-      message: { id: "answer", role: "assistant", text: "Yes", thinking: "Let me check." },
-    });
+    const final = reduceServerMessage(spoke, coreEvent("message.finalized", { runId: "run", message: { id: "answer", role: "assistant", text: "Yes", thinking: "Let me check." } }, "session", 4));
     expect(final.draft).toBeUndefined();
     expect(final.messages).toEqual([{ id: "answer", role: "assistant", text: "Yes", thinking: "Let me check." }]);
   });
@@ -82,7 +50,7 @@ describe("chat state", () => {
   it("starts a fresh draft when reasoning arrives for another run", () => {
     const first = reduceServerMessage(
       { ...initialChatState, sequence: 0, draft: { runId: "old", text: "stale", thinking: "stale" } },
-      { version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "session", sequence: 1, runId: "new", delta: "fresh" },
+      coreEvent("message.thinking.delta", { runId: "new", delta: "fresh" }, "session", 1),
     );
     expect(first.draft).toEqual({ runId: "new", text: "", thinking: "fresh" });
   });
@@ -106,45 +74,30 @@ describe("chat state", () => {
       { ...initialChatState, sequence: 42, status: "running" },
       { type: "connectionLost" },
     );
-    const resumed = reduceServerMessage(lost, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 0, throughSequence: 0,
-      sessionId: "session", projectPath: "/project",
-      messages: [{ id: "restored", role: "assistant", text: "restored" }], isStreaming: false,
-    });
+    const resumed = reduceServerMessage(lost, snapshotEvent({ throughSequence: 0, sessionId: "session", projectPath: "/project", messages: [{ id: "restored", role: "assistant", text: "restored" }], runtime: { status: "idle" } }));
     expect(resumed.status).toBe("idle");
     expect(resumed.sequence).toBe(0);
 
-    const next = reduceServerMessage(resumed, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 1, status: "running",
-    });
+    const next = reduceServerMessage(resumed, coreEvent("runtime.status", { status: "running" }, "session", 1));
     expect(next.status).toBe("running");
   });
 
   it("keeps a failed turn's reason visible once the run settles", () => {
     const running = { ...initialChatState, status: "running" as const, sequence: 1 };
-    const settled = reduceServerMessage(running, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 2, status: "idle",
-      error: "Codex error: The usage limit has been reached",
-    });
+    const settled = reduceServerMessage(running, coreEvent("runtime.status", { status: "idle", lastError: "Codex error: The usage limit has been reached" }, "session", 2));
     expect(settled.status).toBe("idle");
     expect(settled.error).toBe("Codex error: The usage limit has been reached");
   });
 
   it("transitions a tool card from running to success exactly once", () => {
     let state = { ...initialChatState, status: "running" as const, sequence: 0 };
-    const running = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 1, runId: "run",
-      tool: { toolCallId: "call-1", name: "bash", status: "running", argsText: "{ }" },
-    });
+    const running = reduceServerMessage(state, coreEvent("tool.updated", { runId: "run", tool: { toolCallId: "call-1", name: "bash", status: "running", argsText: "{ }" } }, "session", 1));
     expect(running.messages).toHaveLength(1);
     expect(running.messages[0]!.role).toBe("tool");
     if (running.messages[0]!.role === "tool") expect(running.messages[0]!.tool.status).toBe("running");
 
     // Streaming updates stay running and accumulate output without a new card.
-    const updated = reduceServerMessage(running, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 2, runId: "run",
-      tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "partial" },
-    });
+    const updated = reduceServerMessage(running, coreEvent("tool.updated", { runId: "run", tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "partial" } }, "session", 2));
     expect(updated.messages).toHaveLength(1);
     if (updated.messages[0]!.role === "tool") {
       expect(updated.messages[0]!.tool.status).toBe("running");
@@ -152,10 +105,7 @@ describe("chat state", () => {
       expect(updated.messages[0]!.tool.argsText).toBe("{ }");
     }
 
-    const finished = reduceServerMessage(updated, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 3, runId: "run",
-      tool: { toolCallId: "call-1", name: "bash", status: "success", outputText: "done" },
-    });
+    const finished = reduceServerMessage(updated, coreEvent("tool.updated", { runId: "run", tool: { toolCallId: "call-1", name: "bash", status: "success", outputText: "done" } }, "session", 3));
     expect(finished.messages).toHaveLength(1);
     if (finished.messages[0]!.role === "tool") {
       expect(finished.messages[0]!.tool.status).toBe("success");
@@ -163,10 +113,7 @@ describe("chat state", () => {
     }
 
     // A duplicated final event must not re-run the transition or regress it.
-    const replayed = reduceServerMessage(finished, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 4, runId: "run",
-      tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "stale" },
-    });
+    const replayed = reduceServerMessage(finished, coreEvent("tool.updated", { runId: "run", tool: { toolCallId: "call-1", name: "bash", status: "running", outputText: "stale" } }, "session", 4));
     expect(replayed.messages).toHaveLength(1);
     if (replayed.messages[0]!.role === "tool") {
       expect(replayed.messages[0]!.tool.status).toBe("success");
@@ -178,31 +125,21 @@ describe("chat state", () => {
     // Happens when the client connected after the tool started: the snapshot
     // boundary swallowed tool_execution_start, but tool_execution_end is live.
     const state = { ...initialChatState, status: "running" as const, sequence: 5 };
-    const next = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "toolEvent", sessionId: "session", sequence: 6, runId: "run",
-      tool: { toolCallId: "call-9", name: "read", status: "error", outputText: "denied" },
-    });
+    const next = reduceServerMessage(state, coreEvent("tool.updated", { runId: "run", tool: { toolCallId: "call-9", name: "read", status: "error", outputText: "denied" } }, "session", 6));
     expect(next.messages).toHaveLength(1);
     if (next.messages[0]!.role === "tool") expect(next.messages[0]!.tool.status).toBe("error");
   });
 
   it("ignores duplicate and stale sequenced events", () => {
     const state = { ...initialChatState, sequence: 4, status: "idle" as const };
-    const next = reduceServerMessage(state, { version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "session", sequence: 4, status: "running" });
+    const next = reduceServerMessage(state, coreEvent("runtime.status", { status: "running" }, "session", 4));
     expect(next).toBe(state);
   });
 });
 
 describe("extension notifications", () => {
   it("appends notify output as a transcript notice", () => {
-    const next = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "notification",
-      sessionId: "session",
-      sequence: 1,
-      level: "warning",
-      message: "Memory: pi-chat | Repo: Uncommitted changes",
-    });
+    const next = reduceServerMessage(initialChatState, coreEvent("notification.created", { level: "warning", message: "Memory: pi-chat | Repo: Uncommitted changes" }, "session", 1));
 
     expect(next.messages).toEqual([
       { id: "notice:1", role: "notice", level: "warning", text: "Memory: pi-chat | Repo: Uncommitted changes" },
@@ -213,61 +150,23 @@ describe("extension notifications", () => {
 
 describe("ui prompts", () => {
   it("tracks pending prompts and restores them from a snapshot", () => {
-    const prompt = { id: "p1", kind: "confirm" as const, title: "Allow?" };
-    const opened = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "prompts",
-      sessionId: "session",
-      sequence: 1,
-      prompts: [prompt],
-    });
+    const prompt = { id: "p1", kind: "confirm" as const, title: "Allow?", message: "Run?" };
+    const opened = reduceServerMessage(initialChatState, coreEvent("prompt.list.changed", { prompts: [prompt] }, "session", 1));
     expect(opened.prompts).toEqual([prompt]);
 
-    const reconnected = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 5,
-      throughSequence: 5,
-      sessionId: "s1",
-      projectPath: "/tmp",
-      messages: [],
-      isStreaming: false,
-      prompts: [prompt],
-    });
+    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "s1", projectPath: "/tmp", messages: [], prompts: [prompt], runtime: { status: "idle" } }));
     expect(reconnected.prompts).toEqual([prompt]);
 
-    const answered = reduceServerMessage(opened, {
-      version: PROTOCOL_VERSION,
-      type: "prompts",
-      sessionId: "session",
-      sequence: 2,
-      prompts: [],
-    });
+    const answered = reduceServerMessage(opened, coreEvent("prompt.list.changed", { prompts: [] }, "session", 2));
     expect(answered.prompts).toEqual([]);
   });
 });
 
 describe("notices across snapshots", () => {
   it("keeps extension output when an authoritative snapshot arrives", () => {
-    const withNotice = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "notification",
-      sessionId: "session",
-      sequence: 1,
-      level: "info",
-      message: "Model set to doppelclaude/claude-opus-5",
-    });
+    const withNotice = reduceServerMessage(initialChatState, coreEvent("notification.created", { level: "info", message: "Model set to doppelclaude/claude-opus-5" }, "session", 1));
 
-    const next = reduceServerMessage(withNotice, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 2,
-      throughSequence: 2,
-      sessionId: "s1",
-      projectPath: "/tmp",
-      messages: [{ id: "m1", role: "user", text: "hi" }],
-      isStreaming: false,
-    });
+    const next = reduceServerMessage(withNotice, snapshotEvent({ throughSequence: 2, sessionId: "s1", projectPath: "/tmp", messages: [{ id: "m1", role: "user", text: "hi" }], runtime: { status: "idle" } }));
 
     expect(next.messages.map((entry) => entry.role)).toEqual(["user", "notice"]);
   });
@@ -276,7 +175,7 @@ describe("notices across snapshots", () => {
 describe("failed turns stay on screen", () => {
   const failed = reduceServerMessage(
     { ...initialChatState, sessionId: "s1", sequence: 0 },
-    { version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 1, status: "idle", error: "context limit reached" },
+    coreEvent("runtime.status", { status: "idle", lastError: "context limit reached" }, "s1", 1),
   );
 
   it("reports the failure when the turn settles", () => {
@@ -287,68 +186,34 @@ describe("failed turns stay on screen", () => {
   // could not carry the failure replaced it with a clean state milliseconds
   // after the error appeared.
   it("survives the snapshot refresh that follows the run", () => {
-    const refreshed = reduceServerMessage(failed, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 2,
-      throughSequence: 2,
-      sessionId: "s1",
-      projectPath: "/tmp",
-      messages: [{ id: "m1", role: "user", text: "hi" }],
-      isStreaming: false,
-      lastError: "context limit reached",
-    });
+    const refreshed = reduceServerMessage(failed, snapshotEvent({ throughSequence: 2, sessionId: "s1", projectPath: "/tmp", messages: [{ id: "m1", role: "user", text: "hi" }], runtime: { status: "idle", lastError: "context limit reached" } }));
     expect(refreshed.error).toBe("context limit reached");
   });
 
   it("survives an unrelated status change", () => {
-    const aborting = reduceServerMessage(failed, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 2, status: "aborting",
-    });
+    const aborting = reduceServerMessage(failed, coreEvent("runtime.status", { status: "aborting" }, "s1", 2));
     expect(aborting.error).toBe("context limit reached");
   });
 
   it("clears once a new run starts", () => {
-    const running = reduceServerMessage(failed, {
-      version: PROTOCOL_VERSION, type: "runtimeStatus", sessionId: "s1", sequence: 2, status: "running",
-    });
+    const running = reduceServerMessage(failed, coreEvent("runtime.status", { status: "running" }, "s1", 2));
     expect(running.error).toBeUndefined();
   });
 
   it("clears when the server reports a clean settle", () => {
-    const recovered = reduceServerMessage(failed, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 2,
-      throughSequence: 2,
-      sessionId: "s1",
-      projectPath: "/tmp",
-      messages: [],
-      isStreaming: false,
-    });
+    const recovered = reduceServerMessage(failed, snapshotEvent({ throughSequence: 2, sessionId: "s1", projectPath: "/tmp", messages: [], runtime: { status: "idle" } }));
     expect(recovered.error).toBeUndefined();
   });
 });
 
 describe("notices keep their place in the transcript", () => {
-  const snapshotOf = (sequence: number, ids: string[]): Extract<ServerMessage, { type: "snapshot" }> => ({
-    version: PROTOCOL_VERSION,
-    type: "snapshot",
-    sequence,
-    throughSequence: sequence,
-    sessionId: "s1",
-    projectPath: "/tmp",
-    messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })),
-    isStreaming: false,
-  });
+  const snapshotOf = (sequence: number, ids: string[]): ReturnType<typeof snapshotEvent> => (snapshotEvent({ throughSequence: sequence, sessionId: "s1", projectPath: "/tmp", messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })), runtime: { status: "idle" } }));
 
   // The reported bug: /session printed its notice, and after the next answer
   // the same notice reappeared at the bottom as if it had just been emitted.
   it("does not drag an earlier notice below a later answer", () => {
     let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1", "a1"]));
-    state = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "session stats",
-    });
+    state = reduceServerMessage(state, coreEvent("notification.created", { level: "info", message: "session stats" }, "s1", 1));
     expect(state.messages.map((entry) => entry.id)).toEqual(["u1", "a1", "notice:1"]);
 
     state = reduceServerMessage(state, snapshotOf(2, ["u1", "a1", "u2", "a2"]));
@@ -358,13 +223,9 @@ describe("notices keep their place in the transcript", () => {
 
   it("keeps several notices in order at their own anchors", () => {
     let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1"]));
-    state = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "first",
-    });
+    state = reduceServerMessage(state, coreEvent("notification.created", { level: "info", message: "first" }, "s1", 1));
     state = reduceServerMessage(state, snapshotOf(2, ["u1", "a1"]));
-    state = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 3, level: "warning", message: "second",
-    });
+    state = reduceServerMessage(state, coreEvent("notification.created", { level: "warning", message: "second" }, "s1", 3));
     state = reduceServerMessage(state, snapshotOf(4, ["u1", "a1", "u2"]));
 
     expect(state.messages.map((entry) => entry.id)).toEqual(["u1", "notice:1", "a1", "notice:3", "u2"]);
@@ -372,9 +233,7 @@ describe("notices keep their place in the transcript", () => {
 
   it("keeps a notice anchored past a shortened transcript at the end", () => {
     let state = reduceServerMessage(initialChatState, snapshotOf(0, ["u1", "a1"]));
-    state = reduceServerMessage(state, {
-      version: PROTOCOL_VERSION, type: "notification", sessionId: "s1", sequence: 1, level: "info", message: "compacted",
-    });
+    state = reduceServerMessage(state, coreEvent("notification.created", { level: "info", message: "compacted" }, "s1", 1));
     state = reduceServerMessage(state, snapshotOf(2, ["sum"]));
 
     expect(state.messages.map((entry) => entry.id)).toEqual(["sum", "notice:1"]);
@@ -386,16 +245,7 @@ describe("notices keep their place in the transcript", () => {
 // kept resurfacing under each new answer. Its place is read from the transcript
 // instead, and the resolved anchor is written back so it stays put.
 describe("notices without a recorded anchor", () => {
-  const snapshotOf = (sequence: number, ids: string[]): Extract<ServerMessage, { type: "snapshot" }> => ({
-    version: PROTOCOL_VERSION,
-    type: "snapshot",
-    sequence,
-    throughSequence: sequence,
-    sessionId: "s1",
-    projectPath: "/tmp",
-    messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })),
-    isStreaming: false,
-  });
+  const snapshotOf = (sequence: number, ids: string[]): ReturnType<typeof snapshotEvent> => (snapshotEvent({ throughSequence: sequence, sessionId: "s1", projectPath: "/tmp", messages: ids.map((id) => ({ id, role: id.startsWith("a") ? "assistant" : "user", text: id })), runtime: { status: "idle" } }));
 
   it("keeps an anchorless notice where it sits instead of at the bottom", () => {
     const stale: ChatState = {
@@ -434,36 +284,14 @@ describe("extension widgets", () => {
   const todo = { key: "todo", lines: ["── Todos ──", "○ #1 Write tests"], placement: "aboveEditor" as const };
 
   it("tracks pushed widgets and restores them from a snapshot", () => {
-    const pushed = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "widgets",
-      sessionId: "session",
-      sequence: 1,
-      widgets: [todo],
-    });
+    const pushed = reduceServerMessage(initialChatState, presentationEvent({ widgets: [todo] }, "session", 1));
     expect(pushed.widgets).toEqual([todo]);
 
     // A reconnecting browser rebuilds the panel from the snapshot alone.
-    const reconnected = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 5,
-      throughSequence: 5,
-      sessionId: "session",
-      projectPath: "/tmp",
-      messages: [],
-      isStreaming: false,
-      widgets: [todo],
-    });
+    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [todo], footer: [], extensions: { buttons: [], badges: [], state: {} } } }));
     expect(reconnected.widgets).toEqual([todo]);
 
-    const cleared = reduceServerMessage(pushed, {
-      version: PROTOCOL_VERSION,
-      type: "widgets",
-      sessionId: "session",
-      sequence: 2,
-      widgets: [],
-    });
+    const cleared = reduceServerMessage(pushed, presentationEvent({ widgets: [] }, "session", 2));
     expect(cleared.widgets).toEqual([]);
   });
 
@@ -472,14 +300,9 @@ describe("extension widgets", () => {
    * must not leave it on screen forever.
    */
   it("drops widgets a snapshot no longer reports", () => {
-    const pushed = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION, type: "widgets", sessionId: "session", sequence: 1, widgets: [todo],
-    });
+    const pushed = reduceServerMessage(initialChatState, presentationEvent({ widgets: [todo] }, "session", 1));
 
-    const next = reduceServerMessage(pushed, {
-      version: PROTOCOL_VERSION, type: "snapshot", sequence: 9, throughSequence: 9,
-      sessionId: "session", projectPath: "/tmp", messages: [], isStreaming: false,
-    });
+    const next = reduceServerMessage(pushed, snapshotEvent({ throughSequence: 9, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" } }));
 
     expect(next.widgets).toEqual([]);
   });
@@ -490,50 +313,19 @@ describe("composer footer", () => {
   const model = { key: "model", text: "doppelclaude/claude-opus-5", align: "right" as const, variant: "plain" as const };
 
   it("tracks a pushed footer and restores it from a snapshot", () => {
-    const pushed = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "footer",
-      sessionId: "session",
-      sequence: 1,
-      footer: [readonly, model],
-    });
+    const pushed = reduceServerMessage(initialChatState, presentationEvent({ footer: [readonly, model] }, "session", 1));
     expect(pushed.footer).toEqual([readonly, model]);
 
     // A reconnecting browser rebuilds the footer from the snapshot alone.
-    const reconnected = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 5,
-      throughSequence: 5,
-      sessionId: "session",
-      projectPath: "/tmp",
-      messages: [],
-      isStreaming: false,
-      footer: [readonly, model],
-    });
+    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [], footer: [readonly, model], extensions: { buttons: [], badges: [], state: {} } } }));
     expect(reconnected.footer).toEqual([readonly, model]);
   });
 
   /** A snapshot is authoritative: a cleared label must not linger on screen. */
   it("drops footer entries a snapshot no longer reports", () => {
-    const pushed = reduceServerMessage(initialChatState, {
-      version: PROTOCOL_VERSION,
-      type: "footer",
-      sessionId: "session",
-      sequence: 1,
-      footer: [readonly, model],
-    });
+    const pushed = reduceServerMessage(initialChatState, presentationEvent({ footer: [readonly, model] }, "session", 1));
 
-    const refreshed = reduceServerMessage(pushed, {
-      version: PROTOCOL_VERSION,
-      type: "snapshot",
-      sequence: 2,
-      throughSequence: 2,
-      sessionId: "session",
-      projectPath: "/tmp",
-      messages: [],
-      isStreaming: false,
-    });
+    const refreshed = reduceServerMessage(pushed, snapshotEvent({ throughSequence: 2, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" } }));
 
     expect(refreshed.footer).toEqual([]);
   });

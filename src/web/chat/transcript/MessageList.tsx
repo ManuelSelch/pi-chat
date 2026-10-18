@@ -8,8 +8,7 @@ import { BashCard } from "../bash/BashCard.js";
 import { ToolCard } from "../tools/ToolCard.js";
 import { SkillInvocation } from "./SkillInvocation.js";
 import { ToolGroup, type ActivityMessage } from "./ToolGroup.js";
-import type { ChatMessage } from "../../../shared/protocol.js";
-import type { ChatState } from "../../app/state/chat-state.js";
+import type { ChatState, ChatViewMessage } from "../../app/state/chat-state.js";
 import { THEME } from "../../ui/theme.js";
 
 /**
@@ -17,7 +16,7 @@ import { THEME } from "../../ui/theme.js";
  * holds hundreds of entries. Each row is memoised so typing in the composer or
  * receiving a streaming delta only re-renders what actually changed.
  */
-const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: { message: ChatMessage; onLocalLink?: (path: string) => void; compact: boolean }) {
+const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: { message: ChatViewMessage; onLocalLink?: (path: string) => void; compact: boolean }) {
   if (message.role === "tool") return <ToolCard tool={message.tool} compact={compact} />;
   if (message.role === "bash") return <BashCard bash={message.bash} />;
 
@@ -100,7 +99,7 @@ interface MessageListProps {
 
 export const MessageList = memo(function MessageList({ messages, draft, onLocalLink, compact = false }: MessageListProps) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE);
-  const rows: (ChatMessage | [ActivityMessage, ...ActivityMessage[]])[] = [];
+  const rows: (ChatViewMessage | [ActivityMessage, ...ActivityMessage[]])[] = [];
   const appendActivity = (message: ActivityMessage) => {
     const previous = rows[rows.length - 1];
     if (Array.isArray(previous)) previous.push(message);

@@ -1,0 +1,151 @@
+[
+  {
+    "name": "unknown message role",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "future",
+      "text": "x"
+    }
+  },
+  {
+    "name": "tool missing payload",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "tool"
+    }
+  },
+  {
+    "name": "invalid message identity",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "bad\u0000id",
+      "role": "assistant",
+      "text": "x"
+    }
+  },
+  {
+    "name": "null optional timestamp",
+    "schema": "ChatMessage",
+    "input": {
+      "id": "message-1",
+      "role": "assistant",
+      "text": "x",
+      "timestamp": null
+    }
+  },
+  {
+    "name": "unknown thinking level",
+    "schema": "ThinkingLevel",
+    "input": "future"
+  },
+  {
+    "name": "non-string boolean prompt result",
+    "schema": "PromptResult",
+    "input": {
+      "cancelled": false,
+      "value": 1
+    }
+  },
+  {
+    "name": "footer null alignment",
+    "schema": "FooterItem",
+    "input": {
+      "key": "demo",
+      "text": "Demo",
+      "align": null
+    }
+  },
+  {
+    "name": "v1 request",
+    "schema": "Request",
+    "input": {
+      "version": 1,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "unknown method",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "future.method",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "blank prompt",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "   "
+      }
+    }
+  },
+  {
+    "name": "missing session",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "request",
+      "method": "message.send",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "invalid id",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "bad\u0000id",
+      "method": "message.send",
+      "sessionId": "runtime",
+      "params": {
+        "message": "hello"
+      }
+    }
+  },
+  {
+    "name": "untyped failure",
+    "schema": "Response",
+    "input": {
+      "version": 2,
+      "type": "response",
+      "requestId": "r",
+      "ok": false,
+      "error": "failure"
+    }
+  },
+  {
+    "name": "unknown required event",
+    "schema": "Event",
+    "input": {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "s",
+      "event": "future.required",
+      "data": {}
+    }
+  }
+]

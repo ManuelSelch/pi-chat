@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, rm, symlink, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { requestSchema } from "@manuelselch/pi-sdk/contract/v2";
+import { requestSchema } from "@manuelselch/pi-sdk/contract";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
@@ -38,9 +38,9 @@ describe("folder requests", () => {
   it("reports browse and start failures at app level on Home", async () => {
     await connect();
     client.send("directory.browse", "bad-browse", { path: "/missing/pi-chat-folder" });
-    expect(await client.response("bad-browse")).toMatchObject({ ok: false, error: { code: "operationFailed" } });
+    expect(await client.response("bad-browse")).toMatchObject({ ok: false, error: { code: "notFound", message: expect.stringContaining("not found") } });
     client.send("session.create", "bad-start", { projectPath: "/missing/pi-chat-folder" });
-    expect(await client.response("bad-start")).toMatchObject({ ok: false, error: { code: "operationFailed" } });
+    expect(await client.response("bad-start")).toMatchObject({ ok: false, error: { code: "notFound", message: expect.stringContaining("not found") } });
   });
   it("starts a fresh session with the canonical folder and returns its correlated outcome", async () => {
     folder = await mkdtemp(join(tmpdir(), "pi-browser-"));
@@ -61,8 +61,8 @@ describe("folder requests", () => {
     const factory = { continueProject: vi.fn(), newSession: vi.fn(async () => next), openSession: vi.fn() };
     const chat = new ChatApplicationService(current, factory);
     await chat.newSession(folder);
-    expect(chat.tabs().map((tab) => tab.sessionId)).toEqual(["running", "fresh"]);
-    expect(chat.activeSessionId()).toBe("fresh");
+    expect(chat.openSessionIds()).toEqual(["running", "fresh"]);
+    expect(chat.openSessionIds()).toContain("fresh");
     expect(current.snapshot()).toEqual({ ...previous, isStreaming: true });
     await chat.dispose();
   });
@@ -77,7 +77,7 @@ describe("folder requests", () => {
   it("validates explicit open-project paths too", async () => {
     const factory = { continueProject: vi.fn(), newSession: vi.fn(), openSession: vi.fn() };
     const chat = new ChatApplicationService(undefined, factory);
-    await expect(chat.openProject("/missing/pi-chat-folder")).rejects.toThrow("not found");
+    await expect(chat.newSession("/missing/pi-chat-folder")).rejects.toThrow("not found");
     expect(factory.continueProject).not.toHaveBeenCalled();
   });
   it("rejects malformed paths and cursors", () => {

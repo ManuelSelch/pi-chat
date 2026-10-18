@@ -37,7 +37,7 @@ export function relativeTime(timestamp: number): string {
 }
 
 /** Sessions and checkouts share catalogue metadata; primary checkouts remain projects. */
-export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds: readonly string[], actions: readonly SessionAction[] = []): QuickOpenItem[] {
+export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionPaths: readonly string[], actions: readonly SessionAction[] = []): QuickOpenItem[] {
   const sessions: QuickOpenItem[] = [];
   const projects: QuickOpenItem[] = [];
 
@@ -70,7 +70,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionIds:
         project: project.name,
         modified: session.modified,
         messageCount: session.messageCount,
-        isOpen: openSessionIds.includes(session.id),
+        isOpen: openSessionPaths.includes(session.path),
       });
     }
   }

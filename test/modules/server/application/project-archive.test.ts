@@ -15,16 +15,16 @@ describe("archive lifecycle", () => {
     const path = runtime.snapshot().sessionPath!;
     await chat.archiveSession(path, true);
     expect(archive).toHaveBeenCalledWith(path, true);
-    expect(chat.tabs()).toHaveLength(0);
+    expect(chat.openSessionIds()).toHaveLength(0);
     await chat.archiveSession(path, false);
     expect(archive).toHaveBeenLastCalledWith(path, false);
-    expect(chat.tabs()).toHaveLength(0);
+    expect(chat.openSessionIds()).toHaveLength(0);
   });
   it("does not close the tab when metadata persistence fails", async () => {
     const { chat, runtime, archive } = setup();
     archive.mockRejectedValueOnce(new Error("disk full"));
     await expect(chat.archiveSession(runtime.snapshot().sessionPath!, true)).rejects.toThrow("disk full");
-    expect(chat.tabs()).toHaveLength(1);
+    expect(chat.openSessionIds()).toHaveLength(1);
   });
   it("rejects archive of a running session without mutating metadata", async () => {
     const { chat, runtime, archive } = setup();

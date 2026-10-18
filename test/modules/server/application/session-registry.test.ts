@@ -24,7 +24,7 @@ describe("SessionRegistry", () => {
     expect(events.every((entry) => entry.startsWith("b:"))).toBe(true);
   });
 
-  it("focuses the existing tab when the same session is opened twice", () => {
+  it("returns the existing runtime when registered twice without storing focus", () => {
     const registry = new SessionRegistry(() => {});
     registry.add(adapterWith({ sessionId: "a" }));
     registry.add(adapterWith({ sessionId: "b" }));
@@ -32,10 +32,10 @@ describe("SessionRegistry", () => {
     registry.add(adapterWith({ sessionId: "a" }));
 
     expect(registry.list()).toHaveLength(2);
-    expect(registry.activeSessionId()).toBe("a");
+    expect(registry.list().map(session => session.sessionId)).toEqual(["a", "b"]);
   });
 
-  it("reports a status per tab for the coloured dot", () => {
+  it("keeps snapshots associated with their runtime identities", () => {
     const registry = new SessionRegistry(() => {});
     registry.add(adapterWith({ sessionId: "idle", projectPath: "/tmp/one", sessionName: "First" }));
     registry.add(adapterWith({ sessionId: "busy", projectPath: "/tmp/two", isStreaming: true }));
@@ -45,14 +45,9 @@ describe("SessionRegistry", () => {
       prompts: [{ id: "p1", kind: "confirm", title: "Allow?" }],
     }));
 
-    expect(registry.tabs().map((tab) => [tab.sessionId, tab.status])).toEqual([
-      ["idle", "idle"],
-      ["busy", "running"],
-      ["asking", "blocked"],
+    expect(registry.list().map(({ sessionId, adapter }) => [sessionId, adapter.snapshot().isStreaming, adapter.snapshot().prompts.length])).toEqual([
+      ["idle", false, 0], ["busy", true, 0], ["asking", false, 1],
     ]);
-    expect(registry.tabs()[0]).toMatchObject({ title: "First", projectName: "one" });
-    // A blocked session outranks streaming: it is waiting on the user.
-    expect(registry.tabs()[2]!.title).toBe("New session");
   });
 
   it("converges concurrent close requests on one disposal", async () => {
@@ -76,7 +71,7 @@ describe("SessionRegistry", () => {
     expect(registry.has("a")).toBe(false);
   });
 
-  it("closes a tab, disposing its runtime and unsubscribing it", async () => {
+  it("closes a runtime and unsubscribes it without changing server-side focus", async () => {
     const events: string[] = [];
     const registry = new SessionRegistry((sessionId) => events.push(sessionId));
     const a = adapterWith({ sessionId: "a" });
@@ -88,7 +83,6 @@ describe("SessionRegistry", () => {
 
     expect(dispose).toHaveBeenCalled();
     expect(registry.list().map((session) => session.sessionId)).toEqual(["b"]);
-    expect(registry.activeSessionId()).toBe("b");
 
     void a.prompt("ignored");
     expect(events).not.toContain("a");
@@ -96,7 +90,7 @@ describe("SessionRegistry", () => {
 });
 
 describe("replacing a live session", () => {
-  it("keeps the tab in place and routes events to the replacement", async () => {
+  it("keeps the runtime identity and routes events to the replacement", async () => {
     const events: string[] = [];
     const registry = new SessionRegistry((sessionId, event) => events.push(`${sessionId}:${event.type}`));
     const first = adapterWith({ sessionId: "a" });

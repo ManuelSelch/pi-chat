@@ -45,12 +45,12 @@ const groupedCatalogue: ProjectCatalogue = {
 
 afterEach(cleanup);
 
-function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string; currentSessionId?: string } = {}) {
+function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string; currentSessionPath?: string } = {}) {
   const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), removeProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
   const drawer = (data: ProjectCatalogue) => (
     <MantineProvider>
       <ProjectSessionDrawer
-        opened onClose={vi.fn()} currentSessionId={options.currentSessionId ?? "current"} currentProjectPath={options.currentPath ?? "/work/current"}
+        opened onClose={vi.fn()} currentSessionPath={options.currentSessionPath ?? "/sessions/current.jsonl"} currentProjectPath={options.currentPath ?? "/work/current"}
         catalogue={data} busy={options.busy ?? false} showDisplayPath
         openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
         archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
@@ -63,13 +63,13 @@ function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: 
 
 describe("ProjectSessionDrawer", () => {
   it.each([
-    { currentSessionId: "main", label: "Main chat" },
-    { currentSessionId: "feature", label: "feat/worktree-projects-panel" },
-  ])("does not highlight the opened session or worktree row ($currentSessionId)", ({ currentSessionId, label }) => {
-    show({ data: groupedCatalogue, currentPath: "/work/pi-chat-feature", currentSessionId });
+    { currentSessionPath: "/sessions/main.jsonl", label: "Main chat" },
+    { currentSessionPath: "/sessions/feature.jsonl", label: "feat/worktree-projects-panel" },
+  ])("does not highlight the opened session or worktree row ($currentSessionPath)", ({ currentSessionPath, label }) => {
+    show({ data: groupedCatalogue, currentPath: "/work/pi-chat-feature", currentSessionPath });
     const button = screen.getByText(label).closest("button")!;
     expect(button.getAttribute("aria-current")).toBe("page");
-    const otherLabel = currentSessionId === "main" ? "feat/worktree-projects-panel" : "Main chat";
+    const otherLabel = currentSessionPath === "/sessions/main.jsonl" ? "feat/worktree-projects-panel" : "Main chat";
     const otherButton = screen.getByText(otherLabel).closest("button")!;
     expect(button.parentElement!.className).toBe(otherButton.parentElement!.className);
   });
