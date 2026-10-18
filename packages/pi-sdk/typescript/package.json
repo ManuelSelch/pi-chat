@@ -16,6 +16,10 @@
       "types": "./dist/contract/index.d.ts",
       "import": "./dist/contract/index.js"
     },
+    "./contract/v2": {
+      "types": "./dist/contract/v2.d.ts",
+      "import": "./dist/contract/v2.js"
+    },
     "./protocol/*": "./dist/protocol/*"
   },
   "scripts": {
@@ -24,6 +28,7 @@
     "pretest": "npm run build",
     "test": "vitest run --config vitest.config.ts",
     "contract:generate": "tsx scripts/export-contract.ts",
+    "contract:generate:v2": "tsx scripts/export-v2-contract.ts",
     "probe:swift:generate": "tsx scripts/generate-swift-probe.ts",
     "probe:swift": "swift test --package-path ..",
     "verify:package": "node scripts/verify-package.mjs",

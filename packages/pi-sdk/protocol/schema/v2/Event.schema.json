@@ -553,7 +553,9 @@
                     "properties": {
                       "key": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                       },
                       "lines": {
                         "type": "array",
@@ -563,10 +565,8 @@
                       },
                       "placement": {
                         "type": "string",
-                        "enum": [
-                          "aboveEditor",
-                          "belowEditor"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       }
                     },
                     "required": [
@@ -583,32 +583,30 @@
                     "properties": {
                       "key": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                       },
                       "text": {
                         "type": "string",
                         "minLength": 1
                       },
                       "align": {
-                        "default": "left",
                         "type": "string",
-                        "enum": [
-                          "left",
-                          "right"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       },
                       "variant": {
-                        "default": "plain",
                         "type": "string",
-                        "enum": [
-                          "badge",
-                          "plain"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       }
                     },
                     "required": [
                       "key",
-                      "text"
+                      "text",
+                      "align",
+                      "variant"
                     ]
                   }
                 },
@@ -622,17 +620,14 @@
                         "properties": {
                           "id": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                           },
                           "slot": {
                             "type": "string",
-                            "enum": [
-                              "session.header.right",
-                              "composer.right",
-                              "composer.below",
-                              "session.status",
-                              "settings.section"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           },
                           "label": {
                             "type": "string",
@@ -643,7 +638,9 @@
                           },
                           "actionId": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                           }
                         },
                         "required": [
@@ -661,37 +658,30 @@
                         "properties": {
                           "id": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                           },
                           "slot": {
                             "type": "string",
-                            "enum": [
-                              "session.header.right",
-                              "composer.right",
-                              "composer.below",
-                              "session.status",
-                              "settings.section"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           },
                           "label": {
                             "type": "string",
                             "minLength": 1
                           },
                           "tone": {
-                            "default": "neutral",
                             "type": "string",
-                            "enum": [
-                              "neutral",
-                              "green",
-                              "yellow",
-                              "red"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           }
                         },
                         "required": [
                           "id",
                           "slot",
-                          "label"
+                          "label",
+                          "tone"
                         ]
                       }
                     },
@@ -787,7 +777,9 @@
                 "properties": {
                   "key": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                   },
                   "lines": {
                     "type": "array",
@@ -797,10 +789,8 @@
                   },
                   "placement": {
                     "type": "string",
-                    "enum": [
-                      "aboveEditor",
-                      "belowEditor"
-                    ]
+                    "minLength": 1,
+                    "maxLength": 128
                   }
                 },
                 "required": [
@@ -817,32 +807,30 @@
                 "properties": {
                   "key": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                   },
                   "text": {
                     "type": "string",
                     "minLength": 1
                   },
                   "align": {
-                    "default": "left",
                     "type": "string",
-                    "enum": [
-                      "left",
-                      "right"
-                    ]
+                    "minLength": 1,
+                    "maxLength": 128
                   },
                   "variant": {
-                    "default": "plain",
                     "type": "string",
-                    "enum": [
-                      "badge",
-                      "plain"
-                    ]
+                    "minLength": 1,
+                    "maxLength": 128
                   }
                 },
                 "required": [
                   "key",
-                  "text"
+                  "text",
+                  "align",
+                  "variant"
                 ]
               }
             },
@@ -856,17 +844,14 @@
                     "properties": {
                       "id": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                       },
                       "slot": {
                         "type": "string",
-                        "enum": [
-                          "session.header.right",
-                          "composer.right",
-                          "composer.below",
-                          "session.status",
-                          "settings.section"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       },
                       "label": {
                         "type": "string",
@@ -877,7 +862,9 @@
                       },
                       "actionId": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                       }
                     },
                     "required": [
@@ -895,37 +882,30 @@
                     "properties": {
                       "id": {
                         "type": "string",
-                        "minLength": 1
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                       },
                       "slot": {
                         "type": "string",
-                        "enum": [
-                          "session.header.right",
-                          "composer.right",
-                          "composer.below",
-                          "session.status",
-                          "settings.section"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       },
                       "label": {
                         "type": "string",
                         "minLength": 1
                       },
                       "tone": {
-                        "default": "neutral",
                         "type": "string",
-                        "enum": [
-                          "neutral",
-                          "green",
-                          "yellow",
-                          "red"
-                        ]
+                        "minLength": 1,
+                        "maxLength": 128
                       }
                     },
                     "required": [
                       "id",
                       "slot",
-                      "label"
+                      "label",
+                      "tone"
                     ]
                   }
                 },
@@ -1743,7 +1723,9 @@
                         "properties": {
                           "key": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                           },
                           "lines": {
                             "type": "array",
@@ -1753,10 +1735,8 @@
                           },
                           "placement": {
                             "type": "string",
-                            "enum": [
-                              "aboveEditor",
-                              "belowEditor"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           }
                         },
                         "required": [
@@ -1773,32 +1753,30 @@
                         "properties": {
                           "key": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "maxLength": 128,
+                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                           },
                           "text": {
                             "type": "string",
                             "minLength": 1
                           },
                           "align": {
-                            "default": "left",
                             "type": "string",
-                            "enum": [
-                              "left",
-                              "right"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           },
                           "variant": {
-                            "default": "plain",
                             "type": "string",
-                            "enum": [
-                              "badge",
-                              "plain"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 128
                           }
                         },
                         "required": [
                           "key",
-                          "text"
+                          "text",
+                          "align",
+                          "variant"
                         ]
                       }
                     },
@@ -1812,17 +1790,14 @@
                             "properties": {
                               "id": {
                                 "type": "string",
-                                "minLength": 1
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                               },
                               "slot": {
                                 "type": "string",
-                                "enum": [
-                                  "session.header.right",
-                                  "composer.right",
-                                  "composer.below",
-                                  "session.status",
-                                  "settings.section"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 128
                               },
                               "label": {
                                 "type": "string",
@@ -1833,7 +1808,9 @@
                               },
                               "actionId": {
                                 "type": "string",
-                                "minLength": 1
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                               }
                             },
                             "required": [
@@ -1851,37 +1828,30 @@
                             "properties": {
                               "id": {
                                 "type": "string",
-                                "minLength": 1
+                                "minLength": 1,
+                                "maxLength": 128,
+                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
                               },
                               "slot": {
                                 "type": "string",
-                                "enum": [
-                                  "session.header.right",
-                                  "composer.right",
-                                  "composer.below",
-                                  "session.status",
-                                  "settings.section"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 128
                               },
                               "label": {
                                 "type": "string",
                                 "minLength": 1
                               },
                               "tone": {
-                                "default": "neutral",
                                 "type": "string",
-                                "enum": [
-                                  "neutral",
-                                  "green",
-                                  "yellow",
-                                  "red"
-                                ]
+                                "minLength": 1,
+                                "maxLength": 128
                               }
                             },
                             "required": [
                               "id",
                               "slot",
-                              "label"
+                              "label",
+                              "tone"
                             ]
                           }
                         },

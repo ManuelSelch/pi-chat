@@ -4,7 +4,6 @@ import { filePathSchema } from "./files.js";
 import {
   bashMessageSchema, toolCardSchema, skillInvocationSchema, thinkingLevelSchema,
   projectCatalogueSchema, slashCommandSchema, commandCompletionItemSchema,
-  widgetSchema, footerItemSchema, piChatButtonSchema, piChatBadgeSchema,
 } from "./protocol.js";
 
 /** Staged cutover contract. Not exported/negotiated by the live v1 client/server. */
@@ -15,6 +14,7 @@ export const capabilitySchema = z.enum(["presentation", "directory.browse", "com
 export type Capability = z.infer<typeof capabilitySchema>;
 export const errorSchema = z.object({ code: z.string().min(1).max(128), message: z.string().min(1), details: z.json().optional() });
 export type ProtocolError = z.infer<typeof errorSchema>;
+export type JsonValue = z.infer<ReturnType<typeof z.json>>;
 export const promptSchema = z.discriminatedUnion("kind", [
   z.object({ id: idSchema, title: z.string(), kind: z.literal("select"), options: z.array(z.string()) }),
   z.object({ id: idSchema, title: z.string(), kind: z.literal("confirm"), message: z.string() }),
@@ -25,8 +25,20 @@ export const promptResultSchema = z.discriminatedUnion("cancelled", [
   z.object({ cancelled: z.literal(true) }),
   z.object({ cancelled: z.literal(false), value: z.union([z.string(), z.boolean()]) }),
 ]);
-export const extensionsSchema = z.object({ buttons: z.array(piChatButtonSchema), badges: z.array(piChatBadgeSchema), state: z.record(z.string(), z.json()) });
-export const presentationSchema = z.object({ revision: counterSchema, widgets: z.array(widgetSchema), footer: z.array(footerItemSchema), extensions: extensionsSchema });
+// Presentation hints are open strings: clients ignore unsupported placements,
+// slots/styles rather than rejecting the required session state containing them.
+const hint = z.string().min(1).max(128);
+export const extensionsSchema = z.object({
+  buttons: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), icon: z.string().optional(), actionId: idSchema })),
+  badges: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), tone: hint })),
+  state: z.record(z.string(), z.json()),
+});
+export const presentationSchema = z.object({
+  revision: counterSchema,
+  widgets: z.array(z.object({ key: idSchema, lines: z.array(z.string()), placement: hint })),
+  footer: z.array(z.object({ key: idSchema, text: z.string().min(1), align: hint, variant: hint })),
+  extensions: extensionsSchema,
+});
 export const settingsSchema = z.object({
   model: z.string(), availableModels: z.array(z.string()), thinkingLevel: thinkingLevelSchema, availableThinkingLevels: z.array(thinkingLevelSchema),
 });

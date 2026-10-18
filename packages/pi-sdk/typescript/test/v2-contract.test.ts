@@ -51,6 +51,15 @@ describe("v2-only contract", () => {
     expect(serverMessageSchema.safeParse({ ...base, event: "required.unknown", sequence: 1, data: {} }).success).toBe(false);
   });
 
+  it("preserves unknown optional rendering hints without accepting unknown core variants", () => {
+    const presentation = { revision: 1,
+      widgets: [{ key: "future", lines: ["plain text"], placement: "future.position" }],
+      footer: [{ key: "future", text: "hint", align: "future.align", variant: "future.style" }],
+      extensions: { buttons: [{ id: "future", actionId: "demo", label: "Demo", slot: "future.slot" }], badges: [{ id: "future", label: "Hint", slot: "future.slot", tone: "future.tone" }], state: {} },
+    };
+    expect(snapshotSchema.safeParse({ ...snapshot, presentation }).success).toBe(true);
+  });
+
   it("has exactly the approved 23 methods without tab/focus or feature wrappers", () => {
     expect(Object.keys(operationSchemas).sort()).toEqual([
       "server.initialize", "server.ping", "server.restart", "session.create", "session.open", "session.list", "session.snapshot", "session.close", "session.compact", "session.reload", "session.archive",

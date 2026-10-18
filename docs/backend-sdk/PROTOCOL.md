@@ -389,6 +389,7 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 
 Implementation decisions for slice 5:
 
+- Treat the known presentation placements/slots/styles in section 6 as rendering hints, not closed core variants. The wire schemas accept future hint strings; clients ignore unsupported hints/contributions without rejecting required session state.
 - Use the custom envelopes in section 3 and wire version **2**, not JSON-RPC. Responses carry no method; SDK correlation validates the successful result against the original request's method-specific schema. Error codes are open strings so new structured failures remain readable.
 - Negotiate requested optional capability names by intersection. Unknown requested optional names are ignored; unselected optional operations return `unsupportedOperation`. Unknown core methods return `unsupportedOperation`; malformed known requests return `invalidRequest`.
 - Validate identity/scope/capabilities and admission guards before acceptance. Enqueue the accepted response before invoking the admitted asynchronous work, so synchronous Pi callbacks cannot overtake it. Work still runs directly through Pi; no new scheduler or durable journal is introduced. A later handoff/execution failure produces `operation.finished`, never a second response. Steering settlement means Pi accepted the submission, not that the active run finished.
