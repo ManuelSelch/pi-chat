@@ -1,7 +1,8 @@
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
-import { clientMessageSchema, serverMessageSchema, type ClientMessage, type ServerMessage } from "../../../src/shared/protocol.js";
+import { PiClient, createWebSocketTransport, serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage, type AppState } from "../../../src/web/app/state/app-state.js";
+import { bindPiChat } from "../../../src/web/app/connection/sdk-binding.js";
 import type { PiChatServer } from "../../../src/server/bootstrap/server.js";
 
 /** Private implementation detail: domain tests never send protocol messages. */
@@ -12,30 +13,40 @@ export class BrowserClient {
   private failure?: Error;
   private closing = false;
   private closeInfo?: { code: number; reason: string };
-  private readonly socket: WebSocket;
+  private socket?: WebSocket;
+  private readonly client: PiClient;
 
-  constructor(server: PiChatServer, private readonly timeoutMs: number) {
+  constructor(server: PiChatServer, private readonly timeoutMs: number, activeSessionId = "") {
+    this.state = { ...initialAppState, activeSessionId };
     const port = (server.httpServer.address() as AddressInfo).port;
-    this.socket = new WebSocket(`ws://127.0.0.1:${port}/ws`);
-    this.socket.on("message", data => {
-      try {
-        const message = serverMessageSchema.parse(JSON.parse(data.toString()));
-        this.messages.push(message);
-        // Use the actual browser reducers, including sequencing/deduplication.
-        this.state = reduceAppMessage(this.state, message);
-        if (message.type === "protocolError") this.failure = new Error(message.error);
-      } catch (error) {
-        this.failure = error instanceof Error ? error : new Error(String(error));
-      }
+    this.client = new PiClient({ endpoint: `ws://127.0.0.1:${port}/ws`, connectTimeoutMs: timeoutMs,
+      transport: createWebSocketTransport((url) => {
+        const socket = new WebSocket(url); this.socket = socket;
+        // Observe physical closure for deterministic test teardown, including
+        // local disposal after SDK transport listeners have been detached.
+        socket.on("error", error => { this.failure = error; this.notify(); });
+        socket.on("close", (code, reason) => {
+          this.closeInfo = { code, reason: reason.toString() };
+          if (!this.closing) this.failure ??= new Error(`Connection closed: ${code} ${reason}`);
+          this.notify();
+        });
+        return socket;
+      }),
+    });
+    bindPiChat(this.client, (action) => { this.state = reduceAppMessage(this.state, action); this.notify(); });
+    this.client.onMessage((message) => {
+      this.messages.push(serverMessageSchema.parse(message));
+      if (message.type === "protocolError") this.failure = new Error(message.error.message);
       this.notify();
     });
-    this.socket.on("error", error => { this.failure = error; this.notify(); });
-    this.socket.on("close", (code, reason) => {
-      this.closeInfo = { code, reason: reason.toString() };
-      this.state = reduceAppMessage(this.state, { type: "connectionLost" });
-      if (!this.closing) this.failure ??= new Error(`Connection closed: ${code} ${reason}`);
-      this.notify();
-    });
+    this.client.onError((error) => { this.failure ??= error; this.notify(); });
+    this.client.start();
+  }
+
+  dismissError(): void {
+    this.failure = undefined;
+    this.state = reduceAppMessage(this.state, { type: "clearError" });
+    this.notify();
   }
 
   get appState(): AppState { return this.state; }
@@ -50,17 +61,22 @@ export class BrowserClient {
 
   async ready(operation: string): Promise<void> {
     await this.wait(operation, "tab list and authoritative session snapshots or home catalogue", () => {
-      if (this.socket.readyState !== WebSocket.OPEN || !this.state.tabsKnown) return false;
-      if (!this.state.activeSessionId) return this.state.tabs.length === 0 && this.messages.some(m => m.type === "catalogue");
+      if (this.client.getState().connection.phase !== "ready" || !this.state.tabsKnown) return false;
+      if (!this.state.activeSessionId) return this.state.tabs.length === 0;
       return this.state.tabs.some(tab => tab.sessionId === this.state.activeSessionId) &&
         this.state.tabs.every(tab => this.state.sessions[tab.sessionId]?.sessionId === tab.sessionId);
     });
   }
 
-  send(message: ClientMessage): void {
-    if (this.socket.readyState !== WebSocket.OPEN) throw new Error(`Client is not connected: ${this.diagnostics()}`);
-    this.socket.send(JSON.stringify(clientMessageSchema.parse(message)));
+  get sdk(): PiClient { return this.client; }
+  focus(sessionId: string): void { this.state = reduceAppMessage(this.state, { type: "focusSession", sessionId }); this.notify(); }
+  private async openRuntime(invoke: () => Promise<string>): Promise<string> {
+    this.state = reduceAppMessage(this.state, { type: "openPending" }); this.notify();
+    try { const sessionId = await invoke(); this.state = reduceAppMessage(this.state, { type: "sessionOpened", sessionId }); this.notify(); return sessionId; }
+    catch (error) { this.state = reduceAppMessage(this.state, { type: "commandFailed", opening: true, error: error instanceof Error ? error.message : String(error) }); this.notify(); throw error; }
   }
+  create(projectPath?: string): Promise<string> { return this.openRuntime(() => this.client.createSession(projectPath)); }
+  open(sessionPath: string): Promise<string> { return this.openRuntime(() => this.client.openSession(sessionPath)); }
 
   async waitForMessage(operation: string, description: string, after: number, predicate: (m: ServerMessage) => boolean): Promise<ServerMessage> {
     let found: ServerMessage | undefined;
@@ -92,23 +108,23 @@ export class BrowserClient {
 
   async waitForClose(): Promise<void> {
     if (this.closeInfo) return;
-    await new Promise<void>(resolve => this.socket.once("close", () => resolve()));
+    await new Promise<void>(resolve => this.socket!.once("close", () => resolve()));
   }
 
   async close(): Promise<void> {
-    if (this.socket.readyState === WebSocket.CLOSED) return;
+    const socket = this.socket;
+    if (!socket || socket.readyState === WebSocket.CLOSED) { this.client.dispose(); return; }
     this.closing = true;
     // Reject outstanding command waiters instead of leaving them until timeout.
     this.failure ??= new Error("Client disposed");
     this.notify();
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.socket.terminate();
+        socket.terminate();
         reject(new Error(`Browser.Close: timed out. ${this.diagnostics()}`));
       }, this.timeoutMs);
-      this.socket.once("close", () => { clearTimeout(timer); resolve(); });
-      if (this.socket.readyState === WebSocket.CONNECTING) this.socket.terminate();
-      else this.socket.close();
+      socket.once("close", () => { clearTimeout(timer); resolve(); });
+      this.client.dispose();
     });
   }
 }

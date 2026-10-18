@@ -2,7 +2,7 @@ import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import type { RuntimeEvent } from "../contracts.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
 import { MessageIdentity, textFromContent, toChatMessage } from "./message-mapping.js";
-import { clampToolOutput, toolCardFromCall } from "./tool-mapping.js";
+import { clampToolOutput, normalizePiId, toolCardFromCall } from "./tool-mapping.js";
 
 export type SessionEvent = Parameters<AgentSessionRuntime["session"]["subscribe"]>[0] extends (event: infer Event) => unknown
   ? Event
@@ -66,7 +66,7 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
       return;
     }
     if (event.type === "tool_execution_start") {
-      dependencies.inFlightTools.add(event.toolCallId);
+      dependencies.inFlightTools.add(normalizePiId(event.toolCallId, 123));
       dependencies.emit({
         type: "toolEvent",
         runId: dependencies.state.currentRunId,
@@ -80,7 +80,7 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
         type: "toolEvent",
         runId: dependencies.state.currentRunId,
         tool: {
-          toolCallId: event.toolCallId,
+          toolCallId: normalizePiId(event.toolCallId, 123),
           name: event.toolName,
           status: "running",
           ...(output ? { outputText: clampToolOutput(output) } : {}),
@@ -89,13 +89,13 @@ export function createSessionEventHandler(dependencies: EventMappingDependencies
       return;
     }
     if (event.type === "tool_execution_end") {
-      dependencies.inFlightTools.delete(event.toolCallId);
+      dependencies.inFlightTools.delete(normalizePiId(event.toolCallId, 123));
       const output = textFromContent((event.result as { content?: unknown })?.content).trim();
       dependencies.emit({
         type: "toolEvent",
         runId: dependencies.state.currentRunId,
         tool: {
-          toolCallId: event.toolCallId,
+          toolCallId: normalizePiId(event.toolCallId, 123),
           name: event.toolName,
           status: event.isError ? "error" : "success",
           editDiff: projectEditDiff(event.toolName, event.isError, (event.result as { details?: unknown })?.details),

@@ -193,13 +193,13 @@ export class TestWorld {
   }
 
   private session(id: string): OwnedSession {
-    const session = this.sessions.get(id);
+    const session = this.sessions.get(id) ?? [...this.sessions.values()].find(session => session.adapter.snapshot().sessionPath === id);
     assert(session, `No test session for active conversation ${id}`);
     return session;
   }
 
   remainingResponses(id: string): number { return this.session(id).harness.playbook.remaining; }
-  releaseControlledResponse(id: string): void { this.controlledResponses.get(id)?.(); }
+  releaseControlledResponse(id: string): void { this.controlledResponses.get(this.session(id).adapter.snapshot().sessionId)?.(); }
   nextPrompt(id: string): string | undefined {
     const { responses, harness } = this.session(id);
     return responses[harness.playbook.consumed]?.prompt.trim();

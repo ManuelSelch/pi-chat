@@ -95,7 +95,7 @@ describe("steering composer", () => {
     expect(screen.queryByText(/Enter to steer/)).toBeNull();
   });
   it("renders native pending messages without an internal scroll area and removes consumed messages", () => {
-    chat.state.steeringMessages = ["Keep keyboard shortcuts", "Do not add buttons"];
+    chat.state = { ...chat.state, steeringMessages: ["Keep keyboard shortcuts", "Do not add buttons"] };
     const view = mount();
     const panel = screen.getByRole("region", { name: "Queued steering" });
     expect(panel.textContent).toContain("Keep keyboard shortcuts");
@@ -117,7 +117,7 @@ describe("steering composer", () => {
     expect(chat.prompt).not.toHaveBeenCalled();
   });
   it.each(["aborting", "connecting", "superseded"] as const)("does not submit while %s", status => {
-    chat.state.status = status;
+    chat.state = { ...chat.state, status };
     mount();
     expect(enter("Wait").value).toBe("Wait");
     expect(chat.prompt).not.toHaveBeenCalled();

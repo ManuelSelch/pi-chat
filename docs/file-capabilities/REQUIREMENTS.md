@@ -102,7 +102,7 @@ Suggested ownership:
 - `src/server/files/system-file-opener.ts`: platform-specific OS invocation.
 - `src/server/application/chat-application-service.ts`: session/project lookup and delegation.
 - `src/server/transport/command-handler.ts`: dispatch and requester-only result.
-- `src/web/app/connection/file-requests.ts`: pending request lifecycle.
+- `packages/pi-sdk/typescript/src/requests/file-requests.ts`: pending request lifecycle (moved into the SDK during backend/SDK slice 3; Pi Chat uses PiClient after slice 4).
 - `src/web/chat/markdown/local-link.ts`: safe local-link extraction, with shell-command helpers removed.
 - Transcript/Markdown feature boundary: stable activation and ephemeral feedback.
 

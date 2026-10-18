@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
-import type { Tab } from "../../../shared/protocol.js";
+import type { Tab } from "../state/view-types.js";
 
 export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab";
 

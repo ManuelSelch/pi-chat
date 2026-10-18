@@ -1,6 +1,7 @@
+import { snapshotEvent, coreEvent } from "../../../../infra/v2-fixtures.js";
 import { expect, it } from "vitest";
 import { diffRows } from "../../../../../src/web/chat/tools/EditDiff.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION } from "../../../../../src/shared/protocol.js";
 
 it("counts hunk lines without mistaking code for file headers", () => {
@@ -12,10 +13,10 @@ it("counts hunk lines without mistaking code for file headers", () => {
 });
 it("keeps completed diffs and arguments through a following snapshot", () => {
   const envelope = { version: PROTOCOL_VERSION, sessionId: "s", runId: "r" };
-  const running = reduceServerMessage(initialChatState, { ...envelope, type: "toolEvent", sequence: 1, tool: { toolCallId: "e", name: "edit", status: "running", argsText: "{}" } });
+  const running = reduceServerMessage(initialChatState, coreEvent("tool.updated", { tool: { toolCallId: "e", name: "edit", status: "running", argsText: "{}" }, runId: envelope.runId }, envelope.sessionId, 1));
   const editDiff = { format: "pi-display" as const, text: "-1 a\n+1 b", truncated: false };
-  const done = reduceServerMessage(running, { ...envelope, type: "toolEvent", sequence: 2, tool: { toolCallId: "e", name: "edit", status: "success", editDiff } });
+  const done = reduceServerMessage(running, coreEvent("tool.updated", { tool: { toolCallId: "e", name: "edit", status: "success", editDiff }, runId: envelope.runId }, envelope.sessionId, 2));
   expect(done.messages[0]).toMatchObject({ tool: { argsText: "{}", editDiff } });
-  const snapshot = reduceServerMessage(done, { ...envelope, type: "snapshot", sequence: 3, throughSequence: 3, projectPath: "/p", messages: done.messages, isStreaming: false });
+  const snapshot = reduceServerMessage(done, snapshotEvent({ ...envelope, throughSequence: 3, projectPath: "/p", messages: done.messages, sessionId: envelope.sessionId, runtime: { status: "idle" } }));
   expect(snapshot.messages).toEqual(done.messages);
 });

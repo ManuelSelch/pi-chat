@@ -1,10 +1,11 @@
+import { snapshotEvent, coreEvent } from "../../../../infra/v2-fixtures.js";
 /** @vitest-environment jsdom */
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { ToolCard } from "../../../../../src/web/chat/tools/ToolCard.js";
 import { toolFilePath } from "../../../../../src/web/chat/tools/ToolCard.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION, type ToolCard as Card } from "../../../../../src/shared/protocol.js";
 
 afterEach(cleanup);
@@ -53,9 +54,9 @@ it("keeps regular reads unchanged and supports the file_path alias in read detai
 it("renders the same header for a live call, completed call and restored snapshot", () => {
   const tool: Card = { toolCallId: "read-1", name: "read", status: "running", argsText };
   const base = { version: PROTOCOL_VERSION, sessionId: "s", runId: "r" };
-  const live = reduceServerMessage(initialChatState, { ...base, type: "toolEvent", sequence: 1, tool });
-  const completed = reduceServerMessage(live, { ...base, type: "toolEvent", sequence: 2, tool: { toolCallId: "read-1", name: "read", status: "success", outputText: "Loaded" } });
-  const restored = reduceServerMessage(initialChatState, { ...base, type: "snapshot", sequence: 3, throughSequence: 3, projectPath: "/p", messages: completed.messages, isStreaming: false });
+  const live = reduceServerMessage(initialChatState, coreEvent("tool.updated", { tool: tool, runId: base.runId }, base.sessionId, 1));
+  const completed = reduceServerMessage(live, coreEvent("tool.updated", { tool: { toolCallId: "read-1", name: "read", status: "success", outputText: "Loaded" }, runId: base.runId }, base.sessionId, 2));
+  const restored = reduceServerMessage(initialChatState, snapshotEvent({ ...base, throughSequence: 3, projectPath: "/p", messages: completed.messages, sessionId: base.sessionId, runtime: { status: "idle" } }));
   const cardFrom = (state: typeof live) => {
     const message = state.messages[0];
     if (message?.role !== "tool") throw new Error("Expected tool message");

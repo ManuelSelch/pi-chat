@@ -17,6 +17,12 @@ export class BrowserDriver {
     check(this.context, "Browser.TakeControl", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Taking control changed the active conversation"));
   }
 
+  ShouldShowError(message: string): void {
+    check(this.context, "Browser.ShouldShowError", () => assert(this.context.client.appState.error?.includes(message)));
+  }
+
+  DismissError(): void { this.context.client.dismissError(); }
+
   ShouldBeAtHome(): void {
     this.ShouldBeUsable();
     check(this.context, "Browser.ShouldBeAtHome", () => assert(atHome(this.context.client.appState), "Expected the home screen"));

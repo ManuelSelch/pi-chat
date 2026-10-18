@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Button, Group, Modal, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
 import { THEME } from "../../ui/theme.js";
-import type { UiPrompt, UiPromptResult } from "../../../shared/protocol.js";
+import type { UiPrompt, UiPromptResult } from "../../app/state/view-types.js";
 import { usePromptFocus } from "./use-prompt-focus.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 

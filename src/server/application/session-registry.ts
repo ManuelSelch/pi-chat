@@ -1,11 +1,9 @@
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import { realpathSync } from "node:fs";
 
 function sessionPathKey(path: string): string {
   try { return realpathSync(path); } catch { return resolve(path); }
 }
-import type { Tab, TabStatus } from "../../shared/protocol.js";
-import { firstUserMessage, sessionTitle } from "../../shared/session-title.js";
 import type { RuntimeAdapter, RuntimeEvent } from "../runtime/contracts.js";
 
 export interface OpenSession {
@@ -18,21 +16,19 @@ interface Entry extends OpenSession {
 }
 
 /**
- * Holds every live session. Tabs are concurrent rather than a swapped-in single
- * runtime: a background session must keep streaming while another is on screen.
+ * Holds every live runtime. UI tab order and focus are client-owned.
  */
 export class SessionRegistry {
   private readonly entries: Entry[] = [];
-  private active?: string;
+  private readonly closing = new Map<string, Promise<void>>();
 
   constructor(private readonly onEvent: (sessionId: string, event: RuntimeEvent) => void) {}
 
-  /** Returns the existing tab when the same session is opened twice. */
+  /** Returns an existing runtime instead of registering it twice. */
   add(adapter: RuntimeAdapter): OpenSession {
     const sessionId = adapter.snapshot().sessionId;
     const existing = this.entries.find((entry) => entry.sessionId === sessionId);
     if (existing) {
-      this.active = sessionId;
       return existing;
     }
 
@@ -43,17 +39,13 @@ export class SessionRegistry {
     };
     entry.unsubscribe = adapter.subscribe((event) => this.onEvent(entry.sessionId, event));
     this.entries.push(entry);
-    this.active = sessionId;
     return entry;
   }
 
   /**
    * Swaps in a freshly built runtime for a session that stays open.
    *
-   * The tab keeps its place and its id, so the browser sees a new snapshot
-   * rather than a closed and reopened tab. The replacement must therefore carry
-   * the same session id; anything else would leave the client holding a tab
-   * nothing answers for.
+   * In-place reload preserves runtime identity; only the adapter instance changes.
    */
   async replace(sessionId: string, adapter: RuntimeAdapter): Promise<OpenSession> {
     const index = this.entries.findIndex((entry) => entry.sessionId === sessionId);
@@ -83,7 +75,6 @@ export class SessionRegistry {
     const duplicate = this.entries.find((item) => item !== entry && item.sessionId === nextSessionId);
     if (duplicate) throw new Error(`Session is already open: ${nextSessionId}`);
     entry.sessionId = nextSessionId;
-    if (this.active === previousSessionId) this.active = nextSessionId;
   }
 
   get(sessionId: string): RuntimeAdapter {
@@ -108,43 +99,29 @@ export class SessionRegistry {
     return this.entries.map(({ sessionId, adapter }) => ({ sessionId, adapter }));
   }
 
-  activeSessionId(): string {
-    return this.active ?? this.entries[0]?.sessionId ?? "";
-  }
-
-  focus(sessionId: string): void {
-    if (this.has(sessionId)) this.active = sessionId;
-  }
 
   async close(sessionId: string): Promise<void> {
+    const pending = this.closing.get(sessionId);
+    if (pending) return pending;
+    const disposal = this.disposeEntry(sessionId);
+    this.closing.set(sessionId, disposal);
+    try { await disposal; } finally { this.closing.delete(sessionId); }
+  }
+
+  private async disposeEntry(sessionId: string): Promise<void> {
     const index = this.entries.findIndex((entry) => entry.sessionId === sessionId);
     if (index === -1) return;
-    const [entry] = this.entries.splice(index, 1);
-    entry!.unsubscribe();
-    // Disposing cancels that session's pending prompts and its runtime.
-    await entry!.adapter.dispose();
-    if (this.active === sessionId) this.active = this.entries.at(index)?.sessionId ?? this.entries.at(-1)?.sessionId;
+    const entry = this.entries[index]!;
+    // Keep identity/subscriptions until disposal is confirmed. A partial failure
+    // must remain discoverable so the controller can explicitly retry close.
+    await entry.adapter.dispose();
+    entry.unsubscribe();
+    const currentIndex = this.entries.indexOf(entry);
+    if (currentIndex !== -1) this.entries.splice(currentIndex, 1);
   }
 
   async dispose(): Promise<void> {
     for (const entry of [...this.entries]) await this.close(entry.sessionId);
   }
 
-  tabs(): Tab[] {
-    return this.entries.map(({ sessionId, adapter }) => {
-      const snapshot = adapter.snapshot();
-      const status: TabStatus = snapshot.prompts.length > 0
-        ? "blocked"
-        : snapshot.isStreaming
-          ? "running"
-          : "idle";
-      return {
-        sessionId,
-        title: sessionTitle(snapshot.sessionName, firstUserMessage(snapshot.messages)),
-        projectPath: snapshot.projectPath,
-        projectName: basename(snapshot.projectPath) || snapshot.projectPath,
-        status,
-      };
-    });
-  }
 }

@@ -1,7 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
 import { BrowserClient } from "../../infra/pi-chat/browser-client.js";
-import { PROTOCOL_VERSION } from "../../../src/shared/protocol.js";
 
 let server: PiChatServer | undefined;
 let client: BrowserClient | undefined;
@@ -31,9 +30,9 @@ it("bounds event waits and includes the operation, predicate, and browser state"
 it("observes a fresh server rejection for an unknown conversation", async () => {
   const browser = await connect();
   const after = browser.mark();
-  browser.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId: "missing", message: "Hello" });
+  await expect(browser.sdk.prompt("missing", "Hello")).rejects.toMatchObject({ code: "sessionNotFound", outcome: "rejected" });
   await browser.waitForMessage("Chat.SendPrompt", "session rejection", after, m =>
-    m.type === "runtimeStatus" && m.sessionId === "missing" && m.error === "Unknown session: missing");
+    m.type === "response" && !m.ok && m.error.code === "sessionNotFound");
 });
 
 it("rejects outstanding waits when disposed", async () => {

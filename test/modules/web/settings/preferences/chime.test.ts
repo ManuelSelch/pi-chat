@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Tab, TabStatus } from "../../../../../src/shared/protocol.js";
+import type { Tab, TabStatus } from "../../../../../src/web/app/state/view-types.js";
 import { ChimePlayer, chimesFor, statusMap } from "../../../../../src/web/settings/preferences/chime.js";
 
 const tab = (sessionId: string, status: TabStatus): Tab => ({

@@ -1,4 +1,4 @@
-import type { Tab, TabStatus } from "../../../shared/protocol.js";
+import type { Tab, TabStatus } from "../../app/state/view-types.js";
 
 /**
  * Two beeps do not justify a dependency. Howler and friends exist to schedule
@@ -126,7 +126,7 @@ export class ChimePlayer {
  * so a tab that was already idle on load stays quiet, and a repeated tab list
  * cannot chime twice.
  */
-export function chimesFor(previous: Map<string, TabStatus>, tabs: Tab[]): Chime[] {
+export function chimesFor(previous: Map<string, TabStatus>, tabs: readonly Tab[]): Chime[] {
   const chimes: Chime[] = [];
   for (const tab of tabs) {
     const before = previous.get(tab.sessionId);
@@ -145,6 +145,6 @@ export function chimesFor(previous: Map<string, TabStatus>, tabs: Tab[]): Chime[
   return chimes;
 }
 
-export function statusMap(tabs: Tab[]): Map<string, TabStatus> {
+export function statusMap(tabs: readonly Tab[]): Map<string, TabStatus> {
   return new Map(tabs.map((tab) => [tab.sessionId, tab.status]));
 }

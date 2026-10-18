@@ -1,4 +1,4 @@
-import type { Widget } from "../../../shared/protocol.js";
+import type { Widget } from "../../app/state/view-types.js";
 
 /**
  * Below this the gutter cannot hold the narrowest useful panel clear of the
@@ -11,7 +11,7 @@ export const WIDGET_DOCK_QUERY = "(min-width: 1200px)";
  * meaning left, so the panels are simply kept in that order; otherwise they
  * stay around the composer exactly as the terminal arranges them.
  */
-export function placeWidgets(widgets: Widget[], docked: boolean): {
+export function placeWidgets(widgets: readonly Widget[], docked: boolean): {
   above: Widget[];
   below: Widget[];
   docked: Widget[];

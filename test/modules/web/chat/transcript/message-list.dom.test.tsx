@@ -4,11 +4,11 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { MantineProvider } from "@mantine/core";
 import { MessageList } from "../../../../../src/web/chat/transcript/MessageList.js";
-import type { ChatMessage } from "../../../../../src/shared/protocol.js";
+import type { ChatViewMessage } from "../../../../../src/web/app/state/chat-state.js";
 
 afterEach(cleanup);
 
-function renderMessages(messages: ChatMessage[], draft?: { runId: string; text: string; thinking: string }, compact = false) {
+function renderMessages(messages: ChatViewMessage[], draft?: { runId: string; text: string; thinking: string }, compact = false) {
   return render(
     <MantineProvider>
       <MessageList messages={messages} draft={draft} compact={compact} />
@@ -16,7 +16,7 @@ function renderMessages(messages: ChatMessage[], draft?: { runId: string; text: 
   );
 }
 
-function tool(id: string, name: string, status: "running" | "success" | "error" = "success"): ChatMessage {
+function tool(id: string, name: string, status: "running" | "success" | "error" = "success"): ChatViewMessage {
   return { id, role: "tool", tool: { toolCallId: id, name, status, argsText: `args-${id}`, outputText: `result-${id}` } };
 }
 
@@ -110,7 +110,7 @@ describe("MessageList", () => {
   it("keeps mixed thinking and tools complete at the history boundary", () => {
     renderMessages([
       { id: "u", role: "user", text: "Start" },
-      ...Array.from({ length: 24 }, (_, i): ChatMessage[] => [
+      ...Array.from({ length: 24 }, (_, i): ChatViewMessage[] => [
         { id: `a${i}`, role: "assistant", text: "", thinking: `Thought ${i}` }, tool(`r${i}`, "read"),
       ]).flat(),
       { id: "answer", role: "assistant", text: "Answer", thinking: "Conclusion" },
@@ -126,7 +126,7 @@ describe("MessageList", () => {
     expect(screen.getAllByTestId("tool-card")).toHaveLength(2);
   });
 
-  it.each<ChatMessage>([
+  it.each<ChatViewMessage>([
     { id: "boundary", role: "notice", level: "info", text: "Notice" },
     { id: "boundary", role: "user", text: "Next request" },
     { id: "boundary", role: "custom", customType: "extension", text: "Extension output" },
@@ -159,7 +159,7 @@ describe("MessageList", () => {
   });
 
   it("shows 40 grouped rows and reveals 100 more per click", () => {
-    const { container } = renderMessages(Array.from({ length: 75 }, (_, i): ChatMessage[] => [
+    const { container } = renderMessages(Array.from({ length: 75 }, (_, i): ChatViewMessage[] => [
       { id: `a${i}`, role: "assistant", text: "", thinking: `Thought ${i}` },
       tool(`r${i}`, "read"),
       { id: `answer${i}`, role: "assistant", text: `Answer ${i}`, thinking: "Conclusion" },
@@ -177,8 +177,8 @@ describe("MessageList", () => {
   });
 
   it("does not reduce visible history when streaming thinking extends a group", () => {
-    const messages: ChatMessage[] = [
-      ...Array.from({ length: 39 }, (_, i): ChatMessage => ({ id: `u${i}`, role: "user", text: `Request ${i}` })),
+    const messages: ChatViewMessage[] = [
+      ...Array.from({ length: 39 }, (_, i): ChatViewMessage => ({ id: `u${i}`, role: "user", text: `Request ${i}` })),
       tool("r", "read"),
     ];
     const { rerender, container } = renderMessages(messages, undefined, true);

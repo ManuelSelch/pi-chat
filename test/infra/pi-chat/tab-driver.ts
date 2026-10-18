@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
-import { PROTOCOL_VERSION } from "../../../src/shared/protocol.js";
 import { check, requireSession, type DriverContext } from "./driver-context.js";
 import type { AssistantResponse } from "./test-world.js";
 
@@ -40,6 +38,7 @@ export class TabDriver {
     check(this.context, operation, () => assert(!this.changing, "Await the previous tab operation before starting another"));
     this.changing = true;
     try { return await work(); }
+    catch (error) { throw new Error(`${operation}: ${error instanceof Error ? error.message : String(error)}. ${this.context.client.diagnostics()}`, { cause: error }); }
     finally { this.changing = false; }
   }
 
@@ -49,18 +48,7 @@ export class TabDriver {
       let release!: () => void;
       check(this.context, "Tabs.Create", () => { release = this.context.reserveSession(options.responses ?? []); });
       try {
-        const requestId = randomUUID();
-        const after = client.mark();
-        client.send({ version: PROTOCOL_VERSION, type: "newSession", path: this.context.projectPath, requestId });
-        const reply = await client.waitForMessage("Tabs.Create", "session creation result", after, m =>
-          (m.type === "sessionOpened" || m.type === "sessionOpenError") && m.requestId === requestId);
-        if (reply.type !== "sessionOpened") {
-          const error = reply.type === "sessionOpenError" ? reply.error : "Unexpected creation result";
-          throw new Error(`Tabs.Create: ${error}. ${client.diagnostics()}`);
-        }
-        const id = reply.sessionId;
-        await client.waitForMessage("Tabs.Create", "new active tab", after, m =>
-          m.type === "tabs" && m.activeSessionId === id && m.tabs.some(tab => tab.sessionId === id));
+        const id = await client.create(this.context.projectPath);
         await client.ready("Tabs.Create");
         return this.handle(id);
       } finally { release(); }
@@ -84,12 +72,7 @@ export class TabDriver {
       let release!: () => void;
       check(this.context, "Tabs.Open", () => { release = this.context.reserveSession(options.responses ?? []); });
       try {
-        const previousActive = client.appState.activeSessionId;
-        const after = client.mark();
-        client.send({ version: PROTOCOL_VERSION, type: "openSession", path: sessionPath });
-        await client.waitForMessage("Tabs.Open", "opened session tab", after, message =>
-          message.type === "tabs" && message.activeSessionId !== previousActive);
-        const id = client.appState.activeSessionId;
+        const id = await client.open(sessionPath);
         assert(id, "Opened session did not become active");
         await client.ready("Tabs.Open");
         return this.handle(id);
@@ -103,9 +86,7 @@ export class TabDriver {
     return this.change("Tabs.SwitchTo", async () => {
       const id = this.id(tab, "Tabs.SwitchTo");
       const { client } = this.context;
-      const after = client.mark();
-      client.send({ version: PROTOCOL_VERSION, type: "focusTab", sessionId: id });
-      await client.waitForMessage("Tabs.SwitchTo", "fresh active-tab acknowledgement", after, m => m.type === "tabs" && m.activeSessionId === id);
+      client.focus(id);
       await client.ready("Tabs.SwitchTo");
     });
   }
@@ -114,13 +95,7 @@ export class TabDriver {
     return this.change("Tabs.Close", async () => {
       const id = this.id(tab, "Tabs.Close");
       const { client } = this.context;
-      const after = client.mark();
-      client.send({ version: PROTOCOL_VERSION, type: "closeTab", sessionId: id });
-      await client.waitForMessage("Tabs.Close", "tab removal acknowledgement", after, m =>
-        m.type === "tabs" && !m.tabs.some(tab => tab.sessionId === id));
-      if (!client.appState.tabs.length) {
-        await client.waitForMessage("Tabs.Close", "fresh home catalogue", after, m => m.type === "catalogue");
-      }
+      await client.sdk.closeSession(id);
       await client.ready("Tabs.Close");
     });
   }

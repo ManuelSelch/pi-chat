@@ -1,9 +1,10 @@
+import { snapshotEvent, coreEvent } from "../../../../infra/v2-fixtures.js";
 /** @vitest-environment jsdom */
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { MessageList } from "../../../../../src/web/chat/transcript/MessageList.js";
-import { initialChatState, reduceServerMessage } from "../../../../../src/web/app/state/chat-state.js";
+import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
 import { PROTOCOL_VERSION, type ChatMessage } from "../../../../../src/shared/protocol.js";
 
 afterEach(cleanup);
@@ -53,8 +54,8 @@ it("leaves ordinary user messages and assistant text untouched", async () => {
 
 it("preserves one collapsed invocation across live final messages and restored snapshots", () => {
   const base = { version: PROTOCOL_VERSION, sessionId: "s", runId: "r" };
-  const live = reduceServerMessage(initialChatState, { ...base, type: "messageFinal", sequence: 1, message });
-  const restored = reduceServerMessage(initialChatState, { ...base, type: "snapshot", sequence: 2, throughSequence: 2, projectPath: "/p", messages: [message], isStreaming: false });
+  const live = reduceServerMessage(initialChatState, coreEvent("message.finalized", { message: message, runId: base.runId }, base.sessionId, 1));
+  const restored = reduceServerMessage(initialChatState, snapshotEvent({ ...base, throughSequence: 2, projectPath: "/p", messages: [message], sessionId: base.sessionId, runtime: { status: "idle" } }));
   const { container, rerender } = show(live.messages);
   expect(screen.getByTestId("skill-invocation").textContent).toBe("[skill] daily-briefing");
   rerender(<MantineProvider><MessageList messages={restored.messages} draft={undefined} /></MantineProvider>);

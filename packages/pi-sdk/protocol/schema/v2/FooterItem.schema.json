@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "align": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "variant": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "required": [
+    "key",
+    "text",
+    "align",
+    "variant"
+  ]
+}

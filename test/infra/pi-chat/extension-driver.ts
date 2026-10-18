@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { PROTOCOL_VERSION, type UiPrompt, type UiPromptResult, type WidgetPlacement } from "../../../src/shared/protocol.js";
+import type { ReadonlyDeep } from "@manuelselch/pi-sdk";
+import { type UiPrompt, type UiPromptResult, type WidgetPlacement } from "../../../src/shared/protocol.js";
 import { check, requireSession, type DriverContext } from "./driver-context.js";
 import type { BrowserClient } from "./browser-client.js";
 
@@ -25,17 +26,17 @@ export class ExtensionDriver {
     });
     const after = client.mark();
     this.commandMarks.set(sessionId, { client, after });
-    client.send({ version: PROTOCOL_VERSION, type: "prompt", sessionId, message: `/${name}` });
+    await client.sdk.prompt(sessionId, `/${name}`);
     await client.waitForMessage("Extensions.RunCommand", "fresh extension UI output", after, message =>
-      "sessionId" in message && message.sessionId === sessionId &&
-      (message.type === "notification" || message.type === "widgets" ||
-        (message.type === "prompts" && message.prompts.length > 0)));
+      message.type === "event" && "sessionId" in message && message.sessionId === sessionId &&
+      (message.event === "notification.created" || message.event === "presentation.changed" ||
+        (message.event === "prompt.list.changed" && message.data.prompts.length > 0)));
   }
 
   async WaitForPrompt(title: string): Promise<PromptHandle> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.WaitForPrompt");
-    let prompt: UiPrompt | undefined;
+    let prompt: ReadonlyDeep<UiPrompt> | undefined;
     await client.wait("Extensions.WaitForPrompt", `prompt ${JSON.stringify(title)}`, () => {
       prompt = client.chat.prompts.find(item => item.title === title);
       return Boolean(prompt);
@@ -55,9 +56,9 @@ export class ExtensionDriver {
       assert(client.chat.prompts.some(item => item.id === prompt.id), "Prompt is no longer pending");
     });
     const after = client.mark();
-    client.send({ version: PROTOCOL_VERSION, type: "uiPromptResponse", sessionId, promptId: prompt!.id, result });
+    await client.sdk.respondToPrompt(sessionId, prompt!.id, result);
     await client.waitForMessage("Extensions.RespondToPrompt", "answered prompt removed", after, message =>
-      message.type === "prompts" && message.sessionId === sessionId && !message.prompts.some(item => item.id === prompt!.id));
+      message.type === "event" && message.event === "prompt.list.changed" && message.sessionId === sessionId && !message.data.prompts.some(item => item.id === prompt!.id));
   }
 
   async WaitForNotification(text: string, level: NotificationLevel = "info"): Promise<void> {
@@ -66,7 +67,7 @@ export class ExtensionDriver {
     const mark = this.commandMarks.get(sessionId);
     const after = mark?.client === client ? mark.after : 0;
     await client.waitForMessage("Extensions.WaitForNotification", `fresh notification ${JSON.stringify(text)}`, after, message =>
-      message.type === "notification" && message.sessionId === sessionId && message.message === text && message.level === level);
+      message.type === "event" && message.event === "notification.created" && message.sessionId === sessionId && message.data.message === text && message.data.level === level);
   }
 
   ShouldShowPrompt(title: string, kind: UiPrompt["kind"], message?: string): void {

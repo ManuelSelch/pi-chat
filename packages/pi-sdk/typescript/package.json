@@ -1,0 +1,46 @@
+{
+  "name": "@manuelselch/pi-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Pi Server contract and client SDK (local migration workspace)",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./contract": {
+      "types": "./dist/contract/index.d.ts",
+      "import": "./dist/contract/index.js"
+    },
+    "./protocol/*": "./dist/protocol/*"
+  },
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-contract-artifacts.mjs",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "pretest": "npm run build",
+    "test": "vitest run --config vitest.config.ts",
+    "contract:generate": "tsx scripts/export-v2-contract.ts",
+    "probe:swift:generate": "tsx scripts/generate-swift-probe.ts",
+    "probe:swift": "swift test --package-path ..",
+    "verify:package": "node scripts/verify-package.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "ajv": "8.20.0",
+    "quicktype-core": "26.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

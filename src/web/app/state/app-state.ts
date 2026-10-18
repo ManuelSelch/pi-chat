@@ -1,152 +1,97 @@
-import type { ProjectCatalogue, ServerMessage, Tab, WebFeature } from "../../../shared/protocol.js";
-import { initialChatState, reduceServerMessage, type ChatState } from "./chat-state.js";
+import type { ClientState, ReadonlyDeep, ServerMessage, ProjectCatalogue, WebFeature } from "@manuelselch/pi-sdk";
+import type { AppTab } from "./view-types.js";
+import { initialChatState, projectChatState, type ChatState } from "./chat-state.js";
 
 export type AppAction =
-  | ServerMessage
-  | { type: "connectionLost"; error?: string }
-  | { type: "superseded" }
+  | { type: "sdkState"; state: ReadonlyDeep<ClientState>; message?: ReadonlyDeep<ServerMessage> }
   | { type: "clearError"; sessionId?: string }
+  | { type: "focusSession"; sessionId: string }
+  | { type: "sessionOpened"; sessionId: string }
   | { type: "openPending" }
-  | { type: "closePending"; sessionId: string };
+  | { type: "closePending"; sessionId: string }
+  | { type: "commandFailed"; error: string; opening?: boolean; closingSessionId?: string };
 
 export interface AppState {
-  tabs: Tab[];
+  tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
-  /** One projection per open session; background tabs keep streaming. */
+  /** Views share SDK projections, adding only browser notices/error dismissal. */
   sessions: Record<string, ChatState>;
-  /** The project list is global, so it is kept outside the per-session state. */
-  catalogue: ProjectCatalogue;
-  /** Server capabilities that outlive any session, such as restarting. */
-  appFeatures: WebFeature[];
-  /**
-   * Opening a session takes a server round trip. The tab bar shows a placeholder
-   * straight away so the click feels instant, and a closing tab disappears
-   * immediately instead of waiting for confirmation.
-   */
+  sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
+  sdkInventory: ReadonlyDeep<ClientState["inventory"]>;
+  hiddenErrors: Record<string, string | undefined>;
+  catalogue: ReadonlyDeep<ProjectCatalogue>;
+  appFeatures: ReadonlyDeep<WebFeature[]>;
   openingTabs: number;
   closingSessionIds: string[];
-  /** Until the first tab list arrives, "no tabs" means "not loaded yet". */
   tabsKnown: boolean;
   connection: "connecting" | "open" | "superseded";
   error?: string;
 }
 
 export const initialAppState: AppState = {
-  tabs: [],
-  activeSessionId: "",
-  sessions: {},
-  catalogue: { projects: [] },
-  appFeatures: [],
-  openingTabs: 0,
-  closingSessionIds: [],
-  tabsKnown: false,
-  connection: "connecting",
+  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], hiddenErrors: {},
+  catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
+  tabsKnown: false, connection: "connecting",
 };
 
-/** With every tab closed the app shows the home screen instead of a transcript. */
 export function atHome(state: AppState): boolean {
   return state.tabsKnown && state.openingTabs === 0 && visibleTabs(state).length === 0;
 }
-
-/**
- * A protocol-level rejection belongs to no session, so it has to win over the
- * session error; otherwise a refused command looks like nothing happened.
- */
 export function visibleError(state: AppState, session: ChatState): string | undefined {
   return state.error ?? session.error;
 }
-
-/** Tabs as the user should see them right now, including optimistic changes. */
-export function visibleTabs(state: AppState): Tab[] {
+export function visibleTabs(state: AppState): ReadonlyDeep<AppTab>[] {
   return state.tabs.filter((tab) => !state.closingSessionIds.includes(tab.sessionId));
 }
-
 export function activeSession(state: AppState): ChatState {
-  // Snapshots arrive before the tab list, so fall back to the only known
-  // session rather than briefly rendering an empty app.
-  return state.sessions[state.activeSessionId] ?? Object.values(state.sessions)[0] ?? initialChatState;
+  return (Object.hasOwn(state.sessions, state.activeSessionId) ? state.sessions[state.activeSessionId] : undefined)
+    ?? Object.values(state.sessions)[0] ?? initialChatState;
 }
 
-export function reduceAppMessage(state: AppState, message: AppAction): AppState {
-  // Request-scoped replies belong to connection trackers, never transcripts.
-  if (message.type === "commandArgumentCompletions" || message.type === "fileOpenResult" || message.type === "projectMutationResult") return state;
-  if (message.type === "directoryListing" || message.type === "directoryBrowseError" || message.type === "sessionOpened" || message.type === "sessionOpenError") return state;
-  if (message.type === "openPending") {
-    return { ...state, openingTabs: state.openingTabs + 1 };
+/** Application presentation only; PiClient is the sole wire/projection owner. */
+export function reduceAppMessage(state: AppState, action: AppAction): AppState {
+  if (action.type === "focusSession") return state.tabs.some(tab => tab.sessionId === action.sessionId) ? { ...state, activeSessionId: action.sessionId } : state;
+  if (action.type === "sessionOpened") return { ...state, activeSessionId: action.sessionId, error: undefined, openingTabs: Math.max(0, state.openingTabs - 1) };
+  if (action.type === "openPending") return { ...state, openingTabs: state.openingTabs + 1 };
+  if (action.type === "closePending") {
+    return state.closingSessionIds.includes(action.sessionId) ? state : { ...state, closingSessionIds: [...state.closingSessionIds, action.sessionId] };
   }
-  if (message.type === "closePending") {
-    return state.closingSessionIds.includes(message.sessionId)
-      ? state
-      : { ...state, closingSessionIds: [...state.closingSessionIds, message.sessionId] };
-  }
-  if (message.type === "clearError") {
-    // The banner can show either an app-level rejection or the active session's
-    // failed turn, so dismissing has to reach both or it would reappear.
-    const sessionId = message.sessionId ?? state.activeSessionId;
-    const session = state.sessions[sessionId];
-    const sessions =
-      session?.error === undefined
-        ? state.sessions
-        : { ...state.sessions, [sessionId]: { ...session, error: undefined } };
-    if (state.error === undefined && sessions === state.sessions) return state;
-    return { ...state, error: undefined, sessions };
-  }
-
-  if (message.type === "superseded" || message.type === "connectionLost") {
-    // Connection loss is app-wide, but each transcript must also drop its
-    // partial stream, because only the next snapshot is authoritative.
-    const sessions = Object.fromEntries(
-      Object.entries(state.sessions).map(([id, session]) => [id, reduceServerMessage(session, message)]),
-    );
-    return {
-      ...state,
-      sessions,
-      connection: message.type === "superseded" ? "superseded" : "connecting",
-      error: message.type === "connectionLost" ? message.error : undefined,
-    };
-  }
-
-  if (message.type === "tabs") {
-    // Drop projections for tabs the server closed, so state cannot leak.
-    const sessions = Object.fromEntries(
-      Object.entries(state.sessions).filter(([id]) => message.tabs.some((tab) => tab.sessionId === id)),
-    );
-    return {
-      ...state,
-      tabs: message.tabs,
-      activeSessionId: message.activeSessionId,
-      sessions,
-      openingTabs: 0,
-      closingSessionIds: [],
-      tabsKnown: true,
-      connection: "open",
-      // A reconnect answers the outage the error described. Leaving it set keeps
-      // "Waiting for the Pi Chat server…" on screen over a working connection,
-      // which is exactly what a restart looks like from the browser.
-      error: undefined,
-    };
-  }
-
-  if (message.type === "catalogue") {
-    return {
-      ...state,
-      catalogue: message.catalogue,
-      appFeatures: message.features ?? state.appFeatures,
-      connection: "open",
-      error: undefined,
-    };
-  }
-
-  if (message.type === "protocolError") {
-    return { ...state, error: message.error };
-  }
-
-  const current = state.sessions[message.sessionId] ?? initialChatState;
-  const next = reduceServerMessage(current, message);
-  return {
-    ...state,
-    connection: "open",
-    sessions: { ...state.sessions, [message.sessionId]: next },
-    catalogue: message.type === "snapshot" && message.catalogue ? message.catalogue : state.catalogue,
+  if (action.type === "commandFailed") return {
+    ...state, error: action.error,
+    openingTabs: action.opening ? Math.max(0, state.openingTabs - 1) : state.openingTabs,
+    closingSessionIds: state.closingSessionIds.filter((id) => id !== action.closingSessionId),
   };
+  if (action.type === "clearError") {
+    const id = action.sessionId ?? state.activeSessionId;
+    const session = Object.hasOwn(state.sessions, id) ? state.sessions[id] : undefined;
+    if (state.error === undefined && session?.error === undefined) return state;
+    return { ...state, error: undefined,
+      hiddenErrors: { ...state.hiddenErrors, [id]: session?.error },
+      sessions: session ? { ...state.sessions, [id]: { ...session, error: undefined } } : state.sessions };
+  }
+
+  const { state: sdk, message } = action;
+  const hiddenErrors = Object.fromEntries(Object.entries(state.hiddenErrors).filter(([id]) => Object.hasOwn(sdk.sessions, id)));
+  const sessions = Object.fromEntries(Object.entries(sdk.sessions).map(([id, next]) => {
+    const source = Object.hasOwn(state.sdkSessions, id) ? state.sdkSessions[id] : undefined;
+    const previous = Object.hasOwn(state.sessions, id) ? state.sessions[id] : undefined;
+    const event = message && "sessionId" in message && message.sessionId === id ? message : undefined;
+    if (source === next && previous) return [id, previous];
+    if ((event?.type === "event" && (event.event === "session.snapshot" || (event.event === "runtime.status" && event.sequence > (source?.sequence ?? -1) && event.data.lastError !== undefined))) || (message?.type === "response" && source?.sequence !== undefined && source.sequence < next.sequence)) delete hiddenErrors[id];
+    return [id, projectChatState(next, previous, event, hiddenErrors[id], source)];
+  }));
+  const tabs = sdk.inventory === state.sdkInventory ? state.tabs : sdk.inventory.map(tab => ({ ...tab, status: tab.status === "closing" ? "blocked" as const : tab.status }));
+  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, hiddenErrors,
+    tabs, activeSessionId: tabs.some(tab => tab.sessionId === state.activeSessionId) ? state.activeSessionId : tabs[0]?.sessionId ?? "",
+    closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
+    catalogue: sdk.catalogue, appFeatures: sdk.features };
+  if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };
+  else {
+    const { phase, error } = sdk.connection;
+    if (phase === "superseded") next = { ...next, connection: "superseded", error: undefined };
+    else if (phase === "reconnecting") next = { ...next, connection: "connecting", error: "Waiting for the Pi Chat server…" };
+    else if (phase === "failed") next = { ...next, connection: "connecting", error: `${error?.message ?? "Connection failed."} Reload to reconnect.` };
+    else next = { ...next, connection: "connecting" };
+  }
+  return next;
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { IconBolt, IconFolder, IconFolderPlus, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
-import type { ProjectCatalogue, Tab } from "../../../shared/protocol.js";
+import type { ProjectCatalogue, Tab } from "../../app/state/view-types.js";
 import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
 import { usePointerModality } from "../../ui/usePointerModality.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
@@ -13,7 +13,7 @@ interface QuickOpenProps {
   opened: boolean;
   onClose: () => void;
   catalogue: ProjectCatalogue;
-  tabs: Tab[];
+  tabs: readonly Tab[];
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: (path: string) => void;
@@ -52,7 +52,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
 
-  const items = buildQuickOpenItems(catalogue, tabs.map((tab) => tab.sessionId), actions);
+  const items = buildQuickOpenItems(catalogue, tabs.flatMap((tab) => tab.sessionPath ? [tab.sessionPath] : []), actions);
   const scopeKind = parseQuickOpenQuery(query).kind;
   const rankedResults = rankQuickOpen(items, query);
   const results = query.trim() ? folderSearchChoices(rankedResults) : rankedResults;

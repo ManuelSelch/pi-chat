@@ -7,7 +7,7 @@ import type { MenuItem } from "./command-menu.js";
 import { RuntimeFooter } from "../../extensions/footer/RuntimeFooter.js";
 import { WidgetPanel } from "../../extensions/widgets/WidgetPanel.js";
 import { Slot } from "../../extensions/Slot.js";
-import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../../shared/protocol.js";
+import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../app/state/view-types.js";
 
 export interface ComposerViewModel {
   home: boolean;
@@ -17,14 +17,14 @@ export interface ComposerViewModel {
   error?: string;
   busy: boolean;
   steering: boolean;
-  steeringMessages: string[];
+  steeringMessages: readonly string[];
   input: string;
   activeCommand: number;
   matches: MenuItem[];
   footerItems: FooterItem[];
-  widgetsAbove: Widget[];
-  widgetsBelow: Widget[];
-  extensions: { buttons: PiChatButton[]; badges: PiChatBadge[] };
+  widgetsAbove: readonly Widget[];
+  widgetsBelow: readonly Widget[];
+  extensions: { buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[] };
 }
 
 export interface ComposerViewActions {

@@ -32,7 +32,7 @@ const catalogue: ProjectCatalogue = {
   ],
 };
 
-const items = buildQuickOpenItems(catalogue, ["s3"]);
+const items = buildQuickOpenItems(catalogue, ["/s/plugin.jsonl"]);
 
 describe("quick open", () => {
   it("flattens sessions and projects, marking the ones already in a tab", () => {

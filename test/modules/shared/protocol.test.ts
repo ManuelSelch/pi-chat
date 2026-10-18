@@ -1,168 +1,45 @@
 import { describe, expect, it } from "vitest";
-import { parseClientMessage, PROTOCOL_VERSION, serverMessageSchema, slashCommandSchema } from "../../../src/shared/protocol.js";
-
-describe("client protocol", () => {
-  it.each(["native", "extension", "prompt", "skill", undefined])("accepts command source %s", source => {
-    expect(slashCommandSchema.parse({ name: "skill:daily-briefing", description: "Daily briefing", source }))
-      .toMatchObject({ name: "skill:daily-briefing" });
+import { requestSchema, PROTOCOL_VERSION, eventSchema, parseResponse, slashCommandSchema, messageSchema, promptSchema } from "../../../src/shared/protocol.js";
+import { snapshotEvent, coreEvent, snapshotData, presentationEvent } from "../../infra/v2-fixtures.js";
+describe("v2 contract", () => {
+  const command = (method: string, params: object, sessionId?: string) => ({ version: PROTOCOL_VERSION, type: "request", requestId: "r", method, params, ...(sessionId ? { sessionId } : {}) });
+  it("trims nonempty prompt params and rejects v1, blank input and wrapped features", () => {
+    expect(requestSchema.parse(command("message.send", { message: " hello " }, "s"))).toMatchObject({ params: { message: "hello" } });
+    expect(() => requestSchema.parse({ ...command("message.send", { message: "hi" }, "s"), version: 1 })).toThrow();
+    expect(() => requestSchema.parse(command("message.send", { message: " " }, "s"))).toThrow();
+    expect(() => requestSchema.parse(command("runFeature", { featureId: "model.select", input: { model: "p/m" } }, "s"))).toThrow();
   });
-
-  it("rejects unknown command sources", () => {
-    expect(slashCommandSchema.safeParse({ name: "example", source: "unknown" }).success).toBe(false);
+  it("carries native feature parameters directly, not featureId wrappers", () => {
+    for (const [method, params] of [["model.select", { model: "p/m" }], ["thinking.level", { level: "high" }], ["session.compact", {}], ["session.reload", {}]] as const) expect(requestSchema.parse(command(method, params, "s"))).toMatchObject({ method, params });
+    expect(() => requestSchema.parse(command("session.rename", { name: "Study" }, "s"))).toThrow();
   });
-  it("accepts a non-empty prompt", () => {
-    expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "prompt", message: "hello" })).toMatchObject({ type: "prompt" });
+  it("preserves slash command metadata through snapshots", () => {
+    const commands = [{ name: "deploy", description: "Deploy", argumentHint: "target", source: "extension" as const }];
+    expect(slashCommandSchema.parse(commands[0])).toEqual(commands[0]); expect(eventSchema.parse(snapshotEvent({ sessionId: "s", commands }))).toMatchObject({ data: { commands } });
   });
-
-  it("rejects an unsupported protocol version", () => {
-    expect(() => parseClientMessage({ version: 2, type: "abort" })).toThrow();
+  it("keeps archiving correlated and independent of an open runtime", () => {
+    expect(requestSchema.parse(command("session.archive", { path: "/saved.jsonl", archived: true }))).toMatchObject({ method: "session.archive" });
+    expect(() => requestSchema.parse(command("session.delete", { path: "/saved.jsonl" }))).toThrow();
   });
-
-  it("rejects an empty prompt", () => {
-    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "prompt", message: "  " })).toThrow();
+  it("carries streamed reasoning and optional reasoning in finalized history", () => {
+    expect(eventSchema.parse(coreEvent("message.thinking.delta", { runId: "r", delta: "hm" }, "s", 1))).toMatchObject({ data: { delta: "hm" } });
+    for (const thinking of [undefined, "reason"]) expect(messageSchema.parse({ id: "a", role: "assistant", text: "answer", thinking })).toMatchObject({ role: "assistant" });
   });
-
-  it("accepts slash command metadata in snapshots", () => {
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION,
-        type: "snapshot",
-        sessionId: "s1",
-        sequence: 1,
-        throughSequence: 1,
-        projectPath: "/tmp",
-        messages: [],
-        isStreaming: false,
-        actions: {
-          features: [],
-          commands: [{ name: "review", description: "Review code", argumentHint: "<focus>", source: "prompt" }],
-        },
-      }).success,
-    ).toBe(true);
+  it("carries custom extension messages but never authoritative browser notices", () => {
+    expect(snapshotData({ sessionId: "s", messages: [{ id: "c", role: "custom", customType: "demo", text: "output" }] }).messages[0]).toMatchObject({ role: "custom" });
+    expect(messageSchema.safeParse({ id: "notice", role: "notice", level: "info", text: "local only" }).success).toBe(false);
   });
-
-  it("rejects the removed custom rename action", () => {
-    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "session.rename", input: { name: "Study" } })).toThrow();
+  it("validates required prompt variants while preserving optional fields", () => {
+    expect(promptSchema.parse({ id: "p", kind: "confirm", title: "Run?", message: "Details" })).toMatchObject({ kind: "confirm" });
+    expect(promptSchema.safeParse({ id: "p", kind: "select", title: "Pick" }).success).toBe(false);
+    expect(promptSchema.safeParse({ id: "p", kind: "future", title: "Pick" }).success).toBe(false);
   });
-
-  it("accepts native feature actions", () => {
-    expect(parseClientMessage({ version: PROTOCOL_VERSION, sessionId: "s1", type: "runFeature", featureId: "thinking.level", input: { level: "high" } })).toMatchObject({
-      type: "runFeature",
-      featureId: "thinking.level",
-      input: { level: "high" },
-    });
+  it("accepts unknown optional widget placements without weakening required lines", () => {
+    expect(eventSchema.parse(presentationEvent({ widgets: [{ key: "w", placement: "future", lines: ["text"] }] }, "s", 1))).toMatchObject({ event: "presentation.changed" });
+    expect(eventSchema.safeParse({ ...presentationEvent({}, "s", 1), data: { revision: 1, widgets: [{ key: "w", placement: "aboveEditor", lines: [1] }], footer: [], extensions: { buttons: [], badges: [], state: {} } } }).success).toBe(false);
   });
-});
-
-describe("native built-in features", () => {
-  it("accepts a model switch and a compact request", () => {
-    expect(parseClientMessage({
-      version: PROTOCOL_VERSION,
-      sessionId: "session",
-      type: "runFeature",
-      featureId: "model.select",
-      input: { model: "doppelclaude/claude-opus-5" },
-    })).toMatchObject({ featureId: "model.select" });
-
-    expect(parseClientMessage({
-      version: PROTOCOL_VERSION,
-      sessionId: "session",
-      type: "runFeature",
-      featureId: "session.compact",
-      input: {},
-    })).toMatchObject({ featureId: "session.compact" });
-  });
-
-  it("rejects an empty model id", () => {
-    expect(() => parseClientMessage({
-      version: PROTOCOL_VERSION,
-      sessionId: "session",
-      type: "runFeature",
-      featureId: "model.select",
-      input: { model: "" },
-    })).toThrow();
-  });
-});
-
-describe("session archiving", () => {
-  it("accepts archiving and rejects the removed deletion command", () => {
-    expect(parseClientMessage({ version: PROTOCOL_VERSION, type: "setSessionArchived", path: "/sessions/a.jsonl", archived: true, requestId: "a1" }))
-      .toMatchObject({ type: "setSessionArchived", archived: true });
-    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "/sessions/a.jsonl" })).toThrow();
-    expect(() => parseClientMessage({ version: PROTOCOL_VERSION, type: "deleteSession", path: "" })).toThrow();
-  });
-});
-
-describe("streamed reasoning", () => {
-  it("carries thinking deltas and the reasoning of a finished message", () => {
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION, type: "thinkingDelta", sessionId: "s1", sequence: 1, runId: "run", delta: "hm",
-      }).success,
-    ).toBe(true);
-
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "s1", sequence: 2, runId: "run",
-        message: { id: "m1", role: "assistant", text: "Answer", thinking: "Reasoning" },
-      }).success,
-    ).toBe(true);
-  });
-
-  it("keeps reasoning optional", () => {
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION, type: "messageFinal", sessionId: "s1", sequence: 2, runId: "run",
-        message: { id: "m1", role: "assistant", text: "Answer" },
-      }).success,
-    ).toBe(true);
-  });
-});
-
-describe("extension custom messages", () => {
-  it("accepts displayable pi.sendMessage output in a snapshot", () => {
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION,
-        type: "snapshot",
-        sessionId: "s1",
-        sequence: 1,
-        throughSequence: 1,
-        projectPath: "/tmp",
-        messages: [{ id: "m1", role: "custom", customType: "file-trigger", text: "File changed", timestamp: 123 }],
-        isStreaming: false,
-      }).success,
-    ).toBe(true);
-  });
-});
-
-describe("extension widgets", () => {
-  const widget = { key: "todo", lines: ["○ #1"], placement: "aboveEditor" };
-
-  it("accepts a widgets message and a snapshot carrying widgets", () => {
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION, type: "widgets", sessionId: "s1", sequence: 3, widgets: [widget],
-      }).success,
-    ).toBe(true);
-
-    expect(
-      serverMessageSchema.safeParse({
-        version: PROTOCOL_VERSION, type: "snapshot", sessionId: "s1", sequence: 3, throughSequence: 3,
-        projectPath: "/tmp", messages: [], isStreaming: false, widgets: [widget],
-      }).success,
-    ).toBe(true);
-  });
-
-  it("rejects an unplaced widget and an unkeyed one", () => {
-    const unplaced = { ...widget, placement: "floating" };
-    const unkeyed = { ...widget, key: "" };
-    for (const broken of [unplaced, unkeyed]) {
-      expect(
-        serverMessageSchema.safeParse({
-          version: PROTOCOL_VERSION, type: "widgets", sessionId: "s1", sequence: 1, widgets: [broken],
-        }).success,
-      ).toBe(false);
-    }
+  it("validates successes using the pending method and rejects old uncorrelated reply families", () => {
+    expect(parseResponse("server.ping", { version: 2, type: "response", requestId: "r", ok: true, result: { state: "completed" } })).toMatchObject({ ok: true });
+    expect(() => parseResponse("session.open", { version: 2, type: "response", requestId: "r", ok: true, result: { state: "completed" } })).toThrow();
   });
 });

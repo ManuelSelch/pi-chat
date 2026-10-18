@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Tooltip,
 import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
-import type { ChatSessionSummary, ProjectCatalogue } from "../../../shared/protocol.js";
+import type { ChatSessionSummary, ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
 import styles from "./ProjectSessionDrawer.module.css";
@@ -12,7 +12,7 @@ import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 interface ProjectSessionDrawerProps {
   opened: boolean;
   onClose: () => void;
-  currentSessionId: string;
+  currentSessionPath: string;
   currentProjectPath: string;
   catalogue: ProjectCatalogue;
   /** A run only blocks archiving the session it is writing to; opening and
@@ -26,7 +26,7 @@ interface ProjectSessionDrawerProps {
   archiveSession?: (path: string, archived: boolean) => Promise<void>;
   pinProject?: (path: string, pinned: boolean) => Promise<void>;
   removeProject?: (path: string) => Promise<void>;
-  busySessionIds?: readonly string[];
+  busySessionPaths?: readonly string[];
 }
 
 /** Repository and folder key the current session belongs to. */
@@ -35,7 +35,7 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
   return project ? project.repositoryPath ?? project.path : undefined;
 }
 
-export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionId, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionIds = [] }: ProjectSessionDrawerProps) {
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionPath, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionPaths = [] }: ProjectSessionDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -52,7 +52,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
   const other = unpinned.filter(group => group.activeCount === 0);
   const currentKey = groupKeyForPath(catalogue, currentProjectPath);
   const activeKey = selected ?? currentKey;
-  const running = busy ? [...busySessionIds, currentSessionId] : busySessionIds;
+  const running = busy ? [...busySessionPaths, currentSessionPath] : busySessionPaths;
 
   const isOpen = (group: PanelGroup): boolean => {
     const explicit = expanded[group.key];
@@ -79,8 +79,8 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     const archived = group.sessions.filter(entry => entry.session.archivedAt !== undefined);
     const row = (entry: PanelSession) => (
       <SessionRow key={entry.session.path} session={entry.session} label={entry.worktreeLabel ? entry.branch : undefined}
-        active={entry.session.id === currentSessionId} disabled={!group.exists}
-        archiveDisabled={pending || running.includes(entry.session.id)}
+        active={entry.session.path === currentSessionPath} disabled={!group.exists}
+        archiveDisabled={pending || running.includes(entry.session.path)}
         onOpen={() => { openSession(entry.session.path); onClose(); }}
         onArchive={archiveSession ? () => archive(entry) : undefined} />
     );

@@ -1,0 +1,1359 @@
+{
+  "operations": [
+    {
+      "method": "server.initialize",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-0",
+        "method": "server.initialize",
+        "params": {
+          "client": {
+            "name": "test",
+            "version": "1.0"
+          },
+          "capabilities": [
+            "presentation"
+          ]
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-0",
+        "ok": true,
+        "result": {
+          "protocolVersion": 2,
+          "serverVersion": "0.0.0",
+          "serverInstanceId": "server",
+          "connectionId": "connection",
+          "capabilities": [
+            "presentation"
+          ],
+          "inventory": {
+            "revision": 0,
+            "sessions": [
+              {
+                "sessionId": "runtime",
+                "title": "Example",
+                "projectPath": "/p",
+                "projectName": "p",
+                "status": "idle"
+              }
+            ]
+          },
+          "projects": {
+            "revision": 0,
+            "catalogue": {
+              "projects": []
+            }
+          },
+          "snapshots": [
+            {
+              "sessionId": "runtime",
+              "throughSequence": 0,
+              "projectPath": "/p",
+              "messages": [],
+              "runtime": {
+                "status": "idle"
+              },
+              "steeringMessages": [],
+              "settings": {
+                "model": "p/m",
+                "availableModels": [
+                  "p/m"
+                ],
+                "thinkingLevel": "off",
+                "availableThinkingLevels": [
+                  "off"
+                ]
+              },
+              "commands": [],
+              "prompts": [],
+              "presentation": {
+                "revision": 0,
+                "widgets": [],
+                "footer": [],
+                "extensions": {
+                  "buttons": [],
+                  "badges": [],
+                  "state": {
+                    "demo": {
+                      "value": [
+                        null,
+                        true,
+                        1,
+                        "text"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-0",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "server.ping",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-1",
+        "method": "server.ping",
+        "params": {}
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-1",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-1",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "server.restart",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-2",
+        "method": "server.restart",
+        "params": {}
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-2",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-2",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.create",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-3",
+        "method": "session.create",
+        "params": {
+          "projectPath": "/p"
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-3",
+        "ok": true,
+        "result": {
+          "summary": {
+            "sessionId": "runtime",
+            "title": "Example",
+            "projectPath": "/p",
+            "projectName": "p",
+            "status": "idle"
+          },
+          "snapshot": {
+            "sessionId": "runtime",
+            "throughSequence": 0,
+            "projectPath": "/p",
+            "messages": [],
+            "runtime": {
+              "status": "idle"
+            },
+            "steeringMessages": [],
+            "settings": {
+              "model": "p/m",
+              "availableModels": [
+                "p/m"
+              ],
+              "thinkingLevel": "off",
+              "availableThinkingLevels": [
+                "off"
+              ]
+            },
+            "commands": [],
+            "prompts": [],
+            "presentation": {
+              "revision": 0,
+              "widgets": [],
+              "footer": [],
+              "extensions": {
+                "buttons": [],
+                "badges": [],
+                "state": {
+                  "demo": {
+                    "value": [
+                      null,
+                      true,
+                      1,
+                      "text"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-3",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.open",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-4",
+        "method": "session.open",
+        "params": {
+          "sessionPath": "/p/history.jsonl"
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-4",
+        "ok": true,
+        "result": {
+          "summary": {
+            "sessionId": "runtime",
+            "title": "Example",
+            "projectPath": "/p",
+            "projectName": "p",
+            "status": "idle"
+          },
+          "snapshot": {
+            "sessionId": "runtime",
+            "throughSequence": 0,
+            "projectPath": "/p",
+            "messages": [],
+            "runtime": {
+              "status": "idle"
+            },
+            "steeringMessages": [],
+            "settings": {
+              "model": "p/m",
+              "availableModels": [
+                "p/m"
+              ],
+              "thinkingLevel": "off",
+              "availableThinkingLevels": [
+                "off"
+              ]
+            },
+            "commands": [],
+            "prompts": [],
+            "presentation": {
+              "revision": 0,
+              "widgets": [],
+              "footer": [],
+              "extensions": {
+                "buttons": [],
+                "badges": [],
+                "state": {
+                  "demo": {
+                    "value": [
+                      null,
+                      true,
+                      1,
+                      "text"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-4",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.list",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-5",
+        "method": "session.list",
+        "params": {}
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-5",
+        "ok": true,
+        "result": {
+          "revision": 0,
+          "sessions": [
+            {
+              "sessionId": "runtime",
+              "title": "Example",
+              "projectPath": "/p",
+              "projectName": "p",
+              "status": "idle"
+            }
+          ]
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-5",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.snapshot",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-6",
+        "method": "session.snapshot",
+        "params": {},
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-6",
+        "ok": true,
+        "result": {
+          "sessionId": "runtime",
+          "throughSequence": 0,
+          "projectPath": "/p",
+          "messages": [],
+          "runtime": {
+            "status": "idle"
+          },
+          "steeringMessages": [],
+          "settings": {
+            "model": "p/m",
+            "availableModels": [
+              "p/m"
+            ],
+            "thinkingLevel": "off",
+            "availableThinkingLevels": [
+              "off"
+            ]
+          },
+          "commands": [],
+          "prompts": [],
+          "presentation": {
+            "revision": 0,
+            "widgets": [],
+            "footer": [],
+            "extensions": {
+              "buttons": [],
+              "badges": [],
+              "state": {
+                "demo": {
+                  "value": [
+                    null,
+                    true,
+                    1,
+                    "text"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-6",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.close",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-7",
+        "method": "session.close",
+        "params": {},
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-7",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-7",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.compact",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-8",
+        "method": "session.compact",
+        "params": {},
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-8",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-8",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.reload",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-9",
+        "method": "session.reload",
+        "params": {},
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-9",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-9",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "session.archive",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-10",
+        "method": "session.archive",
+        "params": {
+          "path": "/p/history.jsonl",
+          "archived": true
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-10",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-10",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "project.list",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-11",
+        "method": "project.list",
+        "params": {}
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-11",
+        "ok": true,
+        "result": {
+          "revision": 0,
+          "catalogue": {
+            "projects": []
+          }
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-11",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "project.pin",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-12",
+        "method": "project.pin",
+        "params": {
+          "path": "/p",
+          "pinned": true
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-12",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-12",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "project.remove",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-13",
+        "method": "project.remove",
+        "params": {
+          "path": "/p"
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-13",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-13",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "message.send",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-14",
+        "method": "message.send",
+        "params": {
+          "message": "Hello"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-14",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-14",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "run.abort",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-15",
+        "method": "run.abort",
+        "params": {},
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-15",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-15",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "prompt.answer",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-16",
+        "method": "prompt.answer",
+        "params": {
+          "promptId": "prompt",
+          "result": {
+            "cancelled": false,
+            "value": true
+          }
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-16",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-16",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "model.select",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-17",
+        "method": "model.select",
+        "params": {
+          "model": "p/m"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-17",
+        "ok": true,
+        "result": {
+          "model": "p/m",
+          "availableModels": [
+            "p/m"
+          ],
+          "thinkingLevel": "off",
+          "availableThinkingLevels": [
+            "off"
+          ]
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-17",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "thinking.level",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-18",
+        "method": "thinking.level",
+        "params": {
+          "level": "off"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-18",
+        "ok": true,
+        "result": {
+          "model": "p/m",
+          "availableModels": [
+            "p/m"
+          ],
+          "thinkingLevel": "off",
+          "availableThinkingLevels": [
+            "off"
+          ]
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-18",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "extension.run",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-19",
+        "method": "extension.run",
+        "params": {
+          "actionId": "demo.action"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-19",
+        "ok": true,
+        "result": {
+          "state": "accepted",
+          "operationId": "operation"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-19",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "directory.browse",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-20",
+        "method": "directory.browse",
+        "params": {
+          "path": "/p"
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-20",
+        "ok": true,
+        "result": {
+          "path": "/p",
+          "breadcrumbs": [],
+          "entries": []
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-20",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "command.complete",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-21",
+        "method": "command.complete",
+        "params": {
+          "commandName": "demo",
+          "argumentPrefix": "st"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-21",
+        "ok": true,
+        "result": {
+          "items": [
+            {
+              "value": "staging",
+              "label": "Staging"
+            }
+          ]
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-21",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    },
+    {
+      "method": "file.open",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-22",
+        "method": "file.open",
+        "params": {
+          "path": "./report.pdf"
+        },
+        "sessionId": "runtime"
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-22",
+        "ok": true,
+        "result": {
+          "state": "completed"
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-22",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "session.snapshot",
+      "sessionId": "runtime",
+      "data": {
+        "sessionId": "runtime",
+        "throughSequence": 0,
+        "projectPath": "/p",
+        "messages": [],
+        "runtime": {
+          "status": "idle"
+        },
+        "steeringMessages": [],
+        "settings": {
+          "model": "p/m",
+          "availableModels": [
+            "p/m"
+          ],
+          "thinkingLevel": "off",
+          "availableThinkingLevels": [
+            "off"
+          ]
+        },
+        "commands": [],
+        "prompts": [],
+        "presentation": {
+          "revision": 0,
+          "widgets": [],
+          "footer": [],
+          "extensions": {
+            "buttons": [],
+            "badges": [],
+            "state": {
+              "demo": {
+                "value": [
+                  null,
+                  true,
+                  1,
+                  "text"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "runtime.status",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "status": "idle"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "session.closed",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "reason": "requested"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "session.list.changed",
+      "data": {
+        "revision": 0,
+        "sessions": [
+          {
+            "sessionId": "runtime",
+            "title": "Example",
+            "projectPath": "/p",
+            "projectName": "p",
+            "status": "idle"
+          }
+        ]
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "session.replaced",
+      "data": {
+        "previousSessionId": "old",
+        "snapshot": {
+          "sessionId": "runtime",
+          "throughSequence": 0,
+          "projectPath": "/p",
+          "messages": [],
+          "runtime": {
+            "status": "idle"
+          },
+          "steeringMessages": [],
+          "settings": {
+            "model": "p/m",
+            "availableModels": [
+              "p/m"
+            ],
+            "thinkingLevel": "off",
+            "availableThinkingLevels": [
+              "off"
+            ]
+          },
+          "commands": [],
+          "prompts": [],
+          "presentation": {
+            "revision": 0,
+            "widgets": [],
+            "footer": [],
+            "extensions": {
+              "buttons": [],
+              "badges": [],
+              "state": {
+                "demo": {
+                  "value": [
+                    null,
+                    true,
+                    1,
+                    "text"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "server.stopping",
+      "data": {
+        "reason": "restart"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "message.delta",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "runId": "run",
+        "delta": "Hello"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "message.thinking.delta",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "runId": "run",
+        "delta": "Thinking"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "message.finalized",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "runId": "run",
+        "message": {
+          "id": "assistant",
+          "role": "assistant",
+          "text": "Hello"
+        }
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "tool.updated",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "runId": "run",
+        "tool": {
+          "toolCallId": "tool",
+          "name": "bash",
+          "status": "success",
+          "outputText": "done"
+        }
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "steering.queue.changed",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "messages": [
+          "same",
+          "same"
+        ]
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "settings.changed",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "model": "p/m",
+        "availableModels": [
+          "p/m"
+        ],
+        "thinkingLevel": "off",
+        "availableThinkingLevels": [
+          "off"
+        ]
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "operation.finished",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "operationId": "operation",
+        "requestId": "request",
+        "outcome": "completed"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "notification.created",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "level": "info",
+        "message": "Notice"
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "prompt.list.changed",
+      "sessionId": "runtime",
+      "sequence": 1,
+      "data": {
+        "prompts": [
+          {
+            "id": "prompt",
+            "title": "Continue?",
+            "kind": "confirm",
+            "message": "Run?"
+          }
+        ]
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "presentation.changed",
+      "sessionId": "runtime",
+      "data": {
+        "revision": 0,
+        "widgets": [],
+        "footer": [],
+        "extensions": {
+          "buttons": [],
+          "badges": [],
+          "state": {
+            "demo": {
+              "value": [
+                null,
+                true,
+                1,
+                "text"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "version": 2,
+      "type": "event",
+      "serverInstanceId": "server",
+      "event": "project.list.changed",
+      "data": {
+        "revision": 0,
+        "catalogue": {
+          "projects": []
+        }
+      }
+    }
+  ],
+  "protocolError": {
+    "version": 2,
+    "type": "protocolError",
+    "serverInstanceId": "server",
+    "error": {
+      "code": "unsupportedVersion",
+      "message": "Only v2 is supported"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, act, cleanup } from "@testing-library/react";
-import type { Tab, TabStatus } from "../../../../../src/shared/protocol.js";
+import type { Tab, TabStatus } from "../../../../../src/web/app/state/view-types.js";
 import { CHIME_STORAGE_KEY, useChimes } from "../../../../../src/web/settings/preferences/use-chimes.js";
 
 const tab = (sessionId: string, status: TabStatus): Tab => ({

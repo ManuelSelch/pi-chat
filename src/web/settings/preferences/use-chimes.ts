@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useLocalStorage } from "@mantine/hooks";
-import type { Tab } from "../../../shared/protocol.js";
+import type { Tab } from "../../app/state/view-types.js";
 import { ChimePlayer, chimesFor, statusMap } from "./chime.js";
 
 export const CHIME_STORAGE_KEY = "pi-chat:chimes";
@@ -11,7 +11,7 @@ export const CHIME_STORAGE_KEY = "pi-chat:chimes";
  * list rather than the active session, so a background tab finishing is exactly
  * the case it is useful for.
  */
-export function useChimes(tabs: Tab[]): { enabled: boolean; setEnabled: (value: boolean) => void; available: boolean } {
+export function useChimes(tabs: readonly Tab[]): { enabled: boolean; setEnabled: (value: boolean) => void; available: boolean } {
   const [enabled, setEnabled] = useLocalStorage({ key: CHIME_STORAGE_KEY, defaultValue: false, getInitialValueInEffect: false });
   const player = useRef<ChimePlayer>(undefined);
   player.current ??= new ChimePlayer();

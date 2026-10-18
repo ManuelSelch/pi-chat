@@ -1,5 +1,5 @@
 import { Box } from "@mantine/core";
-import type { Widget } from "../../../shared/protocol.js";
+import type { Widget } from "../../app/state/view-types.js";
 import { WidgetBlock } from "./WidgetPanel.js";
 
 /** Clears the header, and is pinned so a long transcript scrolls underneath. */
@@ -31,7 +31,7 @@ export const WIDGET_DOCK_MAX_WIDTH = "420px";
  * very wide window does not stretch the panels, and the caller only mounts this
  * when the gutter is big enough to hold it without covering the transcript.
  */
-export function WidgetDock({ widgets }: { widgets: Widget[] }) {
+export function WidgetDock({ widgets }: { widgets: readonly Widget[] }) {
   if (widgets.length === 0) return null;
   return (
     <Box
