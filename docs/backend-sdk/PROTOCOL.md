@@ -2,7 +2,7 @@
 
 **Cutover in progress. Wire version: `2`. Production still uses v1 until the coordinated switch is verified.**
 
-A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. The staged [v2 contract](../../packages/pi-sdk/typescript/src/contract/v2.ts), [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/valid.json) implement the message shapes below. They are not negotiated or exported as a second live transport. The runtime/SDK/application cutover is not complete yet.
+A shared contract for TypeScript and Swift clients. The extracted [v1 schemas](../../packages/pi-sdk/typescript/src/contract/protocol.ts) in the [local SDK workspace](../../packages/pi-sdk/README.md) are only the migration baseline; the coordinated cutover replaces them, and v1 is not supported afterward. The staged [v2 contract](../../packages/pi-sdk/typescript/src/contract/v2.ts), [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/valid.json) implement the message shapes below. They are not negotiated or exported as a second live transport. The runtime/SDK/application cutover is not complete yet; see the [implementation checkpoint](CUTOVER.md) for verified work and remaining integration.
 
 ## 1. Boundaries
 
