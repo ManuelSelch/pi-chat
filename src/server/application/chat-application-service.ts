@@ -1,17 +1,19 @@
 import { homedir } from "node:os";
+import { resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import type { DirectoryBrowse, DirectoryListing } from "../../shared/directories.js";
 import { DirectoryBrowserService } from "../projects/directory-browser-service.js";
 import type { FileOpenResult } from "../../shared/files.js";
 import { FileService } from "../files/file-service.js";
 import { fileOpenFailure } from "../files/file-open-error.js";
-import type { ChatMessage, ClientMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
+import type { ChatMessage, Tab, UiPromptResult, WebFeature } from "../../shared/protocol.js";
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import { ProjectSessionService } from "../projects/project-session-service.js";
 import type { ProjectCatalogue } from "../projects/catalogue-types.js";
 import type { RestartService } from "../bootstrap/restart-service.js";
 import { SessionRegistry } from "./session-registry.js";
-import { runFeatureAction } from "./feature-actions.js";
+import { runFeatureAction, type FeatureCommand } from "./feature-actions.js";
 
 function firstUserMessage(snapshot: RuntimeSnapshot): string | undefined {
   for (const message of snapshot.messages) {
@@ -32,6 +34,7 @@ export class ChatApplicationService {
   private readonly sessions: SessionRegistry;
   private readonly sessionMutations = new Set<string>();
   private readonly pendingWork = new Map<string, number>();
+  private readonly openingPaths = new Map<string, Promise<string>>();
 
   constructor(
     initialRuntime: RuntimeAdapter | undefined,
@@ -56,6 +59,12 @@ export class ChatApplicationService {
 
   openSessionIds(): string[] {
     return this.sessions.list().map((session) => session.sessionId);
+  }
+
+  /** Synchronous capture used only after asynchronous snapshot preparation. */
+  captureSnapshot(sessionId: string) {
+    const snapshot = this.sessions.get(sessionId).snapshot();
+    return { ...snapshot, actions: this.withAppActions(snapshot.actions), extensions: this.extensions.snapshot({ sessionId }) };
   }
 
   /** Await extension hooks only; catalogue scans must never block transcript publication. */
@@ -213,12 +222,16 @@ export class ChatApplicationService {
       this.sessions.focus(open.sessionId);
       return open.sessionId;
     }
-    return this.openTab(() => this.factory.openSession(path));
+    const key = (() => { try { return realpathSync(path); } catch { return resolve(path); } })();
+    const pending = this.openingPaths.get(key);
+    if (pending) return pending;
+    const opening = this.openTab(() => this.factory.openSession(path));
+    this.openingPaths.set(key, opening);
+    try { return await opening; } finally { this.openingPaths.delete(key); }
   }
 
   async newSession(path?: string): Promise<string> {
-    const active = this.activeSessionId();
-    const target = await this.directories.validate(path ?? (active ? this.sessions.get(active).snapshot().projectPath : homedir()));
+    const target = await this.directories.validate(path ?? homedir());
     await this.projectSessions.rememberProject(target);
     return this.openTab(() => this.factory.newSession(target));
   }
@@ -266,7 +279,7 @@ export class ChatApplicationService {
     await this.sessions.close(sessionId);
   }
 
-  async runFeature(message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>): Promise<void> {
+  async runFeature(message: FeatureCommand): Promise<void> {
     const sessionId = message.sessionId;
     if (this.sessionMutations.has(sessionId)) throw new Error("That session is being archived.");
     const path = this.sessions.has(sessionId) ? this.sessions.get(sessionId).snapshot().sessionPath : undefined;

@@ -6,7 +6,7 @@ import {
   projectCatalogueSchema, slashCommandSchema, commandCompletionItemSchema,
 } from "./protocol.js";
 
-/** Staged cutover contract. Not exported/negotiated by the live v1 client/server. */
+/** V2 server contract. Root SDK exports remain v1 until the client cutover. */
 export const VERSION = 2 as const;
 export const idSchema = z.string().min(1).max(128).regex(/^[^\u0000-\u001f\u007f-\u009f]+$/);
 export const counterSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);

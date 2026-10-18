@@ -1,4 +1,6 @@
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
+import { mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../../../../src/server/application/chat-application-service.js";
 import { createPiChatExtensionRegistry } from "../../../../src/server/extensions/extension-registry.js";
@@ -15,6 +17,21 @@ function service(archiveSpy = vi.fn(async () => {})) {
   const projectSessions = { catalogue: async () => ({ projects: [] }), rememberProject: vi.fn(async () => {}), archive: archiveSpy } as any;
   return { chat: new ChatApplicationService(runtime, factory, projectSessions), runtime, archiveSpy, newSessionSpy };
 }
+
+describe("convergent history opening", () => {
+  it("opens one runtime for concurrent canonical and symlink paths", async () => {
+    const folder = await mkdtemp(join(tmpdir(), "pi-open-"));
+    try {
+      const path = join(folder, "history.jsonl"); const link = join(folder, "link.jsonl");
+      await writeFile(path, ""); await symlink(path, link);
+      let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+      const openSession = vi.fn(async () => { await gate; return new FakeRuntimeAdapter("loaded"); });
+      const chat = new ChatApplicationService(undefined, { openSession, continueProject: vi.fn(), newSession: vi.fn() });
+      const first = chat.openSession(path); const second = chat.openSession(link);
+      release(); expect(await first).toBe(await second); expect(openSession).toHaveBeenCalledOnce(); await chat.dispose();
+    } finally { await rm(folder, { recursive: true, force: true }); }
+  });
+});
 
 describe("command argument completion", () => {
   it("uses the named session even when another tab is focused", async () => {

@@ -55,6 +55,27 @@ describe("SessionRegistry", () => {
     expect(registry.tabs()[2]!.title).toBe("New session");
   });
 
+  it("converges concurrent close requests on one disposal", async () => {
+    const registry = new SessionRegistry(() => {}); const adapter = adapterWith({ sessionId: "a" }); registry.add(adapter);
+    let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; });
+    const dispose = vi.spyOn(adapter, "dispose").mockImplementation(() => pending);
+    const first = registry.close("a"); const second = registry.close("a");
+    expect(dispose).toHaveBeenCalledOnce(); release(); await Promise.all([first, second]);
+    expect(registry.has("a")).toBe(false);
+  });
+
+  it("retains a partially disposed runtime until an explicit close retry succeeds", async () => {
+    const registry = new SessionRegistry(() => {});
+    const adapter = adapterWith({ sessionId: "a" });
+    registry.add(adapter);
+    const dispose = vi.spyOn(adapter, "dispose").mockImplementationOnce(() => { throw new Error("partial teardown"); });
+    await expect(registry.close("a")).rejects.toThrow("partial teardown");
+    expect(registry.has("a")).toBe(true);
+    await registry.close("a");
+    expect(dispose).toHaveBeenCalledTimes(2);
+    expect(registry.has("a")).toBe(false);
+  });
+
   it("closes a tab, disposing its runtime and unsubscribing it", async () => {
     const events: string[] = [];
     const registry = new SessionRegistry((sessionId) => events.push(sessionId));

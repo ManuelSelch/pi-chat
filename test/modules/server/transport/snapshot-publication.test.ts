@@ -1,176 +1,96 @@
 import { describe, expect, it, vi } from "vitest";
-import { WebSocket } from "ws";
 import { ChatApplicationService } from "../../../../src/server/application/chat-application-service.js";
 import { createPiChatExtensionRegistry } from "../../../../src/server/extensions/extension-registry.js";
 import type { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 import type { ProjectCatalogue } from "../../../../src/shared/protocol.js";
 import type { RuntimeSnapshot } from "../../../../src/server/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";
-import { initialSessionState as initialChatState, reduceSessionMessage as reduceServerMessage } from "@manuelselch/pi-sdk";
-import type { ServerMessage } from "../../../../src/shared/protocol.js";
+import { eventSchema, type Event } from "@manuelselch/pi-sdk/contract/v2";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 function deferred() {
-  let resolve!: () => void;
-  const promise = new Promise<void>(done => { resolve = done; });
-  return { promise, resolve };
+  let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve };
 }
-
 function setup() {
-  const runtime = new FakeRuntimeAdapter("s1");
-  let state = runtime.snapshot();
+  const runtime = new FakeRuntimeAdapter("s1"); let state = runtime.snapshot();
   vi.spyOn(runtime, "snapshot").mockImplementation(() => state);
-  const replacement = new FakeRuntimeAdapter("s1");
-  const extensions = createPiChatExtensionRegistry();
+  const replacement = new FakeRuntimeAdapter("s1"); const extensions = createPiChatExtensionRegistry();
   const catalogue = vi.fn(async (): Promise<ProjectCatalogue> => ({ projects: [] }));
-  const chat = new ChatApplicationService(runtime, {
-    continueProject: async () => replacement,
-    openSession: async () => replacement,
-    newSession: async () => replacement,
-  }, { catalogue } as unknown as ProjectSessionService, undefined, extensions);
-  const messages: ServerMessage[] = [];
-  const socket = { readyState: WebSocket.OPEN, send: vi.fn((json: string) => messages.push(JSON.parse(json))) } as unknown as WebSocket;
-  let controller: WebSocket | undefined = socket;
-  const publisher = new ServerPublisher(chat, () => controller);
+  const chat = new ChatApplicationService(runtime, { continueProject: async () => replacement, openSession: async () => replacement, newSession: async () => replacement }, { catalogue } as unknown as ProjectSessionService, undefined, extensions);
+  const messages: Event[] = []; const publisher = new ServerPublisher(chat, event => messages.push(eventSchema.parse(event)));
   const addUser = (id: string, text: string) => {
-    const user = { id, role: "user" as const, text };
-    state = { ...state, messages: [...state.messages, user], isStreaming: true };
+    const user = { id, role: "user" as const, text }; state = { ...state, messages: [...state.messages, user], isStreaming: true };
     publisher.publish("s1", { type: "messageFinal", runId: "run", message: user });
   };
-  return {
-    runtime, chat, extensions, catalogue, publisher, socket, messages, addUser,
+  return { chat, extensions, catalogue, publisher, messages, addUser,
     setState: (next: Partial<RuntimeSnapshot>) => { state = { ...state, ...next }; },
-    setController: (next: WebSocket | undefined) => { controller = next; },
-    snapshots: () => messages.filter(message => message.type === "snapshot"),
+    snapshots: () => messages.flatMap(message => message.event === "session.snapshot" ? [message.data] : []),
   };
 }
-
-describe("atomic snapshot publication", () => {
-  it("publishes the transcript without scanning the catalogue, even if scanning would fail", async () => {
-    const context = setup();
-    context.catalogue.mockRejectedValue(new Error("Catalogue unavailable"));
-    try {
-      await context.publisher.sendSnapshot("s1");
-      expect(context.snapshots()).toHaveLength(1);
-      expect(context.catalogue).not.toHaveBeenCalled();
-      expect(context.snapshots()[0]).not.toHaveProperty("catalogue");
-    } finally { await context.chat.dispose(); }
+describe("v2 atomic snapshot publication", () => {
+  it("publishes transcripts independently of failed catalogue scans", async () => {
+    const context = setup(); context.catalogue.mockRejectedValue(new Error("Catalogue unavailable"));
+    await context.publisher.sendSnapshot("s1");
+    expect(context.snapshots()).toHaveLength(1); expect(context.catalogue).not.toHaveBeenCalled();
+    expect(context.snapshots()[0]).not.toHaveProperty("catalogue"); await context.chat.dispose();
   });
-
-  it("publishes a snapshot while a catalogue refresh is still blocked", async () => {
-    const context = setup();
-    const gate = deferred();
+  it("publishes snapshots while a project refresh is blocked", async () => {
+    const context = setup(); const gate = deferred();
     context.catalogue.mockImplementation(async () => { await gate.promise; return { projects: [] }; });
-    const refresh = context.publisher.sendCatalogue();
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
-    try {
-      await context.publisher.sendSnapshot("s1");
-      expect(context.snapshots()).toHaveLength(1);
-      expect(context.catalogue).toHaveBeenCalledOnce();
-    } finally { gate.resolve(); await refresh; await context.chat.dispose(); }
+    const refresh = context.publisher.refreshProjects(); await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+    try { await context.publisher.sendSnapshot("s1"); expect(context.snapshots()).toHaveLength(1); }
+    finally { gate.resolve(); await refresh; await context.chat.dispose(); }
   });
-  it("captures current messages and status after extension preparation, without rewinding the reducer", async () => {
-    const context = setup();
-    const gate = deferred();
-    const entered = deferred();
+  it("captures fresh state and watermark after asynchronous extension preparation", async () => {
+    const context = setup(); const gate = deferred(); const entered = deferred();
     context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
-    const pending = context.publisher.sendSnapshot("s1");
-    await entered.promise;
-    context.addUser("u1", "Quick message after bash");
-    context.publisher.publish("s1", { type: "runtimeStatus", status: "running" });
-    gate.resolve();
-    await pending;
-    expect(context.snapshots()).toMatchObject([{
-      throughSequence: 2, isStreaming: true,
-      messages: [{ id: "u1", text: "Quick message after bash" }],
-    }]);
-    const state = context.messages.filter(message => "sequence" in message)
-      .reduce((state, message) => reduceServerMessage(state, message as Parameters<typeof reduceServerMessage>[1]), initialChatState);
-    expect(state.sequence).toBe(2);
-    expect(state.status).toBe("running");
-    expect(state.messages).toMatchObject([{ id: "u1" }]);
+    const pending = context.publisher.sendSnapshot("s1"); await entered.promise;
+    context.addUser("u1", "During hook"); context.publisher.publish("s1", { type: "runtimeStatus", status: "running" });
+    gate.resolve(); await pending;
+    expect(context.snapshots()).toMatchObject([{ throughSequence: 2, runtime: { status: "running" }, messages: [{ id: "u1" }] }]);
     await context.chat.dispose();
   });
-
-  it("includes messages produced while a snapshot extension hook is awaiting", async () => {
-    const context = setup();
-    const gate = deferred();
-    const entered = deferred();
-    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
-    const pending = context.publisher.sendSnapshot("s1");
-    await entered.promise;
-    context.addUser("u1", "During hook");
-    gate.resolve();
-    await pending;
-    expect(context.snapshots()).toMatchObject([{ throughSequence: 1, messages: [{ id: "u1" }] }]);
-    await context.chat.dispose();
-  });
-
-  it("publishes fresh state when overlapping preparations complete in reverse order", async () => {
-    const context = setup();
-    const first = deferred();
-    const second = deferred();
-    const hook = vi.fn()
-      .mockImplementationOnce(async () => { await first.promise; })
-      .mockImplementationOnce(async () => { await second.promise; });
+  it("keeps overlapping preparations fresh when completed in reverse order", async () => {
+    const context = setup(); const first = deferred(); const second = deferred();
+    const hook = vi.fn().mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
     context.extensions.on("session.snapshot", hook);
-    const older = context.publisher.sendSnapshot("s1");
-    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1));
-    context.addUser("u1", "First");
-    const newer = context.publisher.sendSnapshot("s1");
-    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(2));
-    second.resolve();
-    await newer;
-    context.addUser("u2", "Second");
-    first.resolve();
-    await older;
+    const older = context.publisher.sendSnapshot("s1"); await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1));
+    context.addUser("u1", "First"); const newer = context.publisher.sendSnapshot("s1"); await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(2));
+    second.resolve(); await newer; context.addUser("u2", "Second"); first.resolve(); await older;
     expect(context.snapshots().map(snapshot => snapshot.throughSequence)).toEqual([1, 2]);
-    expect(context.snapshots().at(-1)?.messages).toMatchObject([{ id: "u1" }, { id: "u2" }]);
-    const sequences = context.messages.filter(message => "sequence" in message).map(message => "sequence" in message ? message.sequence : -1);
-    expect(sequences).toEqual([1, 1, 2, 2]);
-    await context.chat.dispose();
+    expect(context.snapshots().at(-1)?.messages).toMatchObject([{ id: "u1" }, { id: "u2" }]); await context.chat.dispose();
   });
-
-  it.each([false, true])("discards preparation after closing the session (reopen=%s)", async reopen => {
-    const context = setup();
-    const gate = deferred();
-    const entered = deferred();
+  it.each([false, true])("discards preparation after closing or reopening (reopen=%s)", async reopen => {
+    const context = setup(); const gate = deferred(); const entered = deferred();
     context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
-    const pending = context.publisher.sendSnapshot("s1");
-    await entered.promise;
-    await context.chat.closeTab("s1");
-    if (reopen) await context.chat.openSession("s1.jsonl");
-    gate.resolve();
-    await pending;
-    expect(context.snapshots()).toEqual([]);
+    const pending = context.publisher.sendSnapshot("s1"); await entered.promise;
+    await context.chat.closeTab("s1"); if (reopen) await context.chat.openSession("s1.jsonl");
+    gate.resolve(); await pending; expect(context.snapshots()).toEqual([]); await context.chat.dispose();
+  });
+  it("does not reject an already successful open when a snapshot hook fails", async () => {
+    const context = setup();
+    context.extensions.on("session.snapshot", async () => { throw new Error("refresh failed"); });
+    await expect(context.publisher.opened("s1")).resolves.toMatchObject({ snapshot: { sessionId: context.publisher.wireId("s1"), throughSequence: 0 }, summary: { sessionId: context.publisher.wireId("s1") } });
     await context.chat.dispose();
   });
 
-  it.each(["closed", "replaced"] as const)("does not publish to a %s connection after preparation", async invalidation => {
+  it("increments presentation revision when extension snapshot content changes", async () => {
     const context = setup();
-    const gate = deferred();
-    const entered = deferred();
-    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
-    const pending = context.publisher.sendAll(context.socket);
-    await entered.promise;
-    if (invalidation === "closed") Object.assign(context.socket, { readyState: WebSocket.CLOSED });
-    else context.setController({ readyState: WebSocket.OPEN, send: vi.fn() } as unknown as WebSocket);
-    gate.resolve();
-    await pending;
-    expect(context.socket.send).not.toHaveBeenCalled();
+    await context.publisher.sendSnapshot("s1");
+    const initial = context.snapshots()[0]!.presentation!.revision;
+    context.extensions.registerButton({ id: "demo", slot: "composer.right", label: "Demo", actionId: "demo.run" });
+    await context.publisher.sendSnapshot("s1");
+    expect(context.snapshots()[1]!.presentation!.revision).toBeGreaterThan(initial);
+    expect(context.snapshots()[1]!.presentation!.extensions.buttons).toHaveLength(1);
     await context.chat.dispose();
   });
 
-  it("drops a delayed catalogue for an obsolete connection", async () => {
-    const context = setup();
-    const gate = deferred();
+  it("does not rewind independently revisioned projects when an older scan completes last", async () => {
+    const context = setup(); const gate = deferred();
     context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; });
-    const pending = context.publisher.sendCatalogue();
-    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
-    context.setController(undefined);
-    gate.resolve();
-    await pending;
-    expect(context.socket.send).not.toHaveBeenCalled();
-    await context.chat.dispose();
+    const older = context.publisher.refreshProjects(); await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+    await context.publisher.refreshProjects(); const revision = context.publisher.projects().revision;
+    gate.resolve(); await older; expect(context.publisher.projects().revision).toBe(revision);
+    expect(context.messages.filter(message => message.event === "project.list.changed")).toHaveLength(1); await context.chat.dispose();
   });
 });

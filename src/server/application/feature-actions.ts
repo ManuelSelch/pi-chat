@@ -1,4 +1,12 @@
-import type { ClientMessage } from "../../shared/protocol.js";
+import type { ThinkingLevel } from "../../shared/protocol.js";
+
+/** Internal application action, not a wire envelope or compatibility parser. */
+export type FeatureCommand = { sessionId: string; version?: number } & (
+  | { type: "runExtensionAction"; actionId: string }
+  | { type: "runFeature"; featureId: "model.select"; input: { model: string } }
+  | { type: "runFeature"; featureId: "thinking.level"; input: { level: ThinkingLevel } }
+  | { type: "runFeature"; featureId: "session.compact" | "app.restart"; input: Record<string, never> }
+);
 import type { PiChatExtensionRegistry } from "../extensions/extension-registry.js";
 import type { RestartService } from "../bootstrap/restart-service.js";
 import type { RuntimeAdapter } from "../runtime/contracts.js";
@@ -16,7 +24,7 @@ export interface FeatureActionDependencies {
 }
 
 export async function runFeatureAction(
-  message: Extract<ClientMessage, { type: "runFeature" | "runExtensionAction" }>,
+  message: FeatureCommand,
   dependencies: FeatureActionDependencies,
 ): Promise<void> {
   if (message.type === "runExtensionAction") {
@@ -47,5 +55,5 @@ export async function runFeatureAction(
     return;
   }
   if (runtime.snapshot().isStreaming) throw new Error("Wait for the current run to finish before changing controls.");
-  await runtime.setThinkingLevel(message.input.level);
+  if (message.featureId === "thinking.level") await runtime.setThinkingLevel(message.input.level);
 }

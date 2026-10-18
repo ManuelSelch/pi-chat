@@ -24,6 +24,7 @@ interface Entry extends OpenSession {
 export class SessionRegistry {
   private readonly entries: Entry[] = [];
   private active?: string;
+  private readonly closing = new Map<string, Promise<void>>();
 
   constructor(private readonly onEvent: (sessionId: string, event: RuntimeEvent) => void) {}
 
@@ -117,12 +118,23 @@ export class SessionRegistry {
   }
 
   async close(sessionId: string): Promise<void> {
+    const pending = this.closing.get(sessionId);
+    if (pending) return pending;
+    const disposal = this.disposeEntry(sessionId);
+    this.closing.set(sessionId, disposal);
+    try { await disposal; } finally { this.closing.delete(sessionId); }
+  }
+
+  private async disposeEntry(sessionId: string): Promise<void> {
     const index = this.entries.findIndex((entry) => entry.sessionId === sessionId);
     if (index === -1) return;
-    const [entry] = this.entries.splice(index, 1);
-    entry!.unsubscribe();
-    // Disposing cancels that session's pending prompts and its runtime.
-    await entry!.adapter.dispose();
+    const entry = this.entries[index]!;
+    // Keep identity/subscriptions until disposal is confirmed. A partial failure
+    // must remain discoverable so the controller can explicitly retry close.
+    await entry.adapter.dispose();
+    entry.unsubscribe();
+    const currentIndex = this.entries.indexOf(entry);
+    if (currentIndex !== -1) this.entries.splice(currentIndex, 1);
     if (this.active === sessionId) this.active = this.entries.at(index)?.sessionId ?? this.entries.at(-1)?.sessionId;
   }
 

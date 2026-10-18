@@ -1,123 +1,95 @@
-import type { Server } from "node:http";
+import type { Server, IncomingMessage } from "node:http";
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
-import {
-  CONTROLLER_REPLACED_CODE,
-  PROTOCOL_VERSION,
-  parseClientMessage,
-} from "../../shared/protocol.js";
+import { snapshotSchema, operationSchemas, type Capability, type ServerMessage, type Event } from "@manuelselch/pi-sdk/contract/v2";
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
-import { handleClientCommand } from "./command-handler.js";
+import { executeOperation } from "./command-handler.js";
+import { V2Connection } from "./v2-connection.js";
 import type { FileLogger } from "../logging/file-logger.js";
 
+const MAX_FRAME_BYTES = 16_777_216;
+const MAX_SEND_BYTES = 16_777_216;
+/** Only same-origin browsers may use this private, proxy-authenticated endpoint. */
+function validOrigin(request: IncomingMessage): boolean {
+  const origin = request.headers.origin;
+  if (!origin) return true; // Native/CLI clients do not send browser Origin.
+  try {
+    const url = new URL(origin);
+    return ["http:", "https:"].includes(url.protocol) && url.host.toLowerCase() === request.headers.host?.toLowerCase() && !url.username && !url.password && url.pathname === "/" && !url.search && !url.hash;
+  } catch { return false; }
+}
 export class WebSocketTransport {
   private readonly server: WebSocketServer;
-  private controller?: WebSocket;
+  private controller?: { socket: WebSocket; connection: V2Connection; capabilities: readonly Capability[] };
   private readonly publisher: ServerPublisher;
   private readonly unsubscribe: () => void;
-
-  private readonly connectionIds = new WeakMap<WebSocket, string>();
-
   constructor(httpServer: Server, private readonly chat: ChatApplicationService, private readonly logger?: FileLogger) {
-    this.server = new WebSocketServer({ server: httpServer, path: "/ws" });
-    this.publisher = new ServerPublisher(chat, () => this.controller, logger);
+    this.server = new WebSocketServer({ server: httpServer, path: "/ws", maxPayload: MAX_FRAME_BYTES,
+      verifyClient: ({ req }, done) => done(validOrigin(req), 403, "Browser origin is not allowed") });
+    this.publisher = new ServerPublisher(chat, event => this.publish(event), logger);
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publisher.publish(sessionId, event));
-    this.server.on("connection", (socket) => this.connect(socket));
+    this.server.on("connection", socket => this.connect(socket));
   }
-
   async close(): Promise<void> {
     this.unsubscribe();
-    this.controller?.close();
-    await new Promise<void>((resolve) => this.server.close(() => resolve()));
+    for (const socket of this.server.clients) socket.terminate();
+    await new Promise<void>(resolve => this.server.close(() => resolve()));
   }
-
+  private send(socket: WebSocket, message: ServerMessage): void {
+    if (socket.readyState !== WebSocket.OPEN) throw new Error("Socket unavailable");
+    const payload = JSON.stringify(message);
+    if (Buffer.byteLength(payload) > MAX_FRAME_BYTES || socket.bufferedAmount + Buffer.byteLength(payload) > MAX_SEND_BYTES) {
+      socket.close(1009, "Publication limit exceeded; reconnect to resynchronize"); throw new Error("Publication limit exceeded");
+    }
+    socket.send(payload, error => { if (error) socket.terminate(); });
+  }
+  private publish(event: Event): void {
+    const controller = this.controller;
+    if (!controller?.connection.ready) return;
+    if (event.event === "presentation.changed" && !controller.capabilities.includes("presentation")) return;
+    let publication = event;
+    if (!controller.capabilities.includes("presentation") && (event.event === "session.snapshot" || event.event === "session.replaced")) {
+      const snapshot = event.event === "session.snapshot" ? event.data : event.data.snapshot;
+      const { presentation: _presentation, ...core } = snapshot;
+      publication = event.event === "session.snapshot" ? { ...event, data: core } : { ...event, data: { ...event.data, snapshot: core } };
+    }
+    try { this.send(controller.socket, publication); } catch { controller.socket.terminate(); }
+  }
   private connect(socket: WebSocket): void {
-    const connectionId = randomUUID();
-    this.connectionIds.set(socket, connectionId);
+    const connectionId = randomUUID(); let selected: Capability[] = [];
     this.logger?.info("websocket.open", { connectionId });
-    if (this.controller?.readyState === WebSocket.OPEN) {
-      this.logger?.warn("websocket.controller_replaced", { connectionId: this.connectionIds.get(this.controller) });
-      this.publisher.sendTo(this.controller, this.publisher.protocolError("Another browser took control of this Pi Chat session."));
-      this.controller.close(CONTROLLER_REPLACED_CODE, "Controller replaced");
-    }
-    this.controller = socket;
-    // A browser is in control again, so pending dialogs stop counting down.
-    this.chat.resumePrompts();
-    void this.publisher.sendAll(socket);
-
-    socket.on("message", (data) => this.handleMessage(socket, data));
-
-    socket.on("error", (error) => {
-      this.logger?.error("websocket.error", { connectionId, message: error.message });
+    const capabilities: Capability[] = ["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
+    const connection = new V2Connection({
+      serverInstanceId: this.publisher.serverInstanceId, connectionId, capabilities,
+      isWritable: () => socket.readyState === WebSocket.OPEN,
+      isController: () => this.controller?.socket === socket,
+      claim: () => {
+        const previous = this.controller;
+        this.controller = { socket, connection, capabilities: selected };
+        previous?.connection.dispose(); previous?.socket.close(4001, "Controller replaced");
+        this.chat.resumePrompts();
+      },
+      send: message => this.send(socket, message), close: (code, reason) => socket.close(code, reason),
+      prepareInitialize: async (_params, selectedCapabilities) => { selected = selectedCapabilities; return this.publisher.prepareInitial(connectionId, selected); },
+      execute: async request => {
+        const execution = await executeOperation(request, this.chat, this.publisher);
+        if (execution.kind === "completed" && !selected.includes("presentation") && (request.method === "session.snapshot" || request.method === "session.open" || request.method === "session.create")) {
+          if (request.method === "session.snapshot") {
+            const { presentation: _, ...core } = snapshotSchema.parse(execution.result); return { ...execution, result: core };
+          }
+          const result = operationSchemas["session.open"].result.parse(execution.result);
+          const { presentation: _, ...snapshot } = result.snapshot; return { ...execution, result: { ...result, snapshot } };
+        }
+        return execution;
+      },
+      outcome: (request, operationId, outcome, error) => { if (request.sessionId) this.publisher.operation(request.sessionId, operationId, request.requestId, outcome, error); },
     });
-
+    socket.on("message", (data, binary) => { if (binary) { socket.close(1003, "Text JSON frames required"); return; } connection.receive(data.toString()); });
+    socket.on("error", error => this.logger?.error("websocket.error", { connectionId, message: error.message }));
     socket.on("close", (code, reason) => {
-      this.logger?.info("websocket.close", {
-        connectionId,
-        code,
-        reason: reason.toString("utf8").slice(0, 256),
-        controller: this.controller === socket,
-        runtimeActive: this.chat.tabs().some((tab) => tab.status !== "idle"),
-      });
-      if (this.controller !== socket) return;
-      this.controller = undefined;
-      // A reload must not cancel a permission gate, so pending dialogs only
-      // expire after the registry's grace period without a controller.
-      this.chat.suspendPrompts();
+      this.logger?.info("websocket.close", { connectionId, code, reason: reason.toString("utf8").slice(0, 256), controller: this.controller?.socket === socket, runtimeActive: this.chat.tabs().some(tab => tab.status !== "idle") });
+      connection.dispose(); if (this.controller?.socket !== socket) return; this.controller = undefined; this.chat.suspendPrompts();
     });
   }
-
-  private handleMessage(socket: WebSocket, data: WebSocket.RawData): void {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(data.toString());
-    } catch {
-      this.publisher.sendTo(socket, this.publisher.protocolError("Message must be valid JSON."));
-      return;
-    }
-
-    const result = (() => {
-      try {
-        return { ok: true as const, value: parseClientMessage(parsed) };
-      } catch {
-        return { ok: false as const };
-      }
-    })();
-    if (!result.ok) {
-      this.publisher.sendTo(socket, this.publisher.protocolError("Message does not match protocol version 1."));
-      return;
-    }
-
-    handleClientCommand(socket, result.value, {
-      chat: this.chat,
-      publisher: this.publisher,
-      isController: (candidate) => candidate === this.controller,
-      openTab: (open, origin, requestId) => void this.openTab(open, origin, requestId),
-    });
-  }
-
-  private async openTab(open: () => Promise<string>, socket = this.controller, requestId?: string): Promise<void> {
-    let sessionId: string;
-    try {
-      sessionId = await open();
-    } catch (error: unknown) {
-      if (requestId && socket) {
-        this.publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "sessionOpenError", requestId, error: this.publisher.errorText(error) });
-      } else this.publisher.publishError(this.chat.activeSessionId(), error);
-      return;
-    }
-    // Creation succeeded even if a later snapshot/catalogue refresh fails.
-    try {
-      await this.publisher.sendSnapshot(sessionId);
-      this.publisher.sendTabs();
-    } catch (error: unknown) {
-      this.publisher.publishError(sessionId, error);
-    } finally {
-      // The session is usable now; catalogue scanning must not delay the Open reply.
-      if (requestId && socket) this.publisher.replyTo(socket, { version: PROTOCOL_VERSION, type: "sessionOpened", requestId, sessionId });
-    }
-    await this.publisher.sendCatalogue();
-  }
-
 }

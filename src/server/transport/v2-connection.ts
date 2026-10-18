@@ -34,7 +34,7 @@ function failure(error: unknown): ProtocolError {
   return error instanceof V2OperationError ? error.toWire() : { code: "operationFailed", message: "The server operation failed." };
 }
 
-/** V2 dispatcher, staged until the coordinated live transport/SDK cutover. No v1 adapter. */
+/** Socket-independent v2 dispatcher used by the server transport. No v1 adapter. */
 export class V2Connection {
   private readonly seen = new Set<string>();
   private pending = 0;

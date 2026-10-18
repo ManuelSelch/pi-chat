@@ -1,9 +1,10 @@
 # V2 cutover — implementation checkpoint
 
-**Slice 5 is in progress, not complete. The running application still uses v1.**
-There is no v1/v2 negotiation or compatibility transport. The staged contract and
-dispatcher are intentionally not wired into the live socket until the server,
-SDK and Pi Chat can be switched together. Do not mark requirements slice 5 done.
+**Slice 5 is in progress, not complete. This branch is mid-cutover and is not a
+working end-to-end application checkpoint.** The server socket now speaks v2;
+PiClient and Pi Chat still speak v1. There is no v1/v2 negotiation or compatibility
+transport. Do not deploy this intermediate branch or mark requirements slice 5
+done until the SDK/application switch and full verification are finished.
 
 ## Verified increments
 
@@ -15,8 +16,20 @@ SDK and Pi Chat can be switched together. Do not mark requirements slice 5 done.
   temporary `@manuelselch/pi-sdk/contract/v2` staging entry point and generation
   command. The root SDK/contract entry points remain live v1 until cutover.
 - `2f6260c`: `src/server/transport/v2-connection.ts` is a socket-independent staged
-  dispatcher with 13 regression tests. It is **not** yet a WebSocket transport or
-  a ChatApplicationService host adapter.
+  dispatcher with 13 regression tests.
+- Concrete v2 server host: `websocket-transport.ts`, `command-handler.ts` and
+  `server-publisher.ts` now use the dispatcher and existing application services.
+  The raw socket no longer displaces a controller: claim happens at initialized
+  readiness. Same-origin browser checking, 16 MiB text/frame/send-buffer bounds,
+  capability filtering, correlated results and acceptance-before-Pi callbacks
+  are covered by real loopback socket tests.
+- The v2 publisher assigns process-local opaque runtime IDs independently of Pi
+  history IDs, tracks core sequences and independent list/presentation revisions,
+  and preserves asynchronous preparation followed by fresh synchronous capture.
+  Concurrent opens converge by canonical history path. Failed disposal retains
+  a closing runtime, rejects further work and permits explicit close retry;
+  concurrent close calls share one disposal. Disconnect leaves runtimes alive.
+  File/directory/metadata/snapshot transport tests now exercise v2.
 
 The dispatcher tests cover initialization preparation before controller claim,
 fresh synchronous capture and initial response queueing, required initialization,
@@ -37,20 +50,19 @@ snapshot preparation/capture, optional-capability filtering and socket bounds.
 1. Separate reusable domain schemas from `contract/protocol.ts`; the staged v2
    schema still imports shared model primitives there. Replace the live root
    contract/exports with v2 at the coordinated cutover, not a compatibility layer.
-2. Implement the concrete server host and v2 publisher, then replace the current
-   `websocket-transport.ts` / `command-handler.ts` wire path. Add origin checking,
-   maxPayload/send-buffer enforcement, initialization timeout cleanup and all
-   connection teardown. Actual controller admission must occur only at the
-   initialization barrier, not on raw socket connection.
-3. Introduce fresh runtime IDs distinct from Pi history IDs, convergent concurrent
-   open-by-path, structured settings, explicit close/partial-teardown behavior,
-   runtime-replacement events and independent inventory/project/presentation
-   revisions. Preserve atomic asynchronous-prepare/synchronous-capture snapshots.
-   Do not implement a Pi scheduler or durable operation journal.
-4. Bind every v2 operation to the existing Pi/application services. Distinguish
-   validation/admission from eventual settlement. Accepted steering settles its
-   submission, not the already-running turn. Preserve useful structured errors;
-   unexpected implementation errors must not leak private exception details.
+2. Complete server-host hardening alongside SDK integration: exercise real Pi
+   steering, runtime replacement, slow-consumer overload, initialization failure
+   and displaced-origin races through the actual socket, not just the dispatcher.
+   Verify admission against application mutation state before returning receipts.
+   Successful session creation/open now falls back to a fresh synchronous capture
+   when a later extension snapshot hook fails; cover factory/replacement races
+   and that fallback through the real client as part of full verification.
+3. Verify lifecycle and revisions end-to-end with the SDK: fresh identities after
+   close/reopen, in-place reload identity, concurrent open, partial close/archiving
+   and replacement events. Do not implement a Pi scheduler or durable journal.
+4. Audit error classification for every bound operation. Preserve useful structured
+   domain errors without leaking unexpected implementation exception details.
+   Accepted steering must settle submission rather than an existing turn.
 5. Replace PiClient's v1 trackers with one typed v2 pending-request mechanism;
    implement initialization, process identity, fresh projections, non-stale
    snapshots, bounded gap buffering/snapshot recovery, local cancellation and
@@ -73,6 +85,14 @@ stream-prefix guarantee, limits, explicit ping and partial teardown decisions.
 
 ## Verification at this checkpoint
 
+Current server increment:
+- Root `tsc --noEmit`, production `npm run build` and `git diff --check` pass.
+- **94 transport/application tests across 15 files pass**, including the live
+  socket coverage. This does **not** verify PiClient/Pi Chat integration.
+- The full suite/browser/smoke have **not** passed after replacing the server wire
+  path. Existing SDK, domain-driver and browser fixtures still require migration.
+
+Previous staged-contract checkpoint (before the server wire replacement):
 - Full pipeline passed: build/typechecking, **1,155 tests**, **32 browser tests**,
   production smoke. The browser/production tests still exercise the live **v1**
   stack; this is not an assertion that v2 runtime integration works.
@@ -87,5 +107,5 @@ Regenerate staged schemas/examples with:
 npm run contract:generate:v2 --workspace @manuelselch/pi-sdk
 npm run typecheck --workspace @manuelselch/pi-sdk
 npm test --workspace @manuelselch/pi-sdk
-npx vitest run test/modules/server/transport/v2-connection.test.ts
+npx vitest run test/modules/server/transport test/modules/server/application
 ```
