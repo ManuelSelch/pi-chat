@@ -15,6 +15,16 @@ it("focuses locally with no wire command and retains focus through inventory upd
   state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.list.changed", data: { revision: 1, sessions: [summary(snapshotData({ sessionId: "a" })), summary(snapshotData({ sessionId: "b" }))] } });
   expect(state.activeSessionId).toBe("b"); expect(activeSession(state).messages[0]).toMatchObject({ text: "second" });
 });
+it("restores local focus when the selected runtime survives reconnect and falls back when it does not", () => {
+  state = harness.reduce(state, { type: "focusSession", sessionId: "b" });
+  state = harness.reduce(state, { type: "connectionLost" });
+  state = harness.initialize(state, [snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "b" })]);
+  expect(state.activeSessionId).toBe("b");
+  state = harness.reduce(state, { type: "connectionLost" });
+  state = harness.initialize(state, [snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "c" })]);
+  expect(state.activeSessionId).toBe("a");
+  expect(state.sessions.b).toBeUndefined();
+});
 it("prunes closed projections and selects a remaining visible conversation", () => {
   state = harness.reduce(state, coreEvent("session.closed", { reason: "requested" }, "a", 1)); expect(state.sessions.a).toBeUndefined(); expect(state.activeSessionId).toBe("b");
 });

@@ -14,5 +14,6 @@ export async function generateSwiftProbe(): Promise<string> {
     lang: "swift",
     rendererOptions: { "initializers": "false", "coding-keys": "true", "access-level": "internal", "final-classes": "true" },
   });
-  return `// Generated feasibility probe with quicktype-core 26.0.0. Do not edit.\n// NOT public PiSDK API and NOT sufficient wire validation.\n${result.lines.join("\n")}\n`;
+  const generated = result.lines.join("\n").trimEnd();
+  return `// Generated feasibility probe with quicktype-core 26.0.0. Do not edit.\n// NOT public PiSDK API and NOT sufficient wire validation.\n${generated}\n`;
 }

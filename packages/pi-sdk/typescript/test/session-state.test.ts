@@ -30,6 +30,14 @@ it("deduplicates finalized history and clears only assistant drafts", () => {
   const next = reduce(final, event("message.delta", { runId: "next", delta: "new draft" }, 4));
   expect(reduce(next, event("message.finalized", { runId: "r", message: { id: "a", role: "assistant", text: "updated answer" } }, 5)).draft).toBe(next.draft);
 });
+it("keeps structured model/thinking settings authoritative independently of footer presentation", () => {
+  const current = applySnapshot(initialSessionState, snap());
+  const settings = { model: "provider/new", availableModels: ["provider/new", "provider/old"], thinkingLevel: "high" as const, availableThinkingLevels: ["off", "high"] as const };
+  const next = reduceSessionMessage(current, eventSchema.parse(event("settings.changed", settings, 1)) as Extract<Event, { sessionId: string }>);
+  expect(next.settings).toEqual(settings);
+  expect(next.actions.features.find(feature => feature.id === "model.select")?.state).toEqual({ value: settings.model, options: settings.availableModels });
+  expect(next.actions.features.find(feature => feature.id === "thinking.level")?.state).toEqual({ value: "high", options: ["off", "high"] });
+});
 it("revisions optional presentation independently from core sequences", () => {
   const presentation = { revision: 10, widgets: [{ key: "w", placement: "future", lines: ["data"] }], footer: [], extensions: { buttons: [], badges: [], state: {} } };
   const state = reduce(undefined, { ...event("presentation.changed", presentation), sessionId: "s" }); expect(state.sequence).toBe(0); expect(state.widgets).toEqual(presentation.widgets);

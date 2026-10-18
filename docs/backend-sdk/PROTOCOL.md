@@ -110,7 +110,7 @@ Paths refer to the server. `file.open` opens there, not on iOS. Removing a proje
 - Core session events increment a per-runtime `sequence`. Snapshot watermarks do not increment it. Prepare asynchronously, then capture current state/watermark and enqueue synchronously; never stamp stale state with a newer sequence.
 - Apply only non-stale snapshots and events above the watermark. On a gap, recover through a fresh snapshot with bounded buffering; overflow requires reconnect. New process/runtime identities reset the projection.
 - `session.list.changed` and `project.list.changed` carry complete replacement views with independent revisions. Optional `presentation.changed` also uses its own revision, not the core sequence, so capability filtering creates no gaps.
-- Reconnect repeats initialization and receives current state, not missed-event replay. Drop obsolete socket callbacks and incomplete drafts; reconcile local navigation against inventory. Transient notifications and operation outcomes may be lost.
+- Reconnect repeats initialization and receives current state, not missed-event replay. Drop obsolete socket callbacks and incomplete drafts; reconcile local navigation against inventory. Retain the client's selected runtime if it remains in the complete inventory; otherwise select the first inventory entry in server order, or show Home when empty. Focus is never sent to the server. Transient notifications and operation outcomes may be lost.
 - The current draft does not guarantee recovering an unfinished answer's already-streamed prefix. Clients may show running state until a complete final message arrives. Complete current-draft snapshots remain a review question.
 - Runtime errors survive snapshots until new execution begins. Optional widgets/footer/slots are rendering hints; core settings must not be parsed from formatted UI text.
 
@@ -380,7 +380,7 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 ## 7. Questions, cancellation and retry
 
 - Select/confirm/input/editor questions are snapshot-backed session state, including when no model turn is active. Clients choose modal, sheet or inline rendering.
-- Answers are cancelled or typed values: boolean for confirm, an offered string for select, string for input/editor. Validate against the pending question. First valid answer settles once; invalid/late answers receive explicit errors.
+- Answers are cancelled or typed values: boolean for confirm, an offered string for select, string for input/editor. Validate against the pending question. First valid answer settles once; invalid, duplicate or late answers receive `invalidPromptAnswer`; expiration and teardown cancel the waiting extension.
 - Defaults: five-minute total timeout and sixty-second no-controller grace, including questions created while disconnected. Reconnect cancels grace, not the total timeout. Expiration/teardown cancels questions. State does not survive process restart.
 - Cancelling a local wait, timeout or disconnect does not cancel server execution. Use `run.abort` or answer a question as cancelled explicitly.
 - Lost mutation responses are uncertain outcomes. Never automatically resend input/create/actions/file-open/restart. Request IDs provide correlation, not idempotency. Recover current state before deciding what to do next.

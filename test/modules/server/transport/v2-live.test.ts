@@ -20,12 +20,12 @@ function messages(socket: WebSocket) {
     });
   } };
 }
-async function connect() {
+async function connect(capabilities = ["presentation", "command.complete", "file.open"]) {
   const socket = new WebSocket(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`); sockets.push(socket);
   const inbox = messages(socket); await once(socket, "open");
   const send = (method: string, requestId: string, params: object = {}, sessionId?: string) => socket.send(JSON.stringify({ version: 2, type: "request", requestId, method, params, ...(sessionId ? { sessionId } : {}) }));
   return { socket, inbox, send, async initialize() {
-    send("server.initialize", "init", { client: { name: "test", version: "1" }, capabilities: ["presentation", "command.complete", "file.open"] });
+    send("server.initialize", "init", { client: { name: "test", version: "1" }, capabilities });
     return (await inbox.wait(message => message.requestId === "init")).result;
   } };
 }
@@ -62,6 +62,52 @@ it("queues admission before synchronous Pi events and publishes operation settle
   expect(deltaIndex).toBeGreaterThan(receiptIndex);
   const sequences = connection.inbox.received.filter(message => message.sequence !== undefined).map(message => message.sequence);
   expect(sequences).toEqual(sequences.map((_, index) => index + 1));
+});
+it("answers session-level prompts once, rejects invalid/late replies, and cancels on close", async () => {
+  const runtime = new FakeRuntimeAdapter();
+  server = createPiChatServer(runtime); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const connection = await connect(); const state = await connection.initialize(); const sessionId = state.snapshots[0].sessionId;
+  const pending = runtime.uiContext().confirm("Allow action?", "Run it?");
+  const opened = await connection.inbox.wait(message => message.event === "prompt.list.changed" && message.data.prompts.length === 1);
+  const promptId = opened.data.prompts[0].id;
+  connection.send("prompt.answer", "bad-answer", { promptId, result: { cancelled: false, value: "yes" } }, sessionId);
+  expect(await connection.inbox.wait(message => message.requestId === "bad-answer")).toMatchObject({ ok: false, error: { code: "invalidPromptAnswer" } });
+  expect(runtime.snapshot().prompts).toHaveLength(1);
+  connection.send("prompt.answer", "answer", { promptId, result: { cancelled: false, value: true } }, sessionId);
+  expect(await connection.inbox.wait(message => message.requestId === "answer")).toMatchObject({ ok: true });
+  await expect(pending).resolves.toBe(true);
+  connection.send("prompt.answer", "late-answer", { promptId, result: { cancelled: true } }, sessionId);
+  expect(await connection.inbox.wait(message => message.requestId === "late-answer")).toMatchObject({ ok: false, error: { code: "invalidPromptAnswer" } });
+  const afterClose = runtime.uiContext().confirm("Close me?", "Closing cancels this dialog.");
+  await connection.inbox.wait(message => message.event === "prompt.list.changed" && message.data.prompts.length === 1);
+  connection.send("session.close", "close-with-prompt", {}, sessionId);
+  expect(await connection.inbox.wait(message => message.requestId === "close-with-prompt")).toMatchObject({ ok: true });
+  await expect(afterClose).resolves.toBe(false);
+});
+it("acknowledges restart admission before the best-effort stopping event", async () => {
+  const restart = vi.fn(async () => undefined);
+  server = createPiChatServer(undefined, undefined, { continueProject: vi.fn(), newSession: vi.fn(), openSession: vi.fn() }, { restart });
+  server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const connection = await connect(["server.restart"]); await connection.initialize();
+  connection.send("server.restart", "restart", {});
+  const receipt = await connection.inbox.wait(message => message.requestId === "restart");
+  const stopping = await connection.inbox.wait(message => message.event === "server.stopping");
+  expect(receipt).toMatchObject({ ok: true, result: { state: "accepted" } });
+  expect(connection.inbox.received.indexOf(receipt)).toBeLessThan(connection.inbox.received.indexOf(stopping));
+  expect(restart).toHaveBeenCalledOnce();
+  expect(connection.inbox.received.some(message => message.event === "operation.finished")).toBe(false);
+});
+it("keeps runtime identity across explicit in-place reload", async () => {
+  const runtime = new FakeRuntimeAdapter(); const reload = vi.spyOn(runtime, "reload");
+  server = createPiChatServer(runtime); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const connection = await connect(); const initial = await connection.initialize(); const sessionId = initial.snapshots[0].sessionId;
+  connection.send("session.reload", "reload", {}, sessionId);
+  const receipt = await connection.inbox.wait(message => message.requestId === "reload");
+  await connection.inbox.wait(message => message.event === "operation.finished" && message.data.requestId === "reload");
+  connection.send("session.list", "list");
+  const inventory = await connection.inbox.wait(message => message.requestId === "list");
+  expect(receipt).toMatchObject({ ok: true, result: { state: "accepted" } });
+  expect(inventory.result.sessions[0].sessionId).toBe(sessionId); expect(reload).toHaveBeenCalledOnce();
 });
 it("retains closing identity after failed teardown and accepts explicit retry", async () => {
   const runtime = new FakeRuntimeAdapter();
