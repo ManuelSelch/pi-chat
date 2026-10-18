@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ToolCard } from "../../../shared/protocol.js";
 
 const ARGS_TEXT_MAX = 4_000;
@@ -15,9 +16,15 @@ function safeStringify(value: unknown): string {
   }
 }
 
-/** Deterministic so a live tool event and a rebuilt snapshot never duplicate. */
+/** Pi provider IDs are opaque and may be very long; normalize them to the wire bound. */
+export function normalizePiId(value: string, maxLength = 128): string {
+  if (value.length <= maxLength && !/[\u0000-\u001f\u007f-\u009f]/.test(value)) return value;
+  return `pi-${createHash("sha256").update(value).digest("hex")}`;
+}
+
+/** Deterministic so live tool events and rebuilt snapshots share one bounded ID. */
 export function toolMessageId(toolCallId: string): string {
-  return `tool:${toolCallId}`;
+  return `tool:${normalizePiId(toolCallId, 123)}`;
 }
 
 export interface ToolCallBlock {
@@ -60,7 +67,7 @@ export function toolCardFromCall(call: ToolCallBlock): ToolCard {
   }
   return {
     ...(writeContent !== undefined ? { writeContent } : {}),
-    toolCallId: call.id,
+    toolCallId: normalizePiId(call.id, 123),
     name: call.name,
     status: "running",
     ...(call.arguments === undefined ? {} : { argsText: clampText(safeStringify(call.arguments), ARGS_TEXT_MAX) }),

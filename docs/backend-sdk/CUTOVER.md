@@ -30,6 +30,9 @@ path. The checked-in legacy inventory remains historical documentation only.
   recovery of an unfinished stream prefix.
 - Pi Chat and the shared integration/browser drivers use the SDK. Notices, focus,
   navigation, optimistic UI and error dismissal stay application-owned.
+- Pi-generated message/tool identities are normalized deterministically to the
+  128-character wire bound before live events and snapshots. This preserves
+  stable history/event correlation without weakening v2 validation.
 - Swift schema probe and shared fixture inputs now target v2. The probe remains
   a feasibility experiment, not the production Swift SDK vertical slice.
 
@@ -38,9 +41,9 @@ path. The checked-in legacy inventory remains historical documentation only.
 Verified after the coordinated switch:
 
 - Root TypeScript `tsc --noEmit` and `npm run build`.
-- **1,121 root tests passed** across 131 test files.
+- **1,124 root tests passed** across 131 test files.
 - **32 browser/e2e tests passed**.
-- **152 SDK tests passed**, plus SDK test typechecking.
+- **153 SDK tests passed**, plus SDK test typechecking.
 - Offline packed-consumer verification passed, including v2-only exports,
   generated artifacts, initialization/operations and dependency isolation.
 - Production-server smoke passed, including health/UI/PID/log/shutdown checks.

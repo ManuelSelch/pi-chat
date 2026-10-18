@@ -30,6 +30,13 @@ describe("v2-only contract", () => {
     expect(snapshotSchema.safeParse({ ...snapshot, presentation: { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: { bad: undefined } } } }).success).toBe(false);
   });
 
+  it("caps wire transcript/tool IDs while Pi adapters normalize oversized source IDs", () => {
+    const tooLong = "x".repeat(129);
+    expect(snapshotSchema.safeParse({ ...snapshot, messages: [{ id: tooLong, role: "assistant", text: "x" }] }).success).toBe(false);
+    expect(snapshotSchema.safeParse({ ...snapshot, messages: [{ id: "tool:short", role: "tool", tool: { toolCallId: tooLong, name: "read", status: "success" } }] }).success).toBe(false);
+    expect(requestSchema.safeParse({ ...request("server.ping"), requestId: tooLong }).success).toBe(false);
+  });
+
   it("validates responses against the pending method, never a generic untyped result", () => {
     const envelope = { version: 2, type: "response", requestId: "r1", ok: true };
     const response = parseResponse("session.snapshot", { ...envelope, result: snapshot });

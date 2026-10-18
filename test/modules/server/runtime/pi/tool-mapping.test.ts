@@ -14,6 +14,17 @@ describe("tool mapping", () => {
     expect(toolMessageId("a")).toBe("tool:a");
   });
 
+  it("normalizes oversized/control-containing Pi tool IDs deterministically to bounded wire IDs", () => {
+    const raw = `provider-call-${"x".repeat(512)}`;
+    const messageId = toolMessageId(raw); const card = toolCardFromCall({ id: raw, name: "read" });
+    expect(messageId.length).toBeLessThanOrEqual(128); expect(card.toolCallId.length).toBeLessThanOrEqual(128);
+    expect(messageId).toBe(`tool:${card.toolCallId}`); expect(card.toolCallId).not.toBe(raw);
+    expect(toolMessageId(raw)).toBe(messageId);
+    const [historical] = toChatMessages({ role: "toolResult", toolCallId: raw, toolName: "read", content: [] }, new MessageIdentity());
+    expect(historical).toMatchObject({ id: messageId, tool: { toolCallId: card.toolCallId } });
+    expect(toolCardFromCall({ id: `bad\u0000id`, name: "read" }).toolCallId).toMatch(/^pi-/);
+  });
+
   it("omits absent arguments and tolerates circular arguments", () => {
     expect(toolCardFromCall({ id: "a", name: "bash" })).not.toHaveProperty("argsText");
     const circular: { self?: unknown } = {};

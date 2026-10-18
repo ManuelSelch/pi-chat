@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { serverMessageSchema } from "@manuelselch/pi-sdk/contract";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
+import { normalizePiId, toolMessageId } from "../../../../src/server/runtime/pi/tool-mapping.js";
 
 let server: PiChatServer;
 const sockets: WebSocket[] = [];
@@ -39,6 +40,13 @@ it("initializes atomically with fresh runtime identity and rejects v1 on the liv
   expect(state.snapshots[0].runtime.status).toBe("idle");
   connection.socket.send(JSON.stringify({ version: 1, type: "abort", sessionId: "fake-session" }));
   expect(await connection.inbox.wait(message => message.type === "protocolError")).toMatchObject({ error: { code: "unsupportedVersion" } });
+});
+it("initializes and streams Pi tool IDs longer than control-plane IDs", async () => {
+  const runtime = new FakeRuntimeAdapter(); const base = runtime.snapshot(); const toolCallId = `pi-tool-${"x".repeat(512)}`;
+  vi.spyOn(runtime, "snapshot").mockReturnValue({ ...base, messages: [{ id: toolMessageId(toolCallId), role: "tool", tool: { toolCallId: normalizePiId(toolCallId, 123), name: "read", status: "success", outputText: "ok" } }] });
+  server = createPiChatServer(runtime); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const connection = await connect(); const state = await connection.initialize();
+  expect(state.snapshots[0].messages[0]).toMatchObject({ id: toolMessageId(toolCallId), tool: { toolCallId: normalizePiId(toolCallId, 123) } });
 });
 it("queues admission before synchronous Pi events and publishes operation settlement", async () => {
   server = createPiChatServer(new FakeRuntimeAdapter()); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");

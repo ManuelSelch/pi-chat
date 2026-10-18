@@ -2,7 +2,7 @@ import { parseSkillBlock } from "@earendil-works/pi-coding-agent";
 import type { ChatMessage } from "../../../shared/protocol.js";
 import { bashCardFromMessage } from "./bash-mapping.js";
 import { projectEditDiff } from "../../../shared/edit-diff.js";
-import { clampToolOutput, toolCallsFromContent, toolCardFromCall, toolMessageId } from "./tool-mapping.js";
+import { clampToolOutput, normalizePiId, toolCallsFromContent, toolCardFromCall, toolMessageId } from "./tool-mapping.js";
 
 /**
  * Reasoning is kept on every assistant message and therefore in every snapshot,
@@ -72,7 +72,7 @@ export function customMessageFromEntry(entry: unknown): ChatMessage | undefined 
   if (typeof value.id !== "string" || value.id.length === 0) return undefined;
   const text = textFromContent(value.content);
   if (text.length === 0) return undefined;
-  return { id: value.id, role: "custom", customType: value.customType, text, ...timestampFromEntry(value) };
+  return { id: normalizePiId(value.id), role: "custom", customType: value.customType, text, ...timestampFromEntry(value) };
 }
 
 export function textFromContent(content: unknown): string {
@@ -159,7 +159,7 @@ export function toChatMessages(message: unknown, identity: MessageIdentity): Cha
         id: toolMessageId(value.toolCallId),
         role: "tool",
         tool: {
-          toolCallId: value.toolCallId,
+          toolCallId: normalizePiId(value.toolCallId, 123),
           name: typeof value.toolName === "string" && value.toolName.length > 0 ? value.toolName : "tool",
           status: value.isError === true ? "error" : "success",
           editDiff: projectEditDiff(String(value.toolName), value.isError === true, value.details),
