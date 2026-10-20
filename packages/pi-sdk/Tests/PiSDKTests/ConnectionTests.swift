@@ -21,9 +21,9 @@ actor FakeTransport: PiTransport {
         let request = try JSONDecoder().decode(JSONValue.self, from: Data(text.utf8))
         requests.append(request)
         let method = request["method"].string!
-        if mode == "timeout" || (mode == "createTimeout" && method == "session.create") { return }
+        if mode == "timeout" || (mode == "createTimeout" && method == "session.create") || (mode == "sendTimeout" && method == "message.send") { return }
         let response: JSONValue
-        if mode == "denied" || (mode == "createDenied" && method == "session.create") {
+        if mode == "denied" || (mode == "createDenied" && method == "session.create") || (mode == "sendDenied" && method == "message.send") {
             response = .object(["version": .number(2), "type": .string("response"), "requestId": request["requestId"], "ok": .bool(false), "error": .object(["code": .string("permissionDenied"), "message": .string("Not allowed")])])
         } else {
             response = .object(["version": .number(2), "type": .string("response"), "requestId": request["requestId"], "ok": .bool(true), "result": try negotiatedResult(method)])

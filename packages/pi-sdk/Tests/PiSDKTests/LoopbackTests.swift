@@ -36,10 +36,24 @@ import Testing
     let session = try await client.connectDemo(projectPath: canonical.path, takingControl: true)
     #expect(session.projectPath.hasSuffix(directory.lastPathComponent))
     #expect(await client.state == .ready(session))
+    try await client.send("Say hello")
+    try await waitFor { await client.projection?.messages.last?.isPartial == true }
+    let prefix = await client.projection?.messages.last?.text
+    try await waitFor { await client.projection?.status == .idle }
+    #expect(await client.projection?.messages.map(\.text) == ["Say hello", "Hello from the isolated Swift demo."])
+    #expect(prefix != "Hello from the isolated Swift demo.")
+    try await client.send("A second response to stop")
+    try await waitFor { await client.projection?.messages.last?.isPartial == true }
+    try await client.stop()
+    try await waitFor { await client.projection?.status == .idle }
+    // Allow finishWork's authoritative snapshot to arrive as well.
+    try await Task.sleep(for: .milliseconds(150))
+    #expect(await client.projection?.messages.count == 4)
+    #expect(await client.projection?.messages.last?.text.isEmpty == false)
     await client.disconnect()
     process.terminate()
     for _ in 0..<120 { if !process.isRunning { break }; try await Task.sleep(for: .milliseconds(50)) }
-    #expect(!process.isRunning)
+    try #require(!process.isRunning)
     #expect(process.terminationStatus == 0)
     let cleanup = try JSONDecoder().decode(JSONValue.self, from: Data(contentsOf: directory.appendingPathComponent("cleanup.json")))
     #expect(cleanup["created"] == .number(1))

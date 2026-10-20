@@ -4,6 +4,8 @@ import { writeFile, rename, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
+import type { RuntimeEvent } from "../../../../src/server/runtime/contracts.js";
+import type { ChatMessage } from "../../../../src/shared/protocol.js";
 import { createPiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../../test/infra/fake-runtime-adapter.js";
 import { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
@@ -12,7 +14,47 @@ import { ProjectMetadataStore } from "../../../../src/server/projects/project-me
 const directory = await realpath(process.argv[2]!);
 let created = 0;
 class DemoRuntime extends FakeRuntimeAdapter {
-  override snapshot() { return { ...super.snapshot(), projectPath: directory }; }
+  private readonly observers = new Set<(event: RuntimeEvent) => void>();
+  private transcript: ChatMessage[] = [];
+  private active = false;
+  private cancelled = false;
+  private turn = 0;
+  private completion?: Promise<void>;
+  override snapshot() { return { ...super.snapshot(), projectPath: directory, messages: [...this.transcript], isStreaming: this.active }; }
+  override subscribe(listener: (event: RuntimeEvent) => void) { this.observers.add(listener); return () => { this.observers.delete(listener); }; }
+  private publish(event: RuntimeEvent) { for (const listener of this.observers) listener(event); }
+  override async prompt(message: string) {
+    this.active = true; this.cancelled = false;
+    const runId = `turn-${++this.turn}`;
+    const user = { id: `${runId}-user`, role: "user" as const, text: message };
+    this.transcript.push(user);
+    this.publish({ type: "messageFinal", runId, message: user });
+    this.publish({ type: "runtimeStatus", status: "running" });
+    this.completion = (async () => {
+      let text = "";
+      for (const chunk of ["Hello ", "from ", "the ", "isolated ", "Swift ", "demo."]) {
+        await new Promise(resolve => setTimeout(resolve, 80));
+        if (this.cancelled) break;
+        text += chunk;
+        this.publish({ type: "assistantDelta", runId, delta: chunk });
+      }
+      if (!this.cancelled) {
+        const assistant = { id: `${runId}-assistant`, role: "assistant" as const, text };
+        this.transcript.push(assistant);
+        this.publish({ type: "messageFinal", runId, message: assistant });
+      }
+      this.active = false;
+      this.publish({ type: "runtimeStatus", status: "idle" });
+    })();
+    await this.completion;
+  }
+  override async abort() {
+    if (!this.active) return;
+    this.cancelled = true;
+    this.publish({ type: "runtimeStatus", status: "aborting" });
+    await this.completion;
+  }
+  override dispose() { this.cancelled = true; this.observers.clear(); super.dispose(); }
 }
 const projects = new ProjectSessionService(
   { listAll: async () => [] }, join(directory, "sessions"),

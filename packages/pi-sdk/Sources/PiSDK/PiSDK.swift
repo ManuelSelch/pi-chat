@@ -25,11 +25,11 @@ public enum PiError: Error, Sendable, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidConfiguration(let message), .protocolViolation(let message): message
-        case .invalidState: "A connection is already in progress or this client has been disposed."
+        case .invalidState: "Action is not available in the current connection or session state."
         case .disconnected: "Disconnected."
         case .rejected(let code, let message): "\(code): \(message)"
-        case .requestExpired(let unknown): unknown ? "Session creation outcome unknown; do not retry automatically." : "Initialization timed out."
-        case .transport(let message, let unknown): unknown ? "\(message) Session creation outcome unknown; server work may continue." : message
+        case .requestExpired(let unknown): unknown ? "Request outcome unknown; server work may continue. Do not retry automatically." : "Request timed out."
+        case .transport(let message, let unknown): unknown ? "\(message) Request outcome unknown; server work may continue." : message
         }
     }
 }
@@ -37,6 +37,9 @@ public enum PiError: Error, Sendable, Equatable, LocalizedError {
 public protocol PiDemoConnection: Sendable {
     func states() async -> AsyncStream<PiConnectionState>
     func connectDemo(projectPath: String, takingControl: Bool) async throws -> DemoSession
+    func projections() async -> AsyncStream<DemoSessionProjection>
+    func send(_ text: String) async throws
+    func stop() async throws
     func disconnect() async
 }
 
@@ -45,6 +48,12 @@ public protocol PiDemoConnection: Sendable {
 /// user consent before passing takingControl: true.
 public actor PiClient: PiDemoConnection {
     public private(set) var state: PiConnectionState = .disconnected
+    public private(set) var projection: DemoSessionProjection?
+    private var projectionObservers: [UUID: AsyncStream<DemoSessionProjection>.Continuation] = [:]
+    private var sendRequestId: String?
+    private var mutationGeneration = UUID()
+    private var settlementTimer: Task<Void, Never>?
+    private var settlementToken: UUID?
     private let transport: any PiTransport
     private let requestTimeout: Duration
     private var contract: WireContract?
@@ -74,6 +83,23 @@ public actor PiClient: PiDemoConnection {
         observers[id] = continuation
         continuation.onTermination = { [weak self] _ in Task { await self?.removeObserver(id) } }
         return stream
+    }
+    public func projections() -> AsyncStream<DemoSessionProjection> {
+        let id = UUID()
+        let (stream, continuation) = AsyncStream<DemoSessionProjection>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        if let projection { continuation.yield(projection) }
+        if disposed { continuation.finish(); return stream }
+        projectionObservers[id] = continuation
+        continuation.onTermination = { [weak self] _ in Task { await self?.removeProjectionObserver(id) } }
+        return stream
+    }
+    private func removeProjectionObserver(_ id: UUID) { projectionObservers.removeValue(forKey: id) }
+    private func publishProjection() {
+        guard let projection else { return }
+        for observer in projectionObservers.values { observer.yield(projection) }
+        if projection.status == .idle || projection.status == .running {
+            settlementTimer?.cancel(); settlementTimer = nil; settlementToken = nil
+        }
     }
     private func removeObserver(_ id: UUID) { observers.removeValue(forKey: id) }
     private func publish(_ value: PiConnectionState) {
@@ -127,12 +153,62 @@ public actor PiClient: PiDemoConnection {
         }
     }
 
+    public func send(_ text: String) async throws {
+        guard !disposed, case .ready = state, projection?.status == .idle, pending == nil else { throw PiError.invalidState }
+        let message = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, message.unicodeScalars.count <= 1_048_576, !message.hasPrefix("/"), !message.hasPrefix("!") else {
+            throw PiError.invalidConfiguration("Enter a nonempty plain-text message (no slash or bash commands).")
+        }
+        let mutation = UUID(); mutationGeneration = mutation
+        projection?.activeDraftId = nil
+        projection?.status = .starting; projection?.error = nil; publishProjection()
+        do {
+            _ = try await request("message.send", params: .object(["message": .string(message)]))
+            if !disposed, mutationGeneration == mutation, projection?.status == .starting { armSettlementDeadline() }
+        } catch {
+            if !disposed, mutationGeneration == mutation, projection?.status == .starting { projection?.status = .idle; publishProjection() }
+            throw error
+        }
+    }
+    public func stop() async throws {
+        guard !disposed, case .ready = state, projection?.status == .running, pending == nil else { throw PiError.invalidState }
+        let mutation = UUID(); mutationGeneration = mutation
+        projection?.stopRequested = true; projection?.status = .aborting; publishProjection()
+        do {
+            let receipt = try await request("run.abort", params: .object([:]))
+            guard !disposed, mutationGeneration == mutation else { return }
+            if receipt["state"].string == "completed" { projection?.status = .idle; projection?.stopRequested = false; publishProjection() }
+            else if !disposed, projection?.status == .aborting { armSettlementDeadline() }
+        } catch {
+            if !disposed, mutationGeneration == mutation, projection?.status == .aborting { projection?.stopRequested = false; projection?.status = .running; publishProjection() }
+            throw error
+        }
+    }
+    private func armSettlementDeadline() {
+        settlementTimer?.cancel()
+        let token = UUID(); settlementToken = token
+        settlementTimer = Task { [weak self, requestTimeout] in
+            do { try await Task.sleep(for: requestTimeout) } catch { return }
+            await self?.settlementExpired(token)
+        }
+    }
+    private func settlementExpired(_ token: UUID) async {
+        guard settlementToken == token, projection?.status == .starting || projection?.status == .aborting else { return }
+        await fail(PiError.transport(message: "Server did not settle the admitted start/stop request in time.", outcomeUnknown: true))
+    }
+    private var pendingMutation: Bool { pending != nil && pending?.method != "server.initialize" }
+
     private func request(_ method: String, params: JSONValue) async throws -> JSONValue {
         guard !disposed, pending == nil, totalRequests < 4096 else { throw PiError.invalidState }
         try Task.checkCancellation()
         totalRequests += 1
         let id = UUID().uuidString
-        let value = JSONValue.object(["version": .number(2), "type": .string("request"), "requestId": .string(id), "method": .string(method), "params": params])
+        var value = JSONValue.object(["version": .number(2), "type": .string("request"), "requestId": .string(id), "method": .string(method), "params": params])
+        if method == "message.send" || method == "run.abort" {
+            guard let projection else { throw PiError.invalidState }
+            value["sessionId"] = .string(projection.session.sessionId)
+        }
+        if method == "message.send" { sendRequestId = id }
         try contract?.validate(value, schema: "Request")
         let text = String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
         return try await withTaskCancellationHandler {
@@ -149,7 +225,7 @@ public actor PiClient: PiDemoConnection {
                     } catch { await self?.sendFailed(error, id: id) }
                 }
             }
-        } onCancel: { Task { await self.cancelWait() } }
+        } onCancel: { Task { await self.cancelWait(id) } }
     }
     private func sendFailed(_ error: any Error, id: String) async {
         guard pending?.id == id else { return }
@@ -157,10 +233,11 @@ public actor PiClient: PiDemoConnection {
     }
     private func expire(_ id: String) async {
         guard pending?.id == id else { return }
-        await fail(PiError.requestExpired(outcomeUnknown: pending?.method == "session.create"))
+        await fail(PiError.requestExpired(outcomeUnknown: pendingMutation))
     }
-    private func cancelWait() async {
-        await fail(PiError.transport(message: "Local wait cancelled.", outcomeUnknown: pending?.method == "session.create"))
+    private func cancelWait(_ id: String) async {
+        guard pending?.id == id else { return }
+        await fail(PiError.transport(message: "Local wait cancelled.", outcomeUnknown: pendingMutation))
     }
     private func receive(_ text: String) throws {
         guard !disposed else { return }
@@ -179,15 +256,25 @@ public actor PiClient: PiDemoConnection {
             }
             try contract?.validate(value["result"], schema: "result.\(request.method)")
             if request.method == "server.initialize" { serverInstanceId = value["result"]["serverInstanceId"].string }
+            if request.method == "session.create" {
+                let opened = value["result"]
+                guard opened["summary"]["sessionId"] == opened["snapshot"]["sessionId"],
+                      opened["summary"]["projectPath"] == opened["snapshot"]["projectPath"] else { throw PiError.protocolViolation("Created session identity mismatch") }
+                let initial = try DemoSessionProjection(snapshot: opened["snapshot"])
+                guard initial.status == .idle else { throw PiError.protocolViolation("Created demo is not idle") }
+                projection = initial; publishProjection()
+            }
             pending = nil; request.timer.cancel(); request.continuation.resume(returning: value["result"])
         case "event":
             guard let serverInstanceId, value["serverInstanceId"].string == serverInstanceId else { throw PiError.protocolViolation("Unexpected server identity or event before initialization") }
             if value["event"].string == "server.stopping" { throw PiError.disconnected }
-            // Streaming projections belong to the next slice. Validate core events,
-            // but do not attach to, render, or mutate any existing server runtime.
-            if case .ready(let session) = state, value["sessionId"].string == session.sessionId,
-               ["session.closed", "prompt.list.changed", "runtime.status"].contains(value["event"].string ?? "") {
-                throw PiError.protocolViolation("Demo runtime changed; live session projections are not supported in this slice")
+            if value["event"].string == "session.replaced", value["data"]["previousSessionId"].string == projection?.session.sessionId {
+                throw PiError.protocolViolation("Demo runtime was replaced; reconnect is unsupported")
+            }
+            if let current = projection, value["sessionId"].string == current.session.sessionId {
+                var next = current
+                try next.apply(value, sendRequestId: sendRequestId)
+                projection = next; publishProjection()
             }
         case "protocolError":
             throw PiError.rejected(code: value["error"]["code"].string!, message: value["error"]["message"].string!)
@@ -195,7 +282,7 @@ public actor PiClient: PiDemoConnection {
         }
     }
     private func normalize(_ error: any Error) -> PiError {
-        let unknown = pending?.method == "session.create"
+        let unknown = pendingMutation
         if let error = error as? PiError {
             if unknown, !error.isOutcomeUnknown, case .rejected = error { return error }
             if unknown, !error.isOutcomeUnknown { return .transport(message: error.localizedDescription, outcomeUnknown: true) }
@@ -210,24 +297,28 @@ public actor PiClient: PiDemoConnection {
     }
     public func disconnect() async {
         if disposed { publish(.disconnected); return }
-        let error: PiError = pending?.method == "session.create" ? .transport(message: "Disconnected.", outcomeUnknown: true) : .disconnected
+        let error: PiError = pendingMutation ? .transport(message: "Disconnected.", outcomeUnknown: true) : .disconnected
         await finish(.disconnected, error: error)
     }
     private func finish(_ finalState: PiConnectionState, error: PiError) async {
         disposed = true
         receiver?.cancel(); receiver = nil
         sender?.cancel(); sender = nil
+        settlementTimer?.cancel(); settlementTimer = nil
         if let request = pending {
             pending = nil; request.timer.cancel(); request.continuation.resume(throwing: error)
         }
         publish(finalState)
         for observer in observers.values { observer.finish() }
         observers.removeAll()
+        for observer in projectionObservers.values { observer.finish() }
+        projectionObservers.removeAll()
         await transport.close()
     }
     deinit {
-        receiver?.cancel(); sender?.cancel(); pending?.timer.cancel()
+        receiver?.cancel(); sender?.cancel(); pending?.timer.cancel(); settlementTimer?.cancel()
         for observer in observers.values { observer.finish() }
+        for observer in projectionObservers.values { observer.finish() }
         let transport = transport
         Task { await transport.close() }
     }
