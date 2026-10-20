@@ -95,7 +95,7 @@ production generator**. The minimal Swift client validates against bundled exact
 copies of the authoritative JSON Schemas instead; drift and shared-fixture tests
 prevent independently maintained wire definitions.
 
-## Swift demo/streaming subset (Pi Studio)
+## Swift session browsing and streaming subset (Pi Studio / Pi Pocket)
 
 Baseline: stable **Xcode 26.1.1 (17B100), Swift 6.2.1**, unchanged iOS **26.1**
 Simulator target. SwiftPM uses tools version 6.2. No beta-toolchain or older-iOS
@@ -107,9 +107,19 @@ Public API: `PiClient`, injectable `PiTransport`, `URLSessionPiTransport`,
 `connectDemo(projectPath:takingControl:)` initializes v2 with no optional
 capabilities, then creates exactly one isolated runtime. `takingControl: true`
 must follow explicit user consent: the existing server replaces its previous
-controller on initialization. Existing sessions are validated, never attached to
-or changed. Server-canonical project paths are returned. The caller must create
-the server-side demo directory before connecting.
+controller on initialization. Server-canonical project paths are returned. The caller
+must create the server-side demo directory before using this demo convenience API.
+
+Product clients use `PiSessionConnection`: `connect(takingControl:)` initializes
+without creating/selecting a session; `catalogues()` publishes complete conflated
+`PiCatalogue` values with independent project/inventory revisions. Project records
+include Quick Chats, saved history paths and worktree metadata. `attachSession(sessionId:)`
+fetches a current snapshot of an existing runtime; `openSession(sessionPath:)`
+attaches a known runtime by saved path or opens that history through the server;
+`createSession(projectPath:)` explicitly creates a session. The app owns selection
+and navigation. Rejected opens do not create fallback sessions or poison the connection.
+Attachment buffers bounded in-flight events and validates response identity; repeat
+attachment retains observed partial text for the currently selected runtime.
 
 `states()` is a conflated stream of complete connection states, not a raw event
 queue. Actor ownership, one pending request at a time, ten-second default waits,
@@ -123,8 +133,8 @@ outcome, never an automatic retry. Construct a fresh client only for another
 explicit connection. Call disconnect on app teardown; the provided app model
 also disposes its connection on deinit.
 
-Supported operations: `server.initialize`, `session.create`, `message.send`,
-`run.abort`, local disconnect. `send(_:)` permits one nonempty plain-text turn
+Supported operations: `server.initialize`, `session.create`, `session.open`,
+`session.snapshot`, catalogue/inventory events, `message.send`, `run.abort`, local disconnect. `send(_:)` permits one nonempty plain-text turn
 while idle (no slash/bash commands or steering). Acceptance is not completion:
 starting/running/aborting states settle from authoritative runtime lifecycle.
 `stop()` retains observed text and waits for settlement after an accepted abort;
@@ -136,20 +146,22 @@ Core events are validated against the shared contract, checked for process/runti
 identity and sequence, and finalized text is upserted without duplicating drafts.
 Snapshots cannot regress watermarks. Locally observed stopped text is retained
 when a snapshot has no finalized answer. Thinking/tools are validated but not
-rendered; they still advance sequence. Structured questions, closed/replaced
-runtimes and event gaps fail explicitly. **Gap recovery is not implemented in
+rendered; they still advance sequence. Structured questions and event gaps fail
+explicitly when attached (blocked background sessions can still be listed). A closed
+selected runtime returns the connection to browsing; replacement transfers its projection
+atomically to the new identity. **Gap recovery is not implemented in
 this MVP**; it terminates rather than showing an incomplete valid-looking stream.
 
-No dialogs, runtime-list/open/close API, reconnect/recovery, optional capabilities,
+No dialogs, public close API, reconnect/gap recovery, optional capabilities,
 auth, UI, or full Swift SDK parity is claimed. Production Swift slice 7 and
 real-Pi model conversation acceptance remain incomplete.
 
 The internal schema evaluator supports only the vocabulary emitted by the v2
 exporter, not arbitrary JSON Schema documents. After regenerating the shared
-contract, refresh its six bundled artifacts from this package root:
+contract, refresh its eight bundled artifacts from this package root:
 
 ```sh
-for name in Request ServerMessage result.server.initialize result.session.create result.message.send result.run.abort; do
+for name in Request ServerMessage result.server.initialize result.session.create result.session.open result.session.snapshot result.message.send result.run.abort; do
   cp "protocol/schema/v2/$name.schema.json" Sources/PiSDK/Contract/
 done
 swift test
@@ -161,8 +173,9 @@ cancellation, stale callbacks, unexpected closure and unreachable endpoints.
 The macOS loopback test requires the repository's installed Node/tsx dependencies
 and SDK dist (`npm install`, `npm run build:sdk` at repo root). It starts a fresh
 server on an ephemeral loopback port with a fake runtime, empty history and
-temporary metadata. It proves create, incremental text, two turns, Stop with
-partial retention, disconnect retention and explicitly sends
+temporary metadata. It proves browsing without automatic creation, Quick Chats
+catalogue publication, explicit creation, incremental text, disconnect and fresh-client
+attachment to the retained runtime, two turns, Stop with partial retention and explicitly sends
 `session.close` during cleanup before stopping its own server. It never connects
 to the user's live backend or reads private conversation history.
 

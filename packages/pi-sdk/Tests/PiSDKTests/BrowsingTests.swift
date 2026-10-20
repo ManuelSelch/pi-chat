@@ -126,6 +126,40 @@ private struct BrowsingDriver {
     }
 }
 
+@Test func reattachingSameRuntimeRetainsObservedPartialText() async throws {
+    try await BrowsingDriver.run { app in
+        try await app.connect()
+        _ = try await app.client.attachSession(sessionId: "runtime")
+        try await app.server.emit(event("runtime.status", 1, runtime("running")))
+        try await app.server.emit(event("message.delta", 2, delta("Observed prefix")))
+        try await waitFor { await app.client.projection?.sequence == 2 }
+        var snapshot = try result("session.snapshot")
+        snapshot["runtime"] = runtime("running")
+        snapshot["throughSequence"] = .number(2)
+        await app.server.configure("session.snapshot", snapshot)
+        _ = try await app.client.attachSession(sessionId: "runtime")
+        #expect(await app.client.projection?.messages.last?.text == "Observed prefix")
+    }
+}
+
+@Test func knownHistoryAttachesWithoutReopeningAndMismatchedSnapshotFails() async throws {
+    try await BrowsingDriver.run { app in
+        var initialization = try result("server.initialize")
+        var summary = initialization["inventory"]["sessions"].array![0]
+        summary["sessionPath"] = .string("/known")
+        initialization["inventory"]["sessions"] = .array([summary])
+        await app.server.configure("server.initialize", initialization)
+        try await app.connect()
+        _ = try await app.client.openSession(sessionPath: "/known")
+        #expect(await app.methods() == ["server.initialize", "session.snapshot"])
+        var snapshot = try result("session.snapshot")
+        snapshot["sessionId"] = .string("wrong")
+        await app.server.configure("session.snapshot", snapshot)
+        await #expect(throws: PiError.self) { try await app.client.attachSession(sessionId: "runtime") }
+        guard case .failed = await app.client.state else { Issue.record("Expected identity failure"); return }
+    }
+}
+
 @Test func initializationCanListBlockedBackgroundSessionsWithoutAttachingThem() async throws {
     try await BrowsingDriver.run { app in
         var initialization = try result("server.initialize")

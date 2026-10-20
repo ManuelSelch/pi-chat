@@ -321,7 +321,7 @@ public actor PiClient: PiSessionConnection {
             if value["event"].string == "project.list.changed" { try catalogue.applyProjects(value["data"]); publishCatalogue() }
             if value["event"].string == "session.list.changed" { try catalogue.applyInventory(value["data"]); publishCatalogue() }
             if value["event"].string == "session.replaced", value["data"]["previousSessionId"].string == projection?.session.sessionId {
-                try selectSnapshot(value["data"]["snapshot"])
+                try selectSnapshot(value["data"]["snapshot"], replaySelection: false)
             }
             if let method = pending?.method, ["session.create", "session.open", "session.snapshot"].contains(method), value["sessionId"].string != nil {
                 selectionEventBytes += text.utf8.count
@@ -341,12 +341,17 @@ public actor PiClient: PiSessionConnection {
         default: throw PiError.protocolViolation("Unsupported envelope")
         }
     }
-    private func selectSnapshot(_ snapshot: JSONValue) throws {
-        var next = try DemoSessionProjection(snapshot: snapshot)
-        for event in selectionEvents where event["sessionId"].string == next.session.sessionId {
-            try next.apply(event, sendRequestId: sendRequestId)
+    private func selectSnapshot(_ snapshot: JSONValue, replaySelection: Bool = true) throws {
+        var next: DemoSessionProjection
+        if var current = projection, current.session.sessionId == snapshot["sessionId"].string {
+            try current.applySnapshot(snapshot); next = current
+        } else { next = try DemoSessionProjection(snapshot: snapshot) }
+        if replaySelection {
+            for event in selectionEvents where event["sessionId"].string == next.session.sessionId {
+                try next.apply(event, sendRequestId: sendRequestId)
+            }
+            selectionEvents = []; selectionEventBytes = 0
         }
-        selectionEvents = []; selectionEventBytes = 0
         projection = next; publishProjection(); publish(.ready(next.session))
     }
     private func normalize(_ error: any Error) -> PiError {
