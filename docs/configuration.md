@@ -17,6 +17,7 @@ are not committed. See [Development](development.md) for the watch-mode workflow
 
 | Variable | Meaning |
 | --- | --- |
+| `PI_CHAT_HOST` | Address to bind to (default `127.0.0.1`; opt in to `0.0.0.0` for all IPv4 interfaces) |
 | `PI_CHAT_PORT` | Port to listen on (default `8788`) |
 | `PI_CHAT_CWD` | Pi project directory for new sessions |
 | `PI_CHAT_MODEL` | Model override for this server |
@@ -24,6 +25,20 @@ are not committed. See [Development](development.md) for the watch-mode workflow
 | `PI_CHAT_LOG_DIR` | Server log directory (default `~/.pi/agent/logs`) |
 | `PI_CHAT_LOG_MAX_BYTES` | Maximum size of the active log (default 5 MiB) |
 | `PI_CHAT_LOG_RETAINED_FILES` | Number of rotated log files to retain (default `3`) |
+
+## Private network access
+
+After building, opt in to listening on all IPv4 interfaces:
+
+```sh
+PI_CHAT_HOST=0.0.0.0 PI_CHAT_PORT=8788 npm start
+```
+
+Open `http://<VM-private-IP>:8788` from a VPN-connected device. The same port
+serves the web UI and WebSocket. The server has no application authentication;
+restrict access with a firewall to trusted VPN clients and never expose it
+publicly. For authenticated HTTPS/WSS, use a reverse proxy and keep the backend
+loopback/private so clients cannot bypass proxy authentication.
 
 ## Troubleshooting WebSocket connections
 

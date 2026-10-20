@@ -5,7 +5,7 @@ import { createRestartService } from "./bootstrap/restart-service.js";
 import { createPiChatServer } from "./bootstrap/server.js";
 import { createFileLogger } from "./logging/file-logger.js";
 
-const host = "127.0.0.1";
+const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
 const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 
