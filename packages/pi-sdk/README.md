@@ -11,15 +11,16 @@ fixtures and parsing were removed; no compatibility/negotiation path remains.
 The `PiClient` is UI-independent and owns transport lifecycle, atomic
 initialization, typed requests/results, bounded correlation and immutable session
 projections. Browser navigation, focus, notice anchors and optimistic UI remain
-application-owned. The Swift library remains a scaffold; the current quicktype
-probe is a schema feasibility test, not the slice-7 production SDK.
+application-owned. Swift now provides a minimal connection/demo-creation subset
+for Pi Studio (see below). The quicktype probe remains a separate experiment;
+this subset does not complete the slice-7 production SDK.
 
 ## Layout
 
 ```text
 pi-sdk/
-  Package.swift                   # SwiftPM scaffold
-  Sources/PiSDK/                  # Swift target, production vertical slice deferred
+  Package.swift                   # Swift 6.2 / iOS 26.1 development baseline
+  Sources/PiSDK/                  # Minimal Swift connection + demo-session client
   experiments/swift-generation/   # Internal v2 generation probe, not public API
   protocol/
     schema/v2/                    # Generated JSON Schema 2020-12 artifacts
@@ -90,4 +91,64 @@ The [generation probe](experiments/swift-generation/README.md) is refreshed from
 v2 shared schemas/fixtures. Quicktype produces compiling Codable models and keeps
 nested JSON, but flattens discriminated unions, accepts invalid null optionals and
 does not apply validation/defaults. It is **not selected as an unmodified
-production generator**. Slice 7 owns the production Swift API/toolchain decision.
+production generator**. The minimal Swift client validates against bundled exact
+copies of the authoritative JSON Schemas instead; drift and shared-fixture tests
+prevent independently maintained wire definitions.
+
+## Swift connection/demo subset (Pi Studio)
+
+Baseline: stable **Xcode 26.1.1 (17B100), Swift 6.2.1**, unchanged iOS **26.1**
+Simulator target. SwiftPM uses tools version 6.2. No beta-toolchain or older-iOS
+compatibility work was added.
+
+Public API: `PiClient`, injectable `PiTransport`, `URLSessionPiTransport`,
+`PiDemoConnection`, `PiConnectionState`, `DemoSession`, `PiError`.
+`connectDemo(projectPath:takingControl:)` initializes v2 with no optional
+capabilities, then creates exactly one isolated runtime. `takingControl: true`
+must follow explicit user consent: the existing server replaces its previous
+controller on initialization. Existing sessions are validated, never attached to
+or changed. Server-canonical project paths are returned. The caller must create
+the server-side demo directory before connecting.
+
+`states()` is a conflated stream of complete connection states, not a raw event
+queue. Actor ownership, one pending request at a time, ten-second default waits,
+16 MiB text-frame bounds and one attempt per client bound the lifecycle.
+`disconnect()` cancels local waits/receiving and closes the transport; it never
+sends abort/close. Create timeout/disconnect/cancellation is an unknown mutation
+outcome, never an automatic retry. Construct a fresh client only for another
+explicit connection. Call disconnect on app teardown; the provided app model
+also disposes its connection on deinit.
+
+Supported operations: `server.initialize`, `session.create`, local disconnect.
+All required inbound envelopes/results are validated against the shared contract.
+Known core events are validated but not projected yet; changes to the ready demo's
+runtime/question/close state fail explicitly rather than implying live support.
+No send/stream/stop, dialogs, runtime-list/open/close API, reconnect, recovery,
+optional capabilities, auth, UI, or full Swift SDK parity is claimed. Production
+Swift slice 7 and real-Pi conversation acceptance remain incomplete.
+
+The internal schema evaluator supports only the vocabulary emitted by the v2
+exporter, not arbitrary JSON Schema documents. After regenerating the shared
+contract, refresh its four bundled artifacts from this package root:
+
+```sh
+for name in Request ServerMessage result.server.initialize result.session.create; do
+  cp "protocol/schema/v2/$name.schema.json" Sources/PiSDK/Contract/
+done
+swift test
+```
+
+Tests check exact artifact drift, shared valid/malformed fixtures, denied
+initialization/create, deadlines/unknown outcomes, duplicate connection guards,
+cancellation, stale callbacks, unexpected closure and unreachable endpoints.
+The macOS loopback test requires the repository's installed Node/tsx dependencies
+and SDK dist (`npm install`, `npm run build:sdk` at repo root). It starts a fresh
+server on an ephemeral loopback port with a fake runtime, empty history and
+temporary metadata. It proves create/disconnect retention and explicitly sends
+`session.close` during cleanup before stopping its own server. It never connects
+to the user's live backend or reads private conversation history.
+
+Ordinary explicit demo connections retain server runtimes. Use Pi Chat or an
+explicit v2 `session.close` request with the returned runtime ID to dispose of
+those demos; closing the socket does not do so. Avoid repeated connects against
+a long-lived backend without cleaning retained demos. Nothing is published.
