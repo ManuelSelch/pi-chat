@@ -124,11 +124,20 @@ export class ServerPublisher {
   publish(raw: string, event: RuntimeEvent): void {
     if (event.type === "sessionSwitch") {
       const previousSessionId = this.sessions.get(event.previousSessionId)?.id;
-      this.closed(event.previousSessionId, "replaced"); this.wireId(event.sessionId);
-      void this.prepareSnapshot(this.wireId(event.sessionId)).then(capture => {
+      // Atomic handoff: retire the previous incarnation here, but publish only
+      // session.replaced. Emitting session.closed first would make clients drop
+      // the old tab before the replacement is known and lose their selection.
+      this.sessions.delete(event.previousSessionId);
+      const id = this.wireId(event.sessionId);
+      void this.prepareSnapshot(id).then(capture => {
         if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: capture() });
-        this.inventoryChanged();
-      }).catch(() => {}); return;
+      }).catch(error => {
+        // The switch already succeeded. A failed extension refresh must not strand
+        // clients on the retired incarnation; publish a synchronous core capture.
+        this.logger?.warn("session.replace_failed", { message: redactRuntimeError(error instanceof Error ? error.message : "Replacement snapshot failed") });
+        if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: this.snapshot(event.sessionId, this.chat.captureSnapshot(event.sessionId)) });
+      }).finally(() => this.inventoryChanged());
+      return;
     }
     if (!this.chat.openSessionIds().includes(raw)) return;
     this.wireId(raw);

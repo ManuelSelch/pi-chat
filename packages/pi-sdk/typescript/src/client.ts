@@ -33,6 +33,14 @@ export interface PiClientOptions {
   capabilities?: Capability[];
 }
 export interface RequestOptions { signal?: CancellationSignal }
+/** Provisional inventory entry for an atomic runtime replacement; the authoritative list follows. */
+function replacementSummary(snapshot: SessionSnapshot): OpenSessionSummary {
+  const status = snapshot.prompts.length ? "blocked" as const : snapshot.runtime.status === "aborting" ? "running" as const : snapshot.runtime.status;
+  const firstUser = snapshot.messages.find(message => message.role === "user");
+  return { sessionId: snapshot.sessionId, ...(snapshot.sessionPath ? { sessionPath: snapshot.sessionPath } : {}),
+    title: snapshot.sessionName ?? (firstUser?.role === "user" ? firstUser.text : undefined) ?? snapshot.sessionId,
+    projectPath: snapshot.projectPath, projectName: snapshot.projectPath.split(/[\\/]/).filter(Boolean).at(-1) ?? snapshot.projectPath, status };
+}
 function freeze<T>(value: T): T {
   const pending: unknown[] = [value];
   while (pending.length) { const current = pending.pop(); if (current === null || typeof current !== "object" || Object.isFrozen(current)) continue; for (const child of Object.values(current)) pending.push(child); Object.freeze(current); }
@@ -54,7 +62,6 @@ export class PiClient {
   private readonly inbox: { text: string; generation: number }[] = [];
   private readonly gaps = new Map<string, Extract<Event, { sequence: number }>[]>();
   private readonly recovering = new Set<string>();
-  private readonly replacements = new Set<string>();
   private readonly fileWaits = new Map<string, Promise<void>>();
   private bufferedCharacters = 0;
   private processing = false;
@@ -233,9 +240,32 @@ export class PiClient {
     if (!Object.hasOwn(this.state.sessions, snapshot.sessionId) && Object.keys(this.state.sessions).length >= this.maxSessions) throw new Error("Session limit");
     const state = Object.hasOwn(this.state.sessions, snapshot.sessionId) ? this.state.sessions[snapshot.sessionId]! : initialSessionState;
     const session = applySnapshot(state, snapshot); this.publish({ ...this.state, sessions: { ...this.state.sessions, [snapshot.sessionId]: session } });
-    const buffered = this.gaps.get(snapshot.sessionId); this.gaps.delete(snapshot.sessionId); this.recovering.delete(snapshot.sessionId);
+    this.replay(snapshot.sessionId);
+  }
+  /**
+   * One atomic handoff for a switched runtime: the previous incarnation and its
+   * inventory entry are swapped for the replacement in a single published state,
+   * so a selected tab never observes an inventory containing neither identity.
+   * Navigation remains application-owned and is not decided here.
+   */
+  private replace(previous: string, snapshot: SessionSnapshot): void {
+    this.pending.closeSession(previous, "session.close");
+    this.gaps.delete(previous); this.recovering.delete(previous);
+    const sessions = { ...this.state.sessions }; delete sessions[previous];
+    const base = Object.hasOwn(sessions, snapshot.sessionId) ? sessions[snapshot.sessionId]! : initialSessionState;
+    sessions[snapshot.sessionId] = applySnapshot(base, snapshot);
+    const index = this.state.inventory.findIndex(entry => entry.sessionId === previous);
+    const summary = replacementSummary(snapshot);
+    const inventory = index === -1
+      ? (this.state.inventory.some(entry => entry.sessionId === summary.sessionId) ? this.state.inventory : [...this.state.inventory, summary])
+      : this.state.inventory.map((entry, position) => position === index ? summary : entry);
+    this.publish({ ...this.state, sessions, inventory });
+    this.replay(snapshot.sessionId);
+  }
+  private replay(id: string): void {
+    const buffered = this.gaps.get(id); this.gaps.delete(id); this.recovering.delete(id);
     for (const message of buffered?.sort((a, b) => a.sequence - b.sequence) ?? []) {
-      const current = this.state.sessions[snapshot.sessionId];
+      const current = this.state.sessions[id];
       if (current && message.sequence > current.sequence + 1) throw new SDKError("invalidMessage", "Recovery snapshot did not heal the sequence gap.");
       this.event(message);
     }
@@ -245,8 +275,8 @@ export class PiClient {
     if (message.event === "project.list.changed") { this.projects(message.data); return; }
     if (message.event === "session.replaced") {
       const previous = message.data.previousSessionId;
-      if (!Object.hasOwn(this.state.sessions, previous) && !this.replacements.has(previous)) return;
-      this.replacements.delete(previous); this.forget(previous); this.snapshot(message.data.snapshot); return;
+      if (!Object.hasOwn(this.state.sessions, previous)) return;
+      this.replace(previous, message.data.snapshot); return;
     }
     if (message.event === "server.stopping") return;
     if (message.event === "session.snapshot") {
@@ -267,13 +297,7 @@ export class PiClient {
       }
       return;
     }
-    if (message.event === "session.closed") {
-      if (message.data.reason === "replaced") {
-        if (this.replacements.size >= this.maxBufferedMessages) throw new SDKError("limitExceeded", "Too many pending runtime replacements.");
-        this.replacements.add(id);
-      }
-      this.forget(id); return;
-    }
+    if (message.event === "session.closed") { this.forget(id); return; }
     this.publish({ ...this.state, sessions: { ...this.state.sessions, [id]: reduceSessionMessage(state, message) } });
   }
   private publish(next: ClientState): void { this.state = freeze(next); this.notify(this.stateListeners, this.state); }
@@ -281,7 +305,7 @@ export class PiClient {
   private report(error: SDKError): void { for (const listener of [...this.errorListeners]) { try { listener(error); } catch { /* Diagnostics cannot break cleanup. */ } } }
   private release(transport: Transport): void { try { transport.dispose(); } catch {} try { transport.close(); } catch {} }
   private detach(reason = new SDKError("disconnected", "Connection lost.")): void {
-    ++this.generation; this.initializeId = undefined; this.pending.disconnect(reason); this.gaps.clear(); this.recovering.clear(); this.replacements.clear(); this.fileWaits.clear(); this.inbox.length = 0; this.bufferedCharacters = 0;
+    ++this.generation; this.initializeId = undefined; this.pending.disconnect(reason); this.gaps.clear(); this.recovering.clear(); this.fileWaits.clear(); this.inbox.length = 0; this.bufferedCharacters = 0;
     if (this.timer !== undefined) this.scheduler.clearTimeout(this.timer); if (this.watchdog !== undefined) this.scheduler.clearTimeout(this.watchdog); this.timer = undefined; this.watchdog = undefined;
     const transport = this.transport; this.transport = undefined; if (transport) this.release(transport);
   }

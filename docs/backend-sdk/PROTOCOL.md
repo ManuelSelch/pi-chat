@@ -101,7 +101,7 @@ Paths refer to the server. `file.open` opens there, not on iOS. Removing a proje
 - `operation.finished` reports the operation ID, original request ID and completed/failed/aborted outcome. Receipts are process-local and not replayed. Steering completes submission when Pi accepts it; queue consumption and the ongoing run remain separate state.
 - Closing rejects new work, aborts execution, cancels questions and disposes the runtime before reporting success. `session.closed` is its final event, followed by inventory removal.
 - `run.abort` stops execution without closing the session. Disconnect leaves runtimes alive; server restart may interrupt them. This is not durable execution.
-- SDK-driven session switching emits `session.replaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`. Updating client navigation is application-owned.
+- SDK-driven session switching emits one atomic `session.replaced` with the previous `sessionId` and a new snapshot containing a fresh `sessionId`; it is not preceded by `session.closed`. The client swaps identities and inventory in a single update, and updating client navigation is application-owned: a selection on the previous identity transfers to the replacement.
 - A completed mutation remains successful even if a later catalogue refresh fails. Rejections must not falsely settle another active run.
 
 ## 6. State and recovery
@@ -129,7 +129,7 @@ Core session events use `sequence`; `session.snapshot` carries its existing `thr
 | `runtime.status` | Session | Complete `RuntimeState`; omitted optional fields clear their old values |
 | `session.closed` | Session | `reason: requested / archived / shutdown / replaced`; terminal for this incarnation |
 | `session.list.changed` | Server | `revision`, `sessions: OpenSessionSummary[]`; replace runtime inventory |
-| `session.replaced` | Server | `previousSessionId` and new `snapshot` with a fresh `sessionId`; invalidate old runtime, then reconcile inventory without selecting a UI tab |
+| `session.replaced` | Server | `previousSessionId` and new `snapshot` with a fresh `sessionId`; one atomic handoff that invalidates the old runtime and replaces its inventory entry without closing it first or selecting a UI tab |
 | `server.stopping` | Server | `reason: shutdown / restart`; best-effort warning, not a guaranteed delivery |
 
 #### Message and execution events

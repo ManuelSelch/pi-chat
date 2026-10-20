@@ -15,6 +15,26 @@ it("focuses locally with no wire command and retains focus through inventory upd
   state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.list.changed", data: { revision: 1, sessions: [summary(snapshotData({ sessionId: "a" })), summary(snapshotData({ sessionId: "b" }))] } });
   expect(state.activeSessionId).toBe("b"); expect(activeSession(state).messages[0]).toMatchObject({ text: "second" });
 });
+it("keeps the selected tab when a worktree switch replaces its runtime", () => {
+  state = harness.reduce(state, { type: "focusSession", sessionId: "b" });
+  const replacement = snapshotData({ sessionId: "worktree", projectPath: "/project-worktree" });
+
+  state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.replaced", data: { previousSessionId: "b", snapshot: replacement } });
+  // Handoff is atomic: the selected tab is already the replacement before the
+  // authoritative inventory replacement arrives.
+  expect(state.activeSessionId).toBe("worktree");
+  expect(state.tabs.map(tab => tab.sessionId)).toContain("worktree");
+
+  state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.list.changed", data: { revision: 1, sessions: [summary(snapshotData({ sessionId: "a" })), summary(replacement)] } });
+  expect(state.activeSessionId).toBe("worktree");
+});
+it("replaces a background runtime without stealing focus", () => {
+  state = harness.reduce(state, { type: "focusSession", sessionId: "a" });
+  const replacement = snapshotData({ sessionId: "worktree", projectPath: "/project-worktree" });
+  state = harness.reduce(state, { version: 2, type: "event", serverInstanceId: "process", event: "session.replaced", data: { previousSessionId: "b", snapshot: replacement } });
+  expect(state.activeSessionId).toBe("a");
+  expect(state.tabs.map(tab => tab.sessionId)).toEqual(["a", "worktree"]);
+});
 it("restores local focus when the selected runtime survives reconnect and falls back when it does not", () => {
   state = harness.reduce(state, { type: "focusSession", sessionId: "b" });
   state = harness.reduce(state, { type: "connectionLost" });

@@ -84,6 +84,14 @@ it("coalesces identical file activations but keeps independently cancellable wai
 it("rejects events before the initialization barrier", () => {
   const t = setup(); t.socket.message(event("message.delta", { runId: "r", delta: "early" }, 1)); expect(t.client.getState().connection.phase).toBe("failed"); t.client.dispose();
 });
+it("replaces a runtime atomically and keeps its inventory position", () => {
+  const t = setup(); t.ready([snap("a"), snap("b")]);
+  const notifications: string[] = []; t.client.subscribe(() => notifications.push("state"));
+  t.socket.message(event("session.replaced", { previousSessionId: "b", snapshot: snap("worktree") }));
+  expect(t.client.getSession("b")).toBeUndefined(); expect(t.client.getSession("worktree")?.sessionId).toBe("worktree");
+  expect(t.client.getState().inventory.map(entry => entry.sessionId)).toEqual(["a", "worktree"]);
+  expect(notifications).toEqual(["state"]); t.client.dispose();
+});
 it("does not resurrect an already closed identity from a late replacement event", () => {
   const t = setup(); t.ready(); t.socket.message(event("session.closed", { reason: "requested" }, 1));
   t.socket.message(event("session.replaced", { previousSessionId: "s", snapshot: snap("late") })); expect(t.client.getSession("late")).toBeUndefined(); t.client.dispose();
