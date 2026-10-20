@@ -37,7 +37,10 @@ describe("file WebSocket integration", () => {
     expect(await send("missing-session", "harmless.pdf", "closed-session")).toMatchObject({ requestId: "missing-session", ok: false, error: { code: "sessionNotFound" } });
     // Allow queued writes to arrive before checking the absence of side effects.
     await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(client.messages.map(message => message.type)).toEqual(["response", "response", "response"]);
+    // Initialization's independent catalogue refresh may finish after readiness;
+    // it is not file.open history/state traffic. Still reject every other event.
+    const fileTraffic = client.messages.filter(message => !(message.type === "event" && message.event === "project.list.changed"));
+    expect(fileTraffic.map(message => message.type)).toEqual(["response", "response", "response"]);
     expect(opener.open).toHaveBeenCalledTimes(1);
     expect(prompt).not.toHaveBeenCalled();
     expect(abort).not.toHaveBeenCalled();

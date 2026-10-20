@@ -90,7 +90,11 @@ export class ServerPublisher {
     return { snapshot, summary: this.inventory().sessions.find(session => session.sessionId === snapshot.sessionId)! };
   }
   async prepareInitial(connectionId: string, capabilities: Result<"server.initialize">["capabilities"]): Promise<() => Result<"server.initialize">> {
-    await this.refreshProjects();
+    // Catalogue discovery is independent of the atomic runtime snapshot barrier.
+    // Use the last published catalogue (empty on cold start) and notify clients
+    // through project.list.changed when discovery finishes. A refresh finishing
+    // before capture is included in the initial response instead.
+    void this.refreshProjects();
     const rawIds = this.chat.openSessionIds();
     const captures = await Promise.all(rawIds.map(raw => this.prepareSnapshot(this.wireId(raw))));
     return () => {

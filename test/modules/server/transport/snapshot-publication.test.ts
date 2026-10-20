@@ -5,7 +5,7 @@ import type { ProjectSessionService } from "../../../../src/server/projects/proj
 import type { ProjectCatalogue } from "../../../../src/shared/protocol.js";
 import type { RuntimeSnapshot } from "../../../../src/server/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";
-import { eventSchema, type Event } from "@manuelselch/pi-sdk/contract";
+import { eventSchema, type Event, type Result } from "@manuelselch/pi-sdk/contract";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 function deferred() {
@@ -28,6 +28,50 @@ function setup() {
   };
 }
 describe("v2 atomic snapshot publication", () => {
+  it.each([false, true])("initializes from cached projects without waiting for refresh (warm=%s)", async warm => {
+    const context = setup(); const gate = deferred();
+    if (warm) await context.publisher.refreshProjects();
+    const cached = context.publisher.projects();
+    const refreshed: ProjectCatalogue = { projects: [{ path: "/new", displayPath: "/new", name: "New", exists: true, modified: 1, sessionCount: 0, sessions: [] }] };
+    context.messages.length = 0;
+    context.catalogue.mockImplementation(async () => { await gate.promise; return refreshed; });
+    let initial: Result<"server.initialize"> | undefined;
+    const pending = context.publisher.prepareInitial("connection", []).then(capture => { initial = capture(); });
+    try {
+      await vi.waitFor(() => expect(initial).toBeDefined());
+      expect(initial!.projects).toEqual(cached);
+      expect(initial!.snapshots).toHaveLength(1);
+      expect(context.messages).toEqual([]);
+      gate.resolve(); await pending;
+      await vi.waitFor(() => expect(context.publisher.projects().catalogue).toEqual(refreshed));
+      expect(context.messages).toMatchObject([{ event: "project.list.changed", data: { revision: cached.revision! + 1, catalogue: refreshed } }]);
+    } finally { gate.resolve(); await pending; await context.chat.dispose(); }
+  });
+
+  it("includes refreshes completed during snapshot preparation without losing fresh watermarks", async () => {
+    const context = setup(); const gate = deferred(); const entered = deferred();
+    context.extensions.on("session.snapshot", async () => { entered.resolve(); await gate.promise; });
+    const pending = context.publisher.prepareInitial("connection", []);
+    try {
+      await entered.promise;
+      await vi.waitFor(() => expect(context.publisher.projects().revision).toBe(1));
+      context.addUser("u1", "During initialization");
+      gate.resolve(); const capture = await pending; const initial = capture();
+      expect(initial.projects.revision).toBe(1);
+      expect(initial.snapshots).toMatchObject([{ throughSequence: 1, messages: [{ id: "u1" }] }]);
+    } finally { gate.resolve(); await pending; await context.chat.dispose(); }
+  });
+
+  it("keeps cached projects usable if the background initialization refresh fails", async () => {
+    const context = setup(); await context.publisher.refreshProjects();
+    const cached = context.publisher.projects(); context.messages.length = 0;
+    context.catalogue.mockRejectedValue(new Error("Scan failed"));
+    const capture = await context.publisher.prepareInitial("connection", []);
+    expect(capture().projects).toEqual(cached);
+    expect(context.messages).toEqual([]);
+    await context.chat.dispose();
+  });
+
   it("publishes transcripts independently of failed catalogue scans", async () => {
     const context = setup(); context.catalogue.mockRejectedValue(new Error("Catalogue unavailable"));
     await context.publisher.sendSnapshot("s1");

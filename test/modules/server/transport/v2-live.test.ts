@@ -6,6 +6,7 @@ import { serverMessageSchema } from "@manuelselch/pi-sdk/contract";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 import { normalizePiId, toolMessageId } from "../../../../src/server/runtime/pi/tool-mapping.js";
+import type { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 
 let server: PiChatServer;
 const sockets: WebSocket[] = [];
@@ -29,6 +30,26 @@ async function connect(capabilities = ["presentation", "command.complete", "file
     return (await inbox.wait(message => message.requestId === "init")).result;
   } };
 }
+it("sends initialization before a blocked catalogue refresh and then publishes the update", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const catalogue = vi.fn(async () => { await gate; return { projects: [] }; });
+  server = createPiChatServer(new FakeRuntimeAdapter(), undefined, undefined, undefined, undefined, undefined, undefined,
+    { catalogue } as unknown as ProjectSessionService);
+  server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const connection = await connect();
+  try {
+    const state = await connection.initialize();
+    expect(catalogue).toHaveBeenCalledOnce();
+    expect(state.projects).toEqual({ revision: 0, catalogue: { projects: [] } });
+    expect(connection.inbox.received.some(message => message.event === "project.list.changed")).toBe(false);
+    release();
+    const update = await connection.inbox.wait(message => message.event === "project.list.changed");
+    expect(update.data).toEqual({ revision: 1, catalogue: { projects: [] } });
+    expect(connection.inbox.received.indexOf(update)).toBeGreaterThan(connection.inbox.received.findIndex(message => message.requestId === "init"));
+  } finally { release(); }
+});
+
 it("initializes atomically with fresh runtime identity and rejects v1 on the live socket", async () => {
   server = createPiChatServer(new FakeRuntimeAdapter()); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect();

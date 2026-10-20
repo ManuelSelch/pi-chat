@@ -21,6 +21,7 @@ The shared contract is owned by the [Pi SDK workspace](../../packages/pi-sdk/REA
 - First request: `server.initialize`, carrying client name/version and requested optional capabilities.
 - Result: protocol/server versions, `serverInstanceId`, `connectionId`, selected capabilities, complete open-session inventory, project catalogue and snapshots for all open sessions.
 - Initialization is the readiness barrier: apply the whole result before processing later events or sending work. No navigation state is exchanged.
+- The initial project catalogue is the last published cache (empty at revision 0 on cold start). A full disk/worktree refresh runs asynchronously and publishes `project.list.changed` with a newer revision; catalogue discovery never blocks readiness. If discovery finishes during runtime snapshot preparation, the initial result includes that newer catalogue. A failed refresh retains the cached catalogue. Runtime inventory/snapshots still use the atomic current-state barrier.
 - Every message carries `version: 2`. Unsupported versions fail explicitly; unknown optional fields are ignored. Unknown required core variants are compatibility errors. Software/package versions are independent of wire versions.
 
 ## 3. Messages and identity
