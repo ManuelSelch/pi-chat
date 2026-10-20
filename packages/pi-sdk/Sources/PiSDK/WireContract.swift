@@ -36,7 +36,7 @@ indirect enum JSONValue: Codable, Sendable, Equatable {
 /// exporter, not arbitrary third-party schemas. Bundled files are exact copies;
 /// fixture/drift tests fail when the contract changes.
 struct WireContract: Sendable {
-    static let schemas = ["Request", "ServerMessage", "result.server.initialize", "result.session.create", "result.message.send", "result.run.abort"]
+    static let schemas = ["Request", "ServerMessage", "result.server.initialize", "result.session.create", "result.session.open", "result.session.snapshot", "result.message.send", "result.run.abort"]
     private var roots: [String: JSONValue] = [:]
     init() throws {
         for name in Self.schemas { roots[name] = try JSONDecoder().decode(JSONValue.self, from: Self.load(name)) }

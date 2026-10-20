@@ -9,7 +9,7 @@ public struct DemoSession: Sendable, Equatable {
 }
 
 public enum PiConnectionState: Sendable, Equatable {
-    case disconnected, connecting, ready(DemoSession), failed(PiError)
+    case disconnected, connecting, connected, ready(DemoSession), failed(PiError)
 }
 
 public enum PiError: Error, Sendable, Equatable, LocalizedError {
@@ -46,7 +46,11 @@ public protocol PiDemoConnection: Sendable {
 /// One connection attempt per instance. Reconnect is deliberately not implemented.
 /// Initialization transfers controller access: the caller must obtain explicit
 /// user consent before passing takingControl: true.
-public actor PiClient: PiDemoConnection {
+public actor PiClient: PiSessionConnection {
+    public private(set) var catalogue = PiCatalogue()
+    private var catalogueObservers: [UUID: AsyncStream<PiCatalogue>.Continuation] = [:]
+    private var selectionEvents: [JSONValue] = []
+    private var selectionEventBytes = 0
     public private(set) var state: PiConnectionState = .disconnected
     public private(set) var projection: DemoSessionProjection?
     private var projectionObservers: [UUID: AsyncStream<DemoSessionProjection>.Continuation] = [:]
@@ -59,7 +63,7 @@ public actor PiClient: PiDemoConnection {
     private var contract: WireContract?
     private var receiver: Task<Void, Never>?
     private var sender: Task<Void, Never>?
-    private var pending: (id: String, method: String, continuation: CheckedContinuation<JSONValue, Error>, timer: Task<Void, Never>)?
+    private var pending: (id: String, method: String, sessionId: String?, continuation: CheckedContinuation<JSONValue, Error>, timer: Task<Void, Never>)?
     private var disposed = false
     private var started = false
     private var serverInstanceId: String?
@@ -107,11 +111,27 @@ public actor PiClient: PiDemoConnection {
         for observer in observers.values { observer.yield(value) }
     }
 
+    public func catalogues() -> AsyncStream<PiCatalogue> {
+        let id = UUID()
+        let (stream, continuation) = AsyncStream<PiCatalogue>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        continuation.yield(catalogue)
+        if disposed { continuation.finish(); return stream }
+        catalogueObservers[id] = continuation
+        continuation.onTermination = { [weak self] _ in Task { await self?.removeCatalogueObserver(id) } }
+        return stream
+    }
+    private func removeCatalogueObserver(_ id: UUID) { catalogueObservers.removeValue(forKey: id) }
+    private func publishCatalogue() { for observer in catalogueObservers.values { observer.yield(catalogue) } }
+
     public func connectDemo(projectPath: String, takingControl: Bool) async throws -> DemoSession {
+        guard projectPath.hasPrefix("/") else { throw PiError.invalidConfiguration("Use an absolute server-side directory.") }
+        try await connect(takingControl: takingControl)
+        do { return try await createSession(projectPath: projectPath) }
+        catch { let failure = normalize(error); await fail(failure); throw failure }
+    }
+
+    public func connect(takingControl: Bool) async throws {
         guard takingControl else { throw PiError.invalidConfiguration("Explicit controller consent is required.") }
-        guard projectPath.hasPrefix("/"), !projectPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw PiError.invalidConfiguration("Use an absolute, isolated server-side demo directory.")
-        }
         guard !started, !disposed else { throw PiError.invalidState }
         started = true
         publish(.connecting)
@@ -131,26 +151,40 @@ public actor PiClient: PiDemoConnection {
             ]))
             guard !disposed else { throw PiError.disconnected }
             // The complete result was validated before the response was admitted.
-            // Existing runtime snapshots are never attached to the demo.
+            // Initialization lists runtimes but does not select one.
             guard initialization["capabilities"].array?.isEmpty == true else { throw PiError.protocolViolation("Server selected unrequested capabilities") }
-            let opened = try await request("session.create", params: .object(["projectPath": .string(projectPath)]))
-            guard !disposed else { throw PiError.disconnected }
-            guard let id = opened["summary"]["sessionId"].string,
-                  opened["snapshot"]["sessionId"].string == id,
-                  let canonicalPath = opened["summary"]["projectPath"].string,
-                  opened["snapshot"]["projectPath"].string == canonicalPath,
-                  opened["snapshot"]["runtime"]["status"].string == "idle",
-                  opened["snapshot"]["prompts"].array?.isEmpty == true else {
-                throw PiError.protocolViolation("Created demo session is not usable or has inconsistent identity")
-            }
-            let session = DemoSession(sessionId: id, projectPath: canonicalPath)
-            publish(.ready(session))
-            return session
+            publish(.connected)
         } catch {
             let failure = normalize(error)
             await fail(failure)
             throw failure
         }
+    }
+
+    public func attachSession(sessionId: String) async throws -> DemoSession {
+        guard canSelect, catalogue.sessions.contains(where: { $0.sessionId == sessionId && $0.status != "closing" }) else { throw PiError.invalidState }
+        _ = try await request("session.snapshot", params: .object([:]), sessionId: sessionId)
+        guard let projection else { throw PiError.invalidState }
+        return projection.session
+    }
+    public func openSession(sessionPath: String) async throws -> DemoSession {
+        guard canSelect, !sessionPath.isEmpty else { throw PiError.invalidState }
+        if let existing = catalogue.sessions.first(where: { $0.sessionPath == sessionPath }) {
+            return try await attachSession(sessionId: existing.sessionId)
+        }
+        _ = try await request("session.open", params: .object(["sessionPath": .string(sessionPath)]))
+        guard let projection else { throw PiError.invalidState }
+        return projection.session
+    }
+    public func createSession(projectPath: String) async throws -> DemoSession {
+        guard canSelect, projectPath.hasPrefix("/") else { throw PiError.invalidState }
+        _ = try await request("session.create", params: .object(["projectPath": .string(projectPath)]))
+        guard let projection else { throw PiError.invalidState }
+        return projection.session
+    }
+    private var canSelect: Bool {
+        guard !disposed, pending == nil, settlementTimer == nil else { return false }
+        switch state { case .connected, .ready: return true; default: return false }
     }
 
     public func send(_ text: String) async throws {
@@ -196,19 +230,23 @@ public actor PiClient: PiDemoConnection {
         guard settlementToken == token, projection?.status == .starting || projection?.status == .aborting else { return }
         await fail(PiError.transport(message: "Server did not settle the admitted start/stop request in time.", outcomeUnknown: true))
     }
-    private var pendingMutation: Bool { pending != nil && pending?.method != "server.initialize" }
+    private var pendingMutation: Bool { pending != nil && !["server.initialize", "session.snapshot", "session.list", "project.list"].contains(pending!.method) }
 
-    private func request(_ method: String, params: JSONValue) async throws -> JSONValue {
+    private func request(_ method: String, params: JSONValue, sessionId: String? = nil) async throws -> JSONValue {
         guard !disposed, pending == nil, totalRequests < 4096 else { throw PiError.invalidState }
         try Task.checkCancellation()
         totalRequests += 1
         let id = UUID().uuidString
         var value = JSONValue.object(["version": .number(2), "type": .string("request"), "requestId": .string(id), "method": .string(method), "params": params])
+        if let sessionId { value["sessionId"] = .string(sessionId) }
         if method == "message.send" || method == "run.abort" {
             guard let projection else { throw PiError.invalidState }
             value["sessionId"] = .string(projection.session.sessionId)
         }
         if method == "message.send" { sendRequestId = id }
+        if ["session.create", "session.open", "session.snapshot"].contains(method) {
+            selectionEvents = []; selectionEventBytes = 0
+        }
         try contract?.validate(value, schema: "Request")
         let text = String(decoding: try JSONEncoder().encode(value), as: UTF8.self)
         return try await withTaskCancellationHandler {
@@ -217,7 +255,7 @@ public actor PiClient: PiDemoConnection {
                     do { try await Task.sleep(for: requestTimeout) } catch { return }
                     await self?.expire(id)
                 }
-                pending = (id, method, continuation, timer)
+                pending = (id, method, sessionId, continuation, timer)
                 sender = Task { [weak self, transport] in
                     do {
                         try Task.checkCancellation()
@@ -251,25 +289,47 @@ public actor PiClient: PiDemoConnection {
             }
             if value["ok"] == .bool(false) {
                 let error = PiError.rejected(code: value["error"]["code"].string!, message: value["error"]["message"].string!)
+                selectionEvents = []; selectionEventBytes = 0
                 pending = nil; request.timer.cancel(); request.continuation.resume(throwing: error)
                 return
             }
             try contract?.validate(value["result"], schema: "result.\(request.method)")
-            if request.method == "server.initialize" { serverInstanceId = value["result"]["serverInstanceId"].string }
-            if request.method == "session.create" {
+            if request.method == "server.initialize" {
+                serverInstanceId = value["result"]["serverInstanceId"].string
+                try catalogue.applyProjects(value["result"]["projects"])
+                try catalogue.applyInventory(value["result"]["inventory"])
+                publishCatalogue()
+            }
+            if ["session.create", "session.open"].contains(request.method) {
                 let opened = value["result"]
                 guard opened["summary"]["sessionId"] == opened["snapshot"]["sessionId"],
-                      opened["summary"]["projectPath"] == opened["snapshot"]["projectPath"] else { throw PiError.protocolViolation("Created session identity mismatch") }
-                let initial = try DemoSessionProjection(snapshot: opened["snapshot"])
-                guard initial.status == .idle else { throw PiError.protocolViolation("Created demo is not idle") }
-                projection = initial; publishProjection()
+                      opened["summary"]["projectPath"] == opened["snapshot"]["projectPath"] else { throw PiError.protocolViolation("Opened session identity mismatch") }
+                try selectSnapshot(opened["snapshot"])
+                let summary: PiRuntimeSummary = try decodeCatalogueValue(opened["summary"])
+                if let index = catalogue.sessions.firstIndex(where: { $0.sessionId == summary.sessionId }) { catalogue.sessions[index] = summary }
+                else { catalogue.sessions.append(summary) }
+                publishCatalogue()
+            }
+            if request.method == "session.snapshot" {
+                guard value["result"]["sessionId"].string == request.sessionId else { throw PiError.protocolViolation("Snapshot response identity mismatch") }
+                try selectSnapshot(value["result"])
             }
             pending = nil; request.timer.cancel(); request.continuation.resume(returning: value["result"])
         case "event":
             guard let serverInstanceId, value["serverInstanceId"].string == serverInstanceId else { throw PiError.protocolViolation("Unexpected server identity or event before initialization") }
             if value["event"].string == "server.stopping" { throw PiError.disconnected }
+            if value["event"].string == "project.list.changed" { try catalogue.applyProjects(value["data"]); publishCatalogue() }
+            if value["event"].string == "session.list.changed" { try catalogue.applyInventory(value["data"]); publishCatalogue() }
             if value["event"].string == "session.replaced", value["data"]["previousSessionId"].string == projection?.session.sessionId {
-                throw PiError.protocolViolation("Demo runtime was replaced; reconnect is unsupported")
+                try selectSnapshot(value["data"]["snapshot"])
+            }
+            if let method = pending?.method, ["session.create", "session.open", "session.snapshot"].contains(method), value["sessionId"].string != nil {
+                selectionEventBytes += text.utf8.count
+                guard selectionEvents.count < 512, selectionEventBytes <= 16 * 1024 * 1024 else { throw PiError.protocolViolation("Session attachment event buffer exceeded") }
+                selectionEvents.append(value)
+            }
+            if value["event"].string == "session.closed", value["sessionId"].string == projection?.session.sessionId {
+                projection = nil; publish(.connected); return
             }
             if let current = projection, value["sessionId"].string == current.session.sessionId {
                 var next = current
@@ -280,6 +340,14 @@ public actor PiClient: PiDemoConnection {
             throw PiError.rejected(code: value["error"]["code"].string!, message: value["error"]["message"].string!)
         default: throw PiError.protocolViolation("Unsupported envelope")
         }
+    }
+    private func selectSnapshot(_ snapshot: JSONValue) throws {
+        var next = try DemoSessionProjection(snapshot: snapshot)
+        for event in selectionEvents where event["sessionId"].string == next.session.sessionId {
+            try next.apply(event, sendRequestId: sendRequestId)
+        }
+        selectionEvents = []; selectionEventBytes = 0
+        projection = next; publishProjection(); publish(.ready(next.session))
     }
     private func normalize(_ error: any Error) -> PiError {
         let unknown = pendingMutation
@@ -313,12 +381,15 @@ public actor PiClient: PiDemoConnection {
         observers.removeAll()
         for observer in projectionObservers.values { observer.finish() }
         projectionObservers.removeAll()
+        for observer in catalogueObservers.values { observer.finish() }
+        catalogueObservers.removeAll(); selectionEvents = []; selectionEventBytes = 0
         await transport.close()
     }
     deinit {
         receiver?.cancel(); sender?.cancel(); pending?.timer.cancel(); settlementTimer?.cancel()
         for observer in observers.values { observer.finish() }
         for observer in projectionObservers.values { observer.finish() }
+        for observer in catalogueObservers.values { observer.finish() }
         let transport = transport
         Task { await transport.close() }
     }
