@@ -2,6 +2,7 @@ import {
   createAgentSessionFromServices,
   createAgentSessionRuntime,
   createAgentSessionServices,
+  createCodemodeExtension,
   getAgentDir,
   SessionManager,
   type AgentSessionRuntime,
@@ -16,7 +17,13 @@ import { resolveModelOverride } from "./models.js";
 export async function createPiRuntime(cwd: string, sessionManager: SessionManager): Promise<AgentSessionRuntime> {
   const agentDir = getAgentDir();
   const createRuntime: CreateAgentSessionRuntimeFactory = async ({ cwd: targetCwd, sessionManager: manager, sessionStartEvent }) => {
-    const services = await createAgentSessionServices({ cwd: targetCwd, agentDir });
+    const services = await createAgentSessionServices({
+      cwd: targetCwd,
+      agentDir,
+      resourceLoaderOptions: {
+        extensionFactories: [createCodemodeExtension()],
+      },
+    });
     const override = resolveModelOverride(services);
     return {
       ...(await createAgentSessionFromServices({ services, sessionManager: manager, sessionStartEvent, ...override })),
