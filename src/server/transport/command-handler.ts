@@ -10,7 +10,9 @@ export async function executeOperation(command: Exclude<Request, Request<"server
   const raw = command.sessionId ? publisher.rawId(command.sessionId, command.method === "session.close") : undefined;
   const completed = (result: unknown = { state: "completed" }, afterResponse?: () => Promise<void> | void): V2Execution => ({ kind: "completed", result, afterResponse });
   const accepted = (run: () => Promise<void>): V2Execution => ({ kind: "accepted", operationId: randomUUID(), run });
-  const refresh = async () => { publisher.inventoryChanged(); await publisher.refreshProjects(); };
+  // Metadata-only mutations (archive/pin/remove) reuse the last catalogue scan;
+  // anything that can introduce sessions, titles, projects or worktrees rescans.
+  const refresh = async (metadataOnly = false) => { publisher.inventoryChanged(); await publisher.refreshProjects(metadataOnly); };
   const finishWork = async (run: () => Promise<unknown>) => {
     await run();
     try {
@@ -41,15 +43,15 @@ export async function executeOperation(command: Exclude<Request, Request<"server
         if (!result.ok) throw new V2OperationError(result.error.code, result.error.message);
         return completed();
       }
-      case "project.pin": await chat.pinProject(command.params.path, command.params.pinned); return completed(undefined, refresh);
-      case "project.remove": await chat.removeProject(command.params.path); return completed(undefined, refresh);
+      case "project.pin": await chat.pinProject(command.params.path, command.params.pinned); return completed(undefined, () => refresh(true));
+      case "project.remove": await chat.removeProject(command.params.path); return completed(undefined, () => refresh(true));
       case "session.archive":
         try { await chat.archiveSession(command.params.path, command.params.archived); }
         catch (error) {
           if (error instanceof SessionBusyError) throw error;
           throw new V2OperationError("operationFailed", "Archiving failed; metadata may already have changed.", { mayHavePersisted: true });
         }
-        return completed(undefined, refresh);
+        return completed(undefined, () => refresh(true));
       case "prompt.answer": {
         const prompt = chat.captureSnapshot(raw!).prompts.find(prompt => prompt.id === command.params.promptId);
         if (!prompt) throw new V2OperationError("invalidPromptAnswer", "This prompt is no longer pending.");
