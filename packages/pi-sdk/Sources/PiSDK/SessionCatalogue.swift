@@ -87,4 +87,7 @@ public protocol PiSessionConnection: PiDemoConnection {
     func attachSession(sessionId: String) async throws -> DemoSession
     func openSession(sessionPath: String) async throws -> DemoSession
     func createSession(projectPath: String) async throws -> DemoSession
+    /// Identity changes of the observed runtime, so a workspace can react to a server
+    /// close or an atomic replacement without polling the inventory.
+    func sessionEvents() async -> AsyncStream<PiSessionEvent>
 }
