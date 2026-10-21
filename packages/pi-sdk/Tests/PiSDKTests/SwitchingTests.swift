@@ -210,3 +210,15 @@ private struct SwitchingDriver {
         #expect(!ids.contains("runtime"))
     }
 }
+
+@Test func sessionIdentityEventsAreAvailableThroughTheSessionContract() async throws {
+    try await SwitchingDriver.run { app in
+        try await app.connect()
+        _ = try await app.client.attachSession(sessionId: "runtime")
+        // The application observes the session contract, not the concrete client.
+        let connection: any PiSessionConnection = app.client
+        var events = await connection.sessionEvents().makeAsyncIterator()
+        try await app.server.emit(event("session.closed", 1, .object(["reason": .string("requested")])))
+        #expect(await events.next() == .closed(sessionId: "runtime"))
+    }
+}

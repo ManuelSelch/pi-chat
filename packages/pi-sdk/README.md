@@ -127,7 +127,9 @@ pending mutation, and responses are matched by request identity rather than by a
 order. `send(_:)` and `stop()` are bound to the runtime observed when they were issued; a
 late result only settles while that same runtime is still observed.
 
-`sessionEvents()` publishes bounded identity events for the observed runtime:
+`sessionEvents()` is part of that contract, so a workspace can observe them through the
+protocol rather than a concrete client. It publishes bounded identity events for the
+observed runtime:
 `.closed(sessionId:)` when the server ends it, and `.replaced(previous:current:)` when an
 atomic runtime replacement moves the work to a new identity. A replacement also swaps the
 open-session inventory entry immediately so no consumer sees neither identity; navigation
