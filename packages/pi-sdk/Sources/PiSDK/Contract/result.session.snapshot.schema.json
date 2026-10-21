@@ -1,0 +1,730 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+    },
+    "throughSequence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "sessionPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionName": {
+      "type": "string"
+    },
+    "projectPath": {
+      "type": "string"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "role": {
+                "type": "string",
+                "const": "bash"
+              },
+              "bash": {
+                "type": "object",
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "output": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "running",
+                      "success",
+                      "error",
+                      "cancelled"
+                    ]
+                  },
+                  "exitCode": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "excludeFromContext": {
+                    "type": "boolean"
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  },
+                  "fullOutputPath": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command",
+                  "output",
+                  "status",
+                  "excludeFromContext",
+                  "truncated"
+                ]
+              },
+              "timestamp": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "role",
+              "bash"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "assistant",
+                  "system"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "thinking": {
+                "type": "string"
+              },
+              "skill": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "location": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "location",
+                  "content"
+                ]
+              },
+              "timestamp": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "role",
+              "text"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "role": {
+                "type": "string",
+                "const": "tool"
+              },
+              "tool": {
+                "type": "object",
+                "properties": {
+                  "toolCallId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "running",
+                      "success",
+                      "error"
+                    ]
+                  },
+                  "argsText": {
+                    "type": "string"
+                  },
+                  "outputText": {
+                    "type": "string"
+                  },
+                  "writeContent": {
+                    "type": "object",
+                    "properties": {
+                      "text": {
+                        "type": "string",
+                        "maxLength": 102400
+                      },
+                      "truncated": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "text",
+                      "truncated"
+                    ]
+                  },
+                  "editDiff": {
+                    "type": "object",
+                    "properties": {
+                      "format": {
+                        "type": "string",
+                        "enum": [
+                          "unified",
+                          "pi-display"
+                        ]
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 102400
+                      },
+                      "truncated": {
+                        "type": "boolean"
+                      },
+                      "firstChangedLine": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "format",
+                      "text",
+                      "truncated"
+                    ]
+                  }
+                },
+                "required": [
+                  "toolCallId",
+                  "name",
+                  "status"
+                ]
+              },
+              "timestamp": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "role",
+              "tool"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "role": {
+                "type": "string",
+                "const": "custom"
+              },
+              "customType": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "id",
+              "role",
+              "customType",
+              "text"
+            ]
+          }
+        ]
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "running",
+            "aborting",
+            "closing"
+          ]
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+        },
+        "lastError": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "steeringMessages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "availableModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "thinkingLevel": {
+          "type": "string",
+          "enum": [
+            "off",
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ]
+        },
+        "availableThinkingLevels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "off",
+              "minimal",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          }
+        }
+      },
+      "required": [
+        "model",
+        "availableModels",
+        "thinkingLevel",
+        "availableThinkingLevels"
+      ]
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "argumentHint": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "native",
+              "extension",
+              "prompt",
+              "skill"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "const": "select"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "kind",
+              "options"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "const": "confirm"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "kind",
+              "message"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "const": "input"
+              },
+              "placeholder": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "kind"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "const": "editor"
+              },
+              "prefill": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "kind"
+            ]
+          }
+        ]
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "widgets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "placement": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "key",
+              "lines",
+              "placement"
+            ]
+          }
+        },
+        "footer": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "align": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "variant": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "key",
+              "text",
+              "align",
+              "variant"
+            ]
+          }
+        },
+        "extensions": {
+          "type": "object",
+          "properties": {
+            "buttons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                  },
+                  "slot": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "actionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "slot",
+                  "label",
+                  "actionId"
+                ]
+              }
+            },
+            "badges": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
+                  },
+                  "slot": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "id",
+                  "slot",
+                  "label",
+                  "tone"
+                ]
+              }
+            },
+            "state": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "buttons",
+            "badges",
+            "state"
+          ]
+        }
+      },
+      "required": [
+        "revision",
+        "widgets",
+        "footer",
+        "extensions"
+      ]
+    }
+  },
+  "required": [
+    "sessionId",
+    "throughSequence",
+    "projectPath",
+    "messages",
+    "runtime",
+    "steeringMessages",
+    "settings",
+    "commands",
+    "prompts"
+  ],
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      ]
+    }
+  }
+}

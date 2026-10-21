@@ -32,8 +32,11 @@ import Testing
         Issue.record("Fixture failed: \(try String(contentsOf: log, encoding: .utf8))")
         return
     }
-    let client = PiClient(endpoint: url)
-    let session = try await client.connectDemo(projectPath: canonical.path, takingControl: true)
+    var client = PiClient(endpoint: url)
+    try await client.connect(takingControl: true)
+    #expect(await client.catalogue.sessions.isEmpty)
+    try await waitFor { await client.catalogue.projects.first?.quickChats == true }
+    let session = try await client.createSession(projectPath: canonical.path)
     #expect(session.projectPath.hasSuffix(directory.lastPathComponent))
     #expect(await client.state == .ready(session))
     try await client.send("Say hello")
@@ -42,6 +45,12 @@ import Testing
     try await waitFor { await client.projection?.status == .idle }
     #expect(await client.projection?.messages.map(\.text) == ["Say hello", "Hello from the isolated Swift demo."])
     #expect(prefix != "Hello from the isolated Swift demo.")
+    await client.disconnect()
+    client = PiClient(endpoint: url)
+    try await client.connect(takingControl: true)
+    #expect(await client.catalogue.sessions.count == 1)
+    _ = try await client.attachSession(sessionId: session.sessionId)
+    #expect(await client.projection?.messages.count == 2)
     try await client.send("A second response to stop")
     try await waitFor { await client.projection?.messages.last?.isPartial == true }
     try await client.stop()
