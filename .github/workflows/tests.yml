@@ -88,6 +88,13 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    container:
+      # Keep this version aligned with Playwright in package-lock.json.
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v6
 
@@ -111,9 +118,6 @@ jobs:
         with:
           name: build
           path: .
-
-      - name: Install Playwright Chromium
-        run: npx --ignore-scripts playwright install --with-deps chromium
 
       # Use the existing build rather than test:e2e, which rebuilds it.
       - name: Run Playwright browser tests with browser and backend coverage
