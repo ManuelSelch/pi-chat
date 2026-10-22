@@ -2,7 +2,7 @@
 
 ## Approach
 
-Completed scope: helper hardening (requirements R8, slice 5). Current scope: linear path normalization (R2, slice 2), using the backward-scan algorithm presented in chat and accepted by the user's request to fix it. Fixed English model collation remains separate.
+Completed scope: helper hardening (requirements R8, slice 5) and linear path normalization (R2, slice 2). Current scope: explicit fixed-English model ordering (R4, slice 3), approved by the user after the model-ordering explanation. Other Sonar changes remain separate.
 
 The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
@@ -32,6 +32,12 @@ Keep a private `normalizeDisplayPath(path: string): string` helper in `src/serve
 
 Preserve current behavior for empty strings, slash-only roots, Windows drive roots, UNC paths, generic directory names, home boundaries and case handling. In particular, do not replace this display-only normalization with filesystem `normalize`/`resolve`, collapse internal separators, or change the empty-home early return. Add focused pure-function tests in `test/modules/server/projects/project-display.test.ts`. Run adversarial cases in a subprocess with a generous safety deadline, so a regression cannot block the test worker; do not assert machine-specific timings or speed ratios.
 
+### Fixed-English model ordering
+
+Keep one private `compareModelReferences(left: string, right: string): number` comparator beside `modelReference` in `src/server/runtime/pi/models.ts`. Compare full provider/model references with `left.localeCompare(right, "en")`. If English collation returns equality for different strings (for example composed and decomposed accents), fall back to ordinal string comparison. Exact equal strings compare as zero. Use the comparator in both existing sorts so available, scoped and fallback lists follow the same policy regardless of catalogue input order or server default locale. Do not normalize, rename or deduplicate references, change scope resolution or warnings, or apply natural numeric ordering. Fixed English means independence from server locale, not frozen collation data across all future ICU versions.
+
+Extend `offered-models.test.ts` with an injectable catalogue and explicit expected mixed-case, accented, punctuation and numeric-identifier ordering. Cover no shortlist, empty shortlist, scoped results and no-match fallback with forward/reversed catalogue order. Include collating-equivalent but byte-distinct identifiers to prove the deterministic tie-breaker preserves both exact strings. Keep existing filtering and fallback tests.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
@@ -42,6 +48,8 @@ Four new subprocess regressions failed on the old fixture and pass after hardeni
 
 Path verification: 24 new cases pass (43 with existing project-service coverage). The long-input subprocess exceeded its ten-second safety deadline on the original regex; it now completes comfortably. A non-gating probe normalized 200,000-slash inputs across all three sites in approximately 0.06 ms on this machine. Full suite rerun: 1,186 tests passed; production build/typecheck and whitespace checks passed. The first full run hit a lazy-Markdown UI timeout; that suite passed alone and in the full rerun without unrelated changes. Sonar closure still awaits new analysis.
 
+Model-order verification: eight new cases failed under the original default sorts and pass after the shared comparator change. All 17 offered-model tests pass, including existing filtering/fallback behavior. Full suite: 1,194 tests passed; production build/typecheck and whitespace checks passed. Scope is limited to ordering; no provider/model identifiers or catalogue objects are mutated. Sonar closure of the two critical-labeled sort findings still requires a fresh analysis.
+
 ## Decisions for Approval
 
-None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, and requested the backward-scan path fix after seeing the concrete algorithm.
+None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, and approved fixed-English model sorting with a deterministic tie-breaker.

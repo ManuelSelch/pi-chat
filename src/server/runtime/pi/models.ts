@@ -13,12 +13,20 @@ export type ModelOverride = Partial<
 
 const modelReference = (model: { provider: string; id: string }): string => `${model.provider}/${model.id}`;
 
+/** Fixed English display order; preserve exact identifiers when collation ties. */
+function compareModelReferences(left: string, right: string): number {
+  const order = left.localeCompare(right, "en");
+  if (order !== 0) return order;
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
 /**
  * The models this host offers, narrowed by Pi's own `enabledModels` setting.
  * Patterns are globs (`anthropic/*`, `*sonnet*`) as well as exact references.
  */
 export async function offeredModels(session: AgentSessionRuntime["session"]): Promise<string[]> {
-  const available = (await session.modelRuntime.getAvailable()).map(modelReference).sort();
+  const available = (await session.modelRuntime.getAvailable()).map(modelReference).sort(compareModelReferences);
   const patterns = session.settingsManager.getEnabledModels();
   if (!patterns?.length) return available;
 
@@ -28,7 +36,7 @@ export async function offeredModels(session: AgentSessionRuntime["session"]): Pr
     console.warn("enabledModels matched no available model, so every model is offered instead.");
     return available;
   }
-  return scopedModels.map((scoped) => modelReference(scoped.model)).sort();
+  return scopedModels.map((scoped) => modelReference(scoped.model)).sort(compareModelReferences);
 }
 
 /** Resolve the server-only model override after extension-provided providers load. */
