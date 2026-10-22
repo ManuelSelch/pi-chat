@@ -2,7 +2,7 @@
 
 ## Approach
 
-Completed scope: helper hardening (requirements R8, slice 5) and linear path normalization (R2, slice 2). Current scope: explicit fixed-English model ordering (R4, slice 3), approved by the user after the model-ordering explanation. Other Sonar changes remain separate.
+Completed scope: helper hardening (requirements R8, slice 5), linear path normalization (R2, slice 2), and fixed-English model ordering (R4, slice 3). Current scope: the explicitly approved Markdown scanner while-loop refactor (R6, part of slice 4). Other Sonar changes remain separate.
 
 The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
@@ -38,6 +38,12 @@ Keep one private `compareModelReferences(left: string, right: string): number` c
 
 Extend `offered-models.test.ts` with an injectable catalogue and explicit expected mixed-case, accented, punctuation and numeric-identifier ordering. Cover no shortlist, empty shortlist, scoped results and no-match fallback with forward/reversed catalogue order. Include collating-equivalent but byte-distinct identifiers to prove the deterministic tie-breaker preserves both exact strings. Keep existing filtering and fallback tests.
 
+### Markdown scanner advancement
+
+In `parseInlineMathText` in `src/web/chat/markdown/remark-display-math.ts`, move the scan index initialization before a `while (index < text.length)` loop. When a character is not an opening delimiter, or no closing delimiter is found, increment the index before continuing. After emitting a formula, set the text cursor to `close + 1` and set the scan index to that cursor. This exactly replaces the former `index = close` plus the for-loop increment; it must not rescan consumed content or skip the next character. Leave delimiter predicates, closing-delimiter search, node metadata, display promotion and Markdown integration unchanged. This is maintainability cleanup, not a newly discovered parser bug or a promise of linear-time parsing.
+
+Add pure AST characterization tests in `test/modules/web/chat/markdown/remark-display-math.test.ts` for plain/empty text, multiple/adjacent formulas, leading/trailing text, unmatched delimiters before/after valid formulas, escaped dollars, prices, whitespace and code nodes. Run these against the original implementation before refactoring; existing behavior is expected to pass. Keep existing DOM rendering tests for display/inline math and safe rendering. No new dependencies or public parser APIs.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
@@ -50,6 +56,8 @@ Path verification: 24 new cases pass (43 with existing project-service coverage)
 
 Model-order verification: eight new cases failed under the original default sorts and pass after the shared comparator change. All 17 offered-model tests pass, including existing filtering/fallback behavior. Full suite: 1,194 tests passed; production build/typecheck and whitespace checks passed. Scope is limited to ordering; no provider/model identifiers or catalogue objects are mutated. Sonar closure of the two critical-labeled sort findings still requires a fresh analysis.
 
+Markdown verification: 16 pure AST characterization cases and the existing DOM suite pass before and after the while-loop refactor (39 focused tests). Full suite: 1,217 tests passed after restoring dependencies from the committed lockfile with `npm ci --ignore-scripts` and explicitly compiling the source-only harness/SDK. The first full run was blocked by a missing `monocart-coverage-reports` package from recent coverage work; no package/lockfile change was needed. Production build/typecheck and whitespace checks pass. Dependency installation reported 12 npm audit findings (including 3 critical); these were not investigated or modified in this parser refactor. Scanner issue closure requires a fresh Sonar analysis.
+
 ## Decisions for Approval
 
-None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, and approved fixed-English model sorting with a deterministic tie-breaker.
+None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, approved fixed-English model sorting with a deterministic tie-breaker, and explicitly approved the Markdown scanner while-loop refactor after its advancement behavior was explained.

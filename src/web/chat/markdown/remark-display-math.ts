@@ -87,15 +87,22 @@ function parseInlineMath(nodes: PhrasingContent[]): PhrasingContent[] | undefine
 function parseInlineMathText(text: string): PhrasingContent[] {
   const nodes: PhrasingContent[] = [];
   let cursor = 0;
-  for (let index = 0; index < text.length; index += 1) {
-    if (!isOpeningDollar(text, index)) continue;
+  let index = 0;
+  while (index < text.length) {
+    if (!isOpeningDollar(text, index)) {
+      index += 1;
+      continue;
+    }
     const close = findClosingDollar(text, index + 1);
-    if (close === -1) continue;
+    if (close === -1) {
+      index += 1;
+      continue;
+    }
     if (cursor < index) nodes.push({ type: "text", value: text.slice(cursor, index) });
     const value = text.slice(index + 1, close);
     nodes.push(inlineMathNode(value) as PhrasingContent);
     cursor = close + 1;
-    index = close;
+    index = cursor;
   }
   if (cursor < text.length) nodes.push({ type: "text", value: text.slice(cursor) });
   return nodes.length === 0 ? [{ type: "text", value: text }] : nodes;
