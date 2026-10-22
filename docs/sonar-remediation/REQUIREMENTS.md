@@ -10,7 +10,7 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 
 - Review and remediation of 2 CRITICAL and 22 MAJOR findings returned by the Sonar MCP server for main.
 - Linear-time path normalization, explicit model ordering, small behavior-preserving rendering/parser changes, deterministic CI binary execution, and mockup cleanup.
-- Explicit trust-boundary decisions for the Swift test fixture's output directory and reconnect diagnostic target.
+- Harden the Swift test fixture with fixture-owned temporary outputs and restrict the reconnect diagnostic to numeric loopback targets (user confirmed).
 - Focused regression tests, fresh-worktree CI verification, and evidence-based disposition of stale findings or false positives.
 
 ### Out of Scope
@@ -24,11 +24,11 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 - R1: Track all 24 findings individually through fixes or documented disposition; distinguish source changes from scanner-confirmed resolution. Reconcile the currently analyzed revision/configuration with checkout `8a42c0d`, including findings outside current `sonar.sources=src`.
 - R2: Path and home normalization must process trailing separators in linear time while retaining current outputs for Unix/Windows paths, generic project names, home boundaries, empty inputs, and roots. Test adversarial slash runs without fragile wall-clock assertions.
 - R3: CI must install from the committed lockfile with lifecycle scripts disabled and execute only already-installed TypeScript/Playwright binaries; missing binaries must fail rather than trigger implicit downloads. Keep source-only harness compilation, explicit SDK builds, job dependencies, and artifact handoffs working in a clean checkout.
-- R4: Both model-list branches must use one documented alphabetical ordering policy, including mixed-case and Unicode identifiers. Model references, filtering, warnings, and fallback semantics must not change. Resolve the proposed fixed-English locale policy before implementing it.
+- R4: Both model-list branches must use fixed English locale collation with deterministic ties, including mixed-case and Unicode identifiers (user confirmed). Model references, filtering, warnings, and fallback semantics must not change.
 - R5: Highlight callback adapters must explicitly retain the token and sibling-index arguments; rendered text, nested highlighting classes, React keys, safe escaping, and fallback behavior must remain correct.
 - R6: The Markdown scanner must advance explicitly and always make progress, preserving multiple formulas, surrounding text, display math, escaped dollars, prices, unmatched delimiters, and code content. Do not simply delete the skip-ahead assignment.
 - R7: Preserve typed process-error rejection and bounded public error mapping. Verify the opener finding against a fresh scan; justify a false-positive disposition if it persists rather than inventing an error-handling defect.
-- R8: Resolve the helper trust-boundary question before changing the CLI contract. If hardened, the fixture must not overwrite arbitrary caller-chosen/preexisting/symlinked outputs, must retain isolated temporary metadata and failure diagnostics, and must preserve Swift handoff/cleanup. The reconnect script must reject non-approved parsed targets before connecting and bound connection/read attempts and cleanup. Test both accepted and rejected inputs with isolated resources.
+- R8: Harden both helpers (user confirmed). The fixture must create its own temporary output directory instead of accepting a caller-chosen output directory, must not overwrite preexisting/symlinked outputs, must retain isolated temporary metadata and failure diagnostics, and must preserve Swift handoff/cleanup. The reconnect script must accept only approved parsed numeric loopback WebSocket targets, reject other targets before connecting, and bound connection/read attempts and cleanup. Test both accepted and rejected inputs with isolated resources.
 - R9: Remove the redundant mockup selection conditional and add meaningful static heading fallback text without redesign. Verify strict focus identity and real keyboard wrapping; do not replace `===` with `==`. Document false positives per finding instead of suppressing an entire rule or folder.
 - R10: Verify changed behavior with focused tests and then the full Vitest suite and production build; verify workflow changes in clean CI, fixture changes with macOS Swift loopback tests, and mockup changes with keyboard/accessibility smoke checks. Requery Sonar after a new matching main/PR analysis and record remaining findings and gate status honestly. Document any unrelated baseline failures separately.
 
@@ -36,7 +36,6 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 
 - Scope is the current pi-chat project and main-branch Sonar findings, not a repository-wide security audit.
 - The existing Swift fixture caller is trusted and owns its temporary directory; the reconnect script is a local-development diagnostic. Neither is currently a production HTTP endpoint.
-- Proposed default: locale-aware English ordering with deterministic ties, retaining original model identifiers; this requires confirmation.
 - Mockups remain maintained and analyzed; narrow documented false-positive dispositions are preferred over exclusions.
 - Existing CI lifecycle protections are intentional and must not be undone to repair dependency preparation.
 
@@ -52,7 +51,7 @@ Description: Resolve all three regex findings with bounded trailing-separator re
 
 ### 3. Define Model Ordering
 
-Description: After the locale-policy question is resolved, address both critical-labeled sort findings with consistent explicit collation and deterministic tie behavior. Add mixed-case/Unicode/punctuation tests for available, scoped, and fallback lists; retain scope diagnostics and exact references. Verify the offered-model suite.
+Description: Address both critical-labeled sort findings with confirmed fixed English locale collation and deterministic tie behavior. Add mixed-case/Unicode/punctuation tests for available, scoped, and fallback lists; retain scope diagnostics and exact references. Verify the offered-model suite.
 
 ### 4. Clarify Rendering and Parser Intent
 
@@ -60,7 +59,7 @@ Description: Make the two highlight iterator callbacks explicit while retaining 
 
 ### 5. Resolve Diagnostic Trust Boundaries
 
-Description: Depends on the helper-policy answer. Either harden the fixture/Swift handoff and reconnect target validation with isolated positive/negative tests, or document contextual acceptance for the three CLI findings. For hardening, avoid cwd confinement that breaks legitimate OS-temp usage, handle preexisting/symlinked output risks, and bound reconnect attempt/read cleanup. Verify fixture changes with macOS Swift tests and reconnect behavior against isolated local servers. Do not introduce a general-purpose sandbox framework.
+Description: Harden the fixture/Swift handoff and reconnect target validation with isolated positive/negative tests, as confirmed by the user. Use fixture-owned temporary outputs and loopback-only reconnect targets; avoid cwd confinement that breaks legitimate OS-temp usage, handle preexisting/symlinked output risks, and bound reconnect attempt/read cleanup. Verify fixture changes with macOS Swift tests and reconnect behavior against isolated local servers. Do not introduce a general-purpose sandbox framework.
 
 ### 6. Clean Up and Validate Mockups
 
@@ -72,5 +71,4 @@ Description: Depends on completed applicable slices 1–6 and approved dispositi
 
 ## Open Questions
 
-1. May the test/dev helpers adopt stricter contracts (fixture-owned temporary outputs and loopback-only reconnect targets), or should their three findings receive documented contextual acceptance? Recommended: harden them if no external diagnostic callers depend on the current arguments.
-2. Should model ordering use fixed English locale collation for reproducibility across servers, or the server's default locale? Recommended: fixed English collation with deterministic ties.
+None.
