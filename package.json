@@ -26,6 +26,9 @@
     "start": "node dist/server/server/index.js",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
+    "test:e2e:coverage": "PI_CHAT_COVERAGE=1 npm run build && npm run test:e2e:coverage:run",
+    "test:e2e:coverage:run": "node scripts/run-playwright-coverage.mjs",
+    "coverage:e2e:report": "node scripts/report-playwright-coverage.mjs",
     "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
     "measure:server-memory": "npm run build && node scripts/compare-server-memory.mjs",
     "capture:readme": "tsx scripts/capture-readme.ts",
@@ -75,7 +78,8 @@
     "@earendil-works/pi-coding-agent": "1.0.2",
     "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc",
     "@playwright/test": "^1.63.0",
-    "@vitest/coverage-v8": "5.0.0"
+    "@vitest/coverage-v8": "5.0.0",
+    "monocart-coverage-reports": "^3.0.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

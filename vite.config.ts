@@ -20,6 +20,7 @@ export default defineConfig({
   },
   build: {
     outDir: "dist/web",
+    sourcemap: process.env.PI_CHAT_COVERAGE === "1",
     chunkSizeWarningLimit: 650,
   },
 });

@@ -35,8 +35,10 @@ jobs:
           --outDir node_modules/@marcfargas/pi-test-harness/dist
           node_modules/@marcfargas/pi-test-harness/src/*.ts
 
-      - name: Typecheck and build
+      - name: Typecheck and build with browser source maps
         run: npm run build
+        env:
+          PI_CHAT_COVERAGE: '1'
 
       - name: Upload production assets and SDK
         uses: actions/upload-artifact@v4
@@ -114,8 +116,16 @@ jobs:
         run: npx --ignore-scripts playwright install --with-deps chromium
 
       # Use the existing build rather than test:e2e, which rebuilds it.
-      - name: Run Playwright browser tests
-        run: npx --ignore-scripts playwright test
+      - name: Run Playwright browser tests with browser and backend coverage
+        run: npm run test:e2e:coverage:run
+
+      - name: Upload E2E coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-e2e
+          path: coverage-e2e/lcov.info
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Upload Playwright failure artifacts
         if: failure()
@@ -127,7 +137,7 @@ jobs:
           retention-days: 7
 
   sonar:
-    needs: unit
+    needs: [unit, e2e]
     # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
     # Fork pull requests cannot access the analysis token.
     if: >-
@@ -146,6 +156,12 @@ jobs:
         with:
           name: coverage
           path: coverage
+
+      - name: Download E2E coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-e2e
+          path: coverage-e2e
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7

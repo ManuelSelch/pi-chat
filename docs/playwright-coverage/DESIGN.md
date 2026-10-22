@@ -1,6 +1,6 @@
 # Playwright Coverage — Design
 
-Status: Proposed; requires approval before implementation.
+Status: Approved and implemented; local verification passed. Remote Sonar import awaits CI.
 
 ## Approach
 
@@ -30,7 +30,7 @@ const segment = await page.coverage.stopJSCoverage();
 
 Do not rely on `resetOnNavigation: false`: Chromium can still discard navigation coverage. Explicitly save each pre-reload segment, restart collection, then reload. Tests must prove both sides survive. New browser pages/popups are outside the current scenarios; future support must install collection before their first navigation.
 
-Launch Playwright with `NODE_V8_COVERAGE` pointing to an isolated raw-output directory before workers start. This captures the in-worker backend, including startup; run conversion after all workers exit and flush. Validate Playwright’s TypeScript transform maps back to `src/server/...`; reject unmapped application code rather than reporting transformed JavaScript.
+Launch Playwright with `NODE_V8_COVERAGE` pointing to an isolated raw-output directory before workers start. This captures the in-worker backend, including startup; run conversion after all workers exit and flush. Use an isolated `PWTEST_CACHE_DIR` to recover exact executed JavaScript alongside Node’s transform maps. Validate cache hashes, map identity and line lengths; do not approximate coverage using placeholder source text. Map back to `src/server/...` and reject unmapped application code.
 
 Resolve browser maps from local `dist/web`, without a live server. Normalize paths to repository-relative `src/...`; exclude dependencies, generated bundles, tests, declarations and all `packages/` sources. Reject missing browser/backend data, missing application maps and unresolved application paths. Retain zero coverage for unexecuted root sources through Vitest’s existing include.
 
@@ -51,4 +51,4 @@ Test normalization/filtering, invalid maps and isolated outputs. Prove distinct 
 ## Decisions for Approval
 
 - Confirmed: Sonar waits for successful E2E completion; both SDKs are excluded for now.
-- Revised design requires approval: browser plus in-worker backend collection, `monocart-coverage-reports`, and coverage-only browser source maps.
+- Approved: browser plus in-worker backend collection, `monocart-coverage-reports`, and coverage-only browser source maps.

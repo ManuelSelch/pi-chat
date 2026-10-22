@@ -12,6 +12,14 @@ Scenarios use real Pi sessions and WebSocket transport, not a rendered browser.
 
 `e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and skill steering during streaming (including reconnect). `e2e/chat.spec.ts` also verifies that `!` / `!!` remain blocked during steering. `app.Tabs.Create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.Skills`.
 
+## E2E coverage
+
+Import `test` (and `expect`) from `infra/e2e/coverage/fixtures.ts` in browser specs,
+not directly from Playwright, so opt-in coverage starts before navigation and
+flushes before page teardown. Navigations must checkpoint through the browser
+driver. `e2e/coverage.spec.ts` verifies real reload retention; `infra-tests/e2e/coverage/`
+checks collection and conversion guards. See [coverage commands and scope](../docs/development.md#e2e-coverage).
+
 ## Composer focus regressions
 
 `modules/web/app/composer-focus.dom.test.tsx` and `e2e/composer-focus.spec.ts` cover restoration after session loading, tab changes, overlay exits, nested confirmations, and extension-prompt handover. See [the red-to-green results and reproduction commands](../docs/composer-focus/REGRESSIONS.md). Browser assertions check focus before keyboard typing; do not replace them with `fill()` or explicit focusing. Simulated-clock tests use `infra/ui/finish-ui-transitions.ts` to let React commit between transition phases, rather than batching the entire lifecycle in one timer advance.

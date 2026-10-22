@@ -35,6 +35,27 @@ workflows), and `test/infra-tests/` (tests of reusable machinery). Reusable
 support lives under `test/infra/`. See the [testing guide](../test/README.md) for
 placement rules and focused commands.
 
+### E2E coverage
+
+Run `npm run test:e2e:coverage` to build with browser source maps, collect
+Chromium and in-worker backend V8 coverage, and generate
+`coverage-e2e/lcov.info`. For an existing coverage-enabled build, use
+`npm run test:e2e:coverage:run -- test/e2e/reload.spec.ts --workers=1`.
+Regenerate the report from retained raw data with `npm run coverage:e2e:report`.
+
+Ordinary `test:e2e` runs do not collect coverage. The coverage runner clears only
+`coverage-e2e/`; Vitest's `coverage/` is independent. Both TypeScript and Swift
+SDKs are outside the measured scope (`sonar.sources=src`). CI waits for unit and
+E2E success before importing both LCOV reports into Sonar. Vitest supplies
+unexecuted root source files so they remain uncovered in combined analysis.
+
+Coverage uses the exact Playwright transform cache and Node source maps for the
+in-process backend. Upgrading Playwright requires rerunning the reload regression
+and checking backend mappings; missing/mismatched maps or transformed sources fail
+report generation. New page navigations must checkpoint collection through the
+browser driver, as reload does. Popups/additional browser pages are not supported.
+Raw data contains source code and stays local; CI uploads only LCOV.
+
 To compare fresh-process server memory:
 
 ```sh
