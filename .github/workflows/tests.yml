@@ -26,7 +26,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run Vitest tests with coverage
         run: npm test -- --coverage
@@ -40,7 +40,7 @@ jobs:
           retention-days: 7
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx --ignore-scripts playwright install --with-deps chromium
 
       # test:e2e runs the production build (including typechecking) first.
       - name: Build and run Playwright browser tests
