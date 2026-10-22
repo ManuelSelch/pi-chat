@@ -1,8 +1,8 @@
-# Diagnostic Script Hardening — Design
+# Sonar Remediation — Design
 
 ## Approach
 
-Implement only the confirmed helper-hardening work (requirements R8, slice 5). Fixed English model collation is recorded in the requirements but is not part of this implementation scope.
+Completed scope: helper hardening (requirements R8, slice 5). Current scope: linear path normalization (R2, slice 2), using the backward-scan algorithm presented in chat and accepted by the user's request to fix it. Fixed English model collation remains separate.
 
 The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
@@ -26,6 +26,12 @@ The Swift driver directs stdout/stderr to its existing style of regular diagnost
 
 The Swift driver permits six seconds for graceful shutdown, then kills/reaps the child if necessary. Failure/cancellation before readiness and driver destruction also terminate the subprocess. Throwing test assertions preserve failure artifacts instead of deleting diagnostics after a failed expectation.
 
+### Linear path normalization
+
+Keep a private `normalizeDisplayPath(path: string): string` helper in `src/server/projects/project-display.ts`. Replace backslashes with forward slashes, then decrement an end index while the preceding character is `/`, and return one slice. Both project formatters use this helper, covering the project path and home path without changing their remaining logic. Each character is visited at most a bounded number of times; no regex search or repeated slicing occurs in the loop.
+
+Preserve current behavior for empty strings, slash-only roots, Windows drive roots, UNC paths, generic directory names, home boundaries and case handling. In particular, do not replace this display-only normalization with filesystem `normalize`/`resolve`, collapse internal separators, or change the empty-home early return. Add focused pure-function tests in `test/modules/server/projects/project-display.test.ts`. Run adversarial cases in a subprocess with a generous safety deadline, so a regression cannot block the test worker; do not assert machine-specific timings or speed ratios.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
@@ -34,6 +40,8 @@ No new dependencies, DNS resolution, remote-host override, generic filesystem sa
 
 Four new subprocess regressions failed on the old fixture and pass after hardening: argument rejection, private/canonical workspace and readiness handoff with clean shutdown, and exclusive-write failure on preexisting files and symlinks. The old Swift caller also failed against the new argument contract before its handoff was updated. Full Vitest suite: 1,162 passed; Swift Testing: 35 passed; XCTest: 6 passed. Production build/typecheck and whitespace checks pass. A fresh Sonar analysis remains necessary to confirm findings close.
 
+Path verification: 24 new cases pass (43 with existing project-service coverage). The long-input subprocess exceeded its ten-second safety deadline on the original regex; it now completes comfortably. A non-gating probe normalized 200,000-slash inputs across all three sites in approximately 0.06 ms on this machine. Full suite rerun: 1,186 tests passed; production build/typecheck and whitespace checks passed. The first full run hit a lazy-Markdown UI timeout; that suite passed alone and in the full rerun without unrelated changes. Sonar closure still awaits new analysis.
+
 ## Decisions for Approval
 
-None. The user approved fixture hardening and the stdout readiness handoff, and separately approved deletion of the reconnect script.
+None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, and requested the backward-scan path fix after seeing the concrete algorithm.

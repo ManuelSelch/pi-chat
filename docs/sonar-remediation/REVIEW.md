@@ -14,7 +14,8 @@
 - The user chose deletion over hardening for `scripts/verify-reconnect.ts`; removed in `262c05e`.
 - Swift fixture hardening is implemented: fixture-owned private temporary directory, stdout readiness handoff, exclusive cleanup-report creation, and bounded Swift subprocess ownership with retained failure logs.
 - Four new subprocess regressions and the updated real-server Swift integration test pass. Full verification: 1,162 Vitest tests, 35 Swift Testing tests plus 6 XCTest tests, production build/typecheck, and whitespace checks pass.
-- The original review below describes the pre-fix source. Sonar issue statuses have not been changed; closure of the three CLI findings still needs a new analysis. Other remediation slices, including fixed English model sorting, remain unimplemented.
+- Linear path normalization is also implemented: one private backward-scan helper replaces all three trailing-slash regex sites, preserving display behavior. Added 24 regressions covering roots, empty-home bypass, Windows/UNC paths, home boundaries, internal separators and adversarial slash runs. The old regex exceeded a ten-second subprocess safety deadline; the replacement passes. Full suite rerun: 1,186 tests pass; build/typecheck and whitespace checks pass. The first full run had a lazy-Markdown UI timeout which passed in isolation and on full rerun without UI changes.
+- The original review below describes the pre-fix source. Sonar issue statuses have not been changed; closure of the three CLI and three regex findings still needs a new analysis. Other remediation slices, including fixed English model sorting, remain unimplemented.
 
 ## Executive summary
 
