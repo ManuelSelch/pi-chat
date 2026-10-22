@@ -23,17 +23,53 @@ const CATALOGUE = [
 ];
 
 /** Only the two members `offeredModels` reads. */
-function fakeSession(enabledModels?: string[]) {
+function fakeSession(enabledModels?: string[], catalogue = CATALOGUE) {
   return {
     modelRuntime: {
-      getAvailable: async () => CATALOGUE,
-      getAvailableSnapshot: () => CATALOGUE,
+      getAvailable: async () => catalogue,
+      getAvailableSnapshot: () => catalogue,
     },
     settingsManager: { getEnabledModels: () => enabledModels },
   } as unknown as Parameters<typeof offeredModels>[0];
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("fixed English model ordering", () => {
+  const expected = [
+    "provider/alpha",
+    "provider/e\u0301clair",
+    "provider/éclair",
+    "provider/model_2",
+    "provider/model-10",
+    "provider/model-2",
+    "provider/Zeta",
+  ];
+  // Deliberately unsorted; the accented references collate equally but must
+  // remain distinct and ordered by their original code units as a tie-breaker.
+  const catalogue = ["Zeta", "éclair", "alpha", "e\u0301clair", "model-2", "model_2", "model-10"]
+    .map(id => model("provider", id));
+
+  describe.each([
+    { mode: "no shortlist", patterns: undefined },
+    { mode: "empty shortlist", patterns: [] },
+    { mode: "provider shortlist", patterns: ["provider/*"] },
+    { mode: "no-match fallback", patterns: ["missing/*"] },
+  ])("$mode", ({ patterns }) => {
+    it.each([false, true])("orders exact references consistently (reversed input: %s)", async reverse => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const input = reverse ? [...catalogue].reverse() : [...catalogue];
+      const before = [...input];
+      expect(await offeredModels(fakeSession(patterns, input))).toEqual(expected);
+      expect(input).toEqual(before);
+      if (patterns?.[0] === "missing/*") {
+        expect(warn.mock.calls.flat().join(" ")).toContain("every model is offered instead");
+      } else {
+        expect(warn).not.toHaveBeenCalled();
+      }
+    });
+  });
+});
 
 describe("which models the browser offers", () => {
   it("offers everything when no shortlist is configured", async () => {
