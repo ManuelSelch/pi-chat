@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -26,8 +28,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Vitest tests
-        run: npm test
+      - name: Run Vitest tests with coverage
+        run: npm test -- --coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -35,6 +45,21 @@ jobs:
       # test:e2e runs the production build (including typechecking) first.
       - name: Build and run Playwright browser tests
         run: npm run test:e2e
+
+      # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
+      # Fork pull requests cannot access the analysis token.
+      - name: SonarQube Scan
+        if: >-
+          vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORGANIZATION != '' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
 
       - name: Upload Playwright failure artifacts
         if: failure()

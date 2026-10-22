@@ -74,7 +74,8 @@
     "@earendil-works/pi-ai": "1.0.2",
     "@earendil-works/pi-coding-agent": "1.0.2",
     "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc",
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "5.0.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

@@ -5,6 +5,8 @@ dist/
 .vite/
 test-results/
 playwright-report/
+coverage/
+.scannerwork/
 *.log
 .DS_Store
 /docs/images/showcase/preview.html
