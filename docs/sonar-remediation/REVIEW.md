@@ -9,6 +9,13 @@
 - Current gate: ERROR on `new_security_rating` (3, required 1); other returned conditions pass. Do not assume this review alone explains every gate metric.
 - No production code or Sonar issue statuses changed. Proposed dispositions below require verification against a fresh scan.
 
+## Implementation follow-up
+
+- The user chose deletion over hardening for `scripts/verify-reconnect.ts`; removed in `262c05e`.
+- Swift fixture hardening is implemented: fixture-owned private temporary directory, stdout readiness handoff, exclusive cleanup-report creation, and bounded Swift subprocess ownership with retained failure logs.
+- Four new subprocess regressions and the updated real-server Swift integration test pass. Full verification: 1,162 Vitest tests, 35 Swift Testing tests plus 6 XCTest tests, production build/typecheck, and whitespace checks pass.
+- The original review below describes the pre-fix source. Sonar issue statuses have not been changed; closure of the three CLI findings still needs a new analysis. Other remediation slices, including fixed English model sorting, remain unimplemented.
+
 ## Executive summary
 
 No remotely exploitable critical vulnerability was established in this scoped review. The clearest confirmed production defect is super-linear path normalization on long slash runs. The two CRITICAL findings are locale-sensitive ordering concerns, while several MAJOR findings are maintainability warnings, stale CI findings, or likely analyzer false positives. Test/dev CLI findings deserve an explicit trust-boundary decision rather than being presented as exposed production endpoints.

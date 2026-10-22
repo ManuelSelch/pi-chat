@@ -4,14 +4,14 @@
 
 Implement only the confirmed helper-hardening work (requirements R8, slice 5). Fixed English model collation is recorded in the requirements but is not part of this implementation scope.
 
-The fixture currently canonicalizes a caller-selected directory without confining writes. The reconnect diagnostic accepts any URL and can wait indefinitely for a first message. These capabilities are confirmed in source; production exploitability was not established. Remove the unnecessary capabilities rather than build a general sandbox.
+The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
 ## Components & Data Flow
 
 - **Changed:** `packages/pi-sdk/Tests/Fixtures/loopback-server.ts` rejects positional output-directory arguments, creates a private temporary directory itself, and keeps sessions/metadata/output files there. Its fake runtime and loopback server remain unchanged.
 - **Changed:** `packages/pi-sdk/Tests/PiSDKTests/LoopbackTests.swift` launches the fixture without a directory argument. It reads a marked readiness record from stdout containing the canonical project directory and endpoint, then uses that directory for session creation and cleanup assertions. Its existing parent-owned temporary directory retains diagnostic logs.
-- **Changed:** `scripts/verify-reconnect.ts` validates its optional URL before opening sockets, bounds each attempt, and guarantees cleanup. Keep small exported functions in this script for tests, with execution guarded to run only as the CLI entry point.
-- **New, test-only:** focused helper tests and a small fixture-process driver owning startup, bounded readiness reads, termination, and cleanup. Reuse existing test-driver conventions where applicable; no production service layer.
+- **Removed:** `scripts/verify-reconnect.ts`; do not recreate it.
+- **New, test-only:** `LoopbackFixture.swift` owns the Swift subprocess and diagnostics. `test/infra/swift-fixture-driver.ts` owns subprocess setup, readiness, teardown and assertions for `test/infra-tests/swift-fixture.test.ts`. No production service layer.
 
 ## Key Implementation Details
 
@@ -22,16 +22,9 @@ type FixtureReady = { directory: string; endpoint: string };
 // PI_FIXTURE_READY {"directory":"…","endpoint":"ws://127.0.0.1:…/ws"}
 ```
 
-The Swift reader drains stdout, recognizes only the readiness prefix, enforces the existing startup deadline, and retains other output as diagnostics. Stderr remains logged. Parent-side cleanup removes the reported private fixture directory after success, but retains artifacts on failure. Register bounded termination early so startup failures do not leave a server running. Keep cleanup reports exclusively created in the fixture directory. This protects against accidental/argument-driven overwrites, not hostile processes running as the same OS user.
+The Swift driver directs stdout/stderr to its existing style of regular diagnostic file (avoiding pipe backpressure and concurrent readers), polls complete lines for the readiness prefix, and enforces the ten-second startup deadline. All other output remains available as diagnostics. Parent-side cleanup removes the reported private fixture directory after success, but retains artifacts on failure. Register bounded termination early so startup failures do not leave a server running. Keep cleanup reports exclusively created in the fixture directory. This protects against accidental/argument-driven overwrites, not hostile processes running as the same OS user.
 
-Reconnect validation parses a `URL` and accepts only `ws:`/`wss:` with numeric hosts `127.0.0.1` or `[::1]`, no username/password or fragment, and valid ports. Reject hostnames (including `localhost`) and non-loopback addresses. Retain the current default endpoint and custom loopback ports. Pass the validated URL to `ws` with redirects explicitly disabled.
-
-```ts
-export function validateReconnectTarget(value: string): URL;
-export async function attemptOnce(target: URL, timeoutMs: number): Promise<string>;
-```
-
-Use a five-second maximum per attempt, clipped to the remaining sixty-second overall budget. Bound retry sleeps to that budget. On timeout, parse failure, premature close, or socket error, settle once, clear timers, and terminate the socket. Bound graceful success closure too. Invalid targets fail immediately without retries or network access.
+The Swift driver permits six seconds for graceful shutdown, then kills/reaps the child if necessary. Failure/cancellation before readiness and driver destruction also terminate the subprocess. Throwing test assertions preserve failure artifacts instead of deleting diagnostics after a failed expectation.
 
 ## Complexity Guardrails
 
@@ -39,8 +32,8 @@ No new dependencies, DNS resolution, remote-host override, generic filesystem sa
 
 ## Verification
 
-Use TDD for URL acceptance/rejection, redirect refusal, connection/read timeouts, malformed messages, retry recovery, and socket cleanup against isolated servers. Test fixture argument rejection, private-directory creation, readiness handoff, exclusive-write failure on preexisting files/symlinks, and bounded process teardown through a test driver. Run the updated macOS Swift loopback test, focused Vitest tests, full suite, typecheck/build, and whitespace checks. A fresh Sonar analysis remains necessary to confirm findings close.
+Four new subprocess regressions failed on the old fixture and pass after hardening: argument rejection, private/canonical workspace and readiness handoff with clean shutdown, and exclusive-write failure on preexisting files and symlinks. The old Swift caller also failed against the new argument contract before its handoff was updated. Full Vitest suite: 1,162 passed; Swift Testing: 35 passed; XCTest: 6 passed. Production build/typecheck and whitespace checks pass. A fresh Sonar analysis remains necessary to confirm findings close.
 
 ## Decisions for Approval
 
-Approve the stdout readiness handoff replacing the fixture's directory argument, and the numeric-loopback-only reconnect policy with five-second attempts within the existing sixty-second budget. This design requires explicit approval before source or test changes.
+None. The user approved fixture hardening and the stdout readiness handoff, and separately approved deletion of the reconnect script.

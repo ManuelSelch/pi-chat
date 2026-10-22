@@ -1,6 +1,7 @@
 // Test-owned server only: fake runtime, empty history, temporary metadata, loopback.
 import { once } from "node:events";
-import { writeFile, rename, realpath } from "node:fs/promises";
+import { chmod, mkdtemp, realpath, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
@@ -11,7 +12,9 @@ import { FakeRuntimeAdapter } from "../../../../test/infra/fake-runtime-adapter.
 import { ProjectSessionService } from "../../../../src/server/projects/project-session-service.js";
 import { ProjectMetadataStore } from "../../../../src/server/projects/project-metadata-store.js";
 
-const directory = await realpath(process.argv[2]!);
+if (process.argv.length !== 2) throw new Error("The loopback fixture does not accept arguments.");
+const directory = await realpath(await mkdtemp(join(tmpdir(), "pi-swift-fixture-")));
+await chmod(directory, 0o700);
 let created = 0;
 class DemoRuntime extends FakeRuntimeAdapter {
   private readonly observers = new Set<(event: RuntimeEvent) => void>();
@@ -72,10 +75,12 @@ const server = createPiChatServer(undefined, undefined, {
 server.httpServer.listen(0, "127.0.0.1");
 await once(server.httpServer, "listening");
 const endpoint = `ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`;
-await writeFile(join(directory, "endpoint.tmp"), endpoint);
-await rename(join(directory, "endpoint.tmp"), join(directory, "endpoint"));
 let stopping = false;
-process.on("SIGTERM", () => { void cleanup(); });
+process.on("SIGTERM", () => {
+  void cleanup().catch(error => { console.error(error); process.exit(1); });
+});
+// Readiness is a stdout record, never a write into a caller-selected directory.
+console.log(`PI_FIXTURE_READY ${JSON.stringify({ directory, endpoint })}`);
 async function cleanup() {
   if (stopping) return;
   stopping = true;
@@ -102,6 +107,8 @@ async function cleanup() {
   socket.close();
   await once(socket, "close");
   await server.close();
-  await writeFile(join(directory, "cleanup.json"), JSON.stringify({ created, retained: retained.length, closed: retained.length }));
+  await writeFile(join(directory, "cleanup.json"), JSON.stringify({ created, retained: retained.length, closed: retained.length }), {
+    flag: "wx", mode: 0o600,
+  });
   clearTimeout(timeout);
 }
