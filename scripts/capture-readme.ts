@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import { assembleShowcaseHtml } from "./readme-showcase/assembly.js";
+import { resolveNpmCli } from "../src/shared/node/npm-command.js";
 
 // Resolve independently of the invoking shell's cwd. SDK imports happen only AFTER isolation.
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -19,7 +20,7 @@ if (outputIndex >= 0 && (!process.argv[outputIndex + 1] || process.argv[outputIn
 }
 const output = resolve(outputIndex < 0 ? "docs/images/showcase" : process.argv[outputIndex + 1]);
 if (!process.argv.includes("--skip-build")) {
-  const result = spawnSync("npm", ["run", "build"], { stdio: "inherit" });
+  const result = spawnSync(process.execPath, [resolveNpmCli(), "run", "build"], { stdio: "inherit" });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 const agentDir = await mkdtemp(join(tmpdir(), "pi-chat-showcase-agent-"));

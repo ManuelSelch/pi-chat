@@ -13,6 +13,16 @@ into `~/.pi/agent/git/pi-chat` and registers these Pi commands:
 runs the compiled backend with Node. Generated `dist/` artifacts are local and
 are not committed. See [Development](development.md) for the watch-mode workflow.
 
+## npm-backed operations
+
+Browser-triggered rebuilds, README capture and SDK package verification use the
+npm CLI installed alongside the running Node executable on macOS/Linux. Standard
+Homebrew and Node/npm distributions may use a sibling `npm` symlink. Missing or
+unsupported layouts fail clearly rather than searching `PATH` or trusting
+`npm_execpath`; a failed restart build leaves the current server running. Install
+npm alongside the Node installation used to launch Pi Chat to resolve this error.
+The installation, repository and downstream build-tool environment must remain trusted.
+
 ## Environment variables
 
 | Variable | Meaning |

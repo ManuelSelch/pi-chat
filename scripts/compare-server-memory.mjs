@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { rssKilobytes, physicalPeakMegabytes } from "./server-memory/metrics.mjs";
 
 const root = process.cwd();
 const holdMs = Number(process.env.PI_CHAT_MEMORY_HOLD_MS ?? 10_000);
@@ -20,19 +20,6 @@ async function freePort() {
   assert(address && typeof address !== "string");
   await new Promise((resolveClose, reject) => server.close((error) => error ? reject(error) : resolveClose()));
   return address.port;
-}
-
-function rssKilobytes(pid) {
-  return Number(execFileSync("ps", ["-p", String(pid), "-o", "rss="], { encoding: "utf8" }).trim());
-}
-
-function physicalPeakMegabytes(pid) {
-  if (process.platform !== "darwin") return undefined;
-  const summary = execFileSync("vmmap", ["-summary", String(pid)], { encoding: "utf8" });
-  const match = summary.match(/Physical footprint \(peak\):\s+([\d.]+)([KMG])/);
-  if (!match) return undefined;
-  const scale = { K: 1 / 1024, M: 1, G: 1024 }[match[2]];
-  return Number(match[1]) * scale;
 }
 
 async function sample(label, command, args, port) {

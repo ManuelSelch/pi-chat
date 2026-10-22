@@ -5,14 +5,15 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { resolveNpmCli } from "../../../../src/shared/node/npm-command.ts";
 const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL("../", import.meta.url));
 const temporary = await mkdtemp(join(tmpdir(), "pi-sdk-consumer-"));
 try {
-  execFileSync("npm", ["pack", "--pack-destination", temporary], { cwd: root, stdio: "pipe" });
+  execFileSync(process.execPath, [resolveNpmCli(), "pack", "--pack-destination", temporary], { cwd: root, stdio: "pipe" });
   const tarball = (await readdir(temporary)).find(name => name.endsWith(".tgz")); assert(tarball);
   await writeFile(join(temporary, "package.json"), JSON.stringify({ private: true, type: "module" }));
-  execFileSync("npm", ["install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false", join(temporary, tarball)], { cwd: temporary, stdio: "pipe" });
+  execFileSync(process.execPath, [resolveNpmCli(), "install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false", join(temporary, tarball)], { cwd: temporary, stdio: "pipe" });
   const manifest = JSON.parse(await readFile(join(temporary, "node_modules/@manuelselch/pi-sdk/package.json"), "utf8")); assert.deepEqual(Object.keys(manifest.dependencies), ["zod"]);
   const modules = await readdir(join(temporary, "node_modules")); assert(!modules.some(name => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
   await writeFile(join(temporary, "consumer.ts"), `

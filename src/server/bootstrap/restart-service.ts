@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { resolveNpmCli } from "../../shared/node/npm-command.js";
 
 export interface RestartPlan {
   command: string;
@@ -78,8 +79,11 @@ export function createRestartService(options: {
  * stderr on a perfectly good build.
  */
 function runBuild(cwd: string): Promise<string | undefined> {
+  let npmCli: string;
+  try { npmCli = resolveNpmCli(); }
+  catch (error) { return Promise.resolve(`could not run npm run build: ${error instanceof Error ? error.message : String(error)}`); }
   return new Promise((done) => {
-    const child = spawn("npm", ["run", "build"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, [npmCli, "run", "build"], { cwd, stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     child.stdout.on("data", (chunk) => { output += String(chunk); });
     child.stderr.on("data", (chunk) => { output += String(chunk); });

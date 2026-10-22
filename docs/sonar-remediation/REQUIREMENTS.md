@@ -12,11 +12,12 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 - Linear-time path normalization, explicit model ordering, small behavior-preserving rendering/parser changes, deterministic CI binary execution, and mockup cleanup.
 - Harden the Swift test fixture with fixture-owned temporary outputs (user confirmed). Remove the unused reconnect diagnostic instead of hardening it (subsequently confirmed; removed in `262c05e`).
 - Focused regression tests, fresh-worktree CI verification, and evidence-based disposition of stale findings or false positives.
-- Review the production restart invocation without changing its execution policy; remove two object-literal parameter defaults while preserving behavior (subsequently requested).
+- Review the production restart invocation without changing its execution policy in slice 8; remove two object-literal parameter defaults while preserving behavior (subsequently requested).
+- Subsequently requested slice 9: harden all six remaining direct executable PATH lookups in restart, README capture, SDK package verification and memory diagnostics.
 
 ### Out of Scope
 
-- The five development-script MINOR PATH issues, dependency upgrades, blanket rule disabling, or changes to quality-gate thresholds. The user subsequently added review of the production restart PATH warning and cleanup of the two default-parameter warnings (slice 8).
+- Dependency upgrades, blanket rule disabling, or changes to quality-gate thresholds. The six remaining PATH findings are now in scope (slice 9).
 - Production authentication/sandbox redesign, new mockup layouts, broad parser replacement, and unrelated code cleanup.
 - Implementation of other slices as part of the approved fixture-hardening change, or changing Sonar issue statuses without approval.
 
@@ -36,12 +37,15 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 - R11: Review the production restart executable resolution, request-to-process data flow, environment trust and failure behavior. Do not claim a remote exploit or mark the PATH issue resolved without evidence; restart hardening requires separate approval.
 - R12: Remove the two object-literal parameter defaults without changing public signatures' calling conventions, supplied factory behavior, per-call default object freshness, completion payloads, or after-response callbacks. Default only on `undefined`, not `null`. Verify focused characterization tests, full tests and build; confirm closure only after fresh analysis.
 
+- R13: Remove inherited-PATH lookup from all six flagged subprocess invocations. Resolve npm from the trusted installation of the running Node executable and execute its CLI using that Node executable; never discover it via PATH, cwd, or unchecked environment overrides. Use explicit system paths for ps/vmmap. Missing tools or unsupported layouts must fail clearly without falling back to PATH. Preserve command arguments, SDK packaging behavior, diagnostics and restart's build-before-shutdown guarantee. Verify poisoned-PATH cases, supported layouts, missing tools, failure handling and normal execution with isolated tests; preserve lockfiles and dependencies.
+
 ## Assumptions
 
 - Scope is the current pi-chat project and main-branch Sonar findings, not a repository-wide security audit.
 - The Swift fixture and caller are trusted test processes, not production HTTP endpoints. Standard OS temporary-directory configuration is trusted; this is not a sandbox against hostile processes running as the same OS user.
 - Retained mockups are design prototypes, not shipped production code; the user has chosen to exclude them from Sonar analysis.
 - Existing CI lifecycle protections are intentional and must not be undone to repair dependency preparation.
+- Executable hardening targets the existing macOS/Linux workflows. The Node/npm installation, repository build scripts and dependency binaries are trusted; this is not protection against a hostile process running as the same OS user or against arbitrary malicious build scripts. Downstream npm-script tool resolution is not being comprehensively sandboxed.
 
 ## Implementation Plan
 
@@ -76,6 +80,10 @@ Description: Depends on completed applicable slices 1–6 and approved dispositi
 ### 8. Review Restart and Clarify Parameter Defaults
 
 Description: Review the production restart PATH warning and document its actual trust boundary without changing restart behavior. Then remove the two object-literal defaults in command handling and server composition while preserving undefined/null semantics, fresh defaults, factory delegation and callback behavior. Obtain approval of the design, run characterization tests before and after refactoring, full Vitest tests and production build; commit verified changes without pushing. The five development-script PATH warnings remain separate. Implemented after explicit design approval: 12 characterization cases pass before and after, all 1,229 Vitest tests and production build/typecheck pass. Restart code remains unchanged; Sonar closure awaits a matching new analysis.
+
+### 9. Harden Executable Resolution
+
+Description: Replace the four npm command lookups with a shared installation-bound npm CLI resolver and explicit Node execution. Replace ps/vmmap lookups with explicit OS executable paths. Fail closed for missing tools without shutting down the current server on build resolution/execution failure. Verify supported installation layouts, poisoned PATH/environment, unchanged arguments and lifecycle behavior, real npm CLI smoke checks, full tests, build/typecheck and relevant SDK verification. Obtain approval of the concrete policy in DESIGN.md before implementation; commit verified work without pushing. Fresh analysis must confirm Sonar disposition separately. Implemented after policy approval: 28 new regressions, all 1,257 Vitest tests, production build/typecheck and SDK offline package verification pass. Real npm CLI and fixed-path ps/vmmap measurements succeed on macOS. Linux runtime confirmation and Sonar closure await CI/new analysis.
 
 ## Open Questions
 

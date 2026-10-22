@@ -2,7 +2,7 @@
 
 ## Approach
 
-Completed scope: helper hardening (requirements R8, slice 5), linear path normalization (R2, slice 2), fixed-English model ordering (R4, slice 3), and the Markdown scanner while-loop refactor (R6, part of slice 4). Current implemented scope: production restart invocation review and the two default-parameter warnings (R11–R12, slice 8). Other Sonar changes remain separate.
+Completed scope: helper hardening (requirements R8, slice 5), linear path normalization (R2, slice 2), fixed-English model ordering (R4, slice 3), and the Markdown scanner while-loop refactor (R6, part of slice 4). Completed follow-up: production restart invocation review and the two default-parameter warnings (R11–R12, slice 8). Current implemented scope: harden the six direct executable PATH lookups (R13, slice 9). Other Sonar changes remain separate.
 
 The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
@@ -64,6 +64,20 @@ Verification: 12 new characterization cases pass before and after the refactor; 
 
 The restart review is documentation-only in this slice. Keep inherited-PATH execution unchanged pending a separate deployment-policy decision; do not hardcode `/usr/bin/npm`, substitute an unverified `npm_execpath`, or silently strip version-manager paths. See REVIEW.md for evidence and limitations.
 
+### Explicit executable resolution — approved and implemented follow-up
+
+**Policy:** trust the Node/npm installation selected when the operator launches the process, not arbitrary entries in inherited PATH. Add one small Node-only helper in `src/shared/node/npm-command.ts`, genuinely reused by restart, README capture and SDK verification. Resolve the absolute `npm` entry beside `process.execPath` with `realpathSync`; require a regular npm CLI file (`bin/npm-cli.js`) and matching npm package metadata. Homebrew's sibling npm symlink legitimately resolves outside the versioned Node directory; permit that installed symlink rather than imposing an incorrect prefix restriction. No PATH search, `npm_execpath` override, shell wrapper execution, dependency installation or system-wide npm-path assumption. Missing/nonstandard installations fail with an actionable error; custom npm layouts and Windows wrappers are not supported by this first policy.
+
+Expose a narrow resolver returning the canonical npm CLI path. Callers keep subprocess ownership and execute `process.execPath` with `[npmCli, ...existingArgs]`. Validate lazily before each operation. Restart catches resolution failures and returns its existing build-failure message without scheduling a successor or shutting down; capture/verification fail nonzero. Preserve all existing cwd, stdio, packaging/prepack arguments and lifecycle settings. The Node-only helper compiles with the existing server/shared build. Plain `.mjs` source tools import its `.ts` source using the project's supported Node >=22.19 native type stripping; the tsx capture tool and compiled server retain their respective normal module paths. Keep the helper free of non-erasable TypeScript and source-only runtime imports.
+
+In memory diagnostics, use `/bin/ps` for macOS/Linux and `/usr/bin/vmmap` on macOS only; Linux retains no vmmap measurement. Check platform/tool availability and report a clear error, without command-name fallback. Preserve current measurement arguments, parsing and subprocess cleanup. The two metric functions live in `scripts/server-memory/metrics.mjs` so command selection and error cases can be unit-tested without launching either comparison server. The comparison script retains lifecycle ownership.
+
+**Trust limit:** installation-path and metadata checks establish expected layout, not authenticity. Trusted installations may be user-owned (Homebrew/nvm). Do not claim protection from same-user replacement, compromised dependencies, malicious npm configuration or downstream build scripts; their existing environment remains trusted. No indiscriminate PATH stripping or broad subprocess framework.
+
+**Tests:** first reproduce poisoned-PATH selection with harmless isolated fake executables, then prove the new calls ignore them. Cover sibling npm symlinks including Homebrew layout, missing/invalid npm entry or metadata, ignored hostile npm_execpath, original arguments, direct-script Node execution, and npm resolution/build failure preserving the live server. Use test-only subprocess drivers for fixture setup and bounded cleanup; never invoke the real restart/shutdown path. Cover ps/vmmap platform selection and missing-command diagnostics. Run real resolved `npm --version`, SDK offline package verification, full Vitest, production build/typecheck and whitespace checks. Actual Linux behavior is confirmed in CI; local macOS tests alone do not establish cross-platform success. Sonar closure requires a fresh matching scan.
+
+Executable verification: 28 new tests pass (34 focused including the existing restart suite). The old restart invocation failed the explicit-command and resolution-failure cases; the new resolver/module cases initially failed before implementation. A harmless poisoned npm reproduces the old PATH selection and is ignored by installation-bound invocation. All 1,257 Vitest tests (149 files), production build/typecheck, SDK offline package verification and whitespace checks pass. Native Node source imports and compiled helper execution pass; the real Homebrew npm reports version 11.17.0, and actual `/bin/ps` plus `/usr/bin/vmmap` measurements succeed locally. Capture's command is tested at its subprocess boundary and its `--help` startup passes; no screenshot regeneration was performed. Linux execution and scanner-confirmed closure await CI/new analysis. Configuration documentation describes the supported installation policy. No dependencies, lockfiles or Sonar statuses changed.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
@@ -80,6 +94,8 @@ Markdown verification: 16 pure AST characterization cases and the existing DOM s
 
 ## Decisions for Approval
 
-None. The user approved the parameter-default design with “implement the parameter defaults fix”. It is implemented and locally verified, preserving fresh objects and exact undefined/null behavior. Restart hardening and the five development-script PATH warnings remain outside this implementation.
+None. The user approved the installation-bound npm policy, fail-closed behavior for unsupported/missing npm layouts and fixed macOS/Linux system-tool paths with “looks good. implementit”. Slice 9 is implemented and locally verified. This changes executable selection, not npm build-script sandboxing.
+
+The parameter-default design was approved with “implement the parameter defaults fix” and is implemented and locally verified, preserving fresh objects and exact undefined/null behavior.
 
 Earlier approvals: the user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, approved fixed-English model sorting with a deterministic tie-breaker, and explicitly approved the Markdown scanner while-loop refactor after its advancement behavior was explained.
