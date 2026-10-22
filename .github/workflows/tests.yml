@@ -8,17 +8,15 @@ on:
 permissions:
   contents: read
 
+env:
+  CI: 'true'
+
 jobs:
-  tests:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      CI: 'true'
-
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -27,6 +25,51 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --ignore-scripts
+
+      # Typechecking includes the test drivers, which import this source-only
+      # Git dependency. Compile it without enabling lifecycle scripts.
+      - name: Compile test harness
+        run: >-
+          npx --ignore-scripts tsc --ignoreConfig --noCheck
+          --module nodenext --target es2022 --declaration
+          --outDir node_modules/@marcfargas/pi-test-harness/dist
+          node_modules/@marcfargas/pi-test-harness/src/*.ts
+
+      - name: Typecheck and build
+        run: npm run build
+
+      - name: Upload production assets and SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            dist/
+            packages/pi-sdk/typescript/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # The pinned Git dependency ships source only. Transpile it explicitly
+      # instead of enabling automatic dependency lifecycle scripts.
+      - name: Compile test harness
+        run: >-
+          npx --ignore-scripts tsc --ignoreConfig --noCheck
+          --module nodenext --target es2022 --declaration
+          --outDir node_modules/@marcfargas/pi-test-harness/dist
+          node_modules/@marcfargas/pi-test-harness/src/*.ts
 
       - name: Run Vitest tests with coverage
         run: npm test -- --coverage
@@ -39,29 +82,40 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Compile test harness
+        run: >-
+          npx --ignore-scripts tsc --ignoreConfig --noCheck
+          --module nodenext --target es2022 --declaration
+          --outDir node_modules/@marcfargas/pi-test-harness/dist
+          node_modules/@marcfargas/pi-test-harness/src/*.ts
+
+      - name: Download production assets and SDK
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: .
+
       - name: Install Playwright Chromium
         run: npx --ignore-scripts playwright install --with-deps chromium
 
-      # test:e2e runs the production build (including typechecking) first.
-      - name: Build and run Playwright browser tests
-        run: npm run test:e2e
-
-      # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
-      # Fork pull requests cannot access the analysis token.
-      - name: SonarQube Scan
-        if: >-
-          vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORGANIZATION != '' &&
-          (github.event_name != 'pull_request' ||
-          github.event.pull_request.head.repo.full_name == github.repository)
-        uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >-
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
+      # Use the existing build rather than test:e2e, which rebuilds it.
+      - name: Run Playwright browser tests
+        run: npx --ignore-scripts playwright test
 
       - name: Upload Playwright failure artifacts
         if: failure()
@@ -71,3 +125,35 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  sonar:
+    needs: unit
+    # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
+    # Fork pull requests cannot access the analysis token.
+    if: >-
+      vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORGANIZATION != '' &&
+      (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: coverage
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
