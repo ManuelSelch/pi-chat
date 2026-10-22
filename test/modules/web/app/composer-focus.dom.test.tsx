@@ -27,6 +27,13 @@ function click(element: HTMLElement) { element.focus(); fireEvent.click(element)
 function escape() { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape", code: "Escape", bubbles: true }); }
 function expectDialogFocus(name: string) { expect(dialog(name).contains(document.activeElement)).toBe(true); }
 function mount() { view = render(<MantineProvider><App /></MantineProvider>); }
+async function finishBatchedExit(beforeCommit?: () => void) {
+  // Deliberately batch the exit and any post-exit frame before React commits.
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000);
+    beforeCommit?.();
+  });
+}
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -58,6 +65,72 @@ describe("composer focus across real app overlays", () => {
     expect(document.activeElement).not.toBe(composer());
     await finishTransitions();
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it.each([["Settings", "Settings"], ["Projects and sessions", "Projects"]])("restores focus after %s exits even when React commits after the animation-frame window", async (button, name) => {
+    mount();
+    click(screen.getByRole("button", { name: button }));
+    await finishTransitions();
+    expectDialogFocus(name);
+    escape();
+    // Focus must be restored by the commit, without another frame or click.
+    await finishBatchedExit();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it("does not restore an old exit when Settings reopens before the exit commit", async () => {
+    mount();
+    const settings = screen.getByRole("button", { name: "Settings" });
+    click(settings);
+    await finishTransitions();
+    const focus = vi.spyOn(composer(), "focus");
+    escape();
+    await finishBatchedExit(() => click(settings));
+    expect(focus).not.toHaveBeenCalled();
+    await finishTransitions();
+    expectDialogFocus("Settings");
+    escape();
+    await finishTransitions();
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it("preserves a newer prompt's ownership when the Settings exit commits", async () => {
+    mount();
+    click(screen.getByRole("button", { name: "Settings" }));
+    await finishTransitions();
+    const focus = vi.spyOn(composer(), "focus");
+    escape();
+    update({ prompts: [{ id: "newer", kind: "input", title: "Newer question" }] });
+    expect(dialog("Newer question")).toBeTruthy();
+    await finishBatchedExit();
+    expect(focus).not.toHaveBeenCalled();
+    await finishTransitions();
+    expect(screen.queryByRole("dialog", { name: "Settings" })).toBeNull();
+    expectDialogFocus("Newer question");
+    update({ prompts: [] });
+    await finishTransitions();
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it("does not replay a consumed exit on background updates or the next close", async () => {
+    mount();
+    const settings = screen.getByRole("button", { name: "Settings" });
+    click(settings);
+    await finishTransitions();
+    escape();
+    await finishBatchedExit();
+    expect(document.activeElement).toBe(composer());
+    settings.focus();
+    update({ status: "running", steeringMessages: ["Keep working"] });
+    await finishTransitions();
+    expect(document.activeElement).toBe(settings);
+    click(settings);
+    await finishTransitions();
+    escape();
+    expect(document.activeElement).not.toBe(composer());
+    await finishBatchedExit();
     expect(document.activeElement).toBe(composer());
   });
 

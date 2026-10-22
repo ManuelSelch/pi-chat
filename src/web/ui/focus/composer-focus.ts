@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 /** The app has one composer. Never override an open/exiting dialog's ownership. */
 export function focusComposer(element = document.querySelector<HTMLTextAreaElement>("[data-pi-composer]")): boolean {
@@ -14,31 +14,36 @@ export function focusComposer(element = document.querySelector<HTMLTextAreaEleme
  */
 export function useComposerFocusReturn(opened: boolean) {
   const previousFocus = useRef<HTMLElement | null>(null);
-  const frame = useRef<number | undefined>(undefined);
+  const [exitRevision, setExitRevision] = useState(0);
+  const consumedExit = useRef(0);
 
   useLayoutEffect(() => {
     if (opened) {
-      cancelAnimationFrame(frame.current ?? 0);
       previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     }
   }, [opened]);
 
-  useLayoutEffect(() => () => cancelAnimationFrame(frame.current ?? 0), []);
+  useLayoutEffect(() => {
+    if (consumedExit.current === exitRevision) return;
+    // Consume even a skipped exit: reopening or a later render must not replay it.
+    consumedExit.current = exitRevision;
+    if (opened) return;
+
+    const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
+    const previous = previousFocus.current;
+    if (dialogs.length === 0) {
+      if (!focusComposer() && previous?.isConnected && !previous.matches(":disabled")) previous.focus({ preventScroll: true });
+    } else if (dialogs.length === 1 && !dialogs[0]!.contains(document.activeElement) && previous?.isConnected && dialogs[0]!.contains(previous)) {
+      // Only return to a trigger inside the remaining parent. An old exit
+      // callback must never pull focus out of a newer or nested dialog.
+      previous.focus({ preventScroll: true });
+    }
+  }, [exitRevision, opened]);
 
   const onExitTransitionEnd = useCallback(() => {
-    cancelAnimationFrame(frame.current ?? 0);
-    // One post-commit frame, not polling or a delay tied to animation duration.
-    frame.current = requestAnimationFrame(() => {
-      const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
-      const previous = previousFocus.current;
-      if (dialogs.length === 0) {
-        if (!focusComposer() && previous?.isConnected && !previous.matches(":disabled")) previous.focus({ preventScroll: true });
-      } else if (dialogs.length === 1 && !dialogs[0]!.contains(document.activeElement) && previous?.isConnected && dialogs[0]!.contains(previous)) {
-        // Only return to a trigger inside the remaining parent. An old exit
-        // callback must never pull focus out of a newer or nested dialog.
-        previous.focus({ preventScroll: true });
-      }
-    });
+    // Mantine calls this before setting its exited state. Batch the notification
+    // with that update, then restore only after the commit removes the dialog.
+    setExitRevision(revision => revision + 1);
   }, []);
 
   return { returnFocus: false, onExitTransitionEnd } as const;

@@ -18,11 +18,11 @@ The original failures were composer-focus assertions, not fixture/selector error
 
 ## Slice 3: guarded restoration
 
-`src/web/ui/focus/composer-focus.ts` owns the guarded composer focus operation and a shared overlay lifecycle hook. Ready-session/tab changes and completion acceptance reuse the guarded operation. Managed dialogs/drawers disable Mantine's early trigger restoration and restore after `onExitTransitionEnd`, using one animation frame so React can remove the exiting portal first. There is no polling or animation-duration timeout.
+`src/web/ui/focus/composer-focus.ts` owns the guarded composer focus operation and a shared overlay lifecycle hook. Ready-session/tab changes and completion acceptance reuse the guarded operation. Managed dialogs/drawers disable Mantine's early trigger restoration. `onExitTransitionEnd` increments an exit revision; a layout effect restores focus after React commits the transition's DOM removal. Each revision is consumed once, even if restoration is skipped because the overlay reopened or another dialog owns focus. There is no polling or animation-duration timeout.
 
 A remaining dialog keeps ownership; a nested confirmation can restore its still-connected parent trigger without focusing the composer or overriding a newer dialog. Home and disabled/hidden composers are protected. Extension prompts retain the existing handover interval, then run a real Mantine exit transition instead of unmounting immediately. Stream/snapshot updates do not become focus triggers.
 
-`test/infra/ui/finish-ui-transitions.ts` drains controlled timers one lifecycle phase at a time, allowing React to commit before a post-exit animation frame. A single large fake-clock advance batches these commits and incorrectly runs the restoration callback against the old DOM.
+`test/infra/ui/finish-ui-transitions.ts` drains controlled timers one lifecycle phase at a time to exercise ordinary transition sequencing. Additional delayed-commit regressions deliberately batch a complete exit and the former animation-frame window inside one React `act`. The old frame-based implementation checked stale DOM and lost restoration; the post-commit implementation passes both sequencing modes.
 
 ## Slice 1: DOM integration coverage
 
@@ -68,6 +68,22 @@ Passing protections:
 
 The baseline DOM/browser difference demonstrates why both layers are retained: close-session restoration originally passed in jsdom but failed in Chromium; quick open differed by its original focus owner. Real browser focus behavior must not be inferred solely from jsdom timers. All of these cases now pass in both layers.
 
+## Follow-up: post-commit exit restoration
+
+The [approved follow-up design](DESIGN.md) replaces the original one-shot animation frame. Mantine invokes its exit callback before requesting its exited-state update; a frame does not guarantee that React has committed that update.
+
+Before changing the hook, two new real-App/Mantine regressions (Settings and Projects) failed with the dialog removed but `body` still focused; the existing 16 focus cases passed. Both new cases pass after the change. Three additional protections cover reopening Settings before the exit commit, a newer prompt taking ownership before Settings exits, and avoiding replay on background updates or the next close. Existing nested confirmation and prompt-handover cases remain green. Browser assertions, timeouts and retries are unchanged.
+
+Local verification:
+- Focus, prompt and confirmation DOM suites: **51 passed**.
+- Full Vitest suite: **1,262 passed / 149 files**.
+- Typecheck and production build: **passed**, including a coverage/source-map build.
+- Settings browser test repeated ten times with two workers and browser/Node coverage: **10 passed**; report generation passed after rebuilding with `PI_CHAT_COVERAGE=1` (the initial normal build lacked source maps).
+- Full coverage-enabled Chromium suite, two workers: **33 passed**; coverage report generation passed.
+- `git diff --check`: **passed**.
+
+The deterministic regression establishes the stale-DOM ordering risk, not the exact interleaving of the earlier Linux CI failure. Local pre-fix browser repetitions also passed; a fresh Linux CI run remains necessary. Temporary verification logs use the `/tmp/pi-chat-focus-post-commit-` prefix; the original red run is `/tmp/pi-chat-focus-delayed-commit-red.log`.
+
 ## Reproduce
 
 ```sh
@@ -75,6 +91,11 @@ npm test -- test/modules/web/app/composer-focus.dom.test.tsx
 npm run build
 npx playwright test test/e2e/composer-focus.spec.ts
 npx playwright test test/e2e/composer-focus.spec.ts --repeat-each=3
+
+# CI-like coverage verification (requires browser source maps):
+PI_CHAT_COVERAGE=1 npm run build
+node scripts/run-playwright-coverage.mjs test/e2e/composer-focus.spec.ts --grep 'after closing settings' --repeat-each=10 --workers=2
+node scripts/run-playwright-coverage.mjs --workers=2
 
 # Full verification, including all focus regressions:
 npm test

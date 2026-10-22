@@ -5,8 +5,8 @@ import { vi } from "vitest";
 export async function finishUiTransitions(): Promise<void> {
   for (let phase = 0; vi.getTimerCount() > 0; phase++) {
     if (phase === 100) throw new Error("UI timers did not settle after 100 lifecycle phases");
-    // A single large advance batches React commits: a post-exit animation frame
-    // would then run against the old DOM, unlike in a browser event loop.
+    // Commit between timer phases to exercise ordinary transition sequencing.
+    // The focus regressions separately cover a deliberately batched exit.
     await act(async () => { await vi.advanceTimersToNextTimerAsync(); });
   }
 }
