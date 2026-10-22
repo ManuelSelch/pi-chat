@@ -114,7 +114,7 @@ jobs:
           node_modules/@marcfargas/pi-test-harness/src/*.ts
 
       - name: Download production assets and SDK
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: build
           path: .
@@ -156,13 +156,13 @@ jobs:
           fetch-depth: 0
 
       - name: Download coverage report
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: coverage
           path: coverage
 
       - name: Download E2E coverage report
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: coverage-e2e
           path: coverage-e2e
