@@ -18,14 +18,18 @@ export interface PiChatServer {
   close(): Promise<void>;
 }
 
-export function createPiChatServer(
-  runtime: RuntimeAdapter | undefined,
-  staticDirectory?: string,
-  factory: RuntimeAdapterFactory = {
+function createDefaultRuntimeFactory(): RuntimeAdapterFactory {
+  return {
     continueProject: (path) => PiRuntimeAdapter.create(path),
     openSession: (path) => PiRuntimeAdapter.openSession(path),
     newSession: (path) => PiRuntimeAdapter.newSession(path),
-  },
+  };
+}
+
+export function createPiChatServer(
+  runtime: RuntimeAdapter | undefined,
+  staticDirectory?: string,
+  factory: RuntimeAdapterFactory = createDefaultRuntimeFactory(),
   restart?: RestartService,
   extensions?: PiChatExtensionRegistry,
   files?: FileService,

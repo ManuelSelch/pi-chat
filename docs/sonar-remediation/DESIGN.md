@@ -2,7 +2,7 @@
 
 ## Approach
 
-Completed scope: helper hardening (requirements R8, slice 5), linear path normalization (R2, slice 2), and fixed-English model ordering (R4, slice 3). Current scope: the explicitly approved Markdown scanner while-loop refactor (R6, part of slice 4). Other Sonar changes remain separate.
+Completed scope: helper hardening (requirements R8, slice 5), linear path normalization (R2, slice 2), fixed-English model ordering (R4, slice 3), and the Markdown scanner while-loop refactor (R6, part of slice 4). Current implemented scope: production restart invocation review and the two default-parameter warnings (R11–R12, slice 8). Other Sonar changes remain separate.
 
 The confirmed fixture weakness was canonicalizing a caller-selected directory without confining writes. Remove that capability rather than build a general sandbox. The user subsequently chose to delete the unused reconnect diagnostic (`262c05e`), superseding its hardening design. Fixture design approved for implementation; unrelated Sonar work remains separate.
 
@@ -44,6 +44,26 @@ In `parseInlineMathText` in `src/web/chat/markdown/remark-display-math.ts`, move
 
 Add pure AST characterization tests in `test/modules/web/chat/markdown/remark-display-math.test.ts` for plain/empty text, multiple/adjacent formulas, leading/trailing text, unmatched delimiters before/after valid formulas, escaped dollars, prices, whitespace and code nodes. Run these against the original implementation before refactoring; existing behavior is expected to pass. Keep existing DOM rendering tests for display/inline math and safe rendering. No new dependencies or public parser APIs.
 
+### Parameter defaults — approved and implemented follow-up
+
+The two `typescript:S7737` findings are maintainability warnings, not confirmed runtime defects. Keep changes in the existing bootstrap composition root and transport command handler; no new service layer or exports.
+
+In `src/server/bootstrap/server.ts`, introduce a private `createDefaultRuntimeFactory(): RuntimeAdapterFactory` returning the existing three delegate methods. Use `factory: RuntimeAdapterFactory = createDefaultRuntimeFactory()` in the existing parameter position. This removes the literal default while retaining a fresh factory for each omitted/undefined argument, lazy invocation of `PiRuntimeAdapter` methods, and caller-supplied factory identity. Do not replace the default with a shared mutable singleton.
+
+In `src/server/transport/command-handler.ts`, make the nested `completed` helper's result optional and select the fresh fallback in its return expression:
+
+```ts
+result: result === undefined ? { state: "completed" } : result
+```
+
+Keep `afterResponse` forwarding unchanged. In particular, `null`, false, zero and empty-string results must not become the fallback. Existing calls passing `undefined` plus a callback must retain the completed payload and callback.
+
+Before refactoring, add focused characterization tests in the mirrored bootstrap and transport test directories: default factory delegation for all three methods with isolated mocks (no real SDK sessions), supplied factory bypass, completion fallback for ping/explicit-undefined mutation, fresh completion payloads across calls, explicit null/falsy payload preservation, and callback forwarding. Characterization tests should pass on the original implementation: do not invent a failing behavior assertion for an intentional behavior-preserving cleanup. Run focused restart/default suites, full Vitest tests, production build/typecheck and whitespace checks afterward. Fresh Sonar analysis verifies rule closure; local green tests alone do not.
+
+Verification: 12 new characterization cases pass before and after the refactor; 18 focused tests pass including the six existing restart tests. All 1,229 tests (145 files), production build/typecheck and whitespace checks pass. Production restart code is unchanged. Existing Vite chunk-size and mixed static/dynamic import notices remain; the build succeeds. Sonar closure awaits a matching new analysis.
+
+The restart review is documentation-only in this slice. Keep inherited-PATH execution unchanged pending a separate deployment-policy decision; do not hardcode `/usr/bin/npm`, substitute an unverified `npm_execpath`, or silently strip version-manager paths. See REVIEW.md for evidence and limitations.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
@@ -60,4 +80,6 @@ Markdown verification: 16 pure AST characterization cases and the existing DOM s
 
 ## Decisions for Approval
 
-None. The user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, approved fixed-English model sorting with a deterministic tie-breaker, and explicitly approved the Markdown scanner while-loop refactor after its advancement behavior was explained.
+None. The user approved the parameter-default design with “implement the parameter defaults fix”. It is implemented and locally verified, preserving fresh objects and exact undefined/null behavior. Restart hardening and the five development-script PATH warnings remain outside this implementation.
+
+Earlier approvals: the user approved fixture hardening and the stdout readiness handoff, separately approved deletion of the reconnect script, requested the backward-scan path fix after seeing the concrete algorithm, approved fixed-English model sorting with a deterministic tie-breaker, and explicitly approved the Markdown scanner while-loop refactor after its advancement behavior was explained.

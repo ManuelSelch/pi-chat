@@ -8,7 +8,7 @@ import { V2OperationError, type V2Execution } from "./v2-connection.js";
 /** Validates/admit synchronously; no admitted work runs before its receipt. */
 export async function executeOperation(command: Exclude<Request, Request<"server.initialize">>, chat: ChatApplicationService, publisher: ServerPublisher): Promise<V2Execution> {
   const raw = command.sessionId ? publisher.rawId(command.sessionId, command.method === "session.close") : undefined;
-  const completed = (result: unknown = { state: "completed" }, afterResponse?: () => Promise<void> | void): V2Execution => ({ kind: "completed", result, afterResponse });
+  const completed = (result?: unknown, afterResponse?: () => Promise<void> | void): V2Execution => ({ kind: "completed", result: result === undefined ? { state: "completed" } : result, afterResponse });
   const accepted = (run: () => Promise<void>): V2Execution => ({ kind: "accepted", operationId: randomUUID(), run });
   // Metadata-only mutations (archive/pin/remove) reuse the last catalogue scan;
   // anything that can introduce sessions, titles, projects or worktrees rescans.

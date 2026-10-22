@@ -12,10 +12,11 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 - Linear-time path normalization, explicit model ordering, small behavior-preserving rendering/parser changes, deterministic CI binary execution, and mockup cleanup.
 - Harden the Swift test fixture with fixture-owned temporary outputs (user confirmed). Remove the unused reconnect diagnostic instead of hardening it (subsequently confirmed; removed in `262c05e`).
 - Focused regression tests, fresh-worktree CI verification, and evidence-based disposition of stale findings or false positives.
+- Review the production restart invocation without changing its execution policy; remove two object-literal parameter defaults while preserving behavior (subsequently requested).
 
 ### Out of Scope
 
-- The 8 MINOR issues, dependency upgrades, blanket rule disabling, blanket source exclusions, or changes to quality-gate thresholds.
+- The five development-script MINOR PATH issues, dependency upgrades, blanket rule disabling, or changes to quality-gate thresholds. The user subsequently added review of the production restart PATH warning and cleanup of the two default-parameter warnings (slice 8).
 - Production authentication/sandbox redesign, new mockup layouts, broad parser replacement, and unrelated code cleanup.
 - Implementation of other slices as part of the approved fixture-hardening change, or changing Sonar issue statuses without approval.
 
@@ -29,14 +30,17 @@ Resolve or explicitly justify the 24 open CRITICAL/MAJOR Sonar findings on `Manu
 - R6: The Markdown scanner must advance explicitly and always make progress, preserving multiple formulas, surrounding text, display math, escaped dollars, prices, unmatched delimiters, and code content. Do not simply delete the skip-ahead assignment.
 - R7: Preserve typed process-error rejection and bounded public error mapping. Verify the opener finding against a fresh scan; justify a false-positive disposition if it persists rather than inventing an error-handling defect.
 - R8: Harden the Swift fixture (user confirmed). It must create its own temporary output directory instead of accepting a caller-chosen output directory, must not overwrite preexisting/symlinked outputs, must retain isolated temporary metadata and failure diagnostics, and must preserve Swift handoff/cleanup with bounded startup and termination. Test both accepted and rejected inputs with isolated resources. Delete `scripts/verify-reconnect.ts` rather than maintaining it; its removal supersedes the earlier reconnect-hardening requirement.
-- R9: Remove the redundant mockup selection conditional and add meaningful static heading fallback text without redesign. Verify strict focus identity and real keyboard wrapping; do not replace `===` with `==`. Document false positives per finding instead of suppressing an entire rule or folder.
+- R9: Superseded by the user's explicit decision to exclude retained non-shipped design prototypes from analysis (`sonar.exclusions=mockups/**`, implemented independently in `8119cb8`). No mockup source fixes are required under this revised scope; production UI remains analyzed.
 - R10: Verify changed behavior with focused tests and then the full Vitest suite and production build; verify workflow changes in clean CI, fixture changes with macOS Swift loopback tests, and mockup changes with keyboard/accessibility smoke checks. Requery Sonar after a new matching main/PR analysis and record remaining findings and gate status honestly. Document any unrelated baseline failures separately.
+
+- R11: Review the production restart executable resolution, request-to-process data flow, environment trust and failure behavior. Do not claim a remote exploit or mark the PATH issue resolved without evidence; restart hardening requires separate approval.
+- R12: Remove the two object-literal parameter defaults without changing public signatures' calling conventions, supplied factory behavior, per-call default object freshness, completion payloads, or after-response callbacks. Default only on `undefined`, not `null`. Verify focused characterization tests, full tests and build; confirm closure only after fresh analysis.
 
 ## Assumptions
 
 - Scope is the current pi-chat project and main-branch Sonar findings, not a repository-wide security audit.
 - The Swift fixture and caller are trusted test processes, not production HTTP endpoints. Standard OS temporary-directory configuration is trusted; this is not a sandbox against hostile processes running as the same OS user.
-- Mockups remain maintained and analyzed; narrow documented false-positive dispositions are preferred over exclusions.
+- Retained mockups are design prototypes, not shipped production code; the user has chosen to exclude them from Sonar analysis.
 - Existing CI lifecycle protections are intentional and must not be undone to repair dependency preparation.
 
 ## Implementation Plan
@@ -63,11 +67,15 @@ Description: Harden the fixture/Swift handoff with isolated positive/negative te
 
 ### 6. Clean Up and Validate Mockups
 
-Description: Resolve the redundant conditional and two static heading warnings without layout changes. Exercise default/empty/project states, project selection, heading population, Tab/Shift+Tab wrapping, and Escape across all three mockups. Keep the six correct strict focus comparisons and prepare per-issue false-positive evidence if the warnings remain; no loose equality or blanket exclusions. Use actual mockup behavior checks, not just the generic DOM probe from the review.
+Description: Superseded by the user's explicit prototype-scope exclusion in `8119cb8`. Preserve mockup source; verify exclusion takes effect on a fresh analysis rather than changing issue statuses manually.
 
 ### 7. Verify and Reconcile Sonar Results
 
 Description: Depends on completed applicable slices 1–6 and approved dispositions. Run focused and full tests, production build, clean CI, and the relevant Swift/browser checks. Trigger or await a fresh analysis through the normal approved workflow, query the matching main/PR issues and quality gate through MCP, and map all 24 original keys to resolved, proposed false positive, accepted, or still open with supporting evidence. Do not promise a green gate or zero issues before scanning. Commit verified changes incrementally without automatically pushing.
+
+### 8. Review Restart and Clarify Parameter Defaults
+
+Description: Review the production restart PATH warning and document its actual trust boundary without changing restart behavior. Then remove the two object-literal defaults in command handling and server composition while preserving undefined/null semantics, fresh defaults, factory delegation and callback behavior. Obtain approval of the design, run characterization tests before and after refactoring, full Vitest tests and production build; commit verified changes without pushing. The five development-script PATH warnings remain separate. Implemented after explicit design approval: 12 characterization cases pass before and after, all 1,229 Vitest tests and production build/typecheck pass. Restart code remains unchanged; Sonar closure awaits a matching new analysis.
 
 ## Open Questions
 
