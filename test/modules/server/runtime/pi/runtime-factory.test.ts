@@ -20,7 +20,7 @@ afterEach(async () => {
   if (root) await rm(root, { recursive: true, force: true });
 });
 
-it.each([false, true])("registers codemode and respects defaultTools enabled=%s", async enabled => {
+it.each([false, true])("registers runtime extensions and respects defaultTools enabled=%s", async enabled => {
   root = await mkdtemp(join(tmpdir(), "pi-chat-codemode-"));
   fixture.agentDir = join(root, "agent");
   const cwd = join(root, "workspace");
@@ -29,13 +29,18 @@ it.each([false, true])("registers codemode and respects defaultTools enabled=%s"
   vi.stubEnv("PI_CHAT_MODEL", "");
   vi.stubEnv("PI_OFFLINE", "1");
   await writeFile(join(fixture.agentDir, "settings.json"), JSON.stringify({
-    defaultTools: enabled ? ["+codemode"] : undefined,
+    defaultTools: enabled ? ["+codemode", "+tool_search"] : undefined,
     cacheWarming: "off",
   }));
 
   runtime = await createPiRuntime(cwd, SessionManager.inMemory(cwd));
   await runtime.session.bindExtensions({});
-  expect(runtime.session.getAllTools().map(tool => tool.name)).toContain("codemode");
-  expect(runtime.session.getActiveToolNames().includes("codemode")).toBe(enabled);
+  const tools = runtime.session.getAllTools().map(tool => tool.name);
+  for (const name of ["codemode", "tool_search"]) {
+    expect(tools).toContain(name);
+    expect(runtime.session.getActiveToolNames().includes(name)).toBe(enabled);
+  }
+  const extensions = runtime.session.resourceLoader.getExtensions().extensions;
+  expect(extensions.some(extension => extension.commands.has("mcp"))).toBe(true);
   expect(runtime.session.getActiveToolNames()).toEqual(expect.arrayContaining(["read", "bash", "edit", "write"]));
 });

@@ -3,6 +3,8 @@ import {
   createAgentSessionRuntime,
   createAgentSessionServices,
   createCodemodeExtension,
+  createMcpExtension,
+  createToolSearchExtension,
   getAgentDir,
   SessionManager,
   type AgentSessionRuntime,
@@ -21,7 +23,7 @@ export async function createPiRuntime(cwd: string, sessionManager: SessionManage
       cwd: targetCwd,
       agentDir,
       resourceLoaderOptions: {
-        extensionFactories: [createCodemodeExtension()],
+        extensionFactories: [createCodemodeExtension(), createToolSearchExtension(), createMcpExtension()],
       },
     });
     const override = resolveModelOverride(services);
