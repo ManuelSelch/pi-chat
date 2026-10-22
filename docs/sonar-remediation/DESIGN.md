@@ -78,6 +78,18 @@ In memory diagnostics, use `/bin/ps` for macOS/Linux and `/usr/bin/vmmap` on mac
 
 Executable verification: 28 new tests pass (34 focused including the existing restart suite). The old restart invocation failed the explicit-command and resolution-failure cases; the new resolver/module cases initially failed before implementation. A harmless poisoned npm reproduces the old PATH selection and is ignored by installation-bound invocation. All 1,257 Vitest tests (149 files), production build/typecheck, SDK offline package verification and whitespace checks pass. Native Node source imports and compiled helper execution pass; the real Homebrew npm reports version 11.17.0, and actual `/bin/ps` plus `/usr/bin/vmmap` measurements succeed locally. Capture's command is tested at its subprocess boundary and its `--help` startup passes; no screenshot regeneration was performed. Linux execution and scanner-confirmed closure await CI/new analysis. Configuration documentation describes the supported installation policy. No dependencies, lockfiles or Sonar statuses changed.
 
+### npm resolver coverage — approved and implemented follow-up
+
+**Confirmed cause:** `ExecutablePathDriver.resolveCli` imports and executes `npm-command.ts` in a standalone Node subprocess. Vitest's V8 report does not merge that child process's coverage. Caller tests mock the resolver, so they do not cover its implementation either. Existing behavioral tests are present; the report cannot see their resolver execution.
+
+**Approach:** add focused in-process unit tests in `test/modules/shared/node/npm-command.test.ts`, using real temporary installation fixtures and directly importing `resolveNpmCli`. Cover normal/external npm symlinks, the default running Node installation, relative inputs, missing entry, invalid filename/parent directory, non-file CLI, malformed JSON, null/missing/incorrect package metadata, and error wrapping with the underlying cause. Keep filesystem setup/cleanup in test-only helpers; do not mutate PATH or npm_execpath in the shared test worker.
+
+Retain the existing subprocess suite for poisoned-environment and native Node execution checks. Do not change production code, weaken coverage inclusion or add child-coverage aggregation infrastructure. Verify with focused V8 coverage (aiming for complete statements, branches and functions for this helper), existing executable-resolution/caller suites, build/typecheck and whitespace checks.
+
+**Approval:** the user approved this test-only follow-up with “yes do it”.
+
+**Verification:** 17 direct unit cases pass with 100% V8 statements, branches, functions and lines for `npm-command.ts` (enforced by focused-run coverage thresholds). All 35 focused resolver, subprocess and caller tests pass; production build/typecheck and whitespace checks pass. Existing Vite bundle-size and mixed-import warnings remain. No production code or coverage configuration changed; fresh hosted coverage/Sonar analysis remains pending.
+
 ## Complexity Guardrails
 
 No new dependencies, DNS resolution, remote-host override, generic filesystem sandbox, production transport changes, or unrelated Sonar fixes. Standard OS temporary-directory configuration remains trusted.
