@@ -15,21 +15,24 @@ vi.mock("../../../../../src/web/sessions/projects/SessionRow.js", async () => {
   const actual = await vi.importActual<typeof import("../../../../../src/web/sessions/projects/SessionRow.js")>("../../../../../src/web/sessions/projects/SessionRow.js");
   return { SessionRow: (props: Parameters<typeof actual.SessionRow>[0]) => { rowRenders(props.session.id); return createElement(actual.SessionRow, props); } };
 });
-const catalogue: ProjectCatalogue = { projects: Array.from({ length: 30 }, (_, project) => ({
-  path: `/project-${project}`, displayPath: `/project-${project}`, name: `Project ${project}`, exists: true, modified: 30 - project, sessionCount: 20,
-  sessions: Array.from({ length: 20 }, (_, session) => ({ path: `/session-${project}-${session}.jsonl`, id: `s-${project}-${session}`, title: `Chat ${project}-${session}`, nameSource: "manual" as const, modified: 1, created: 0, messageCount: 1 })),
-})) };
+function createCatalogue(projectCount: number, sessionsPerProject: number): ProjectCatalogue {
+  return { projects: Array.from({ length: projectCount }, (_, project) => ({
+    path: `/project-${project}`, displayPath: `/project-${project}`, name: `Project ${project}`, exists: true, modified: projectCount - project, sessionCount: sessionsPerProject,
+    sessions: Array.from({ length: sessionsPerProject }, (_, session) => ({ path: `/session-${project}-${session}.jsonl`, id: `s-${project}-${session}`, title: `Chat ${project}-${session}`, nameSource: "manual" as const, modified: 1, created: 0, messageCount: 1 })),
+  })) };
+}
+const catalogue = createCatalogue(30, 20);
 function Panel() {
   const overlays = useOverlays();
   return <><button onClick={() => overlays.open("projects")}>Show projects</button><ProjectSessionContainer /></>;
 }
 beforeEach(() => { vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); rowRenders.mockClear(); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
-function start() {
+function start(initialCatalogue = catalogue) {
   render(<MantineProvider><AppControllerProvider><OverlayController><Panel /></OverlayController></AppControllerProvider></MantineProvider>);
   act(() => void vi.advanceTimersByTime(0));
   const socket = Socket.current;
-  act(() => { socket.acceptConnection(); socket.initialize([snapshotData({ sessionId: "runtime-0", sessionPath: "/session-0-0.jsonl", projectPath: "/project-0", runtime: { status: "running" } })], catalogue); });
+  act(() => { socket.acceptConnection(); socket.initialize([snapshotData({ sessionId: "runtime-0", sessionPath: "/session-0-0.jsonl", projectPath: "/project-0", runtime: { status: "running" } })], initialCatalogue); });
   fireEvent.click(screen.getByText("Show projects"));
   act(() => void vi.advanceTimersByTime(500));
   return socket;
@@ -48,7 +51,8 @@ describe("project/session drawer rendering", () => {
   });
 
   it("still updates archive availability, catalogue data and active session targeting", async () => {
-    const socket = start();
+    const catalogue = createCatalogue(2, 2);
+    const socket = start(catalogue);
     expect(screen.getByRole("button", { name: "Archive Chat 0-0" }).hasAttribute("disabled")).toBe(true);
     act(() => { socket.deliver(coreEvent("runtime.status", { status: "idle" }, "runtime-0", 1)); socket.deliver({ version: 2, type: "event", event: "session.list.changed", serverInstanceId: "process", data: { revision: 1, sessions: [summary(snapshotData({ sessionId: "runtime-0", sessionPath: "/session-0-0.jsonl" }))] } }); });
     expect(screen.getByRole("button", { name: "Archive Chat 0-0" }).hasAttribute("disabled")).toBe(false);
