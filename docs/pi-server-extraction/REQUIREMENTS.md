@@ -15,17 +15,17 @@ Extract `pi-server` and `pi-sdk` into independent Git repositories to unblock Sw
 
 ## Assumptions
 - Existing semantics and completed migration evidence remain in [PROTOCOL.md](../backend-sdk/PROTOCOL.md) and [CUTOVER.md](../backend-sdk/CUTOVER.md).
-- Local repository extraction and destination are approved; Git history strategy remains undecided. This update records decisions, not completed implementation.
+- Local repository extraction, destination and clean initial commits are approved. Record the Pi Chat source revision for traceability; do not import filtered history. This plan records decisions, not completed implementation.
 
 ## Implementation Plan
 ### S1 — Define Boundaries
-Description: Map server/shared/SDK files, dependencies and test ownership; define public embedding, extension and fixture APIs. Verify imports are covered and resolve Q3 before moving files.
+Description: Map server/shared/SDK files, dependencies and test ownership; define public embedding, extension and fixture APIs. Verify imports are covered and record the source revision before moving files.
 
 ### S2 — Package Independently
 Description: Following S1, establish independent server/SDK artifacts, CLI, optional static hosting and restart/launcher adapters. Verify packed installations initialize an SDK client and shut down without Pi Chat sources; SwiftPM builds independently.
 
 ### S3 — Extract Repositories
-Description: Following S2, create both local repositories in the approved grouping folder using the agreed history strategy. Include tests, CI, documentation and attribution; verify fresh clones build/test with independent dependency artifacts. Do not rewrite Pi Chat history.
+Description: Following S2, create both local repositories in the approved grouping folder with clean initial commits referencing the Pi Chat source revision. Include tests, CI, documentation and attribution; verify fresh clones build/test with independent dependency artifacts. Do not rewrite Pi Chat history.
 
 ### S4 — Switch Pi Chat
 Description: Following S3, consume server/SDK package APIs and update extension examples, fixtures and build/test configuration. Verify Swift application dependency resolution, integration and production smoke checks before removing old sources; document versions and rollback instructions.
@@ -33,4 +33,4 @@ Description: Following S3, consume server/SDK package APIs and update extension 
 ## Open Questions
 - **Q1 — Resolved:** Extract now to unblock Swift application CI; full Swift verification is follow-up work.
 - **Q2 — Resolved:** Extract `pi-sdk` alongside `pi-server`.
-- **Q3 — Partially resolved:** Both repositories belong under `47 Agents/Pi Agent`; should they preserve filtered history or start with clean initial commits referencing the source revision?
+- **Q3 — Resolved:** Both repositories belong under `47 Agents/Pi Agent` and start with clean initial commits referencing the Pi Chat source revision; no filtered history.
