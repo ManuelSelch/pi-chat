@@ -132,7 +132,7 @@ independent.
 
 ## Contract and package checks
 
-`src/contract/v2.ts` is authoritative; `models.ts` holds shared domain schemas,
+`src/protocol/v2.ts` is authoritative; `models.ts` holds shared domain schemas,
 not a legacy envelope. Regenerate schemas and examples:
 
 ```sh
@@ -142,7 +142,7 @@ npm run typecheck --workspace @manuelselch/pi-sdk
 npm run verify:package --workspace @manuelselch/pi-sdk
 ```
 
-`@manuelselch/pi-sdk/contract` imports no client state/transport. Shared schema,
+`@manuelselch/pi-sdk/protocol` imports no client state/transport. Shared schema,
 fixture, loopback host, lifecycle, cancellation, recovery and offline packed
 consumer tests are part of slice-5 verification. The Swift probe remains a
 scaffold; production Swift networking/dialog/reconnect parity is slice 7/8.

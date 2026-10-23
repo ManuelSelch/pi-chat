@@ -18,7 +18,7 @@ try {
   const modules = await readdir(join(temporary, "node_modules")); assert(!modules.some(name => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
   await writeFile(join(temporary, "consumer.ts"), `
 import { PiClient, PROTOCOL_VERSION, type Request, type TransportFactory, type Result } from "@manuelselch/pi-sdk";
-import { requestSchema, serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk/contract";
+import { requestSchema, serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk/protocol";
 const command: Request<"run.abort"> = { version: PROTOCOL_VERSION, type: "request", requestId: "r", method: "run.abort", sessionId: "runtime", params: {} };
 const event: ServerMessage = { version: 2, type: "protocolError", serverInstanceId: "server", error: { code: "example", message: "Example" } };
 requestSchema.parse(command); serverMessageSchema.parse(event);
@@ -41,7 +41,7 @@ const old: Request<"run.abort"> = { version: 1, type: "request", requestId: "r",
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import * as sdk from "@manuelselch/pi-sdk";
-import * as contract from "@manuelselch/pi-sdk/contract";
+import * as contract from "@manuelselch/pi-sdk/protocol";
 assert.equal(sdk.PROTOCOL_VERSION, 2); assert.equal(sdk.requestSchema, contract.requestSchema); assert.equal(contract.PiClient, undefined);
 const samples = JSON.parse(readFileSync(new URL(import.meta.resolve("@manuelselch/pi-sdk/protocol/fixtures/v2/valid.json")), "utf8"));
 for (const sample of samples.operations) { sdk.requestSchema.parse(sample.request); sdk.parseResponse(sample.method, sample.response); sdk.parseResponse(sample.method, sample.rejection); }

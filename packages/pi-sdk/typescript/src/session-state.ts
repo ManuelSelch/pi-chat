@@ -1,5 +1,5 @@
-import type { ActionRegistry, ProjectCatalogue } from "./contract/models.js";
-import type { Event, SessionSnapshot, SessionSettings } from "./contract/v2.js";
+import type { ActionRegistry, ProjectCatalogue } from "./protocol/models.js";
+import type { Event, SessionSnapshot, SessionSettings } from "./protocol/v2.js";
 
 export type SessionServerMessage = Extract<Event, { sessionId: string }>;
 export type SessionAction = SessionServerMessage | { type: "connectionLost"; error?: string } | { type: "superseded" };

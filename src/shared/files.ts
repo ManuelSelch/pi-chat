@@ -1,6 +1,6 @@
-export { filePathSchema, fileOpenErrorCodeSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/contract";
-export type { FileOpenErrorCode, FileOpenResult } from "@manuelselch/pi-sdk/contract";
-import { filePathSchema } from "@manuelselch/pi-sdk/contract";
+export { filePathSchema, fileOpenErrorCodeSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+export type { FileOpenErrorCode, FileOpenResult } from "@manuelselch/pi-sdk/protocol";
+import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
 
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/;
 const URL_SCHEME = /^[a-z][a-z\d+.-]*:/i;

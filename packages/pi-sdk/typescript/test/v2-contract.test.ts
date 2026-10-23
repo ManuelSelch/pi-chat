@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { requestSchema, serverMessageSchema, parseResponse, operationSchemas, snapshotSchema } from "../src/contract/v2.js";
+import { requestSchema, serverMessageSchema, parseResponse, operationSchemas, snapshotSchema } from "../src/protocol/v2.js";
 
 const request = (method: string, params: object = {}, sessionId?: string) => ({ version: 2, type: "request", requestId: "r1", method, params, ...(sessionId ? { sessionId } : {}) });
 export const snapshot = {

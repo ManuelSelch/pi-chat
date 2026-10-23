@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, rm, symlink, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { requestSchema } from "@manuelselch/pi-sdk/contract";
+import { requestSchema } from "@manuelselch/pi-sdk/protocol";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { createPiChatServer, type PiChatServer } from "../../../../src/server/bootstrap/server.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";

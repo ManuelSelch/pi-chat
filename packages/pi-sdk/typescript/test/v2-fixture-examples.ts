@@ -1,4 +1,4 @@
-import type { Event, Method } from "../src/contract/v2.js";
+import type { Event, Method } from "../src/protocol/v2.js";
 
 const settings = { model: "p/m", availableModels: ["p/m"], thinkingLevel: "off", availableThinkingLevels: ["off"] };
 const presentation = { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: { demo: { value: [null, true, 1, "text"] } } } };

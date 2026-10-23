@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import { requestSchema, serverMessageSchema, operationSchemas, parseResponse } from "../src/contract/v2.js";
+import { requestSchema, serverMessageSchema, operationSchemas, parseResponse } from "../src/protocol/v2.js";
 import { generateV2Schemas } from "../scripts/v2-contract-schemas.js";
 import { validExamples } from "./v2-fixture-examples.js";
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Result } from "@manuelselch/pi-sdk/contract";
+import type { Result } from "@manuelselch/pi-sdk/protocol";
 import { V2Connection, type V2ConnectionHost } from "../../../../src/server/transport/v2-connection.js";
 
 const request = (method = "server.initialize", id = "r1", params: object = {}, sessionId?: string) => JSON.stringify({ version: 2, type: "request", requestId: id, method, params: method === "server.initialize" ? { client: { name: "test", version: "1" }, capabilities: ["presentation", "future"] } : params, ...(sessionId ? { sessionId } : {}) });

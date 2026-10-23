@@ -1,5 +1,5 @@
-import { CONTROLLER_REPLACED_CODE, type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse, type DirectoryListing, type CommandCompletionItem } from "./contract/index.js";
-import { capabilitySchema, requestSchema, serverMessageSchema, parseResponse, type ServerMessage, type Event, type Method, type Params, type Result, type Capability, type OpenSessionSummary, type SessionSnapshot } from "./contract/v2.js";
+import { CONTROLLER_REPLACED_CODE, type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse, type DirectoryListing, type CommandCompletionItem } from "./protocol/index.js";
+import { capabilitySchema, requestSchema, serverMessageSchema, parseResponse, type ServerMessage, type Event, type Method, type Params, type Result, type Capability, type OpenSessionSummary, type SessionSnapshot } from "./protocol/v2.js";
 import { SDKError } from "./errors.js";
 import { defaultScheduler, type Scheduler, type CancellationSignal } from "./platform.js";
 import { applySnapshot, initialSessionState, reduceSessionMessage, type SessionState } from "./session-state.js";
@@ -322,5 +322,5 @@ export class PiClient {
     finally { this.stateListeners.clear(); this.messageListeners.clear(); this.errorListeners.clear(); this.shuttingDown = false; }
   }
 }
-import { operationSchemas } from "./contract/v2.js";
+import { operationSchemas } from "./protocol/v2.js";
 function operationCapability(method: Method): Capability | undefined { return operationSchemas[method].capability; }

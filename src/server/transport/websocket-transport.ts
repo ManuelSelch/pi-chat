@@ -1,7 +1,7 @@
 import type { Server, IncomingMessage } from "node:http";
 import { randomUUID } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
-import { snapshotSchema, operationSchemas, type Capability, type ServerMessage, type Event } from "@manuelselch/pi-sdk/contract";
+import { snapshotSchema, operationSchemas, type Capability, type ServerMessage, type Event } from "@manuelselch/pi-sdk/protocol";
 import { ChatApplicationService } from "../application/chat-application-service.js";
 import { ServerPublisher } from "./server-publisher.js";
 import { executeOperation } from "./command-handler.js";

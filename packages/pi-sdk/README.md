@@ -27,8 +27,8 @@ pi-sdk/
     fixtures/v2/                  # Shared operation/event/domain and malformed samples
   typescript/
     package.json                  # @manuelselch/pi-sdk
-    src/contract/models.ts        # Reusable domain schemas, independent of envelopes
-    src/contract/v2.ts            # Authoritative Zod v2 wire contract
+    src/protocol/models.ts        # Reusable domain schemas, independent of envelopes
+    src/protocol/v2.ts            # Authoritative Zod v2 wire contract
     src/client.ts                 # Lifecycle, requests and projections
     src/session-state.ts          # Sequenced per-runtime reducer
     src/requests/pending-requests.ts # Bounded correlation/cancellation
@@ -40,7 +40,7 @@ pi-sdk/
 
 ```ts
 import { PiClient, PROTOCOL_VERSION, type Request, type Event } from "@manuelselch/pi-sdk";
-import { requestSchema, serverMessageSchema } from "@manuelselch/pi-sdk/contract";
+import { requestSchema, serverMessageSchema } from "@manuelselch/pi-sdk/protocol";
 
 const request: Request<"message.send"> = {
   version: PROTOCOL_VERSION, type: "request", requestId: "request-1",

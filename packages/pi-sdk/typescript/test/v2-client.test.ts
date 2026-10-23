@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PiClient } from "../src/client.js";
 import { fakeTransport } from "./fake-transport.js";
-import type { Event } from "../src/contract/v2.js";
+import type { Event } from "../src/protocol/v2.js";
 import { snap, summary, initialized, event } from "./v2-fixtures.js";
 beforeEach(() => vi.useFakeTimers()); afterEach(() => vi.useRealTimers());
 function setup(options: Partial<ConstructorParameters<typeof PiClient>[0]> = {}) {

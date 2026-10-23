@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { applySnapshot, initialSessionState, reduceSessionMessage } from "../src/session-state.js";
-import { eventSchema, type Event } from "../src/contract/v2.js";
+import { eventSchema, type Event } from "../src/protocol/v2.js";
 import { snap, event } from "./v2-fixtures.js";
 const reduce = (state = applySnapshot(initialSessionState, snap()), value: unknown) => reduceSessionMessage(state, eventSchema.parse(value) as Extract<Event, { sessionId: string }>);
 it("preserves observed same-connection drafts across running snapshots, but not different runs", () => {

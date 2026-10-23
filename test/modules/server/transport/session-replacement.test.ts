@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { eventSchema, type Event } from "@manuelselch/pi-sdk/contract";
+import { eventSchema, type Event } from "@manuelselch/pi-sdk/protocol";
 import type { ChatApplicationService } from "../../../../src/server/application/chat-application-service.js";
 import type { RuntimeSnapshot } from "../../../../src/server/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";

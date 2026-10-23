@@ -5,7 +5,7 @@ import type { ProjectSessionService } from "../../../../src/server/projects/proj
 import type { ProjectCatalogue } from "../../../../src/shared/protocol.js";
 import type { RuntimeSnapshot } from "../../../../src/server/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/server/transport/server-publisher.js";
-import { eventSchema, type Event, type Result } from "@manuelselch/pi-sdk/contract";
+import { eventSchema, type Event, type Result } from "@manuelselch/pi-sdk/protocol";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 function deferred() {

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import { firstUserMessage, sessionTitle } from "../../shared/session-title.js";
-import { VERSION, snapshotSchema, promptSchema, type Event, type SessionSnapshot, type OpenSessionSummary, type ProtocolError, type Result } from "@manuelselch/pi-sdk/contract";
+import { VERSION, snapshotSchema, promptSchema, type Event, type SessionSnapshot, type OpenSessionSummary, type ProtocolError, type Result } from "@manuelselch/pi-sdk/protocol";
 import type { RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import type { ChatApplicationService } from "../application/chat-application-service.js";
 import type { FileLogger } from "../logging/file-logger.js";

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { PiClient } from "../src/client.js";
 import { SDKError } from "../src/errors.js";
-import { capabilitySchema, requestSchema } from "../src/contract/v2.js";
+import { capabilitySchema, requestSchema } from "../src/protocol/v2.js";
 import { fakeTransport } from "./fake-transport.js";
 import { initialized, snap, event } from "./v2-fixtures.js";
 import { validExamples } from "./v2-fixture-examples.js";

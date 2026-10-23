@@ -1,5 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+
+it("exports the protocol module alongside generated schema and fixture artifacts", async () => {
+  const protocol = await import(/* @vite-ignore */ "@manuelselch/pi-sdk/" + "protocol");
+  expect(protocol.PROTOCOL_VERSION).toBe(2);
+  expect(protocol.requestSchema).toBeDefined();
+  expect(protocol.PiClient).toBeUndefined();
+  expect(existsSync(new URL("../dist/protocol/index.js", import.meta.url))).toBe(true);
+  expect(existsSync(new URL("../dist/protocol/index.d.ts", import.meta.url))).toBe(true);
+  expect(() => import.meta.resolve("@manuelselch/pi-sdk/" + "contract")).toThrow();
+});
 it("ships only v2 wire artifacts and no obsolete implementation output", () => {
   const schema = JSON.parse(readFileSync(new URL(import.meta.resolve("@manuelselch/pi-sdk/protocol/schema/v2/Request.schema.json")), "utf8"));
   const samples = JSON.parse(readFileSync(new URL(import.meta.resolve("@manuelselch/pi-sdk/protocol/fixtures/v2/valid.json")), "utf8"));

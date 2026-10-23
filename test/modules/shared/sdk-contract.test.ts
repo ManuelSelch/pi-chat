@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import * as sdk from "@manuelselch/pi-sdk";
-import * as contract from "@manuelselch/pi-sdk/contract";
+import * as contract from "@manuelselch/pi-sdk/protocol";
 import * as shared from "../../../src/shared/protocol.js";
 it("exports one authoritative v2 contract through SDK, contract-only and app re-exports", () => {
   expect(sdk.PROTOCOL_VERSION).toBe(2); expect(sdk.serverMessageSchema).toBe(contract.serverMessageSchema); expect(shared.serverMessageSchema).toBe(contract.serverMessageSchema);

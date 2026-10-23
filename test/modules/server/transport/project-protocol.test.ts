@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { requestSchema, parseResponse } from "@manuelselch/pi-sdk/contract";
+import { requestSchema, parseResponse } from "@manuelselch/pi-sdk/protocol";
 it("accepts correlated v2 archive/pin commands and structured results without a live runtime", () => {
   for (const [method, params] of [["session.archive", { path: "/history.jsonl", archived: true }], ["project.pin", { path: "/work", pinned: true }]]) {
     const command = { version: 2, type: "request", requestId: "r", method, params };

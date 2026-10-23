@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Request } from "@manuelselch/pi-sdk/contract";
+import type { Request } from "@manuelselch/pi-sdk/protocol";
 import { SessionBusyError, type ChatApplicationService } from "../application/chat-application-service.js";
 import type { ServerPublisher } from "./server-publisher.js";
 import { DirectoryOperationError } from "../projects/directory-browser-service.js";

@@ -2,7 +2,7 @@
 
 **Implemented wire version: `2`. The coordinated server, TypeScript SDK and Pi Chat cutover is complete; v1 is unsupported.**
 
-The shared contract is owned by the [Pi SDK workspace](../../packages/pi-sdk/README.md): [Zod source](../../packages/pi-sdk/typescript/src/contract/v2.ts), reusable [domain schemas](../../packages/pi-sdk/typescript/src/contract/models.ts), generated [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/). The server exposes v2 only, with no v1 negotiation or compatibility path. See the [cutover verification](CUTOVER.md).
+The shared contract is owned by the [Pi SDK workspace](../../packages/pi-sdk/README.md): [Zod source](../../packages/pi-sdk/typescript/src/protocol/v2.ts), reusable [domain schemas](../../packages/pi-sdk/typescript/src/protocol/models.ts), generated [JSON Schemas](../../packages/pi-sdk/protocol/schema/v2/) and [fixtures](../../packages/pi-sdk/protocol/fixtures/v2/). The server exposes v2 only, with no v1 negotiation or compatibility path. See the [cutover verification](CUTOVER.md).
 
 ## 1. Boundaries
 

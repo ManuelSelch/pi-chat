@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { requestSchema, responseSchema, eventSchema, serverMessageSchema, snapshotSchema, initializeResultSchema, operationSchemas, messageSchema, extensionsSchema, presentationSchema, promptResultSchema } from "../src/contract/v2.js";
-import { filePathSchema } from "../src/contract/files.js";
-import { directoryBrowseSchema } from "../src/contract/directories.js";
-import { thinkingLevelSchema } from "../src/contract/models.js";
+import { requestSchema, responseSchema, eventSchema, serverMessageSchema, snapshotSchema, initializeResultSchema, operationSchemas, messageSchema, extensionsSchema, presentationSchema, promptResultSchema } from "../src/protocol/v2.js";
+import { filePathSchema } from "../src/protocol/files.js";
+import { directoryBrowseSchema } from "../src/protocol/directories.js";
+import { thinkingLevelSchema } from "../src/protocol/models.js";
 
 export const domainSchemaSources = { ChatMessage: messageSchema, ThinkingLevel: thinkingLevelSchema, ExtensionContributions: extensionsSchema, FooterItem: presentationSchema.shape.footer.element, PromptResult: promptResultSchema };
 export const v2SchemaSources = {
