@@ -1,42 +1,36 @@
-# Pi Server Extraction — Requirements
+# Pi Server and SDK Extraction — Requirements
 
 ## Goal
-Extract the existing backend into a standalone `pi-server` Git repository and package (`@manuelselch/pi-server`) without changing behavior. This is the short extraction work plan; the [parent plan](../backend-sdk/REQUIREMENTS.md) retains migration history and broader SDK/deployment milestones.
-
-## Scope
-### In Scope
-- Server sources, required shared helpers, public APIs, tests, build configuration, CI and documentation.
-- Independent packaging and Pi Chat consumer integration.
-
-### Out of Scope
-- Protocol changes, UI redesign, new Swift functionality or remote deployment.
-- Remote repository creation, pushing, publication or live service replacement without separate approval.
+Extract `pi-server` and `pi-sdk` into independent Git repositories to unblock Swift application CI, without changing behavior. This is the active extraction plan; the [parent plan](../backend-sdk/REQUIREMENTS.md) retains migration history. The approved sequencing below supersedes its R19 Swift prerequisite.
 
 ## Requirements
-- Preserve v2 behavior, session storage, extension registration identity and loopback defaults; the SDK remains the authoritative contract owner.
-- Run the compiled server headlessly or with explicitly configured static assets, without Pi Chat sources, React, Vite or runtime TypeScript loaders.
-- Use documented package APIs, declared runtime dependencies and independently installable SDK artifacts; no sibling-source imports or workspace-hoisting assumptions.
-- Preserve Pi Chat launcher, restart, PID/log and shutdown behavior; standalone restart must not assume a source rebuild.
-- Pass clean-install server/package tests, existing SDK fixture tests, Pi Chat integration tests and production smoke checks. Remove old sources only after verification; retain a rollback revision.
+- **R1** — Extract the backend as `@manuelselch/pi-server`; extract the shared contract, TypeScript SDK, Swift SDK and contract tests together into `pi-sdk`. Include their tests, build configuration, CI and documentation.
+- **R2** — Place both repositories under `/Users/manuelselch/Documents/A_Personal/40 Projekte/47 Agents/Pi Agent`. The grouping folder is not a Git repository. Do not relocate Pi Chat or Pi Studio in this effort; keep runtime configuration, credentials and sessions under `~/.pi/agent`.
+- **R3** — Preserve v2 behavior, session storage, extension registration identity and loopback defaults; the SDK remains the authoritative contract owner.
+- **R4** — Run the compiled server headlessly or with explicit static assets, without Pi Chat sources, React, Vite or runtime TypeScript loaders. Use documented package APIs and declared dependencies; no sibling-source imports or workspace-hoisting assumptions.
+- **R5** — Preserve Pi Chat launcher, restart, PID/log and shutdown behavior; standalone restart must not assume a source rebuild.
+- **R6** — Pass clean-install server/package tests, existing TypeScript/Swift SDK tests, Pi Chat integration tests and production smoke checks. Verify Git-based SwiftPM consumption for application CI. Remove old sources only after verification; retain a rollback revision.
+- **R7** — Extraction may proceed before full Swift conversation/dialog/reconnect verification; retain that milestone as follow-up work, not an extraction gate. Protocol changes, UI redesign, new Swift features and remote deployment are excluded.
+- **R8** — Remote repository creation, pushing, publication and live service replacement require separate approval. Register extension-bearing local packages explicitly rather than requiring source repositories inside `~/.pi/agent/extensions`.
 
 ## Assumptions
-- Existing protocol semantics are documented in the [protocol specification](../backend-sdk/PROTOCOL.md); completed migration evidence is in [CUTOVER.md](../backend-sdk/CUTOVER.md).
-- The parent's Swift conversation/dialog/reconnect prerequisite remains binding until explicitly changed. This plan does not authorize extraction or waive that prerequisite.
+- Existing semantics and completed migration evidence remain in [PROTOCOL.md](../backend-sdk/PROTOCOL.md) and [CUTOVER.md](../backend-sdk/CUTOVER.md).
+- Local repository extraction and destination are approved; Git history strategy remains undecided. This update records decisions, not completed implementation.
 
 ## Implementation Plan
-### 1. Define Boundaries
-Description: Map server/shared files, dependencies and test ownership; define public embedding, extension and fixture APIs. Verify current imports are covered and resolve extraction decisions before moving files.
+### S1 — Define Boundaries
+Description: Map server/shared/SDK files, dependencies and test ownership; define public embedding, extension and fixture APIs. Verify imports are covered and resolve Q3 before moving files.
 
-### 2. Package Independently
-Description: Following step 1, establish the server package, CLI, optional static hosting and restart/launcher adapters. Verify a packed installation starts, initializes an SDK client and shuts down from an unrelated directory without Pi Chat sources.
+### S2 — Package Independently
+Description: Following S1, establish independent server/SDK artifacts, CLI, optional static hosting and restart/launcher adapters. Verify packed installations initialize an SDK client and shut down without Pi Chat sources; SwiftPM builds independently.
 
-### 3. Extract Repository
-Description: Following step 2 and prerequisite/creation approval, create the local repository using the agreed history strategy. Include tests, CI, documentation and attribution; verify a fresh clone builds/tests with independent dependency artifacts. Do not rewrite Pi Chat history.
+### S3 — Extract Repositories
+Description: Following S2, create both local repositories in the approved grouping folder using the agreed history strategy. Include tests, CI, documentation and attribution; verify fresh clones build/test with independent dependency artifacts. Do not rewrite Pi Chat history.
 
-### 4. Switch Pi Chat
-Description: Following step 3, consume server/SDK package APIs and update extension examples, fixtures and build/test configuration. Run integration and production smoke checks before removing old server sources; document versions and rollback instructions.
+### S4 — Switch Pi Chat
+Description: Following S3, consume server/SDK package APIs and update extension examples, fixtures and build/test configuration. Verify Swift application dependency resolution, integration and production smoke checks before removing old sources; document versions and rollback instructions.
 
 ## Open Questions
-1. Retain the parent's Swift verification prerequisite, or explicitly allow extraction before it?
-2. Extract `pi-sdk` alongside the server, or temporarily consume independently packed SDK artifacts from Pi Chat?
-3. Where should the local repository live, and should it preserve filtered history or start with a clean initial commit?
+- **Q1 — Resolved:** Extract now to unblock Swift application CI; full Swift verification is follow-up work.
+- **Q2 — Resolved:** Extract `pi-sdk` alongside `pi-server`.
+- **Q3 — Partially resolved:** Both repositories belong under `47 Agents/Pi Agent`; should they preserve filtered history or start with clean initial commits referencing the source revision?
