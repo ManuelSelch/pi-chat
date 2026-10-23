@@ -1,22 +1,21 @@
-# Separate SDK Extraction — Design
+# Pi Server Extraction — Design
 
 ## Proposed Design
-- Implement S5–S6 only. Create `pi-sdk-typescript` and `pi-sdk-swift` directly under `/Users/manuelselch/Documents/A_Personal/40 Projekte/47 Agents/Pi Agent`; keep the grouping folder non-Git. Preserve S1's baseline audit as historical evidence; these decisions supersede its combined-SDK boundary.
-- TypeScript repository root owns `package.json`, source, tests, generators and generated `protocol/schema` and `protocol/fixtures`. Preserve npm name `@manuelselch/pi-sdk`. Rename source/public `contract` to `protocol`, update consumers and omit the old export alias. Change artifact copying to replace only generated subdirectories: its current whole-directory deletion would erase the newly compiled protocol module.
-- Swift repository root owns `Package.swift`, sources, unit tests and generation probe. Check in protocol artifacts with a TypeScript source revision/checksum manifest; provide explicit import/drift verification without sibling-source reads. Generators emit portable artifacts rather than writing into the other repository.
-- Move real-server Swift loopback tests and their Node fixture into a Chat-owned SwiftPM integration harness depending on the extracted Swift SDK. Keep this suite mandatory in verification; standalone SDK tests use injected transports and pinned fixtures. Server packaging remains future work.
-- Replace Chat's npm workspace with a checked-in local packed SDK artifact and lockfile dependency so fresh Chat checkouts do not require an absolute developer path or unpublished registry version. Update scripts, workflow and known SDK consumer references; remove embedded sources only after verification.
+- Replace the delivered [SDK design](SDK-DESIGN.md) with this server proposal. Prepare an isolated package under `packages/pi-server`, then extract it into the approved `Pi Agent/pi-server` repository. Retain existing feature organization; no architectural rewrite.
+- Reuse bootstrap/application/runtime/transport implementations. Export `createPiServer(options)` with runtime/factory, catalogue/storage, extensions, files, logger, restart and optional static-directory injection. Return `httpServer` and `close()`; keep transport, mapping and catalogue implementations private. Export required structural types and `createPiRuntimeAdapter` for existing real-Pi drivers.
+- Export `/extensions` with existing names and `Symbol.for("pi-chat.extension-registry")`. Export compiled fakes/fixture data and registry reset through `/testing`; `/testing/loopback` owns the isolated Swift fixture implementation. Chat retains its Swift suite and a plain-Node launcher.
+- Compile an ESM CLI with declarations and explicit host/port/project/static/PID/log options. Default to headless `127.0.0.1:8788`. Keep runtime state under `~/.pi/agent`; preserve v2 behavior. Chat owns a thin compiled entry translating existing `PI_CHAT_*` settings, explicit web assets, launcher tracking and build-before-restart. Generic restart re-executes without building; supervised development disables it. Caller owns injected logger disposal.
 
 ## Decisions & Trade-offs
-- Use clean initial Git commits with Pi Chat source attribution. No remote, push, publication or live service replacement. Keep runtime state untouched.
-- Root manifests make each language's tooling conventional. TypeScript remains the sole protocol authority; explicit artifact synchronization trades convenience for independent builds.
-- A temporary vendored npm tarball permits reproducible consumption before publication. Document regeneration and artifact revision; do not commit dependency installations/build caches.
-- Keeping loopback coverage in Chat avoids prematurely extracting the server or replacing a real-host test with a protocol mock. Both SDKs still have independent CI; Chat owns cross-repository integration.
+- Declare direct dependencies, including Pi 1.0.2; retain Node >=22.19 and Node 24 CI. Import the authoritative SDK `/protocol`; move server-only shared helpers into their consuming features. Add no utility package or protocol copy.
+- Before publication, vendor pinned SDK/server tarballs with revision/checksum receipts and lockfiles. Bundle the installed SDK dependency in the server tarball using npm bundled dependencies, avoiding nested developer-local `file:` resolution. Verify packing explicitly; accept temporary artifact duplication rather than require registry publication.
+- Move server-internal tests/diagnostics and independent CI with the package. Chat retains UI/domain/browser drivers, cross-repository Swift coverage and build-policy tests. Split coverage ownership, not assertions.
+- Use a clean initial server commit with source attribution. Preserve notices; licensing remains a publication gate. No remote creation, pushing, publication, live replacement or runtime-state migration. Remove Chat's duplicated implementation only after acceptance; preserve rollback revisions.
 
 ## Verification
-- Add failing public `/protocol` import and artifact-retention regressions before changing exports/copying.
-- Run TypeScript clean install, build/typecheck/tests, schema drift and isolated packed consumer checks; Swift unit/probe tests, exact artifact checks and a local Git-based SwiftPM consumer build.
-- Verify fresh clones, Chat build/typecheck/unit/browser suites, mandatory Swift loopback integration and production smoke with private test storage. Confirm no embedded-source imports, old public `/contract` consumers or accidental live-service changes remain.
+- Use small red/green tests through package/host drivers: public imports/declarations, lazy runtime creation, headless/static hosting, SDK initialization, extension singleton, shutdown and no-build restart. Cover Chat build-failure retention and successor PID rewrite.
+- Test clean clones and isolated packed consumers without Chat/sibling sources, hoisting, frontend dependencies or TypeScript loaders. Verify fixture readiness, private storage and bounded cleanup.
+- Run server suites, standalone SDK suites, Git-based SwiftPM consumption, Chat build/unit/browser/mandatory Swift integration and isolated production smoke. Repeat after source deletion; reject remaining private imports and obsolete compiled paths.
 
 ## Open Questions
 None.
