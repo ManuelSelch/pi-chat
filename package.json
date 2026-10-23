@@ -17,6 +17,7 @@
     "pretest": "npm run verify:sdk",
     "pretest:watch": "npm run verify:sdk",
     "test:swift-integration": "node scripts/run-swift-integration.mjs",
+    "test:server-package:swift": "node scripts/verify-server-package-swift.mjs",
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
     "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch src/server/index.ts",
     "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 PI_CHAT_WEB_PORT=5174 vite",

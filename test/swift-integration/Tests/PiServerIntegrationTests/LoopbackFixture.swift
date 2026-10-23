@@ -27,8 +27,16 @@ final class LoopbackFixture {
         FileManager.default.createFile(atPath: log.path, contents: nil, attributes: [.posixPermissions: 0o600])
         handle = try FileHandle(forWritingTo: log)
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["node", "--import", "tsx", package.appendingPathComponent("fixtures/loopback-server.ts").path]
-        process.currentDirectoryURL = package.deletingLastPathComponent().deletingLastPathComponent()
+        if let entry = ProcessInfo.processInfo.environment["PI_SWIFT_FIXTURE_ENTRY"] {
+            // S2 packed-consumer verification: explicit plain-Node launcher, no Chat sources.
+            let launcher = URL(fileURLWithPath: entry)
+            process.arguments = ["node", launcher.path]
+            process.currentDirectoryURL = launcher.deletingLastPathComponent()
+        } else {
+            // Keep the existing Chat fixture until the S4 package cutover.
+            process.arguments = ["node", "--import", "tsx", package.appendingPathComponent("fixtures/loopback-server.ts").path]
+            process.currentDirectoryURL = package.deletingLastPathComponent().deletingLastPathComponent()
+        }
         // A regular file drains stdout without a blocking pipe reader or concurrency machinery.
         process.standardOutput = handle
         process.standardError = handle

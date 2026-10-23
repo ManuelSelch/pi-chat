@@ -1,0 +1,66 @@
+{
+  "name": "@manuelselch/pi-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent local Pi v2 server",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "bin": {
+    "pi-server": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SOURCE.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions.d.ts",
+      "import": "./dist/extensions.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./testing/loopback": {
+      "types": "./dist/testing/loopback.d.ts",
+      "import": "./dist/testing/loopback.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "verify:package": "npm run build && node scripts/verify-package.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.0.2",
+    "@earendil-works/pi-agent-core": "1.0.2",
+    "@earendil-works/pi-ai": "1.0.2",
+    "@earendil-works/pi-codemode": "1.0.3",
+    "@earendil-works/pi-mcp": "1.0.3",
+    "@earendil-works/pi-tui": "1.0.3",
+    "@earendil-works/pi-telemetry": "1.0.3",
+    "@earendil-works/chord": "1.0.3",
+    "@manuelselch/pi-sdk": "file:vendor/manuelselch-pi-sdk-0.0.0.tgz",
+    "express": "^5.2.1",
+    "ws": "^8.21.3",
+    "zod": "^4.6.4"
+  },
+  "bundleDependencies": [
+    "@manuelselch/pi-sdk"
+  ],
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "@types/ws": "^8.18.1",
+    "typescript": "^7.0.2"
+  }
+}
