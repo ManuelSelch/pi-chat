@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifySDKArtifacts } from './sdk-artifacts.mjs';
 
@@ -16,7 +16,8 @@ const run = (command, args, cwd = temporary, options = {}) => execFileSync(comma
   cwd, timeout: 180000, stdio: 'inherit', ...options,
 });
 try {
-  const packageRoot = join(root, 'packages/pi-server');
+  // S3 can verify an independently checked-out server without changing Chat's runtime dependency.
+  const packageRoot = process.argv[2] ? resolve(process.argv[2]) : join(root, 'packages/pi-server');
   run(process.execPath, [npm, 'run', 'build'], packageRoot);
   const packed = JSON.parse(run(process.execPath, [npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', temporary], packageRoot,
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];

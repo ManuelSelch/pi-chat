@@ -2,7 +2,7 @@
 
 ## Delivered scope
 
-S5 (public protocol rename) and S6 (direct separate SDK repositories) are implemented. **S2 standalone server packaging is also implemented** on `feat/server-packaging`; see [S2-PACKAGING.md](S2-PACKAGING.md) for API boundaries and fresh-clone/packed/Swift verification. The running Chat server remains unchanged. S3 repository extraction and S4 consumer cutover are not complete.
+S5 (public protocol rename) and S6 (direct separate SDK repositories) are implemented. **S2 packaging and S3 standalone server extraction are also implemented**; see [S2-PACKAGING.md](S2-PACKAGING.md) for package boundaries and [S3-EXTRACTION.md](S3-EXTRACTION.md) for the independent repository, ownership and verification. The running Chat server remains unchanged. S4 consumer cutover is not complete.
 
 | Repository | Local location | Initial revision |
 |---|---|---|
@@ -33,4 +33,4 @@ The grouping folder is not Git. Both repositories start with clean initial commi
 
 To restore the pre-extraction source layout, use the recorded Pi Chat rollback revision in a separate checkout; do not reset unrelated user work. Current artifacts/receipts pin the exact extracted SDK revisions. Pi Studio's consumer wiring can be reverted independently if necessary.
 
-Next: S3 extracts the prepared `packages/pi-server` into the approved independent local repository; S4 switches Chat only after package/consumer acceptance. Existing S1 inventory is baseline evidence, not a description of today's SDK locations or implemented S2 surfaces. No license/notice file existed at extraction; resolve licensing with the owner before publication.
+Next: S4 switches Chat to the verified extracted server only after its consumer acceptance. S3 is delivered; see [S3-EXTRACTION.md](S3-EXTRACTION.md). Existing S1 inventory is baseline evidence, not a description of today's SDK locations or implemented S2 surfaces. No license/notice file existed at extraction; resolve licensing with the owner before publication.
