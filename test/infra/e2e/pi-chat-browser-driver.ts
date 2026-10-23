@@ -1,11 +1,8 @@
 import { join, resolve } from "node:path";
 import { SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import { ProjectSessionService } from "../../../src/server/projects/project-session-service.js";
-import { ProjectMetadataStore } from "../../../src/server/projects/project-metadata-store.js";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
-import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
-import type { RestartService } from "../../../src/server/bootstrap/restart-service.js";
+import { createPiServer, type PiServer, type RestartService } from "@manuelselch/pi-server";
 import { TestWorld } from "../pi-chat/test-world.js";
 import { BrowserBrowserDriver } from "./browser-browser-driver.js";
 import { BrowserChatDriver } from "./browser-chat-driver.js";
@@ -47,15 +44,16 @@ export class PiChatBrowserDriver {
 
   static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {
     const world = new TestWorld(options.extensions, true, options.projectName);
-    let server: PiChatServer | undefined;
+    let server: PiServer | undefined;
     try {
-      const projectSessions = new ProjectSessionService(
-        { listAll: () => SessionManager.list(world.projectPath, world.sessionDir) },
-        world.sessionDir,
-        undefined,
-        new ProjectMetadataStore(join(world.projectPath, ".pi-chat", "projects.json")),
-      );
-      server = createPiChatServer(undefined, resolve("dist/web"), world.factory, options.restart, undefined, undefined, undefined, projectSessions);
+      server = createPiServer({
+        staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
+        catalogue: {
+          lister: { listAll: () => SessionManager.list(world.projectPath, world.sessionDir) },
+          sessionsDirectory: world.sessionDir,
+          metadataFile: join(world.projectPath, ".pi-chat", "projects.json"),
+        },
+      });
       await new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
         server!.httpServer.listen(0, "127.0.0.1", () => {

@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifySDKArtifacts } from "./sdk-artifacts.mjs";
+import { verifyServerArtifact } from "./server-artifact.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const manifest = verifySDKArtifacts();
+verifyServerArtifact();
 const harness = join(root, "test/swift-integration");
 const checkout = join(harness, ".sdk/pi-sdk-swift");
 mkdirSync(join(harness, ".sdk"), { recursive: true });

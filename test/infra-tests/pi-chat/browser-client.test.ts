@@ -1,8 +1,8 @@
 import { afterEach, expect, it } from "vitest";
-import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
+import { createPiServer, type PiServer } from "@manuelselch/pi-server";
 import { BrowserClient } from "../../infra/pi-chat/browser-client.js";
 
-let server: PiChatServer | undefined;
+let server: PiServer | undefined;
 let client: BrowserClient | undefined;
 afterEach(async () => {
   try { await client?.close(); }
@@ -11,9 +11,9 @@ afterEach(async () => {
 
 async function connect() {
   const unsupported = async (): Promise<never> => { throw new Error("Not supported in the client test"); };
-  server = createPiChatServer(undefined, undefined, {
+  server = createPiServer({ runtimeFactory: {
     continueProject: unsupported, openSession: unsupported, newSession: unsupported,
-  });
+  } });
   await new Promise<void>(resolve => server!.httpServer.listen(0, "127.0.0.1", resolve));
   client = new BrowserClient(server, 1000);
   await client.wait("Client.Connect", "initial tab list", () => client!.appState.tabsKnown);

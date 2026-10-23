@@ -1,10 +1,8 @@
 // @vitest-environment jsdom
-import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import { AppShell, MantineProvider } from "@mantine/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { snapshotEvent } from "../../../../infra/v2-fixtures.js";
-import { projectSnapshot } from "../../../../../src/server/runtime/pi/snapshot.js";
 import { initialAppState } from "../../../../../src/web/app/state/app-state.js";
 import { initialChatState, reduceServerMessage } from "../../../../infra/pi-chat/browser-session-view.js";
 import { HeaderContainer } from "../../../../../src/web/app/shell/HeaderContainer.js";
@@ -15,12 +13,7 @@ vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ use
 afterEach(cleanup);
 
 function snapshot(name: string | undefined, sequence: number, isStreaming = false) {
-  const session = {
-    sessionId: "s1", sessionName: name, isIdle: !isStreaming, thinkingLevel: "off",
-    supportsThinking: () => false, getAvailableThinkingLevels: () => ["off"],
-  } as unknown as AgentSessionRuntime["session"];
-  const snapshot = projectSnapshot({ session, cwd: "/project", messages: [], inFlightTools: new Set(), models: [], commands: [], prompts: [], widgets: [], statuses: [] });
-  const message = snapshotEvent({ sessionId: snapshot.sessionId, sessionName: snapshot.sessionName, throughSequence: sequence, projectPath: snapshot.projectPath, runtime: { status: snapshot.isStreaming ? "running" : "idle" } });
+  const message = snapshotEvent({ sessionId: "s1", sessionName: name, throughSequence: sequence, projectPath: "/project", runtime: { status: isStreaming ? "running" : "idle" } });
   chat.state = reduceServerMessage(chat.state, message);
 }
 

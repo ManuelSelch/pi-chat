@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { AgentSessionRuntime, SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
 import { calls, createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
-import type { RuntimeAdapterFactory } from "../../../src/server/runtime/contracts.js";
-import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
+import type { RuntimeAdapter, RuntimeAdapterFactory } from "@manuelselch/pi-server";
+import * as serverPackage from "@manuelselch/pi-server";
 
 export interface AssistantResponse {
   prompt: string;
@@ -27,7 +27,7 @@ export interface TestSessionResources {
 interface OwnedSession {
   harness: TestSession;
   responses: readonly AssistantResponse[];
-  adapter: PiRuntimeAdapter;
+  adapter: RuntimeAdapter;
 }
 
 /** Only model responses are mocked; every created adapter hosts a real Pi session. */
@@ -37,7 +37,7 @@ export class TestWorld {
   private readonly sessions = new Map<string, OwnedSession>();
   readonly sessionDir: string;
   private readonly controlledResponses = new Map<string, () => void>();
-  private readonly creating = new Set<Promise<PiRuntimeAdapter>>();
+  private readonly creating = new Set<Promise<RuntimeAdapter>>();
   private reservation?: { responses: readonly AssistantResponse[]; resources: TestSessionResources; started: boolean };
   private disposed = false;
   private disposal?: Promise<void>;
@@ -86,7 +86,7 @@ export class TestWorld {
     return () => { if (this.reservation === reservation) this.reservation = undefined; };
   }
 
-  create(responses: readonly AssistantResponse[], sessionPath?: string, resources: TestSessionResources = {}): Promise<PiRuntimeAdapter> {
+  create(responses: readonly AssistantResponse[], sessionPath?: string, resources: TestSessionResources = {}): Promise<RuntimeAdapter> {
     assert(!this.disposed, "Test world is disposed");
     const task = this.build(responses.map(response => ({ ...response })), sessionPath, resources);
     this.creating.add(task);
@@ -95,7 +95,7 @@ export class TestWorld {
     return task;
   }
 
-  private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<PiRuntimeAdapter> {
+  private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<RuntimeAdapter> {
     assert(!resources.projectName || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resources.projectName), "Fixture project name must be a safe directory name");
     const sessionRoot = resources.skills || resources.projectName ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
     const cwd = resources.projectName ? join(sessionRoot, resources.projectName) : sessionRoot;
@@ -171,7 +171,7 @@ export class TestWorld {
         return controlled;
       };
 
-      const adapter = PiRuntimeAdapter.fromRuntime(runtime);
+      const adapter = serverPackage.createPiRuntimeAdapter(runtime);
       const originalDispose = adapter.dispose.bind(adapter);
       let disposal: Promise<void> | undefined;
       // The server disposes closed tabs; the world also owns cleanup of partial

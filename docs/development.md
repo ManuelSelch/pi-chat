@@ -5,7 +5,9 @@
 Use Node.js 22.19 or newer. From the repository checkout:
 
 ```sh
-npm ci
+npm ci --ignore-scripts
+# Compile the pinned source-only test harness before build/test:
+npx --ignore-scripts tsc --ignoreConfig --noCheck --module nodenext --target es2022 --declaration --outDir node_modules/@marcfargas/pi-test-harness/dist node_modules/@marcfargas/pi-test-harness/src/*.ts
 npm run dev
 ```
 
@@ -17,7 +19,7 @@ npm run build
 npm start
 ```
 
-Generated application `dist/` artifacts are local and are not committed. The SDK is an independent, precompiled dependency installed from the checked-in [SDK artifacts](../vendor/README.md); there is no SDK workspace or `build:sdk` step. Run `npm run verify:sdk` to verify its receipt. See
+Generated application `dist/` artifacts are local and are not committed. The server and SDK are independent, precompiled dependencies installed from checked-in [artifacts](../vendor/README.md); no sibling checkout, server source tree or package workspace is required. Run `npm run verify:dependencies` to verify both receipts. `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
 [Configuration](configuration.md) for server environment variables.
 
 ## Verification
@@ -40,51 +42,36 @@ placement rules and focused commands.
 ### E2E coverage
 
 Run `npm run test:e2e:coverage` to build with browser source maps, collect
-Chromium and in-worker backend V8 coverage, and generate
+Chromium and Chat-owned worker V8 coverage, and generate
 `coverage-e2e/lcov.info`. For an existing coverage-enabled build, use
 `npm run test:e2e:coverage:run -- test/e2e/reload.spec.ts --workers=1`.
 Regenerate the report from retained raw data with `npm run coverage:e2e:report`.
 
 Ordinary `test:e2e` runs do not collect coverage. The coverage runner clears only
-`coverage-e2e/`; Vitest's `coverage/` is independent. Both TypeScript and Swift
+`coverage-e2e/`; Vitest's `coverage/` is independent. The independent server and both
 SDKs are outside the measured scope (`sonar.sources=src`). CI waits for unit and
 E2E success before importing both LCOV reports into Sonar. Vitest supplies
 unexecuted root source files so they remain uncovered in combined analysis.
 
 Coverage uses the exact Playwright transform cache and Node source maps for the
-in-process backend. Upgrading Playwright requires rerunning the reload regression
-and checking backend mappings; missing/mismatched maps or transformed sources fail
+Chat-owned worker code. Server internals are covered by the independent server CI, not copied into Chat coverage. Browser execution is mandatory; external server execution does not satisfy Chat coverage. Upgrading Playwright requires rerunning the reload regression
+and checking worker mappings; missing/mismatched maps or transformed sources fail
 report generation. New page navigations must checkpoint collection through the
 browser driver, as reload does. Popups/additional browser pages are not supported.
 Raw data contains source code and stays local; CI uploads only LCOV.
 
-To compare fresh-process server memory:
-
-```sh
-npm run measure:server-memory
-```
-
-The memory comparison starts both launch modes without open sessions; it is a
-baseline, not a prediction for a long-running server with large transcripts.
+Server memory and session-open profiling diagnostics now live in the independent `pi-server` repository. They are not rebuilt or copied by Chat.
 
 To regenerate the README showcase, run `npm run capture:readme`. See the
 [capture guide](readme-showcase/CAPTURE.md) for isolation, output files, and options.
 
-## Server organization
+## Server boundary
 
-`src/server/index.ts` is the process entry point. Server code is grouped by ownership:
+`src/host/index.ts` translates `PI_CHAT_*` settings, supplies explicit web assets and owns PID/log/signal lifecycle over `@manuelselch/pi-server`. `src/host/restart-service.ts` injects Chat’s trusted build-before-restart policy; failed builds leave the listener running. The server owns generic restart and all application/runtime/transport/catalogue implementations.
 
-- `bootstrap/`: HTTP server composition and process restart.
-- `application/`: chat coordination and open-session registry.
-- `transport/`: WebSocket connections and protocol handling.
-- `runtime/contracts.ts`: runtime adapter, factory, event, and snapshot contracts.
-- `runtime/pi/`: Pi adapter, browser UI bridge, and SDK cache workaround.
-- `projects/`: session catalogue and directory browsing.
-- `extensions/`: web extension registry; `extensions/ui/` contains prompt, widget, and status registries.
+Consumers use only public root, `/extensions`, `/testing` and `/testing/loopback` APIs. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
 
-The test fake lives in `test/infra/fake-runtime-adapter.ts`, separate from production
-contracts. The old `src/server/extension-registry.ts` import remains a deprecated
-compatibility re-export of `extensions/extension-registry.ts`.
+Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests and mandatory Swift integration. Fakes and the isolated loopback fixture come from compiled server testing exports. See [S4 handover](pi-server-extraction/S4-CUTOVER.md) for pins, test ownership and rollback.
 
 ## Frontend organization
 

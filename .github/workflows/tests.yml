@@ -40,6 +40,9 @@ jobs:
         env:
           PI_CHAT_COVERAGE: '1'
 
+      - name: Verify isolated production launcher and restart lifecycle
+        run: node scripts/production-server-smoke.mjs
+
       - name: Upload production assets
         uses: actions/upload-artifact@v6
         with:
@@ -150,7 +153,7 @@ jobs:
       - name: Select stable Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer
       - run: npm ci --ignore-scripts
-      - run: npm run verify:sdk
+      - run: npm run verify:dependencies
       - name: Run real-server Swift SDK integration
         run: npm run test:swift-integration
 

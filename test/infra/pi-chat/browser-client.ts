@@ -3,7 +3,7 @@ import WebSocket from "ws";
 import { PiClient, createWebSocketTransport, serverMessageSchema, type ServerMessage } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage, type AppState } from "../../../src/web/app/state/app-state.js";
 import { bindPiChat } from "../../../src/web/app/connection/sdk-binding.js";
-import type { PiChatServer } from "../../../src/server/bootstrap/server.js";
+import type { PiServer } from "@manuelselch/pi-server";
 
 /** Private implementation detail: domain tests never send protocol messages. */
 export class BrowserClient {
@@ -16,7 +16,7 @@ export class BrowserClient {
   private socket?: WebSocket;
   private readonly client: PiClient;
 
-  constructor(server: PiChatServer, private readonly timeoutMs: number, activeSessionId = "") {
+  constructor(server: PiServer, private readonly timeoutMs: number, activeSessionId = "") {
     this.state = { ...initialAppState, activeSessionId };
     const port = (server.httpServer.address() as AddressInfo).port;
     this.client = new PiClient({ endpoint: `ws://127.0.0.1:${port}/ws`, connectTimeoutMs: timeoutMs,

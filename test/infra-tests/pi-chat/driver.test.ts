@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import { BrowserClient } from "../../infra/pi-chat/browser-client.js";
-import { PiRuntimeAdapter } from "../../../src/server/runtime/pi/pi-runtime-adapter.js";
+import { TestWorld } from "../../infra/pi-chat/test-world.js";
 import { PiChatDriver } from "../../infra/pi-chat/pi-chat-driver.js";
 
 let app: PiChatDriver | undefined;
@@ -54,7 +54,7 @@ it("cleans up the runtime and client if startup cannot obtain a snapshot", async
 
 it("reports failed tab creation and releases its script reservation for retry", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
-  vi.spyOn(PiRuntimeAdapter, "fromRuntime").mockImplementationOnce(() => { throw new Error("Injected session creation failure"); });
+  vi.spyOn(TestWorld.prototype, "create").mockRejectedValueOnce(new Error("Injected session creation failure"));
   await expect(app.Tabs.Create()).rejects.toThrow(/Tabs.Create:.*The server operation failed.*recentMessages/);
   app.Browser.ShouldShowError("The server operation failed."); app.Browser.DismissError();
   app.Browser.ShouldBeAtHome();

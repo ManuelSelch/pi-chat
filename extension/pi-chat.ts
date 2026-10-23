@@ -212,7 +212,7 @@ export default function piChatExtension(pi: ExtensionAPI): void {
         return;
       }
 
-      const entryPoint = join(home, "dist/server/server/index.js");
+      const entryPoint = join(home, "dist/host/index.js");
       const child = spawn(process.execPath, [entryPoint], {
         cwd: home,
         env: { ...process.env, PI_CHAT_PORT: String(port), PI_CHAT_CWD: projectCwd, PI_CHAT_PID_FILE: PID_FILE },

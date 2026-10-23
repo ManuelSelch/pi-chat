@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getPiChatExtensionRegistry } from "../src/server/extensions/extension-registry.js";
+import { getPiChatExtensionRegistry } from "@manuelselch/pi-server/extensions";
 
 /**
  * Minimal Pi Chat modular-UI demo extension.

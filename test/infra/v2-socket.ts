@@ -2,10 +2,10 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { capabilitySchema, serverMessageSchema, type ServerMessage, type Result } from "@manuelselch/pi-sdk/protocol";
-import type { PiChatServer } from "../../src/server/bootstrap/server.js";
+import type { PiServer } from "@manuelselch/pi-server";
 
 /** Keep every frame so tests never race response/event listener registration. */
-export async function v2Socket(server: PiChatServer) {
+export async function v2Socket(server: PiServer) {
   const socket = new WebSocket(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`);
   const messages: ServerMessage[] = []; const listeners = new Set<() => void>();
   socket.on("message", data => { messages.push(serverMessageSchema.parse(JSON.parse(data.toString()))); for (const listener of [...listeners]) listener(); });

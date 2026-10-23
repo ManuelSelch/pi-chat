@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import { createPiChatServer, type PiChatServer } from "../../../src/server/bootstrap/server.js";
+import { createPiServer, type PiServer } from "@manuelselch/pi-server";
 import { BrowserClient } from "./browser-client.js";
 import { BrowserDriver } from "./browser-driver.js";
 import { ChatDriver } from "./chat-driver.js";
@@ -10,12 +10,11 @@ import { TabDriver } from "./tab-driver.js";
 import { TestWorld, type AssistantResponse } from "./test-world.js";
 import type { DriverContext } from "./driver-context.js";
 
-async function cleanup(client: BrowserClient | undefined, server: PiChatServer | undefined, world: TestWorld): Promise<void> {
+async function cleanup(client: BrowserClient | undefined, server: PiServer | undefined, world: TestWorld): Promise<void> {
   try { await client?.close(); }
   finally {
     try {
-      if (server?.httpServer.listening) await server.close();
-      else await server?.transport.close();
+      await server?.close();
     } finally { await world.dispose(); }
   }
 }
@@ -40,7 +39,7 @@ export class PiChatDriver {
 
   private constructor(
     private readonly context: DriverContext,
-    private readonly server: PiChatServer,
+    private readonly server: PiServer,
     private readonly world: TestWorld,
   ) {
     this.Browser = new BrowserDriver(context);
@@ -55,11 +54,11 @@ export class PiChatDriver {
     assert(Number.isFinite(timeoutMs) && timeoutMs > 0, "timeoutMs must be positive and finite");
     assert(!options.startAtHome || !options.responses?.length, "Supply home-start response scripts to Tabs.Create, not PiChatDriver.start");
     const world = new TestWorld(options.extensions);
-    let server: PiChatServer | undefined;
+    let server: PiServer | undefined;
     let client: BrowserClient | undefined;
     try {
       const initial = options.startAtHome ? undefined : await world.create(options.responses ?? []);
-      server = createPiChatServer(initial, undefined, world.factory);
+      server = createPiServer({ runtime: initial, runtimeFactory: world.factory });
       const listeningServer = server;
       await new Promise<void>((resolve, reject) => {
         listeningServer.httpServer.once("error", reject);
