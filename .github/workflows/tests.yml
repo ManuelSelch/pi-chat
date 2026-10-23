@@ -40,13 +40,11 @@ jobs:
         env:
           PI_CHAT_COVERAGE: '1'
 
-      - name: Upload production assets and SDK
+      - name: Upload production assets
         uses: actions/upload-artifact@v6
         with:
           name: build
-          path: |
-            dist/
-            packages/pi-sdk/typescript/dist/
+          path: dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -113,7 +111,7 @@ jobs:
           --outDir node_modules/@marcfargas/pi-test-harness/dist
           node_modules/@marcfargas/pi-test-harness/src/*.ts
 
-      - name: Download production assets and SDK
+      - name: Download production assets
         uses: actions/download-artifact@v8
         with:
           name: build
@@ -139,6 +137,22 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  swift-integration:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Select stable Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.1.1.app/Contents/Developer
+      - run: npm ci --ignore-scripts
+      - run: npm run verify:sdk
+      - name: Run real-server Swift SDK integration
+        run: npm run test:swift-integration
 
   sonar:
     needs: [unit, e2e]

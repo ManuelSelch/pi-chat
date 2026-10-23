@@ -17,7 +17,7 @@ npm run build
 npm start
 ```
 
-Generated `dist/` artifacts are local and are not committed. See
+Generated application `dist/` artifacts are local and are not committed. The SDK is an independent, precompiled dependency installed from the checked-in [SDK artifacts](../vendor/README.md); there is no SDK workspace or `build:sdk` step. Run `npm run verify:sdk` to verify its receipt. See
 [Configuration](configuration.md) for server environment variables.
 
 ## Verification
@@ -27,6 +27,8 @@ npm test
 npx tsc --noEmit
 npm run test:e2e
 npm run test:production-smoke
+# macOS / Xcode 26.1.1: mandatory real-server Swift SDK integration
+npm run test:swift-integration
 ```
 
 Browser tests require Chromium (`npx playwright install chromium`). Tests are

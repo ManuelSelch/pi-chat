@@ -16,7 +16,7 @@ export class SwiftFixtureDriver {
   private ready?: Ready;
 
   private constructor(private readonly root: string, callerDirectory: boolean) {
-    this.child = spawn(process.execPath, ["--import", "tsx", "packages/pi-sdk/Tests/Fixtures/loopback-server.ts", ...(callerDirectory ? [join(root, "caller")] : [])], {
+    this.child = spawn(process.execPath, ["--import", "tsx", "test/swift-integration/fixtures/loopback-server.ts", ...(callerDirectory ? [join(root, "caller")] : [])], {
       env: { ...process.env, TMPDIR: root, TMP: root, TEMP: root },
       stdio: "pipe",
     });

@@ -2,9 +2,11 @@
 
 Pi Chat is a local web client backed by a server running Pi. The server owns
 runtime execution; navigation and focus are application-owned. The coordinated
-v2-only contract and UI-independent TypeScript `PiClient` live in the local
-[`@manuelselch/pi-sdk` workspace](../packages/pi-sdk/README.md). Server and
-application use the same public contract. Pi Chat uses one client per mounted
+v2-only protocol and UI-independent TypeScript `PiClient` live in the independent
+`pi-sdk-typescript` repository. Chat installs a pinned packed
+[`@manuelselch/pi-sdk` artifact](../vendor/README.md); Swift lives in the separate
+`pi-sdk-swift` repository. Server and application use the same public
+`@manuelselch/pi-sdk/protocol` module. Pi Chat uses one client per mounted
 controller: `use-pi-chat.ts` binds its lifecycle/typed operations to React and
 `bindPiChat` composes SDK projections with browser-only presentation. No web-owned
 wire parser, request trackers or session reducer remain. Slice 5's coordinated

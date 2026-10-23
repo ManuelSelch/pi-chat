@@ -11,17 +11,16 @@
       "./extension/pi-chat.ts"
     ]
   },
-  "workspaces": ["packages/pi-sdk/typescript"],
   "scripts": {
-    "prepare": "npm run build:sdk",
-    "build:sdk": "npm run build --workspace @manuelselch/pi-sdk",
-    "predev": "npm run build:sdk",
-    "pretest": "npm run build:sdk",
-    "pretest:watch": "npm run build:sdk",
+    "verify:sdk": "node scripts/sdk-artifacts.mjs",
+    "predev": "npm run verify:sdk",
+    "pretest": "npm run verify:sdk",
+    "pretest:watch": "npm run verify:sdk",
+    "test:swift-integration": "node scripts/run-swift-integration.mjs",
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
     "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch src/server/index.ts",
     "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 PI_CHAT_WEB_PORT=5174 vite",
-    "build": "npm run build:sdk && tsc --noEmit && npm run build:server && vite build",
+    "build": "npm run verify:sdk && tsc --noEmit && npm run build:server && vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node dist/server/server/index.js",
     "test": "vitest run",
@@ -38,7 +37,7 @@
     "node": ">=22.19"
   },
   "dependencies": {
-    "@manuelselch/pi-sdk": "0.0.0",
+    "@manuelselch/pi-sdk": "file:vendor/manuelselch-pi-sdk-0.0.0.tgz",
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
     "@tabler/icons-react": "^3.46.0",
