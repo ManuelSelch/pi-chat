@@ -1,6 +1,8 @@
 # Reusable Pi Backend and Client SDKs — Requirements
 
 ## Goal
+For the concise extraction-only work plan, use [Pi Server Extraction](../pi-server-extraction/REQUIREMENTS.md). This document retains the broader migration history and prerequisites.
+
 Migrate Pi Chat from the current v1 protocol to a v2-only contract by extracting a reusable Pi Server SDK, first using it in Pi Chat without wire changes, then coordinating the server/SDK cutover. Keep current runtime and UI behavior stable while establishing two repository boundaries: `pi-server` for the backend and `pi-sdk` for the TypeScript and Swift SDKs plus their shared protocol contract. Do not add a v1 compatibility period, a standalone protocol repository/package, or a separate client package.
 
 This is a planning deliverable, not approval to implement. The existing [steering/snapshot requirements](../steering/REQUIREMENTS.md) remain unchanged. Slices 1–6 record the completed migration; slices 7–8 retain the Swift verification milestone. Slices 9–14 expand the standalone `pi-server` Git-repository extraction requested after the v2 cutover. They replace the former broad packaging/extraction slices without claiming the Swift prerequisite is complete or authorizing repository creation, publication or pushing.
