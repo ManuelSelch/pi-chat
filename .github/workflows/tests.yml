@@ -115,7 +115,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build
-          path: .
+          path: dist/
 
       # Use the existing build rather than test:e2e, which rebuilds it.
       - name: Run Playwright browser tests with browser and backend coverage
