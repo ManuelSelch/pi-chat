@@ -2,7 +2,7 @@
 
 ## Scope and baseline
 
-S1 defines ownership and package seams; it does not implement them. This document records the original S1 audit. The current [design](DESIGN.md) and [requirements](REQUIREMENTS.md) supersede its combined-SDK repository and extraction-order decisions: extract `pi-sdk-typescript` and `pi-sdk-swift` directly before the server, rename the public `/contract` entry to `/protocol`, and retain server-backed Swift integration in Pi Chat until server packaging.
+S1 defines ownership and package seams; it does not implement them. Implemented standalone package surfaces and current verification are recorded in [S2-PACKAGING.md](S2-PACKAGING.md); use that handover for S2 status rather than the historical proposals below. This document records the original S1 audit. The current [design](DESIGN.md) and [requirements](REQUIREMENTS.md) supersede its combined-SDK repository and extraction-order decisions: extract `pi-sdk-typescript` and `pi-sdk-swift` directly before the server, rename the public `/contract` entry to `/protocol`, and retain server-backed Swift integration in Pi Chat until server packaging.
 
 - Audited/rollback source: **`495637bcf4ae3597406b05f9327a51962d94eb21`** in Pi Chat. Preserve this revision until S4 acceptance; reference the actual extraction source revision as well in both repositories' clean initial commits if later preparation changes it.
 - Destination: `/Users/manuelselch/Documents/A_Personal/40 Projekte/47 Agents/Pi Agent/{pi-server,pi-sdk}`. The parent remains non-Git. No destination was created in S1.
