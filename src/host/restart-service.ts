@@ -30,4 +30,3 @@ function runBuild(cwd: string): Promise<string | undefined> {
     });
   });
 }
-

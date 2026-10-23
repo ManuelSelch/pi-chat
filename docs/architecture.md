@@ -78,6 +78,8 @@ flowchart TD
 
 ## Server
 
+The implementation below belongs to the independent `pi-server` repository, not Chat sources. Chat installs its pinned compiled artifact and owns only `src/host`: environment/static asset wiring, PID/log/signal lifecycle and build-before-restart policy. Root embedding and `/extensions`, `/testing`, `/testing/loopback` are the only supported server imports. See [artifact receipts](../vendor/README.md) and [S4 cutover](pi-server-extraction/S4-CUTOVER.md).
+
 ```mermaid
 flowchart TD
     HTTP[HTTP server / composition root]

@@ -8,7 +8,7 @@
 - **`setup.ts`** — shared Vitest setup.
 
 Keep test cases out of the root folder. Separate scenario phases with blank lines.
-Scenarios use real Pi sessions and WebSocket transport, not a rendered browser.
+Scenarios use real Pi sessions and WebSocket transport, not a rendered browser. They embed the installed server through its public API; server-internal suites now live in the independent `pi-server` repository. Chat retains `modules/host` build/environment/extension identity tests and the mandatory plain-Node Swift package-fixture suite. `npm run test:production-smoke` exercises the real extension launcher and successful/failed build-before-restart lifecycle in isolated storage/ports.
 
 `e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and skill steering during streaming (including reconnect). `e2e/chat.spec.ts` also verifies that `!` / `!!` remain blocked during steering. `app.Tabs.Create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.Skills`.
 
