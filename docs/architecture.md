@@ -3,8 +3,8 @@
 Pi Chat is a local web client backed by a server running Pi. The server owns
 runtime execution; navigation and focus are application-owned. The coordinated
 v2-only protocol and UI-independent TypeScript `PiClient` live in the independent
-`pi-sdk-typescript` repository. Chat installs a pinned packed
-[`@manuelselch/pi-sdk` artifact](../vendor/README.md); Swift lives in the separate
+`pi-sdk-typescript` repository. Chat installs pinned npm releases of
+`@manuelselch/pi-sdk` and `@manuelselch/pi-server` (both `0.1.0`); Swift lives in the separate
 `pi-sdk-swift` repository. Server and application use the same public
 `@manuelselch/pi-sdk/protocol` module. Pi Chat uses one client per mounted
 controller: `use-pi-chat.ts` binds its lifecycle/typed operations to React and
@@ -78,7 +78,7 @@ flowchart TD
 
 ## Server
 
-The implementation below belongs to the independent `pi-server` repository, not Chat sources. Chat installs its pinned compiled artifact and owns only `src/host`: environment/static asset wiring, PID/log/signal lifecycle and build-before-restart policy. Root embedding and `/extensions`, `/testing`, `/testing/loopback` are the only supported server imports. See [artifact receipts](../vendor/README.md) and [S4 cutover](pi-server-extraction/S4-CUTOVER.md).
+The implementation below belongs to the independent `pi-server` repository, not Chat sources. Chat installs its pinned compiled npm package and owns only `src/host`: environment/static asset wiring, PID/log/signal lifecycle and build-before-restart policy. Root embedding and `/extensions`, `/testing`, `/testing/loopback` are the only supported server imports. See [development](development.md) for dependency updates, [Swift fixture notes](../vendor/README.md) and [S4 cutover](pi-server-extraction/S4-CUTOVER.md).
 
 ```mermaid
 flowchart TD

@@ -1,11 +1,5 @@
 {
   "sourceRevision": "f3b1c616b140ac4c82d19d465b6205a3200b54f3",
-  "typescript": {
-    "repository": "pi-sdk-typescript",
-    "revision": "a3edbcdfbb88b83ef773d9f966ff9ab35115d661",
-    "artifact": "manuelselch-pi-sdk-0.0.0.tgz",
-    "sha256": "7378c183226a7610b479ceddd695a8a0578b90c3fab2b52bf7f030375932bd1d"
-  },
   "swift": {
     "repository": "pi-sdk-swift",
     "revision": "73fae38f75c0e5eb80515c9ffa76876542097e7d",

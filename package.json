@@ -12,12 +12,7 @@
     ]
   },
   "scripts": {
-    "verify:sdk": "node scripts/sdk-artifacts.mjs",
-    "verify:server": "node scripts/server-artifact.mjs",
-    "verify:dependencies": "npm run verify:sdk && npm run verify:server",
-    "predev": "npm run verify:dependencies",
-    "pretest": "npm run verify:dependencies",
-    "pretest:watch": "npm run verify:dependencies",
+    "verify:dependencies": "node scripts/verify-dependencies.mjs",
     "test:swift-integration": "node scripts/run-swift-integration.mjs",
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
     "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch src/host/index.ts",
@@ -40,8 +35,8 @@
   "dependencies": {
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
-    "@manuelselch/pi-sdk": "file:vendor/manuelselch-pi-sdk-0.0.0.tgz",
-    "@manuelselch/pi-server": "file:vendor/manuelselch-pi-server-0.0.0.tgz",
+    "@manuelselch/pi-sdk": "0.1.0",
+    "@manuelselch/pi-server": "0.1.0",
     "@tabler/icons-react": "^3.46.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
