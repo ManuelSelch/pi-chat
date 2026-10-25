@@ -10,14 +10,14 @@ test("shares session actions between composer and quickswitcher", async ({ page 
     const composer = page.getByRole("textbox", { name: "Message Pi" });
     await composer.fill("/");
     const commands = page.getByRole("listbox", { name: "Commands" });
-    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Open settings"]) {
+    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Settings"]) {
       await expect(commands.getByRole("option", { name: new RegExp(name) })).toBeVisible();
     }
     await composer.press("Escape");
     await composer.fill("");
     await composer.press("Meta+o");
     await page.getByRole("button", { name: "/ Actions", exact: true }).click();
-    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Open settings"]) {
+    for (const name of ["New session", "Close tab", "Archive session", "Open folder…", "Settings"]) {
       await expect(page.getByRole("option", { name: new RegExp(`Action: ${name}`) })).toBeVisible();
     }
     await page.getByRole("option", { name: /Action: Close tab/ }).click();

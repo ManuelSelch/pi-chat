@@ -37,7 +37,7 @@ it("identifies each type by icon and accessible name without visible right-hand 
   expect(screen.queryByText("Folder")).toBeNull();
 });
 it.each([
-  ["New session", "onNewSession"], ["Open folder…", "onOpenFolder"], ["Open settings", "onOpenSettings"],
+  ["New session", "onNewSession"], ["Open folder…", "onOpenFolder"], ["Settings", "onOpenSettings"],
 ] as const)("activates the %s action through the existing callback", (title, callback) => {
   const handlers = setup();
   fireEvent.click(screen.getByRole("button", { name: "/ Actions" }));

@@ -50,7 +50,7 @@ async function select(menu: "composer" | "palette", name: string) {
   else fireEvent.click(option);
 }
 for (const menu of ["composer", "palette"] as const) {
-  it.each(["New session", "Close tab", "Archive session", "Restart server", "Open folder…", "Open settings"])(`${menu}: runs shared %s`, async name => {
+  it.each(["New session", "Close tab", "Archive session", "Restart server", "Open folder…", "Settings"])(`${menu}: runs shared %s`, async name => {
     mount();
     await select(menu, name);
     if (name === "New session") expect(chat.newSession).toHaveBeenCalledExactlyOnceWith("/repo");
@@ -62,7 +62,7 @@ for (const menu of ["composer", "palette"] as const) {
       await waitFor(() => expect(chat.restartServer).toHaveBeenCalledOnce());
     }
     if (name === "Open folder…") expect(screen.getByRole("status").textContent).toContain('"folderPicker":true');
-    if (name === "Open settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
+    if (name === "Settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
     else expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
     expect(chat.prompt).not.toHaveBeenCalled();
