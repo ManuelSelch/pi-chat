@@ -1,8 +1,8 @@
 # Dependency fixtures
 
-The SDK remains pinned to `@manuelselch/pi-sdk@0.1.0` from npm. For the approved [colored-widget experiment](../docs/widget-colors/DESIGN.md), Chat temporarily pins a locally packed `pi-server` archive in its manifest and lockfile. [widget-colors-server.json](widget-colors-server.json) records the independent source revision and archive checksum; dependency tests verify the checksum and lockfile integrity. No absolute sibling path or installed-source patch is required.
+Chat pins `@manuelselch/pi-sdk@0.1.0` and `@manuelselch/pi-server@0.1.1` from npm. The published server replaces the temporary colored-widget archive and receipt; no npm artifacts remain vendored. Dependency tests verify exact versions, registry resolution and lockfile integrity.
 
-After separate approval to publish the verified server, replace the file pin with its registry version and remove only the temporary server archive/receipt. Do not publish automatically. Run the commands in [development.md](../docs/development.md) after dependency changes. `npm run verify:dependencies` checks the installed public server API and protocol version.
+Run the commands in [development.md](../docs/development.md) after dependency changes. `npm run verify:dependencies` checks the installed public server API and protocol version.
 
 ## Swift test ownership
 

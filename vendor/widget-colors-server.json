@@ -1,9 +1,0 @@
-{
-  "purpose": "Temporary local server pin for approved colored-widget end-to-end testing; replace with a registry release after separate publication approval.",
-  "package": "@manuelselch/pi-server",
-  "version": "0.1.0",
-  "sourceRepository": "https://github.com/ManuelSelch/pi-server.git",
-  "sourceRevision": "0f04d8768b3f97bc81335a4f19836cc9000104f5",
-  "tarball": "pi-server-0.1.0-widget-colors-0f04d87.tgz",
-  "sha256": "072941c868c3f99b6ab14704f3425cd9a8b5263522874a49eb78ed7969d24b44"
-}

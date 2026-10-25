@@ -14,13 +14,17 @@ The pinned Pi 1.0.2 package publicly exports `Theme` but not its built-in theme 
 
 Pi's convenience decoration methods use TTY-detected Chalk, which stripped decorations in the first failing test. The server's own theme instance delegates these methods to Pi's `Theme.style()` ANSI implementation instead. This preserves combined decorations without changing Chalk globally. Package/installed-consumer and real-browser tests exercise this pinned internal compatibility seam; reverify it when upgrading Pi.
 
-## Temporary server dependency
+## Server dependency
+
+Chat now pins the published `@manuelselch/pi-server@0.1.1` release from npm. The temporary archive and receipt described below were removed; exact registry versions and lockfile integrity are covered by dependency tests. The SDK remains at `0.1.0`.
+
+### Historical temporary pin
 
 The user approved a local packed server for testing. Chat pins:
 
 - Archive: `vendor/pi-server-0.1.0-widget-colors-0f04d87.tgz`.
 - SHA-256: `072941c868c3f99b6ab14704f3425cd9a8b5263522874a49eb78ed7969d24b44`.
-- Source/checksum receipt: [widget-colors-server.json](../../vendor/widget-colors-server.json).
+- Former source/checksum receipt: `vendor/widget-colors-server.json` (removed after the registry cutover).
 
 The manifest and lockfile reference that archive; tests verify SHA-256 provenance metadata and npm SHA-512 integrity. A clean source-only copy installed and tested successfully without the server checkout or patched installed files. The SDK remains registry-pinned to 0.1.0. Fancy-ANSI's optional Tailwind peer is satisfied by Chat's existing Tailwind 4 dependency; no plugin or additional framework was introduced.
 
