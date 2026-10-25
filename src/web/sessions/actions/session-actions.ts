@@ -46,7 +46,7 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
   }
   actions.push(
     { id: "open-folder", name: "Open folder…", description: "Choose a folder to start a session", run: operations.openFolder },
-    { id: "settings", name: "Open settings", description: "Models, appearance and preferences", run: operations.openSettings },
+    { id: "settings", name: "Settings", description: "Models, appearance and preferences", run: operations.openSettings },
   );
   return actions;
 }

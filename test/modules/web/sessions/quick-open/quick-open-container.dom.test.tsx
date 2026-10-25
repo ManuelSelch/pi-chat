@@ -43,7 +43,7 @@ function Harness() {
     <output>{JSON.stringify(overlays.state)}</output></>;
 }
 it.each([
-  ["Open settings", '"settings":true'], ["Open folder…", '"folderPicker":true'],
+  ["Settings", '"settings":true'], ["Open folder…", '"folderPicker":true'],
 ] as const)("opens the existing overlay for %s and closes the palette", async (title, state) => {
   render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
   fireEvent.click(screen.getByText("Open palette"));
