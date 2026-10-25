@@ -98,12 +98,33 @@ describe("WidgetPanel", () => {
     expect(screen.getByText("fresh").style.color).toBe("");
   });
 
-  it("escapes raw HTML and keeps OSC hyperlinks disabled", () => {
-    const html = '<img src=x onerror="alert(1)"><script>alert(1)</script>';
-    show([{ ...todo, lines: ["\u001b[31m" + html + "\u001b[0m", "\u001b]8;;https://example.com\u001b\\link label\u001b]8;;\u001b\\"] }]);
-    expect(document.querySelector(".ansi-widget")?.textContent).toBe(html + "\nlink label");
-    expect(document.querySelector(".ansi-widget img, .ansi-widget script")).toBeNull();
+  it.each([
+    ["ST", "\u001b\\", "https://example.com/frontend"],
+    ["BEL", "\u0007", "http://localhost:5174"],
+  ])("renders a styled HTTP(S) OSC 8 link with %s terminators", (_name, terminator, url) => {
+    show([{ ...todo, lines: [`\u001b]8;;${url}${terminator}\u001b[38;2;12;34;56mFrontend\u001b[0m\u001b]8;;${terminator} after`] }]);
+    const link = screen.getByRole("link", { name: "Frontend" });
+    expect(link.getAttribute("href")).toBe(url);
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")?.split(" ")).toEqual(expect.arrayContaining(["noopener", "noreferrer", "nofollow"]));
+    expect(screen.getByText("Frontend").style.color).toBe("rgb(12, 34, 56)");
+    expect(link.textContent).toBe("Frontend");
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe("Frontend after");
+  });
+
+  it.each(["javascript:alert(1)", "data:text/html,unsafe", "file:///tmp/example", "mailto:test@example.com"])("keeps OSC 8 destination %s non-clickable", (url) => {
+    show([{ ...todo, lines: [`\u001b]8;;${url}\u001b\\link label\u001b]8;;\u001b\\`] }]);
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe("link label");
     expect(screen.queryByRole("link")).toBeNull();
+  });
+
+  it("escapes raw HTML including OSC 8 labels and destinations", () => {
+    const html = '<img src=x onerror="alert(1)"><script>alert(1)</script>';
+    const url = 'https://example.com/?q="><script>alert(1)</script>';
+    show([{ ...todo, lines: ["\u001b[31m" + html + "\u001b[0m", `\u001b]8;;${url}\u001b\\${html}\u001b]8;;\u001b\\`] }]);
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe(html + "\n" + html);
+    expect(document.querySelector(".ansi-widget img, .ansi-widget script, .ansi-widget [onmouseover]")).toBeNull();
+    expect(screen.getByRole("link", { name: html }).getAttribute("href")).toBe(url);
   });
 
   it("collapses and expands a panel", () => {

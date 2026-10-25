@@ -39,7 +39,7 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
           aria-label={`${title} widget`}
           style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "var(--mantine-font-family-monospace)" }}
         >
-          <AnsiHtml text={widget.lines.join("\n")} hyperlinks={false} />
+          <AnsiHtml text={widget.lines.join("\n")} hyperlinks={{ target: "_blank" }} />
         </Box>
       ) : null}
     </Panel>
