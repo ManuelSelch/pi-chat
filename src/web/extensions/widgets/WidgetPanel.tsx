@@ -1,14 +1,14 @@
 import { Box, Group, Text, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import { useState } from "react";
+import { AnsiHtml } from "fancy-ansi/react";
 import type { Widget } from "../../app/state/view-types.js";
-import { Markdown } from "../../chat/markdown/Markdown.js";
 import { Panel } from "../../ui/Panel.js";
 
 /**
  * Widget lines come from Pi's terminal-oriented API, but are joined and rendered
- * as Markdown in the browser. Nothing here knows which extension sent them: an
- * extension that speaks Pi's widget protocol renders without special support.
+ * as ANSI-styled plain text in the browser. Nothing here knows which extension
+ * sent them: Pi's widget protocol renders without per-extension support.
  */
 export function WidgetBlock({ widget }: { widget: Widget }) {
   const [open, setOpen] = useState(true);
@@ -32,8 +32,14 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
         </Group>
       </UnstyledButton>
       {open ? (
-        <Box mt={6} className="markdown markdown-widget" style={{ overflowWrap: "anywhere" }}>
-          <Markdown>{widget.lines.join("  \n")}</Markdown>
+        <Box
+          mt={6}
+          className="ansi-widget"
+          role="region"
+          aria-label={`${title} widget`}
+          style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "var(--mantine-font-family-monospace)" }}
+        >
+          <AnsiHtml text={widget.lines.join("\n")} hyperlinks={false} />
         </Box>
       ) : null}
     </Panel>

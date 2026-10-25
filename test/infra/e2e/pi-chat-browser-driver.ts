@@ -12,6 +12,9 @@ import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 import { BrowserSettingsDriver } from "./browser-settings-driver.js";
 import { BrowserFocusDriver } from "./browser-focus-driver.js";
+import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
+import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
+import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
@@ -23,12 +26,15 @@ export class PiChatBrowserDriver {
   readonly Projects: BrowserProjectsDriver;
   readonly Settings: BrowserSettingsDriver;
   readonly Focus: BrowserFocusDriver;
+  readonly Widgets: BrowserWidgetsDriver;
+  readonly Extensions: BrowserExtensionsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
   private constructor(
     private readonly page: Page,
     private readonly world: TestWorld,
+    widgetFixture: WidgetExtensionFixture,
     private readonly cleanup: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
@@ -40,10 +46,13 @@ export class PiChatBrowserDriver {
     this.Projects = new BrowserProjectsDriver(page);
     this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
+    this.Extensions = new BrowserExtensionsDriver(widgetFixture);
+    this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
   static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {
-    const world = new TestWorld(options.extensions, true, options.projectName);
+    const widgetFixture = new WidgetExtensionFixture();
+    const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
     try {
       server = createPiServer({
@@ -62,7 +71,7 @@ export class PiChatBrowserDriver {
         });
       });
       const port = (server.httpServer.address() as AddressInfo).port;
-      const driver = new PiChatBrowserDriver(page, world, async () => {
+      const driver = new PiChatBrowserDriver(page, world, widgetFixture, async () => {
         await server!.close();
         await world.dispose();
       });
