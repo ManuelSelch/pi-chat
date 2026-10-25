@@ -36,7 +36,7 @@ Tests were developed red → green for ANSI retention, color-only updates, style
 | Server `npm run test:unit` | 435 tests / 60 files pass |
 | Server `npm run test:package` | 16 compiled package scenarios pass |
 | Server `npm run verify:package` | Fresh packed install and the same 16 compiled scenarios pass |
-| Chat `npm test` | 707 tests / 86 files pass |
+| Chat `npm test` | 710 tests / 87 files pass after the fixture DSL refactor |
 | Chat `npm run build` | Dependency verification, typecheck, host and web build pass |
 | Chat `npx playwright test` | 34 pass; 1 existing coverage-only test skipped |
 | Chat `npm run test:swift-integration` | 2 pass |
@@ -45,7 +45,9 @@ Tests were developed red → green for ANSI retention, color-only updates, style
 
 The server transport scenario uses the production UI context, normalization registry, real loopback server, schemas and SDK to verify initial themed state, color-only changes, explicit snapshots, reconnect and clearing.
 
-The two new driven browser scenarios run a real Pi extension via the installed packed server, not fabricated presentation events. They verify deterministic success/error colors, all four simultaneous decorations, multiline state/indentation/Unicode, literal Markdown, escaped HTML, disabled links, wrapping, reload, color-only updates and clearing in both docked and composer layouts. Only model output is mocked; these commands require no model calls. All test metadata and runtimes are isolated from live sessions.
+The two new driven browser scenarios use explicit `app.Extensions.setWidget(key, content)` and `clearWidget(key)` inputs through a real Pi extension context in the installed packed server, not fabricated presentation events or artificial slash commands. Inputs declare text, foreground color and decorations; `app.Widgets` owns separate rendering assertions. The fixture retains the live extension context, so its `ctx.ui` getter reaches the server's bound UI rather than freezing the harness's initial UI. It rejects missing/ambiguous sessions instead of silently targeting a different runtime; single-session fixtures are the current supported scope.
+
+The scenarios verify deterministic success/error colors, all four simultaneous decorations, multiline state/indentation/Unicode, literal Markdown, escaped HTML, disabled links, wrapping, reload, color-only updates and clearing in both docked and composer layouts. Three fixture tests cover real registration/update/clear, lifecycle/ambiguity guards and app isolation. Typecheck, the full 710-test unit suite and all 34 ordinary browser tests passed after the test-only refactor; the existing coverage-only test remains skipped. No model calls are needed. All test metadata and runtimes are isolated from live sessions.
 
 ## Deferred behavior and warnings
 

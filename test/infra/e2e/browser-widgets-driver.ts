@@ -1,26 +1,14 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-/** Only visible UI actions/assertions; the fixture extension runs on the real Pi host. */
+/** Browser layout and rendering assertions, independent of extension-side inputs. */
 export class BrowserWidgetsDriver {
-  constructor(private readonly page: Page, private readonly composer: Locator) {}
+  constructor(private readonly page: Page) {}
 
   private content(): Locator { return this.page.getByRole("region", { name: "status widget", exact: true }); }
 
   async useLayout(layout: "docked" | "composer"): Promise<void> {
     await this.page.setViewportSize({ width: layout === "docked" ? 1600 : 720, height: 900 });
   }
-
-  private async command(name: string): Promise<void> {
-    await expect(this.composer).toBeEnabled();
-    await this.composer.fill(`/${name}`);
-    await this.composer.press("Escape");
-    await this.composer.press("Enter");
-    await expect(this.composer).toHaveValue("");
-  }
-
-  async show(): Promise<void> { await this.command("widget-show"); }
-  async changeColor(): Promise<void> { await this.command("widget-error"); }
-  async clear(): Promise<void> { await this.command("widget-clear"); }
 
   async shouldShowStyledWidget(color: "success" | "error", layout: "docked" | "composer"): Promise<void> {
     const content = this.content();
