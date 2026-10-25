@@ -12,6 +12,7 @@ import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 import { BrowserSettingsDriver } from "./browser-settings-driver.js";
 import { BrowserFocusDriver } from "./browser-focus-driver.js";
+import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
@@ -23,6 +24,7 @@ export class PiChatBrowserDriver {
   readonly Projects: BrowserProjectsDriver;
   readonly Settings: BrowserSettingsDriver;
   readonly Focus: BrowserFocusDriver;
+  readonly Widgets: BrowserWidgetsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -40,6 +42,7 @@ export class PiChatBrowserDriver {
     this.Projects = new BrowserProjectsDriver(page);
     this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
+    this.Widgets = new BrowserWidgetsDriver(page, this.composer);
   }
 
   static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {

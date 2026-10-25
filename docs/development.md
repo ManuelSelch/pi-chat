@@ -19,7 +19,7 @@ npm run build
 npm start
 ```
 
-Generated application `dist/` artifacts are local and are not committed. The server and TypeScript SDK are independent, precompiled npm dependencies pinned to `0.1.0` in package.json and package-lock.json; no sibling checkout, server source tree or package workspace is required. Run `npm run verify:dependencies` to check the installed public server API and protocol version. Only the Swift integration fixture remains [vendored](../vendor/README.md). `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
+Generated application `dist/` artifacts are local and are not committed. The server and TypeScript SDK are independent, precompiled packages; no sibling checkout, server source tree or package workspace is required. The SDK is registry-pinned to `0.1.0`; the [colored-widget experiment](widget-colors/DESIGN.md) temporarily pins a verified local server tarball in package.json and package-lock.json. Its source/checksum receipt and the separate Swift integration fixture are [vendored](../vendor/README.md). Run `npm run verify:dependencies` to check the installed public server API and protocol version. `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
 [Configuration](configuration.md) for server environment variables.
 
 ## Verification

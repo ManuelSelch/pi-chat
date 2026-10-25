@@ -37,31 +37,25 @@ describe("WidgetPanel", () => {
     expect(container.querySelector("pre")).toBeNull();
   });
 
-  it("renders widget contents as Markdown", () => {
+  it("renders Markdown syntax as literal widget text", () => {
     show([{ ...todo, lines: ["## Tasks", "", "- **Write** tests", "- Read the docs"] }]);
-
-    expect(screen.getByRole("heading", { name: "Tasks", level: 2 })).toBeTruthy();
-    expect(document.querySelector(".markdown-widget")).toBeTruthy();
-    expect(screen.getByText("Write").tagName).toBe("STRONG");
-    expect(document.querySelectorAll("ul li")).toHaveLength(2);
-    // The extension's own key is the only label the browser has for it.
+    expect(screen.queryByRole("heading")).toBeNull();
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe("## Tasks\n\n- **Write** tests\n- Read the docs");
+    expect(document.querySelector("strong, ul, li")).toBeNull();
     expect(screen.getByText("todo")).toBeTruthy();
   });
 
-  it("preserves widget line breaks as Markdown hard breaks", () => {
-    show([{ key: "todo", lines: ["First task", "Second task"], placement: "aboveEditor" }]);
-
-    expect(document.querySelectorAll(".markdown br")).toHaveLength(1);
+  it("preserves indentation, blank lines and Unicode", () => {
+    show([{ ...todo, lines: ["First task", "  Second 😀", "", "Third"] }]);
+    const content = document.querySelector<HTMLElement>(".ansi-widget")!;
+    expect(content.textContent).toBe("First task\n  Second 😀\n\nThird");
+    expect(content.style.whiteSpace).toBe("pre-wrap");
   });
 
-  it("renders a named Markdown link without displaying its URL", () => {
-    show([{ key: "Preview", lines: ["[Frontend](http://localhost:5174)"], placement: "aboveEditor" }]);
-
-    const link = screen.getByRole("link", { name: "Frontend" });
-    expect(link.getAttribute("href")).toBe("http://localhost:5174");
-    expect(link.getAttribute("rel")).toContain("noopener");
-    expect(document.querySelector("pre")).toBeNull();
-    expect(screen.getByText("Preview")).toBeTruthy();
+  it("keeps Markdown links and URLs literal without linkifying", () => {
+    show([{ key: "Preview", lines: ["[Frontend](http://localhost:5174) https://example.com"], placement: "aboveEditor" }]);
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe("[Frontend](http://localhost:5174) https://example.com");
   });
 
   it("does not turn unsafe Markdown URLs into links", () => {
@@ -69,10 +63,47 @@ describe("WidgetPanel", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("allows long Markdown content to wrap", () => {
+  it("allows long widget content to wrap", () => {
     show([{ ...todo, lines: [`○ #1 ${"a very long task ".repeat(8)}`] }]);
 
-    expect(document.querySelector(".markdown")?.getAttribute("style")).toContain("overflow-wrap: anywhere");
+    expect(document.querySelector(".ansi-widget")?.getAttribute("style")).toContain("overflow-wrap: anywhere");
+  });
+
+  it("renders RGB and 256-color foreground/background", () => {
+    show([{ ...todo, lines: ["\u001b[38;2;12;34;56mRGB\u001b[0m \u001b[48;5;226m256 background\u001b[0m"] }]);
+    expect(screen.getByText("RGB").style.color).toBe("rgb(12, 34, 56)");
+    expect(screen.getByText("256 background").style.backgroundColor).toBe("rgb(255, 255, 0)");
+  });
+
+  it("combines all decorations and selectively resets them", () => {
+    show([{ ...todo, lines: ["\u001b[1;3;4;9mall\u001b[23mno italic\u001b[24mno underline\u001b[29monly bold\u001b[0mplain"] }]);
+    const all = screen.getByText("all").style;
+    expect(all.fontWeight).toContain("600");
+    expect(all.fontStyle).toBe("italic");
+    expect(all.textDecoration).toBe("underline line-through");
+    expect(screen.getByText("no italic").style.fontStyle).toBe("");
+    expect(screen.getByText("no underline").style.textDecoration).toBe("line-through");
+    expect(screen.getByText("only bold").style.textDecoration).toBe("");
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe("allno italicno underlineonly boldplain");
+  });
+
+  it("carries styling across lines but not widgets or subsequent renders", () => {
+    const widget = { ...todo, lines: ["\u001b[38;2;12;34;56mfirst", "second"] };
+    const { rerender } = render(<MantineProvider><WidgetPanel widgets={[widget, { ...todo, key: "other", lines: ["plain"] }]} /></MantineProvider>);
+    const colored = screen.getByText(/first/);
+    expect(colored.textContent).toBe("first\nsecond");
+    expect(colored.style.color).toBe("rgb(12, 34, 56)");
+    expect(screen.getByText("plain").style.color).toBe("");
+    rerender(<MantineProvider><WidgetPanel widgets={[{ ...todo, lines: ["fresh"] }]} /></MantineProvider>);
+    expect(screen.getByText("fresh").style.color).toBe("");
+  });
+
+  it("escapes raw HTML and keeps OSC hyperlinks disabled", () => {
+    const html = '<img src=x onerror="alert(1)"><script>alert(1)</script>';
+    show([{ ...todo, lines: ["\u001b[31m" + html + "\u001b[0m", "\u001b]8;;https://example.com\u001b\\link label\u001b]8;;\u001b\\"] }]);
+    expect(document.querySelector(".ansi-widget")?.textContent).toBe(html + "\nlink label");
+    expect(document.querySelector(".ansi-widget img, .ansi-widget script")).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("collapses and expands a panel", () => {
@@ -81,17 +112,17 @@ describe("WidgetPanel", () => {
 
     fireEvent.click(toggle);
 
-    expect(document.querySelector(".markdown")).toBeNull();
+    expect(document.querySelector(".ansi-widget")).toBeNull();
     expect(screen.getByText("3 lines")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { expanded: false }));
-    expect(document.querySelector(".markdown")).toBeTruthy();
+    expect(document.querySelector(".ansi-widget")).toBeTruthy();
   });
 
   it("renders one panel per extension", () => {
     show([todo, { key: "build", lines: ["running…"], placement: "aboveEditor" }]);
 
-    expect(document.querySelectorAll(".markdown")).toHaveLength(2);
+    expect(document.querySelectorAll(".ansi-widget")).toHaveLength(2);
     expect(screen.getByText("build")).toBeTruthy();
   });
 });
@@ -147,17 +178,17 @@ describe("WidgetDock", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "todo", expanded: true }));
 
-    expect([...document.querySelectorAll(".markdown")].map((block) => block.textContent)).toEqual(["42k tokens"]);
+    expect([...document.querySelectorAll(".ansi-widget")].map((block) => block.textContent)).toEqual(["42k tokens"]);
     expect(screen.getByText("3 lines")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /todo/, expanded: false }));
-    expect(document.querySelectorAll(".markdown")).toHaveLength(2);
+    expect(document.querySelectorAll(".ansi-widget")).toHaveLength(2);
   });
 
   it("renders the lines the same way the composer panel does", () => {
     dock([todo, below]);
 
-    const blocks = [...document.querySelectorAll(".markdown")].map((block) => block.textContent);
+    const blocks = [...document.querySelectorAll(".ansi-widget")].map((block) => block.textContent);
     expect(blocks).toEqual(["── Todos ──\n○ #1 Write tests\n✓ #2 Read the docs", "42k tokens"]);
   });
 });
