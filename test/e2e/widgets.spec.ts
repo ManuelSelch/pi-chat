@@ -38,6 +38,16 @@ for (const layout of ["docked", "composer"] as const) {
       await widget.shouldBeAbsent();
     });
 
+    test("opens an OSC 8 hyperlink destination in a new tab", async () => {
+      const widget = app.Widgets.named("preview");
+      const url = "https://widget-link.test/frontend";
+
+      await widget.showHyperlink("Frontend", url);
+      await widget.shouldHaveText("Frontend");
+      await app.Widgets.shouldUseLayout(layout);
+      await widget.shouldOpenLinkInNewTab("Frontend", url);
+    });
+
     test("preserves multiline text and wraps without interpreting Markdown or HTML", async () => {
       const widget = app.Widgets.named("details");
       const text = 'first\n  second 😀\n\n[Frontend](https://example.com)\n<img src=x onerror="alert(1)">\n' + "longword".repeat(30);

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { expect, type Locator, type Page } from "@playwright/test";
+import { hyperlink } from "@earendil-works/pi-tui";
+import { expect, type Locator, type Page, type Route } from "@playwright/test";
 import type { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 
 type WidgetColor = "success" | "error" | readonly [number, number, number];
@@ -33,6 +34,35 @@ export class BrowserWidgetDriver {
       underline: styles.includes("underline"), strikethrough: styles.includes("strikethrough"),
     });
     this.current = { text, style: copy };
+  }
+
+  async showHyperlink(label: string, url: string): Promise<void> {
+    await this.show(hyperlink(label, url));
+  }
+
+  async shouldOpenLinkInNewTab(label: string, url: string): Promise<void> {
+    const link = this.content().getByRole("link", { name: label, exact: true });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", url);
+    await expect(link).toHaveAttribute("target", "_blank");
+    const context = this.page.context();
+    const destination = "Widget link destination";
+    const route = async (request: Route) => {
+      await request.fulfill({ contentType: "text/html", body: `<h1>${destination}</h1>` });
+    };
+    await context.route(url, route);
+    let popup: Page | undefined;
+    try {
+      [popup] = await Promise.all([
+        this.page.waitForEvent("popup"),
+        link.click(),
+      ]);
+      await expect(popup).toHaveURL(url);
+      await expect(popup.getByRole("heading", { name: destination })).toBeVisible();
+    } finally {
+      await popup?.close();
+      await context.unroute(url, route);
+    }
   }
 
   /** Omitted fields are retained; styles replaces the list; undefined color resets it. */
