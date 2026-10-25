@@ -8,7 +8,7 @@ import { expect } from "vitest";
 interface Ready { directory: string; endpoint: string }
 
 /** Owns the subprocess, readiness deadline and isolated artifacts, including on failure. */
-export class SwiftFixtureDriver {
+export class LoopbackFixtureDriver {
   private readonly child;
   private readonly exited;
   private output = "";
@@ -16,7 +16,7 @@ export class SwiftFixtureDriver {
   private ready?: Ready;
 
   private constructor(private readonly root: string, callerDirectory: boolean) {
-    this.child = spawn(process.execPath, ["test/swift-integration/fixtures/loopback-server.mjs", ...(callerDirectory ? [join(root, "caller")] : [])], {
+    this.child = spawn(process.execPath, [join(root, "fixture.mjs"), ...(callerDirectory ? [join(root, "caller")] : [])], {
       env: { ...process.env, TMPDIR: root, TMP: root, TEMP: root },
       stdio: "pipe",
     });
@@ -32,7 +32,9 @@ export class SwiftFixtureDriver {
   static async launch(callerDirectory = false) {
     const root = await mkdtemp(join(tmpdir(), "pi-fixture-test-"));
     if (callerDirectory) await mkdir(join(root, "caller"));
-    return new SwiftFixtureDriver(root, callerDirectory);
+    const fixture = import.meta.resolve("@manuelselch/pi-server/testing/loopback");
+    await writeFile(join(root, "fixture.mjs"), `import { runLoopbackFixture } from ${JSON.stringify(fixture)}; await runLoopbackFixture();\n`);
+    return new LoopbackFixtureDriver(root, callerDirectory);
   }
 
   private async waitForExit() {

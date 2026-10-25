@@ -1,9 +1,0 @@
-{
-  "sourceRevision": "f3b1c616b140ac4c82d19d465b6205a3200b54f3",
-  "swift": {
-    "repository": "pi-sdk-swift",
-    "revision": "73fae38f75c0e5eb80515c9ffa76876542097e7d",
-    "artifact": "pi-sdk-swift.bundle",
-    "sha256": "c23d66c1e1824adcd3ca080b8b5a044b219c7d29884fdfccfd88f8af41f2ed78"
-  }
-}

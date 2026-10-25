@@ -19,7 +19,7 @@ npm run build
 npm start
 ```
 
-Generated application `dist/` artifacts are local and are not committed. The server and TypeScript SDK are independent, precompiled packages; no sibling checkout, server source tree or package workspace is required. The SDK is registry-pinned to `0.1.0`; the [colored-widget experiment](widget-colors/DESIGN.md) temporarily pins a verified local server tarball in package.json and package-lock.json. Its source/checksum receipt and the separate Swift integration fixture are [vendored](../vendor/README.md). Run `npm run verify:dependencies` to check the installed public server API and protocol version. `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
+Generated application `dist/` artifacts are local and are not committed. The server and TypeScript SDK are independent, precompiled packages; no sibling checkout, server source tree or package workspace is required. The SDK is registry-pinned to `0.1.0`; the [colored-widget experiment](widget-colors/DESIGN.md) temporarily pins a verified local server tarball in package.json and package-lock.json. Its source/checksum receipt is [vendored](../vendor/README.md); Chat no longer vendors a Swift SDK or runs Swift tests. Run `npm run verify:dependencies` to check the installed public server API and protocol version. `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
 [Configuration](configuration.md) for server environment variables.
 
 ## Verification
@@ -29,8 +29,6 @@ npm test
 npx tsc --noEmit
 npm run test:e2e
 npm run test:production-smoke
-# macOS / Xcode 26.1.1: mandatory real-server Swift SDK integration
-npm run test:swift-integration
 ```
 
 Browser tests require Chromium (`npx playwright install chromium`). Tests are
@@ -38,6 +36,11 @@ grouped under `test/modules/` (production modules), `test/scenarios/` (user
 workflows), and `test/infra-tests/` (tests of reusable machinery). Reusable
 support lives under `test/infra/`. See the [testing guide](../test/README.md) for
 placement rules and focused commands.
+
+Swift SDK unit and real-server integration tests run in the independent
+[pi-sdk-swift repository](https://github.com/ManuelSelch/pi-sdk-swift/tree/main/integration),
+using its local SDK source and a locked npm server dependency. Chat verification
+requires no Swift toolchain or Xcode.
 
 ### E2E coverage
 
@@ -71,7 +74,7 @@ To regenerate the README showcase, run `npm run capture:readme`. See the
 
 Consumers use only public root, `/extensions`, `/testing` and `/testing/loopback` APIs. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
 
-Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests and mandatory Swift integration. Fakes and the isolated loopback fixture come from compiled server testing exports. See [S4 handover](pi-server-extraction/S4-CUTOVER.md) for pins, test ownership and rollback.
+Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests and production lifecycle smoke. Fakes come from compiled server testing exports. Plain-Node loopback package checks retain workspace isolation and cleanup-file safety coverage without a Swift harness; server internals and Swift compatibility suites belong to their respective package repositories. See the [historical S4 handover](pi-server-extraction/S4-CUTOVER.md) for extraction pins and rollback, and [Swift test ownership](swift-test-ownership/REQUIREMENTS.md) for the current boundary.
 
 ## Frontend organization
 

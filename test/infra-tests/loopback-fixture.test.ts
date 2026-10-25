@@ -1,9 +1,9 @@
 import { afterEach, it } from "vitest";
-import { SwiftFixtureDriver } from "../infra/swift-fixture-driver.js";
+import { LoopbackFixtureDriver } from "../infra/loopback-fixture-driver.js";
 
-const fixtures: SwiftFixtureDriver[] = [];
+const fixtures: LoopbackFixtureDriver[] = [];
 async function fixture(callerDirectory = false) {
-  const driver = await SwiftFixtureDriver.launch(callerDirectory);
+  const driver = await LoopbackFixtureDriver.launch(callerDirectory);
   fixtures.push(driver);
   return driver;
 }
