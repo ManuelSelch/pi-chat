@@ -66,3 +66,28 @@ Before production integration:
 - Decide whether loss of simultaneous text decorations is acceptable for the trial. If not, choose a renderer with multi-decoration support rather than silently claiming full support.
 - Keep linkification off unless a separate safe-link policy is verified.
 - Verify the approved approach in the actual widget component and browser with regression tests.
+
+## Follow-up: Fancy-ANSI comparison
+
+Tested published `fancy-ansi@0.2.2` using its actual `AnsiHtml` React component with React 19.3.1. Reused all 17 original samples and added separate style sequences, selective decoration resets, OSC ST terminators, safe hyperlinks, and HTML/entity/attribute injection payloads. Ran `node test-results/widget-colors-probe/fancy.cjs`; generated markup was loaded in managed Chromium and checked with computed styles and DOM assertions. This remains an isolated server-rendering/browser probe, not a production integration or full security audit.
+
+### Improvements verified
+
+- **All four simultaneous decorations work:** bold, italic, underline and strikethrough, both in one SGR sequence and as separate successive sequences.
+- Selective resets remove italic, underline and strikethrough independently while retaining remaining styles; full reset also works.
+- Basic colors, 256-color and RGB foreground/background render correctly. Basic palette defaults differ from ansi-to-react and are configurable through CSS variables; default bold weight is 600.
+- Multiline state, indentation, blank lines, Unicode and long-word wrapping work with the same wrapper CSS.
+- Tested HTML, entity, SVG and attribute injection payloads remained inert: no executable elements/attributes were created and no probe flag was set.
+- Recognized OSC 8 hyperlink controls are removed by default while preserving labels. Opting into hyperlinks produced an HTTPS anchor with `rel="noopener noreferrer nofollow"`; the tested `javascript:` destination was rejected.
+
+### Remaining limitations
+
+- Unknown OSC title/clipboard sequences still leak payload text; ESC characters were removed, but command contents and some other controls remained. Both BEL and ST title samples were checked.
+- C1 CSI sequences remain literal. Hidden styling is supported rather than ignored. Malformed control handling is still lossy.
+- Carriage returns and backspaces remain in output rather than being emulated as ansi-to-react does; define normalization explicitly.
+- `AnsiHtml` uses `dangerouslySetInnerHTML` with library-generated escaped markup. The tested payloads passed, but this is a different trust boundary from React text/span rendering, not a general sanitization guarantee.
+- The published package declares a Tailwind 3/4 peer dependency; the React import worked without configuring its optional Tailwind plugin. Check the final production install/build footprint before adoption.
+
+### Updated recommendation
+
+**Prefer Fancy-ANSI over ansi-to-react for the next widget experiment:** it fixes the verified combined-decoration defect without a custom renderer. Keep hyperlinks off initially, apply explicit server-side control/SGR filtering, bound input/output size, and validate the actual client-side widget integration before production use. The server theme and widget-normalization blockers are unchanged.
