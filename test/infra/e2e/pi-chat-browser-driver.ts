@@ -46,8 +46,8 @@ export class PiChatBrowserDriver {
     this.Projects = new BrowserProjectsDriver(page);
     this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
-    this.Widgets = new BrowserWidgetsDriver(page);
     this.Extensions = new BrowserExtensionsDriver(widgetFixture);
+    this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
   static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {

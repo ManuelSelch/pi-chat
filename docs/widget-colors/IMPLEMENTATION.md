@@ -36,18 +36,18 @@ Tests were developed red → green for ANSI retention, color-only updates, style
 | Server `npm run test:unit` | 435 tests / 60 files pass |
 | Server `npm run test:package` | 16 compiled package scenarios pass |
 | Server `npm run verify:package` | Fresh packed install and the same 16 compiled scenarios pass |
-| Chat `npm test` | 710 tests / 87 files pass after the fixture DSL refactor |
+| Chat `npm test` | 716 tests / 88 files pass after the named-widget driver refactor |
 | Chat `npm run build` | Dependency verification, typecheck, host and web build pass |
-| Chat `npx playwright test` | 34 pass; 1 existing coverage-only test skipped |
+| Chat `npx playwright test` | 36 pass; 1 existing coverage-only test skipped |
 | Chat `npm run test:swift-integration` | 2 pass |
 | Chat `npm run test:production-smoke` | Real isolated launcher, health/UI, failed-build retention, rebuild/restart, PID/log/signal shutdown pass |
 | Clean source-only Chat copy | `npm ci --ignore-scripts`, documented harness compilation, all 707 unit tests, build and both widget browser scenarios pass |
 
 The server transport scenario uses the production UI context, normalization registry, real loopback server, schemas and SDK to verify initial themed state, color-only changes, explicit snapshots, reconnect and clearing.
 
-The two new driven browser scenarios use explicit `app.Extensions.setWidget(key, content)` and `clearWidget(key)` inputs through a real Pi extension context in the installed packed server, not fabricated presentation events or artificial slash commands. Inputs declare text, foreground color and decorations; `app.Widgets` owns separate rendering assertions. The fixture retains the live extension context, so its `ctx.ui` getter reaches the server's bound UI rather than freezing the harness's initial UI. It rejects missing/ambiguous sessions instead of silently targeting a different runtime; single-session fixtures are the current supported scope.
+The widget browser scenarios use `app.Widgets.named(key)` handles with `show(text, { color, styles })`, `updateStyle(...)`, rendering assertions and `clear()`. The small driver delegates to explicit `app.Extensions.setWidget(key, content)` and `clearWidget(key)` inputs through a real Pi extension context in the installed packed server, not fabricated presentation events or artificial slash commands. Color-only updates retain text and decorations; the style list replaces rather than accumulates. Repeated names share a handle; different widget keys retain separate inputs. The fixture retains the live extension context, so its `ctx.ui` getter reaches the server's bound UI rather than freezing the harness's initial UI. It rejects missing/ambiguous sessions instead of silently targeting a different runtime; single-session fixtures are the current supported scope.
 
-The scenarios verify deterministic success/error colors, all four simultaneous decorations, multiline state/indentation/Unicode, literal Markdown, escaped HTML, disabled links, wrapping, reload, color-only updates and clearing in both docked and composer layouts. Three fixture tests cover real registration/update/clear, lifecycle/ambiguity guards and app isolation. Typecheck, the full 710-test unit suite and all 34 ordinary browser tests passed after the test-only refactor; the existing coverage-only test remains skipped. No model calls are needed. All test metadata and runtimes are isolated from live sessions.
+Four focused browser scenarios cover color/decorations/update/reload/clear separately from multiline/HTML/layout edge cases in both docked and composer layouts. Three fixture tests cover real registration/update/clear, lifecycle/ambiguity guards and app isolation. Six named-driver tests cover style preservation/replacement/reset, shared handles and key isolation, copying mutable inputs, update lifecycle guards and rejected updates. Typecheck, the full 716-test unit suite and all 36 ordinary browser tests passed after the test-only refactor; the existing coverage-only test remains skipped. No model calls are needed. All test metadata and runtimes are isolated from live sessions.
 
 ## Deferred behavior and warnings
 
