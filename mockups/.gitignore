@@ -6,3 +6,5 @@ node_modules/
 .steering-vite.log
 .steering-runtime.json
 screenshots/
+dist/
+.custom-server-runtime.json
