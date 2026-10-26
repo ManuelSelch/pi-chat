@@ -3,7 +3,7 @@ import { initialSessionState, type ClientState, type ReadonlyDeep } from "@manue
 import { initialAppState, reduceAppMessage } from "../../../../../src/web/app/state/app-state.js";
 import { snapshotEvent, coreEvent, presentationEvent } from "../../../../infra/v2-fixtures.js";
 const session = { ...initialSessionState, sessionId: "s", sequence: 0, status: "idle" as const };
-const sdk: ReadonlyDeep<ClientState> = { connection: { phase: "ready" }, capabilities: [], sessions: { s: session }, inventory: [], inventoryRevision: 0, projectsRevision: 0, catalogue: { projects: [] }, features: [] };
+const sdk: ReadonlyDeep<ClientState> = { connection: { phase: "ready" }, capabilities: [], sessions: { s: session }, themes: {}, inventory: [], inventoryRevision: 0, projectsRevision: 0, catalogue: { projects: [] }, features: [] };
 it("shares SDK transcript/draft objects rather than reducing incoming events twice", () => {
   const state = reduceAppMessage(initialAppState, { type: "sdkState", state: sdk, message: snapshotEvent({ sessionId: "s" }) }); expect(state.sessions.s?.messages).toBe(session.messages);
   const streamed = { ...session, sequence: 1, draft: { runId: "r", text: "already reduced", thinking: "" } };

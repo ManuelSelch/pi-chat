@@ -1,5 +1,6 @@
 node_modules/
 .preview.pid
+.pi-theme-runtime.json
 .preview.log
 .steering-vite.pid
 .steering-vite.log
