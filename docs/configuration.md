@@ -36,6 +36,42 @@ The installation, repository and downstream build-tool environment must remain t
 | `PI_CHAT_LOG_MAX_BYTES` | Maximum size of the active log (default 5 MiB) |
 | `PI_CHAT_LOG_RETAINED_FILES` | Number of rotated log files to retain (default `3`) |
 
+## Pi themes
+
+Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,
+status colors, messages and diff colors. Extension widgets use the same runtime's
+Pi colors; literal RGB and already-rendered ANSI strings are preserved.
+
+- Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
+  project theme resource allowed by Pi's existing trust/resource rules).
+  Start from a valid Pi theme, not a partial Mantine palette.
+- Select it with `"theme": "my-theme"` in Pi's effective settings, for example
+  `~/.pi/agent/settings.json`. Set the theme file's `appearance` to `light`
+  or `dark`; Chat follows it rather than browser appearance.
+- Use concrete colors for every Pi token, including text. Avoid empty/default
+  terminal colors for headless use. Pi variables and its supported color formats
+  work. Optional Pi `export.pageBg`, `export.cardBg`, and `export.infoBg`
+  set exact interface surfaces; otherwise Pi's export derivation supplies them.
+- Missing, invalid, unavailable, system or terminal-dependent themes use Pi's
+  deterministic dark fallback and emit a server diagnostic. Fixed light/dark
+  pairs select their dark member.
+
+**Lifetime and limits:** themes resolve when a runtime is created or replaced,
+not on `/reload`. To apply edited theme files, close the runtime and open/create
+it again; opening an already-running runtime returns its existing cached palette.
+Tab changes use each runtime's cached palette, including inside portalled dialogs.
+Ordinary snapshots, explicit reload and same-server reconnect preserve the cache;
+close or server-instance changes clear it. Home keeps the selected runtime's
+palette while that selection/cache exists; otherwise it uses Mantine defaults.
+
+A browser refresh/new client receives no palette during initialization and uses
+Mantine's existing auto-scheme defaults until a successful open/create response.
+A runtime replacement without open/create delivery also uses defaults. These are
+intentional limits: no persistence, hidden recovery requests, theme selector,
+watcher or browser-to-terminal synchronization. Syntax highlighting retains its
+existing light/dark palettes. Theme data is required in open/create responses;
+older responses without it are rejected, not silently accepted.
+
 ## Private network access
 
 After building, opt in to listening on all IPv4 interfaces:

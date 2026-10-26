@@ -12,6 +12,7 @@ import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 import { BrowserSettingsDriver } from "./browser-settings-driver.js";
 import { BrowserFocusDriver } from "./browser-focus-driver.js";
+import { BrowserThemeDriver } from "./browser-theme-driver.js";
 import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
@@ -19,6 +20,7 @@ import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fix
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
   readonly Browser: BrowserBrowserDriver;
+  readonly Theme: BrowserThemeDriver;
   readonly Chat: BrowserChatDriver;
   readonly Home: BrowserHomeDriver;
   readonly Tabs: BrowserTabsDriver;
@@ -39,6 +41,7 @@ export class PiChatBrowserDriver {
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
     this.Browser = new BrowserBrowserDriver(page);
+    this.Theme = new BrowserThemeDriver(page);
     this.Chat = new BrowserChatDriver(page, this.composer);
     this.Home = new BrowserHomeDriver(page);
     this.Tabs = new BrowserTabsDriver(page, world);
@@ -50,7 +53,7 @@ export class PiChatBrowserDriver {
     this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
@@ -75,6 +78,7 @@ export class PiChatBrowserDriver {
         await server!.close();
         await world.dispose();
       });
+      if (options.probeThemeReconnect) await driver.Theme.prepareReconnectProbe();
       await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
       await driver.Home.ShouldBeVisible();
       return driver;
