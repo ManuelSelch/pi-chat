@@ -8,7 +8,7 @@ import { OverlayController, useOverlays } from "../../../../../src/web/app/overl
 import { ProjectSessionContainer } from "../../../../../src/web/sessions/projects/ProjectSessionContainer.js";
 import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
 import { FakeBrowserWebSocket as Socket } from "../../../../infra/fake-browser-websocket.js";
-import { snapshotData, coreEvent, presentationEvent, summary } from "../../../../infra/v2-fixtures.js";
+import { snapshotData, coreEvent, presentationEvent, summary, themeData } from "../../../../infra/v2-fixtures.js";
 const rowRenders = vi.hoisted(() => vi.fn());
 vi.mock("../../../../../src/web/settings/preferences/use-display-path.js", () => ({ useDisplayPath: () => ({ show: true }) }));
 vi.mock("../../../../../src/web/sessions/projects/SessionRow.js", async () => {
@@ -65,7 +65,7 @@ describe("project/session drawer rendering", () => {
     await act(async () => {
       const snapshot = snapshotData({ sessionId: "runtime-1", sessionPath: "/session-1-0.jsonl", projectPath: "/project-1", runtime: { status: "running" } });
       socket.deliver({ version: 2, type: "event", event: "session.list.changed", serverInstanceId: "process", data: { revision: 2, sessions: [summary(snapshotData({ sessionId: "runtime-0", sessionPath: "/session-0-0.jsonl" })), summary(snapshot)] } });
-      socket.reply({ summary: summary(snapshot), snapshot });
+      socket.reply({ summary: summary(snapshot), snapshot, theme: themeData() });
     });
     fireEvent.click(screen.getByText("Show projects"));
     act(() => void vi.advanceTimersByTime(500));

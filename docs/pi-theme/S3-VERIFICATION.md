@@ -15,11 +15,15 @@
 - `git diff --check` passed. Existing server audit findings remain **4 moderate + 1 high**; no unverified audit fix.
 
 ## Published server adoption
-- At the user's request, Chat now pins npm `@manuelselch/pi-server@0.1.2` with registry URL/integrity in its lockfile; no server archive is vendored in Chat. The direct SDK stays npm 0.1.0 pending S4.
+- At the user's request, Chat now pins npm `@manuelselch/pi-server@0.1.2` with registry URL/integrity in its lockfile; no server archive is vendored in Chat. At server-adoption time the direct SDK stayed npm 0.1.0; its subsequent upgrade is recorded below.
 - Verified clean `npm ci --ignore-scripts` plus documented harness compilation, build/typecheck, **722 unit tests / 87 files**, isolated production lifecycle smoke and **38 browser tests passed / 1 coverage-only skip**.
 - Release 0.1.2 still bundles its S2 SDK under a `file:vendor/...` declaration. Installation/runtime checks pass, but `npm ls` reports that nested SDK as invalid. Fixing the declaration requires a separately published server/SDK update; installed package sources were not patched. npm audit reports **17 findings (4 low, 5 moderate, 5 high, 3 critical)**; no automatic audit fix.
 - Only isolated test processes were started/restarted; the live service was not restarted. No UI integration or publication/push was performed.
 
+## Published SDK adoption
+- At the user's request, Chat now pins npm `@manuelselch/pi-sdk@0.1.1` with registry URL/integrity. Updated test-only ClientState fixtures with the required themes map and open-response fixtures with a concrete theme; no legacy fallback or production UI change.
+- Verified build/typecheck, **722 unit tests / 87 files**, clean `npm ci --ignore-scripts` with documented harness compilation, isolated production lifecycle smoke and **38 browser tests passed / 1 coverage-only skip** against published server 0.1.2. The server's separately bundled SDK remains unchanged.
+
 ## Remaining scope
-- S4: adopt the theme-capable direct SDK, integrate Mantine and verify theme-specific browser behavior. The initial S3 implementation did not change Chat dependencies; the separately requested server adoption is recorded above. Chat's production UI remains unchanged.
+- S4: integrate Mantine and verify theme-specific browser behavior. The initial S3 implementation did not change Chat dependencies; the separately requested server adoption is recorded above. Chat's production UI remains unchanged.
 - No project push, publication/version bump, live-server restart, remote CI/Sonar run or Swift/live-model verification. Do not publish the temporary bundled-SDK checkout as-is; the server release documentation records the required registry-pin restoration.
