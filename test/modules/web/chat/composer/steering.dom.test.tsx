@@ -35,6 +35,21 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 afterEach(cleanup);
+describe("composer widgets", () => {
+  it("uses the responsive grid only above the composer", () => {
+    chat.state = { ...chat.state, widgets: [
+      { key: "above", placement: "aboveEditor", lines: ["Above"] },
+      { key: "below", placement: "belowEditor", lines: ["Below"] },
+    ] };
+    mount();
+    const above = screen.getByRole("button", { name: "above" }).parentElement!.parentElement!;
+    const below = screen.getByRole("button", { name: "below" }).parentElement!.parentElement!;
+    expect(above.style.display).toBe("grid");
+    expect(above.style.maxHeight).toBe("");
+    expect(below.style.display).not.toBe("grid");
+  });
+});
+
 describe("loading composer", () => {
   it("disables input until the first session has finished opening, then focuses it", () => {
     chat.app.activeSessionId = "";

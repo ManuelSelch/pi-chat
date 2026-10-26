@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Composer widget grid</title><link rel="stylesheet" href="./styles.css"></head>
+<body><main><header>Pi Chat · Widget grid preview</header><section class="transcript"><p>Resize the window to compare split-screen widths.</p><p>Widgets above the composer share columns when at least 466px is available. Below-composer widgets remain stacked.</p></section>
+<section class="widgets" aria-label="Widgets above composer">
+<article><button aria-expanded="true">⌄ pipeline</button><pre>✓ unit tests passed
+✓ typecheck passed</pre></article>
+<article><button aria-expanded="true">⌄ memory</button><pre>Project context loaded
+4 notes available</pre></article>
+<article><button aria-expanded="true">⌄ todo</button><pre>○ Check responsive layout
+○ Review widget spacing
+○ Keep transcript readable</pre></article>
+</section><textarea aria-label="Message Pi" placeholder="Ask Pi anything…"></textarea>
+<section class="below" aria-label="Widgets below composer"><article><button aria-expanded="true">⌄ usage</button><pre>42k tokens · unchanged stacked layout</pre></article></section>
+</main><script>document.querySelectorAll('article button').forEach(button=>button.addEventListener('click',()=>{const open=button.getAttribute('aria-expanded')==='true';button.setAttribute('aria-expanded',String(!open));button.nextElementSibling.hidden=open;}));</script></body></html>

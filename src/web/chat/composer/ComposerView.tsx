@@ -98,7 +98,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
             </Box>
           </Paper>
         ) : null}
-        <WidgetPanel widgets={widgetsAbove} />
+        <WidgetPanel widgets={widgetsAbove} grid />
         {menuOpen ? (
           <div data-command-menu>
             <CommandMenu

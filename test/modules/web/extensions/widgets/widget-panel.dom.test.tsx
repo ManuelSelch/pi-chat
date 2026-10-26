@@ -28,6 +28,29 @@ const todo: Widget = {
 };
 
 describe("WidgetPanel", () => {
+  it("opts into a wrapping grid without changing widget order or disclosure", () => {
+    render(
+      <MantineProvider><WidgetPanel grid widgets={[todo, { ...todo, key: "build" }]} /></MantineProvider>,
+    );
+    const panel = screen.getByRole("button", { name: "todo" }).parentElement!.parentElement!;
+    expect(panel.style.display).toBe("grid");
+    expect(panel.style.gridTemplateColumns).toBe("repeat(auto-fit, minmax(min(100%, 230px), 1fr))");
+    expect(panel.style.alignItems).toBe("start");
+    expect(panel.style.maxHeight).toBe("");
+    expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["todo", "build"]);
+    const card = screen.getByRole("button", { name: "todo" }).parentElement!;
+    expect(card.style.minWidth).toContain("0");
+    expect(card.style.marginBottom).toContain("0");
+    fireEvent.click(screen.getByRole("button", { name: "todo" }));
+    expect(screen.getAllByRole("region")).toHaveLength(1);
+  });
+
+  it("keeps the default layout stacked", () => {
+    render(<MantineProvider><WidgetPanel widgets={[todo]} /></MantineProvider>);
+    expect(screen.getByRole("button").parentElement!.parentElement!.style.display).not.toBe("grid");
+    expect(screen.getByRole("button").parentElement!.style.marginBottom).toContain("0.375rem");
+  });
+
   it("shows nothing when no extension pushed a panel", () => {
     const { container } = render(
       <MantineProvider>
