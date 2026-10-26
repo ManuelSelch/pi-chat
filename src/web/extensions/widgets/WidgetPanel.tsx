@@ -55,7 +55,7 @@ export function WidgetPanel({ widgets, grid = false }: { widgets: readonly Widge
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 230px), 1fr))",
         gap: 6,
-        alignItems: "start",
+        alignItems: "end",
       } : undefined}
     >
       {widgets.map((widget) => (

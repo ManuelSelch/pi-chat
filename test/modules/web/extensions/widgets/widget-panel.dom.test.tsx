@@ -28,14 +28,14 @@ const todo: Widget = {
 };
 
 describe("WidgetPanel", () => {
-  it("opts into a wrapping grid without changing widget order or disclosure", () => {
+  it("bottom-aligns unequal-height grid widgets without changing order or disclosure", () => {
     render(
-      <MantineProvider><WidgetPanel grid widgets={[todo, { ...todo, key: "build" }]} /></MantineProvider>,
+      <MantineProvider><WidgetPanel grid widgets={[todo, { ...todo, key: "build", lines: ["running…"] }]} /></MantineProvider>,
     );
     const panel = screen.getByRole("button", { name: "todo" }).parentElement!.parentElement!;
     expect(panel.style.display).toBe("grid");
     expect(panel.style.gridTemplateColumns).toBe("repeat(auto-fit, minmax(min(100%, 230px), 1fr))");
-    expect(panel.style.alignItems).toBe("start");
+    expect(panel.style.alignItems).toBe("end");
     expect(panel.style.maxHeight).toBe("");
     expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["todo", "build"]);
     const card = screen.getByRole("button", { name: "todo" }).parentElement!;
