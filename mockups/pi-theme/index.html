@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pi Chat · Theme review</title><link rel="stylesheet" href="./styles.css"><script type="module" src="./main.js"></script></head>
+<body>
+<aside class="review" aria-label="Mockup review controls">
+  <span><strong>Palette review</strong> <small>Mockup · no backend</small></span>
+  <label>Example theme <select id="palette"><option value="dark">Midnight plum · dark</option><option value="light">Paper pine · light</option></select></label>
+  <button id="inspect">Inspect colors</button>
+</aside>
+<header>
+  <div class="top"><span class="project">▣ &nbsp; pi-chat / feat-theme</span><button id="show-dialog">Settings</button></div>
+  <nav aria-label="Sessions"><button class="tab" aria-current="page"><span class="dot success"></span> Theme integration <span class="muted">×</span></button><button class="tab" disabled>Another session</button><button disabled aria-label="New session">＋</button></nav>
+</header>
+<main>
+  <article class="user">Use the colors from my custom Pi theme for this interface.</article>
+  <article>
+    <div class="eyebrow">Pi</div>
+    <details class="thinking"><summary>Thought for 4 seconds</summary><p>Reuse the resolved palette rather than introduce a second theme format.</p></details>
+    <p>The interface and extension widgets can share <strong>one Pi palette</strong>.</p>
+    <p>Primary actions, links, borders and status colors follow their semantic roles. The layout stays unchanged. See the <a href="#mapping">color mapping</a> below.</p>
+    <details class="tool" open><summary><span class="dot success"></span> edit <span class="muted">src/web/ui/theme.ts</span><span class="status success">Complete</span></summary>
+      <pre class="diff"><span class="removed">− primary: "blue"</span><span class="added">+ primary: piTheme.accent</span></pre>
+    </details>
+    <div class="states" aria-label="Status color samples"><span class="success">● Success</span><span class="warning">● Warning</span><span class="danger">● Error</span><span class="muted">● Muted</span></div>
+    <div class="warning notice">Theme colors load when opening or creating a session. Reload refresh is deferred.</div>
+  </article>
+  <section id="mapping" class="mapping" hidden>
+    <div class="eyebrow">Semantic anchors · illustrative resolved hex colors</div><dl id="colors"></dl>
+    <p class="muted">Only this review harness has a theme selector. These examples are not your configured Pi theme.</p>
+  </section>
+</main>
+<footer>
+ <div class="composer-wrap">
+  <details class="widget" open><summary>WORKFLOW</summary><pre><span class="accent">Theme integration</span>
+<span class="success">✓</span> Resolve custom Pi palette
+<span class="accent">›</span> Review interface colors
+<span class="muted">○</span> Wire open/create responses</pre></details>
+  <form id="composer"><label class="sr-only" for="message">Message Pi</label><textarea id="message" rows="2" placeholder="Ask Pi anything…"></textarea><div class="composer-actions"><span class="muted">Preview only</span><button class="primary" id="send" disabled>Send ↑</button></div></form>
+  <div class="runtime muted"><span>claude-sonnet · thinking: medium</span><span>Connected <span class="dot success"></span></span></div>
+ </div>
+</footer>
+<dialog id="settings" aria-labelledby="dialog-title">
+ <div class="dialog-heading"><h2 id="dialog-title">Session settings</h2><button id="close-dialog" aria-label="Close settings">×</button></div>
+ <p class="muted">A dialog uses the same theme as the chat.</p>
+ <label class="field">Model<select><option>Claude Sonnet</option><option>Claude Opus</option></select></label>
+ <label class="field">Thinking level<select><option>Medium</option><option>High</option></select></label>
+ <label class="checkbox"><input type="checkbox" checked> Show thinking</label>
+ <div class="dialog-actions"><button id="cancel">Cancel</button><button class="primary" id="save">Done</button></div>
+</dialog>
+</body></html>
