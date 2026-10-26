@@ -1,6 +1,6 @@
 # Pi theme palette review
 - Revision: 1
-- Review status: in review; not approved.
+- Review status: approved.
 - Scope: color mapping only, approximating the existing Pi Chat header/tabs, transcript, tool card, widget and composer with plain HTML/CSS/JS. No production changes.
 - Two illustrative explicit palettes: Midnight plum (dark) and Paper pine (light). Not loaded from the user's Pi settings; not promised as shipping themes.
 - Shared semantic anchors drive text, surfaces, links, focus rings, statuses and primary controls. Diff backgrounds and hover surfaces are derived stand-ins. Primary button labels use contrasting foregrounds.
@@ -11,4 +11,4 @@
 - ANSI widget appearance is simulated with semantic-color spans; real ANSI parsing, Mantine shade generation, accessibility contrast validation, SDK and server resolution are not implemented here.
 - Theme selector/inspection controls belong only to this mockup. Production theme delivery remains open/create-only; reload/reconnect delivery is outside this review.
 - Outstanding review question: do the surface hierarchy, text/status colors and control contrast look suitable in both appearances?
-- Approval evidence: none. S1 is not complete until explicit visual approval and owned preview cleanup.
+- Approval evidence: user explicitly approved revision 1 and the revised technical design: “yes approve and continue with S2”. Owned managed preview stopped; PID/listener exit verified. Approved sources preserved. S1 complete.

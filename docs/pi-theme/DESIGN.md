@@ -51,4 +51,4 @@ Planned, not executed:
 - After implementation, run relevant builds/suites and isolated end-to-end custom-theme → widget + interface verification, including cache retention through reload/same-server reconnect and the explicitly deferred theme-refresh behavior. Consume verified package artifacts without editing installed sources; publication requires separate authorization.
 
 ## Open Questions
-None. Open/create-only delivery is user-confirmed. The revised design, including its explicit reload/reconnect limitations, still requires approval before implementation.
+None. The user approved this revised open/create-only design and mockup revision 1 with “yes approve and continue with S2”. The explicit reload/reconnect limitations remain in scope.
