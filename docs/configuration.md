@@ -36,6 +36,40 @@ The installation, repository and downstream build-tool environment must remain t
 | `PI_CHAT_LOG_MAX_BYTES` | Maximum size of the active log (default 5 MiB) |
 | `PI_CHAT_LOG_RETAINED_FILES` | Number of rotated log files to retain (default `3`) |
 
+## Backend endpoint
+
+Settings → **Backend server** lets you enter a complete WebSocket URL, such as
+`wss://pi.home.example/ws`. Leave the field blank to use this page's server.
+**Save and reload** persists the selection and reloads the page;
+**Reset to default** removes the override and reloads. Both ask for confirmation:
+unsent drafts in all application tabs are discarded, but server sessions keep
+running. Commands are not replayed.
+
+The override is stored under `pi-chat:serverEndpoint` in localStorage for this
+browser profile and UI origin. It survives browser restarts, but is not shared
+with another device, browser profile or site. If browser storage cannot be
+written, Settings reports the failure without changing the connection. Invalid
+saved URLs are ignored at startup with a warning in Settings; reset clears them.
+
+Without an override, the URL is derived from the page's host/port, `/ws`, and page
+query string, using `ws` for HTTP or `wss` for HTTPS. An explicit override is used
+as entered (trimmed); the page query is not appended. HTTPS pages require `wss`.
+URL credentials and fragments are rejected. Avoid putting secrets in the URL:
+storage is not a credential vault. The current-endpoint display redacts query
+strings; the editable field contains the full saved URL.
+
+This setting does **not** bypass pi-server's existing browser-origin protection.
+The supported deployment serves Pi Chat and the backend through the same
+browser-facing host/port, including behind a reverse proxy and VPN. A different
+host/port may be rejected. To use another server's bundled Pi Chat, open that
+server's own page URL instead. No trusted-origin allowlist is added. Proxy
+WebSocket upgrades correctly, retain VPN/proxy authentication, and keep the
+backend private.
+
+An unreachable or rejected saved endpoint does not automatically fall back to
+another server. Open Settings even while disconnected and correct the address or
+use **Reset to default**.
+
 ## Pi themes
 
 Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,

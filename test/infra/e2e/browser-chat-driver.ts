@@ -6,6 +6,14 @@ export class BrowserChatDriver {
     private readonly composer: Locator,
   ) {}
 
+  async editDraft(text: string): Promise<void> {
+    await this.composer.fill(text);
+  }
+
+  async shouldHaveDraft(text: string): Promise<void> {
+    await expect(this.composer).toHaveValue(text);
+  }
+
   async SendPrompt(text: string): Promise<void> {
     await this.composer.fill(text);
     await this.composer.press("Enter");

@@ -17,6 +17,7 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         onClose={noop}
         state={{ ...initialChatState, sessionName: "Pi-generated title", extensions }}
         busy={false}
+        serverSettings={null}
         setThinkingLevel={noop}
         setModel={noop}
         compactSession={noop}

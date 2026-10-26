@@ -1,6 +1,6 @@
 # Custom Server Settings Mockup
 
-- Revision: 1. Review status: in review. Approval: not yet obtained.
+- Revision: 1. Review status: approved. User approved revision 1 and the technical design: “yes looks good. approved. implement”. Preview stopped before production edits; approved source preserved.
 - Scope: one Backend server section at the top of the existing right-hand Settings drawer. Keep other settings recognizable, not redesigned.
 - Controls: full WebSocket URL, current endpoint, connection badge, Save and reload, Reset to default. Blank field means the page-derived default. Actions disabled when nothing changes.
 - Interaction: confirmation warns that reloading discards unsent drafts but does not close server sessions. Inline URL validation and storage error; disconnected state retains Settings and reset. Cross-host/port warning explains the unchanged origin restriction.

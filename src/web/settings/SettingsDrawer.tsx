@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Drawer, SegmentedControl, Select, Stack, Switch, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../ui/theme.js";
 import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconMessageCircle, IconPuzzle, IconRefresh } from "@tabler/icons-react";
@@ -13,6 +14,7 @@ interface SettingsDrawerProps {
   onClose: () => void;
   state: ChatState;
   busy: boolean;
+  serverSettings: ReactNode;
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
@@ -30,7 +32,7 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -45,6 +47,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, setThinkingLevel,
   return (
     <Drawer {...focusReturn} opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
+        {serverSettings}
         <Panel>
           <SectionHeader icon={<IconBell size={16} />}>Sounds</SectionHeader>
           <Switch

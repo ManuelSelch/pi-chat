@@ -12,7 +12,7 @@ import { FakeBrowserWebSocket as Socket } from "../../../infra/fake-browser-webs
 import { snapshotData, coreEvent, summary } from "../../../infra/v2-fixtures.js";
 vi.mock("../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
 vi.mock("../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
-beforeEach(() => { vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); });
+beforeEach(() => { localStorage.clear(); vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); window.history.replaceState(null, "", "/"); });
 function connect(snapshots = [snapshotData({ sessionId: "s" })]) { act(() => void vi.advanceTimersByTime(0)); const socket = Socket.current; act(() => { socket.acceptConnection(); socket.initialize(snapshots); }); return socket; }
 it("uses one PiClient, atomic ready state and disposal on unmount", () => {
@@ -85,6 +85,26 @@ it("retries failed connections with backoff until initialization succeeds", () =
 });
 it("forwards the browser query string to the explicit SDK endpoint", () => {
   window.history.replaceState(null, "", "/?invite=demo"); renderHook(() => usePiChat()); act(() => void vi.advanceTimersByTime(0)); expect(Socket.current.url).toBe("ws://localhost:3000/ws?invite=demo");
+});
+it("restores a saved endpoint without appending the page query or hot switching", () => {
+  window.history.replaceState(null, "", "/?invite=page");
+  localStorage.setItem("pi-chat:serverEndpoint", "ws://other:8788/ws?profile=saved");
+  const { result, rerender } = renderHook(() => usePiChat());
+  act(() => void vi.advanceTimersByTime(0));
+  expect(Socket.current.url).toBe("ws://other:8788/ws?profile=saved");
+  expect(result.current.serverEndpoint.endpoint).toBe(Socket.current.url);
+  localStorage.setItem("pi-chat:serverEndpoint", "ws://changed/ws");
+  rerender();
+  expect(Socket.instances).toHaveLength(1);
+  expect(result.current.serverEndpoint.endpoint).toBe("ws://other:8788/ws?profile=saved");
+});
+it("ignores invalid persisted endpoints without crashing initialization", () => {
+  localStorage.setItem("pi-chat:serverEndpoint", "invalid secret");
+  const { result } = renderHook(() => usePiChat());
+  connect();
+  expect(Socket.current.url).toBe("ws://localhost:3000/ws");
+  expect(result.current.serverEndpoint.warning).toBeTruthy();
+  expect(result.current.app.connection).toBe("open");
 });
 it("never fights a displaced controller and reconnects only on explicit takeover", () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => socket.replaceByNewController()); expect(result.current.app.connection).toBe("superseded"); act(() => void vi.advanceTimersByTime(30_000)); expect(Socket.instances).toHaveLength(1);

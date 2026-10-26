@@ -43,6 +43,7 @@ beforeEach(() => {
     app: { ...initialAppState, connection: "open", tabsKnown: true, activeSessionId: "s1", tabs: [tab()], sessions: { s1: session() },
       appFeatures: [{ id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } }] },
     state: session(),
+    serverEndpoint: { endpoint: "ws://localhost:3000/ws", override: "", hasStoredOverride: false },
     browseDirectories: vi.fn(async () => ({ path: "/project", parentPath: "/", breadcrumbs: [{ name: "project", path: "/project" }], entries: [] })),
     startFolderSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
     openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),

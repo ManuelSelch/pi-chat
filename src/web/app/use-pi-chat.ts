@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "./state/app-state.js";
 import { browserTransport } from "./connection/browser-transport.js";
 import { bindPiChat } from "./connection/sdk-binding.js";
+import { loadEndpoint } from "../settings/server/index.js";
 
 /** React lifecycle and browser presentation over one UI-independent SDK client. */
 export function usePiChat() {
   const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
   const clientRef = useRef<PiClient | undefined>(undefined);
+  const [serverEndpoint] = useState(() => loadEndpoint(window.location));
 
   useEffect(() => {
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const client = new PiClient({ endpoint: `${protocol}://${window.location.host}/ws${window.location.search}`, transport: browserTransport });
+    const client = new PiClient({ endpoint: serverEndpoint.endpoint, transport: browserTransport });
     clientRef.current = client;
     const unbind = bindPiChat(client, dispatch);
     const stopErrors = client.onError((error) => {
@@ -23,7 +24,7 @@ export function usePiChat() {
       if (clientRef.current === client) clientRef.current = undefined;
       client.dispose(); // Disconnecting the UI never closes a server runtime.
     };
-  }, []);
+  }, [serverEndpoint]);
 
   const requireClient = useCallback(() => {
     if (!clientRef.current) throw new SDKError("notConnected", "Not connected to the Pi Chat server yet.");
@@ -72,7 +73,7 @@ export function usePiChat() {
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
   return {
-    app, state: session, browseDirectories, startFolderSession, completeCommandArguments,
+    app, state: session, serverEndpoint, browseDirectories, startFolderSession, completeCommandArguments,
     openFile, archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
