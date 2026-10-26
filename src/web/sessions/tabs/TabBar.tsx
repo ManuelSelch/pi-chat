@@ -39,7 +39,7 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
                 maw={220}
                 style={{
                   borderRadius: "var(--mantine-radius-sm)",
-                  background: active ? THEME.surface.panelHover : undefined,
+                  background: active ? THEME.surface.selected : undefined,
                   borderBottom: `2px solid ${active ? THEME.accent.primary : "transparent"}`,
                 }}
               >

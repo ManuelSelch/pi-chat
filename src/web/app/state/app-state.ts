@@ -18,6 +18,7 @@ export interface AppState {
   sessions: Record<string, ChatState>;
   sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
   sdkInventory: ReadonlyDeep<ClientState["inventory"]>;
+  themes: ReadonlyDeep<ClientState["themes"]>;
   hiddenErrors: Record<string, string | undefined>;
   catalogue: ReadonlyDeep<ProjectCatalogue>;
   appFeatures: ReadonlyDeep<WebFeature[]>;
@@ -29,7 +30,7 @@ export interface AppState {
 }
 
 export const initialAppState: AppState = {
-  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], hiddenErrors: {},
+  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {}, hiddenErrors: {},
   catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
   tabsKnown: false, connection: "connecting",
 };
@@ -85,7 +86,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   // identity before the generic removal fallback can select another tab.
   const replacement = message?.type === "event" && message.event === "session.replaced" ? message.data : undefined;
   const selectedId = replacement?.previousSessionId === state.activeSessionId ? replacement.snapshot.sessionId : state.activeSessionId;
-  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, hiddenErrors,
+  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
     tabs, activeSessionId: tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, appFeatures: sdk.features };

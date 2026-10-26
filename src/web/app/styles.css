@@ -41,7 +41,7 @@ html::-webkit-scrollbar {
 }
 /* Reasoning is context, not the answer: smaller and dimmed so the eye skips it
    unless it is looking for it. */
-.markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--mantine-color-dimmed); }
+.markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--pi-thinking-text, var(--mantine-color-dimmed)); }
 /* Terminal-oriented widget text stays compact, without Markdown styling. */
 .ansi-widget { font-size: 13px; line-height: 1.5; }
 .markdown-thinking p, .markdown-thinking ul { margin: 4px 0; }
@@ -111,6 +111,10 @@ html::-webkit-scrollbar {
 .hljs-title, .hljs-title.function_, .hljs-section { color: var(--hljs-function); }
 .hljs-built_in, .hljs-title.class_, .hljs-variable, .hljs-template-variable { color: var(--hljs-builtin); }
 .hljs-attr, .hljs-attribute, .hljs-name, .hljs-tag { color: var(--hljs-attr); }
+
+/* Selection and user-message content use exact Pi roles when supplied. */
+::selection { background: var(--pi-selected-bg, var(--mantine-primary-color-light)); }
+[data-pi-user-message] .markdown { color: inherit; }
 
 /* Streaming cursor. */
 .stream-cursor {

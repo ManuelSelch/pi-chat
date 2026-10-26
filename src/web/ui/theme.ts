@@ -21,7 +21,13 @@ export const THEME = {
     page: "var(--mantine-color-body)",
     panel: "var(--mantine-color-default)",
     panelHover: "var(--mantine-color-default-hover)",
+    selected: "var(--pi-selected-bg, var(--mantine-color-default-hover))",
     code: "var(--mantine-color-default)",
+  },
+
+  message: {
+    background: "var(--pi-user-bg, var(--mantine-color-default-hover))",
+    text: "var(--pi-user-text, var(--mantine-color-text))",
   },
 
   accent: {
@@ -39,8 +45,8 @@ export const THEME = {
   },
 
   diff: {
-    addition: "var(--mantine-color-green-light)",
-    removal: "var(--mantine-color-red-light)",
+    addition: "var(--pi-diff-added, var(--mantine-color-green-light))",
+    removal: "var(--pi-diff-removed, var(--mantine-color-red-light))",
   },
 
   status: {

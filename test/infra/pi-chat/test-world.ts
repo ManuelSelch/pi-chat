@@ -7,6 +7,8 @@ import { createAssistantMessageEventStream, type AssistantMessage } from "@earen
 import { calls, createTestSession, says, when, type TestSession } from "@marcfargas/pi-test-harness";
 import type { RuntimeAdapter, RuntimeAdapterFactory } from "@manuelselch/pi-server";
 import * as serverPackage from "@manuelselch/pi-server";
+import type { SessionTheme } from "@manuelselch/pi-sdk";
+import { themeFixture } from "./fixtures/theme-fixture.js";
 
 export interface AssistantResponse {
   prompt: string;
@@ -18,6 +20,7 @@ export interface AssistantResponse {
 }
 
 export interface TestSessionResources {
+  theme?: SessionTheme;
   skills?: readonly { name: string; instructions: string }[];
   enableSkillCommands?: boolean;
   /** Optional readable fixture folder name, still isolated inside a temporary directory. */
@@ -97,7 +100,7 @@ export class TestWorld {
 
   private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<RuntimeAdapter> {
     assert(!resources.projectName || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resources.projectName), "Fixture project name must be a safe directory name");
-    const sessionRoot = resources.skills || resources.projectName ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
+    const sessionRoot = resources.skills || resources.projectName || resources.theme ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
     const cwd = resources.projectName ? join(sessionRoot, resources.projectName) : sessionRoot;
     mkdirSync(cwd, { recursive: true });
     for (const skill of resources.skills ?? []) {
@@ -111,6 +114,12 @@ export class TestWorld {
     try {
       assert(!this.disposed, "Test world was disposed during session creation");
       const session = harness.session;
+      if (resources.theme) {
+        const theme = await themeFixture(join(cwd, ".pi", "themes"), resources.theme);
+        const original = session.resourceLoader.getThemes.bind(session.resourceLoader);
+        session.resourceLoader.getThemes = () => ({ ...original(), themes: [theme] });
+        session.settingsManager.setTheme(resources.theme.name);
+      }
       if (resources.enableSkillCommands !== undefined) session.settingsManager.setEnableSkillCommands(resources.enableSkillCommands);
       harness.prepare(...responses.map(({ prompt, reply, readSkill }) => {
         const skill = readSkill ? session.resourceLoader.getSkills().skills.find((candidate: { name: string }) => candidate.name === readSkill) : undefined;
