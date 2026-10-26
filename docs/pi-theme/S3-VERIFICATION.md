@@ -14,6 +14,12 @@
 - Coverage includes custom variables/RGB/indexed/OKLCH/OKHSL, export parity and surface derivation, resource-list boundaries, deterministic fallbacks, two runtime palettes, startup/replacement binding, existing open, reload with changed/invalid source, same-server reconnect and payload placement. A real extension's ANSI/bold widget crosses the public server/socket/SDK boundary without a TTY or model prompt.
 - `git diff --check` passed. Existing server audit findings remain **4 moderate + 1 high**; no unverified audit fix.
 
+## Published server adoption
+- At the user's request, Chat now pins npm `@manuelselch/pi-server@0.1.2` with registry URL/integrity in its lockfile; no server archive is vendored in Chat. The direct SDK stays npm 0.1.0 pending S4.
+- Verified clean `npm ci --ignore-scripts` plus documented harness compilation, build/typecheck, **722 unit tests / 87 files**, isolated production lifecycle smoke and **38 browser tests passed / 1 coverage-only skip**.
+- Release 0.1.2 still bundles its S2 SDK under a `file:vendor/...` declaration. Installation/runtime checks pass, but `npm ls` reports that nested SDK as invalid. Fixing the declaration requires a separately published server/SDK update; installed package sources were not patched. npm audit reports **17 findings (4 low, 5 moderate, 5 high, 3 critical)**; no automatic audit fix.
+- Only isolated test processes were started/restarted; the live service was not restarted. No UI integration or publication/push was performed.
+
 ## Remaining scope
-- S4: consume verified artifacts in Chat, integrate Mantine and verify browser behavior. No production Chat UI/dependency changes were made in S3.
+- S4: adopt the theme-capable direct SDK, integrate Mantine and verify theme-specific browser behavior. The initial S3 implementation did not change Chat dependencies; the separately requested server adoption is recorded above. Chat's production UI remains unchanged.
 - No project push, publication/version bump, live-server restart, remote CI/Sonar run or Swift/live-model verification. Do not publish the temporary bundled-SDK checkout as-is; the server release documentation records the required registry-pin restoration.

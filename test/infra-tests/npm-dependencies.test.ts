@@ -4,7 +4,7 @@ import { expect, it } from "vitest";
 it("pins the published SDK and server releases with registry integrity", async () => {
   const manifest = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
   const lock = JSON.parse(await readFile(new URL("../../package-lock.json", import.meta.url), "utf8"));
-  for (const [name, version] of [["@manuelselch/pi-sdk", "0.1.0"], ["@manuelselch/pi-server", "0.1.1"]] as const) {
+  for (const [name, version] of [["@manuelselch/pi-sdk", "0.1.0"], ["@manuelselch/pi-server", "0.1.2"]] as const) {
     expect(manifest.dependencies[name]).toBe(version);
     expect(lock.packages[""].dependencies[name]).toBe(version);
     const installed = lock.packages[`node_modules/${name}`];
