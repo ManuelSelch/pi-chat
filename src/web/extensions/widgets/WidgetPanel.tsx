@@ -17,15 +17,15 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
   const title = widget.key;
 
   return (
-    <Panel p="xs" mb="xs">
+    <Panel py={6} px={8} mb={6}>
       <UnstyledButton onClick={() => setOpen((value) => !value)} w="100%" aria-expanded={open}>
         <Group gap={6} wrap="nowrap">
           {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-          <Text size="xs" c="dimmed" fw={600} style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
+          <Text size="11px" lh={1.3} c="dimmed" fw={500}>
             {title}
           </Text>
           {open ? null : (
-            <Text size="xs" c="dimmed" truncate>
+            <Text size="11px" lh={1.3} c="dimmed" truncate>
               {widget.lines.length} line{widget.lines.length === 1 ? "" : "s"}
             </Text>
           )}
@@ -33,7 +33,7 @@ export function WidgetBlock({ widget }: { widget: Widget }) {
       </UnstyledButton>
       {open ? (
         <Box
-          mt={6}
+          mt={3}
           className="ansi-widget"
           role="region"
           aria-label={`${title} widget`}
