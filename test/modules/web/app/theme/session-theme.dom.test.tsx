@@ -27,7 +27,7 @@ async function open(id: string, appearance: "dark" | "light" = "dark") {
 }
 function paletteCss() { return [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n"); }
 beforeEach(() => { vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); localStorage.clear(); });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 it("selects cached palettes locally, covers portals and retains them through snapshots/reconnect", async () => {
   mount();
@@ -52,19 +52,23 @@ it("selects cached palettes locally, covers portals and retains them through sna
   expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
 });
 
-it("clears on close, replacement without delivery and server-instance change, not initialization", async () => {
-  mount(); await open("a");
+it("clears SDK caches but remembers appearance on close, replacement and server-instance change", async () => {
+  mount(); const dark = await open("a");
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", event: "session.replaced", data: { previousSessionId: "a", snapshot: snapshotData({ sessionId: "replacement" }) } }));
   expect(controller!.app.themes).toEqual({});
-  expect(paletteCss()).not.toContain("--pi-user-bg");
-  await open("b");
+  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
+  expect(paletteCss()).toContain("--pi-user-bg");
+  const light = await open("b", "light");
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", sessionId: "b", sequence: 1, event: "session.closed", data: { reason: "requested" } }));
   expect(controller!.app.themes).toEqual({});
+  expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
+  expect(screen.getByRole("dialog").textContent).toContain(light.colors.accent);
   await open("c");
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); });
   act(() => Socket.current.reply({ ...initializeResult([snapshotData({ sessionId: "c" })]), serverInstanceId: "new-process" }));
   expect(controller!.app.themes).toEqual({});
-  expect(paletteCss()).not.toContain("--pi-user-bg");
+  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
+  expect(paletteCss()).toContain("--pi-user-bg");
 });
 
 it.each([undefined, null, { ...themeData(), colors: { ...themeData().colors, accent: "url(evil)" } }])("rejects malformed/missing required theme without caching it (%j)", async theme => {
@@ -75,7 +79,22 @@ it.each([undefined, null, { ...themeData(), colors: { ...themeData().colors, acc
   expect(controller!.app.error).toBeTruthy();
 });
 
-it("uses defaults after a new browser client initializes existing runtimes without open/create", () => {
+it("a rejected theme cannot replace remembered appearance or populate an SDK cache", async () => {
+  mount();
+  const remembered = await open("a", "light");
+  act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", sessionId: "a", sequence: 1, event: "session.closed", data: { reason: "requested" } }));
+  act(() => controller.newSession("/project"));
+  const snapshot = snapshotData({ sessionId: "bad" });
+  const invalid = { ...themeData(), colors: { ...themeData().colors, accent: "url(evil)" } };
+  await act(async () => Socket.current.reply({ summary: summary(snapshot), snapshot, theme: invalid }));
+  expect(controller!.app.themes).toEqual({});
+  expect(controller!.app.error).toBeTruthy();
+  expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
+  expect(screen.getByRole("dialog").textContent).toContain(remembered.colors.accent);
+  expect(JSON.parse(localStorage.getItem("pi-chat:lastTheme")!)).toEqual(remembered);
+});
+
+it("uses defaults when no palette was remembered and initialization has no theme", () => {
   mount();
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); Socket.current.initialize([snapshotData({ sessionId: "existing" })]); });
   expect(controller!.app.themes).toEqual({});

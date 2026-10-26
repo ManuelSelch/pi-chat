@@ -7,10 +7,13 @@ function rgb(hex: string) { return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(
 export class BrowserThemeDriver {
   constructor(private readonly page: Page) {}
   async shouldUse(palette: SessionTheme): Promise<void> {
+    await this.shouldUseShell(palette);
+    await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", rgb(palette.colors.success));
+  }
+  async shouldUseShell(palette: SessionTheme): Promise<void> {
     await expect(this.page.locator("html")).toHaveAttribute("data-mantine-color-scheme", palette.appearance);
     await expect(this.page.locator("body")).toHaveCSS("background-color", rgb(palette.surfaces.pageBg));
     await expect(this.page.locator("body")).toHaveCSS("color", rgb(palette.colors.text));
-    await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", rgb(palette.colors.success));
     await expect(this.page.locator("header")).toHaveCSS("border-bottom-color", rgb(palette.colors.border));
   }
   async shouldThemePortal(palette: SessionTheme): Promise<void> {

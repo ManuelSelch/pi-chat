@@ -61,16 +61,24 @@ not on `/reload`. To apply edited theme files, close the runtime and open/create
 it again; opening an already-running runtime returns its existing cached palette.
 Tab changes use each runtime's cached palette, including inside portalled dialogs.
 Ordinary snapshots, explicit reload and same-server reconnect preserve the cache;
-close or server-instance changes clear it. Home keeps the selected runtime's
-palette while that selection/cache exists; otherwise it uses Mantine defaults.
+close or server-instance changes clear it.
 
-A browser refresh/new client receives no palette during initialization and uses
-Mantine's existing auto-scheme defaults until a successful open/create response.
-A runtime replacement without open/create delivery also uses defaults. These are
-intentional limits: no persistence, hidden recovery requests, theme selector,
-watcher or browser-to-terminal synchronization. Syntax highlighting retains its
-existing light/dark palettes. Theme data is required in open/create responses;
-older responses without it are rejected, not silently accepted.
+Separately, Pi Chat remembers the last selected runtime's resolved palette in
+browser-local storage (`pi-chat:lastTheme`). Home, settings and dialogs keep this
+appearance after all sessions close, and browser refresh restores it. A selected
+runtime's palette takes precedence and updates the remembered appearance;
+background sessions do not. This does not restore SDK cache entries or recolor
+extension widgets. Remembered colors may remain stale until a selected runtime
+supplies its actual palette. Storage is per browser origin, not per server process.
+
+Initialization still carries no palette. A new client with no valid remembered
+palette uses Mantine's auto-scheme defaults until a successful open/create
+response. Invalid or unavailable storage is ignored; if writes fail, appearance
+is retained in memory until the page closes. There are no hidden recovery
+requests, theme selector, watcher or browser-to-terminal synchronization.
+Syntax highlighting retains its existing light/dark palettes. Theme data is
+required in open/create responses; older responses without it are rejected,
+not silently accepted.
 
 ## Private network access
 

@@ -41,6 +41,16 @@ test("custom Pi palettes color shell, portals and real extension widgets without
     await app.Tabs.SwitchTo(second);
     await app.Theme.shouldUse(light);
     await app.Browser.Reload();
-    await app.Theme.shouldUseDefaults();
+    await app.Theme.shouldUse(light);
+    await app.Tabs.Close(second);
+    // Initialization after refresh has no SDK palettes; remembered appearance stays.
+    await app.Theme.shouldUse(light);
+    await app.Tabs.Close(first);
+    await app.Tabs.ShouldHaveCount(0);
+    await app.Home.ShouldBeVisible();
+    await app.Theme.shouldUseShell(light);
+    await app.Settings.Open();
+    await app.Theme.shouldThemePortal(light);
+    await app.Settings.Close();
   } finally { await app.dispose(); }
 });
