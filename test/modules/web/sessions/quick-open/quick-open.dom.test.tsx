@@ -18,7 +18,7 @@ const catalogue: ProjectCatalogue = { projects: [
 function setup(data = catalogue) {
   const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
   const actions = buildSessionActions({ sessionId: "", connected: true, busy: false }, {
-    newSession: handlers.onNewSession, closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
+    newSession: handlers.onNewSession, closeTab: vi.fn(), archiveSession: vi.fn(),
     openFolder: handlers.onOpenFolder, openSettings: handlers.onOpenSettings,
   });
   render(<MantineProvider><QuickOpen opened catalogue={data} tabs={[]} actions={actions} {...handlers} /></MantineProvider>);

@@ -21,8 +21,9 @@ Install the Pi package:
 pi install git:github.com/ManuelSelch/pi-chat
 ```
 
-Run `/pi-chat-start`, then open [localhost:8788](http://localhost:8788).
-Use `/pi-chat-stop` to stop the server or `/pi-chat` to check its status.
+Run `/pi-chat start`, then open [localhost:8788](http://localhost:8788).
+Use `/pi-chat stop` to stop the server, `/pi-chat restart` to rebuild and restart,
+or `/pi-chat` to check its status.
 
 ## Documentation
 

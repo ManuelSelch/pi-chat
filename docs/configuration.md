@@ -5,11 +5,23 @@
 Installing with `pi install git:github.com/ManuelSelch/pi-chat` clones the repo
 into `~/.pi/agent/git/pi-chat` and registers these Pi commands:
 
-- `/pi-chat-start`: start the server.
-- `/pi-chat-stop`: stop the server.
+- `/pi-chat start [--port N] [--cwd PATH] [--no-open]`: start the server.
+- `/pi-chat stop`: stop the managed server.
+- `/pi-chat restart`: rebuild and restart the managed server without taking browser control.
 - `/pi-chat`: show status.
 
-`/pi-chat-start` builds the production web UI and backend on each new start, then
+The old `/pi-chat-start` and `/pi-chat-stop` commands are removed. Subcommands
+support argument completion. Restart keeps the server's port, project and environment;
+it does not open a new browser tab. Build failure keeps the old server running.
+The command waits up to 120 seconds for a healthy successor; if not confirmed,
+check the server logs and status before retrying. Restart does not automatically
+retry or terminate a slow build. Manually launched/development servers cannot be
+restarted by this command. A server predating restart-signal support must be
+stopped and started once with the new commands before command restart is available.
+The separate Settings restart control remains available; session action menus no
+longer offer Restart server.
+
+`/pi-chat start` builds the production web UI and backend on each new start, then
 runs the compiled backend with Node. Generated `dist/` artifacts are local and
 are not committed. See [Development](development.md) for the watch-mode workflow.
 

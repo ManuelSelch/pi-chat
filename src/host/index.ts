@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { homedir } from "node:os";
 import { createRestartService } from "./restart-service.js";
@@ -15,11 +15,31 @@ const logger = createFileLogger();
 const restart = isDevelopment ? undefined : createRestartService({ shutdown: () => void shutdown() });
 const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), restart, logger });
 
+// Signals do not acquire WebSocket control, so existing browsers can reconnect.
+// Install a rejection handler even in development rather than taking SIGUSR2's
+// default terminating action.
+process.on("SIGUSR2", () => {
+  if (!restart || !process.env.PI_CHAT_PID_FILE) {
+    logger.warn("server.restart_rejected", { message: "Signal restart requires a managed production server." });
+    return;
+  }
+  void restart.restart().then(failure => {
+    if (failure) logger.error("server.restart_failed", { message: failure });
+  }).catch(error => {
+    logger.error("server.restart_failed", { message: error instanceof Error ? error.message : String(error) });
+  });
+});
+
 server.httpServer.listen(port, host, () => {
   // Restarting from the browser replaces this process, so the pid the slash
   // commands stop has to be rewritten by whoever is actually listening.
   const pidFile = process.env.PI_CHAT_PID_FILE;
-  if (pidFile) writeFileSync(pidFile, JSON.stringify({ pid: process.pid, port, cwd }));
+  if (pidFile) {
+    // Publish atomically so restart observers never remove a partially written record.
+    const temporary = `${pidFile}.${process.pid}.tmp`;
+    writeFileSync(temporary, JSON.stringify({ pid: process.pid, port, cwd, restartSignal: isDevelopment ? null : "SIGUSR2" }));
+    renameSync(temporary, pidFile);
+  }
   console.log(`Pi Chat server: http://${host}:${port}`);
   console.log(`Pi project: ${cwd}`);
   console.log(`Pi Chat log: ${resolve(process.env.PI_CHAT_LOG_DIR ?? `${homedir()}/.pi/agent/logs`, "pi-chat.log")}`);

@@ -50,26 +50,27 @@ async function select(menu: "composer" | "palette", name: string) {
   else fireEvent.click(option);
 }
 for (const menu of ["composer", "palette"] as const) {
-  it.each(["New session", "Close tab", "Archive session", "Restart server", "Open folder…", "Settings"])(`${menu}: runs shared %s`, async name => {
+  it.each(["New session", "Close tab", "Archive session", "Open folder…", "Settings"])(`${menu}: runs shared %s`, async name => {
     mount();
     await select(menu, name);
     if (name === "New session") expect(chat.newSession).toHaveBeenCalledExactlyOnceWith("/repo");
     if (name === "Close tab") expect(chat.closeTab).toHaveBeenCalledExactlyOnceWith("one");
     if (name === "Archive session") await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledExactlyOnceWith("/sessions/one", true));
-    if (name === "Restart server") {
-      expect(chat.restartServer).not.toHaveBeenCalled();
-      fireEvent.click(await screen.findByRole("button", { name: "Restart" }));
-      await waitFor(() => expect(chat.restartServer).toHaveBeenCalledOnce());
-    }
     if (name === "Open folder…") expect(screen.getByRole("status").textContent).toContain('"folderPicker":true');
     if (name === "Settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
     else expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
     expect(chat.prompt).not.toHaveBeenCalled();
   });
-  it(`${menu}: cancelling Restart does not restart`, async () => {
-    mount(); await select(menu, "Restart server");
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+  it(`${menu}: excludes Restart server even when the server advertises it`, async () => {
+    mount();
+    await select(menu, "Settings");
+    if (menu === "composer") fireEvent.change(screen.getByRole("textbox", { name: "Message Pi" }), { target: { value: "/" } });
+    else {
+      fireEvent.click(screen.getByText("Open palette"));
+      fireEvent.click(await screen.findByRole("button", { name: "/ Actions" }));
+    }
+    expect(screen.queryByRole("option", { name: /Restart server/ })).toBeNull();
     expect(chat.restartServer).not.toHaveBeenCalled();
   });
   it(`${menu}: archive failures use the composer error display and dismissal`, async () => {
@@ -96,15 +97,6 @@ it("keeps palette archive errors session-scoped across catalogue/state refreshes
   chat.app = { ...chat.app, activeSessionId: "one" };
   refresh();
   expect(screen.getByRole("alert").textContent).toBe("Archive failed");
-});
-it("does not restart when capability disappears during confirmation", async () => {
-  const view = mount(); await select("palette", "Restart server");
-  await screen.findByRole("button", { name: "Restart" });
-  chat.app = { ...chat.app, appFeatures: [] };
-  view.rerender(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
-  fireEvent.click(screen.getByRole("button", { name: "Restart" }));
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Restart" })).toBeNull());
-  expect(chat.restartServer).not.toHaveBeenCalled();
 });
 
 it("refreshes palette availability when the active session starts running", async () => {

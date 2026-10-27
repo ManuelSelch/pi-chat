@@ -11,14 +11,12 @@ export interface SessionActionState {
   sessionPath?: string;
   connected: boolean;
   busy: boolean;
-  restartDescription?: string;
 }
 
 export interface SessionActionOperations {
   newSession(path?: string): void;
   closeTab(sessionId: string): void;
   archiveSession(sessionId: string, path: string): void;
-  restartServer(): void;
   openFolder(): void;
   openSettings(): void;
 }
@@ -40,9 +38,6 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
         if (sessionCurrent() && !latest.busy && latest.sessionPath === state.sessionPath) operations.archiveSession(state.sessionId, state.sessionPath!);
       } });
     }
-    if (state.restartDescription !== undefined) actions.push({ id: "restart-server", name: "Restart server", description: state.restartDescription, run: () => {
-      if (current().connected && current().restartDescription !== undefined) operations.restartServer();
-    } });
   }
   actions.push(
     { id: "open-folder", name: "Open folder…", description: "Choose a folder to start a session", run: operations.openFolder },

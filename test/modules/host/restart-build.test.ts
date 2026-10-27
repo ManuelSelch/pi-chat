@@ -24,6 +24,41 @@ function fixture(outcome: number | Error = 0) {
 }
 
 describe("restart's default build invocation", () => {
+  it("rejects overlapping attempts so Settings and signals cannot queue two successors", async () => {
+    let finish!: (result: string | undefined) => void;
+    const build = vi.fn(() => new Promise<string | undefined>(resolve => { finish = resolve; }));
+    const shutdown = vi.fn(); const spawnDetached = vi.fn();
+    const restart = createRestartService({ build, shutdown, spawnDetached });
+    const first = restart.restart();
+
+    await expect(restart.restart()).resolves.toMatch(/already in progress/);
+    finish(undefined);
+    await expect(first).resolves.toBeUndefined();
+    await expect(restart.restart()).resolves.toMatch(/already in progress/);
+    expect(build).toHaveBeenCalledOnce();
+    expect(spawnDetached).toHaveBeenCalledOnce();
+  });
+
+  it("allows an explicit retry after a failed build", async () => {
+    const build = vi.fn().mockResolvedValueOnce("broken build").mockResolvedValueOnce(undefined);
+    const shutdown = vi.fn(); const spawnDetached = vi.fn();
+    const restart = createRestartService({ build, shutdown, spawnDetached });
+
+    await expect(restart.restart()).resolves.toBe("broken build");
+    await expect(restart.restart()).resolves.toBeUndefined();
+
+    expect(build).toHaveBeenCalledTimes(2);
+    expect(shutdown).toHaveBeenCalledOnce();
+  });
+
+  it("allows retry after a thrown build error", async () => {
+    const build = vi.fn().mockRejectedValueOnce(new Error("broken build")).mockResolvedValueOnce(undefined);
+    const restart = createRestartService({ build, shutdown: vi.fn(), spawnDetached: vi.fn() });
+
+    await expect(restart.restart()).rejects.toThrow("broken build");
+    await expect(restart.restart()).resolves.toBeUndefined();
+  });
+
   it("uses the running Node executable and resolved npm CLI with unchanged build arguments", async () => {
     const { restart, shutdown, spawnDetached } = fixture();
     await expect(restart.restart()).resolves.toBeUndefined();

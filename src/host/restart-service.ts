@@ -4,7 +4,23 @@ import { resolveNpmCli } from "../shared/node/npm-command.js";
 
 /** Chat rebuilds its assets before generic server re-execution. */
 export function createRestartService(options: RestartOptions): RestartService {
-  return createServerRestartService({ ...options, build: options.build ?? (() => runBuild(options.plan?.cwd ?? process.cwd())) });
+  const service = createServerRestartService({ ...options, build: options.build ?? (() => runBuild(options.plan?.cwd ?? process.cwd())) });
+  let restarting = false;
+  return {
+    async restart() {
+      if (restarting) return "A Pi Chat restart is already in progress.";
+      restarting = true;
+      try {
+        const failure = await service.restart();
+        // A successful attempt has a successor queued; keep the guard until exit.
+        if (failure !== undefined) restarting = false;
+        return failure;
+      } catch (error) {
+        restarting = false;
+        throw error;
+      }
+    },
+  };
 }
 
 /**

@@ -14,7 +14,6 @@ piChatExtension({
     } catch (error) { return { stdout: error.stdout ?? '', stderr: error.stderr ?? '', code: error.code ?? 1 }; }
   },
 });
-const command = process.argv[2] === 'stop' ? 'pi-chat-stop' : 'pi-chat-start';
-await commands.get(command).handler(process.argv.slice(3).join(' '), {
+await commands.get('pi-chat').handler(process.argv.slice(2).join(' '), {
   cwd: process.env.PI_CHAT_CWD ?? process.cwd(), ui: { notify(message) { console.log(message); } },
 });
