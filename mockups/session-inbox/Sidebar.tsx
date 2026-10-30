@@ -13,7 +13,7 @@ function SessionRow({ session, active, choose, deferSession, compact = false }: 
     <UnstyledButton className="session-main" onClick={() => choose(session.id)} aria-current={active === session.id ? 'page' : undefined}>
       {!compact && <div className="session-context"><span>{session.project}</span><span>{session.time}</span></div>}
       <div className="session-title"><span className={`dot ${session.status}`} aria-label={statusLabels[session.status]} /><span>{session.title}</span></div>
-      {!compact && <div className="session-detail">{session.status === 'ready' ? session.branch || 'Personal conversation' : session.detail}</div>}
+      {!compact && session.status === 'ready' && <div className="session-detail">{session.branch || 'Personal conversation'}</div>}
     </UnstyledButton>
     <ActionIcon className="later-action" size="sm" variant="subtle" color="gray" aria-label={`Move ${session.title} to Later`} title={session.status === 'working' ? 'Wait for the run to finish' : 'Move to Later · not archived'} disabled={session.status === 'working'} onClick={() => deferSession(session.id)}><IconClockPause size={15}/></ActionIcon>
   </div>;
