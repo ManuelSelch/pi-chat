@@ -104,7 +104,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   const later = useMemo(() => {
     const open = new Set(app.tabs.map(tab => tab.sessionPath));
     const saved = new Set(entries.filter(entry => !open.has(entry.path)).map(entry => entry.path));
-    return historyRows(app.catalogue).filter(row => saved.has(row.path));
+    return historyRows(app.catalogue, app.tabs).filter(row => saved.has(row.path));
   }, [entries, app.catalogue, app.tabs]);
   return {
     later,

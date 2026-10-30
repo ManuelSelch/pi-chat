@@ -85,6 +85,39 @@ it("retains distinct conversation subtitles for saved sessions sharing one workt
   expect(inboxRows([], linked, new Set(["/b"]))).toMatchObject([{ path: "/a", primaryLabel: "feat/worktree", secondaryLabel: "Saved A" }]);
 });
 
+it.each(["idle", "blocked", "running"] as const)("hides the title of a single linked-worktree conversation (%s), retaining search and identity", status => {
+  const linked = { projects: catalogue.projects.map(project => ({ ...project, sessions: project.sessions.slice(0, 1), worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
+
+  const rows = inboxRows([{ ...tab, status }], linked, new Set());
+
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ title: "Open A", primaryLabel: "feat/worktree", path: "/a", status });
+  expect(rows[0]?.secondaryLabel).toBeUndefined();
+  expect(historyRows(linked)[0]?.secondaryLabel).toBeUndefined();
+  expect(matchingRows(rows, "Open A")).toHaveLength(1);
+});
+
+it("counts unsaved live siblings for Ready and Later labels, without counting archived history", () => {
+  const linked = { projects: catalogue.projects.map(project => ({ ...project, sessions: project.sessions.map((session, index) => index ? { ...session, archivedAt: 20 } : session), worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
+  const unsaved = { ...tab, sessionId: "new", sessionPath: "/future", title: "Unsaved" };
+
+  expect(historyRows(linked)[0]?.secondaryLabel).toBeUndefined();
+  expect(inboxRows([tab], linked, new Set())[0]?.secondaryLabel).toBeUndefined();
+  expect(historyRows(linked, [unsaved])[0]?.secondaryLabel).toBe("Saved A");
+  expect(inboxRows([unsaved], linked, new Set(["/a"]))[0]?.secondaryLabel).toBe("Unsaved");
+  expect(inboxRows([tab, unsaved], linked, new Set()).map(row => row.secondaryLabel)).toEqual(expect.arrayContaining(["Open A", "Unsaved"]));
+});
+
+it("distinguishes multiple unsaved sessions and does not mix different worktree checkouts", () => {
+  const project = { ...catalogue.projects[0]!, sessions: [], worktree: { primary: false, detached: false, branch: "feat/worktree" } };
+  const linked = { projects: [project, { ...project, path: "/other" }] };
+  const unsaved = { ...tab, sessionPath: undefined };
+
+  expect(inboxRows([unsaved], linked, new Set())[0]?.secondaryLabel).toBeUndefined();
+  expect(inboxRows([unsaved, { ...unsaved, sessionId: "second" }], linked, new Set()).every(row => row.secondaryLabel === "Open A")).toBe(true);
+  expect(inboxRows([unsaved, { ...unsaved, sessionId: "other", projectPath: "/other" }], linked, new Set()).every(row => row.secondaryLabel === undefined)).toBe(true);
+});
+
 it.each([
   { primary: true, detached: false, branch: "main" },
   { primary: false, detached: false, branch: "" },
