@@ -14,10 +14,10 @@ const chat = {
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 vi.mock("../../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm: vi.fn() }) }));
 vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
-function ComposerContainer(props: { onHeightChange: (height: number) => void }) {
+function ComposerContainer(props: { onHeightChange: (height: number) => void; widgetsDocked: boolean }) {
   return <SessionActionsProvider><ActualComposerContainer {...props} /></SessionActionsProvider>;
 }
-function mount() { return render(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>); }
+function mount() { return render(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>); }
 function enter(text: string) {
   const input = screen.getByRole("textbox") as HTMLTextAreaElement;
   fireEvent.change(input, { target: { value: text } });
@@ -67,7 +67,7 @@ describe("loading composer", () => {
     chat.app.activeSessionId = "s2";
     chat.app.openingTabs = 0;
     chat.state = { ...initialChatState, status: "idle" };
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(input.disabled).toBe(false);
     expect(document.activeElement).toBe(input);
     expect(enter("Ready now").value).toBe("");
@@ -86,14 +86,14 @@ describe("loading composer", () => {
     const input = screen.getByRole("textbox") as HTMLTextAreaElement;
     fireEvent.change(input, { target: { value: "Keep this draft" } });
     chat.app.openingTabs = 1;
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(input.disabled).toBe(true);
     fireEvent.submit(input.closest("form")!);
     expect(chat.prompt).not.toHaveBeenCalled();
     expect(input.value).toBe("Keep this draft");
 
     chat.app.openingTabs = 0;
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(input.disabled).toBe(false);
     expect(document.activeElement).toBe(input);
     expect(input.value).toBe("Keep this draft");
@@ -118,7 +118,7 @@ describe("steering composer", () => {
     expect(panel.style.overflow).toBe("");
     expect(panel.style.maxHeight).toBe("");
     chat.state = { ...chat.state, steeringMessages: [] };
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(screen.queryByRole("region", { name: "Queued steering" })).toBeNull();
   });
   it.each(["/reload", "/compact", "/new", "/skill:review"])("submits %s while running", text => {

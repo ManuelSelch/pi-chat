@@ -1,16 +1,17 @@
-import { memo, useMemo, useState } from "react";
-import { ActionIcon, Alert, Button, Divider, Drawer, ScrollArea, Stack, Tooltip, UnstyledButton } from "@mantine/core";
-import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash } from "@tabler/icons-react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ActionIcon, Alert, Box, Button, Divider, Drawer, Group, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../ui/theme.js";
 import { StatusBadge } from "../../ui/StatusBadge.js";
-import type { ChatSessionSummary, ProjectCatalogue } from "../../app/state/view-types.js";
+import type { ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
 import styles from "./ProjectSessionDrawer.module.css";
-import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
+import { focusComposer, useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
 interface ProjectSessionDrawerProps {
   opened: boolean;
+  presentation: "sidebar" | "drawer";
   onClose: () => void;
   currentSessionPath: string;
   currentProjectPath: string;
@@ -35,8 +36,23 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
   return project ? project.repositoryPath ?? project.path : undefined;
 }
 
-export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, onClose, currentSessionPath, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionPaths = [] }: ProjectSessionDrawerProps) {
-  const focusReturn = useComposerFocusReturn(opened);
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, presentation, onClose, currentSessionPath, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionPaths = [] }: ProjectSessionDrawerProps) {
+  const focusReturn = useComposerFocusReturn(opened && presentation === "drawer");
+  const sidebarRef = useRef<HTMLElement>(null);
+  const sidebarHadFocus = useRef(false);
+  const previousPresentation = useRef(presentation);
+  useLayoutEffect(() => {
+    const previous = previousPresentation.current;
+    previousPresentation.current = presentation;
+    if (document.querySelector('[role="dialog"]')) return;
+    if (!opened && sidebarHadFocus.current) {
+      sidebarHadFocus.current = false;
+      if (!focusComposer()) document.querySelector<HTMLElement>("[data-projects-toggle]")?.focus();
+    } else if (opened && presentation === "sidebar" && previous === "drawer") {
+      // The removed phone dialog owned focus. Transfer it into its replacement.
+      sidebarRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+  }, [opened, presentation]);
   const [selected, setSelected] = useState<string>();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [expandedArchive, setExpandedArchive] = useState<Record<string, boolean>>({});
@@ -81,7 +97,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
       <SessionRow key={entry.session.path} session={entry.session} label={entry.worktreeLabel ? entry.branch : undefined}
         active={entry.session.path === currentSessionPath} disabled={!group.exists}
         archiveDisabled={pending || running.includes(entry.session.path)}
-        onOpen={() => { openSession(entry.session.path); onClose(); }}
+        onOpen={() => openSession(entry.session.path)}
         onArchive={archiveSession ? () => archive(entry) : undefined} />
     );
     return (
@@ -134,7 +150,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
             <Tooltip label={group.quickChats ? "New chat" : "New session"}>
               <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={!group.exists}
                 aria-label={`New ${group.quickChats ? "chat" : "session"} in ${group.name}`}
-                onClick={() => { newSession(group.path); onClose(); }}>
+                onClick={() => newSession(group.path)}>
                 <IconPlus size={15} />
               </ActionIcon>
             </Tooltip>
@@ -146,18 +162,7 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     );
   }
 
-  return (
-    <Drawer
-      {...focusReturn}
-      opened={opened}
-      onClose={onClose}
-      title="Projects"
-      size={380}
-      styles={{
-        content: { display: "flex", flexDirection: "column", maxWidth: "100vw" },
-        body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
-      }}
-    >
+  const content = <>
       {error ? <Alert color="red" mb="sm" role="alert">{error}</Alert> : null}
       <ScrollArea flex={1} style={{ minHeight: 0 }}>
         <Stack gap={2} className={styles.list}>
@@ -177,6 +182,32 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
         </Stack>
       </ScrollArea>
       <Button variant="default" leftSection={<IconFolder size={16} />} mt="sm" onClick={() => { onClose(); onOpenFolder(); }}>Open folder</Button>
-    </Drawer>
-  );
+  </>;
+
+  if (presentation === "sidebar") {
+    return opened ? (
+      <Box component="nav" aria-label="Projects" data-projects-sidebar ref={sidebarRef}
+        pos="fixed" top={96} bottom={0} left={0} p="sm"
+        className="flex flex-col"
+        style={{ width: "var(--pi-projects-width, 288px)", borderRight: "1px solid var(--mantine-color-default-border)", background: "var(--mantine-color-body)", zIndex: 100 }}
+        onFocusCapture={() => { sidebarHadFocus.current = true; }}
+        onBlurCapture={event => {
+          if (event.relatedTarget) sidebarHadFocus.current = event.currentTarget.contains(event.relatedTarget as Node);
+        }}>
+        <Group justify="space-between" mb="sm">
+          <Text size="sm">Projects</Text>
+          <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Close projects" onClick={onClose}><IconX size={18} /></ActionIcon>
+        </Group>
+        {content}
+      </Box>
+    ) : null;
+  }
+  return <Drawer {...focusReturn} opened={opened} onClose={onClose} title="Projects" size={380}
+    closeButtonProps={{ "aria-label": "Close projects" }}
+    styles={{
+      content: { display: "flex", flexDirection: "column", maxWidth: "100vw" },
+      body: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
+    }}>
+    {content}
+  </Drawer>;
 });

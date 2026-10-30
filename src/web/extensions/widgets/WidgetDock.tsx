@@ -40,7 +40,7 @@ export function WidgetDock({ widgets }: { widgets: readonly Widget[] }) {
       top={WIDGET_DOCK_TOP}
       right={16}
       style={{
-        width: `clamp(200px, calc((100vw - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
+        width: `clamp(200px, calc((100vw - var(--pi-workspace-left, 0px) - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
         maxHeight: `calc(100vh - ${WIDGET_DOCK_TOP + 16}px)`,
         overflowY: "auto",
         zIndex: 100,

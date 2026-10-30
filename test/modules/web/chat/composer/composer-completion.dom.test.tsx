@@ -19,11 +19,11 @@ const confirm = vi.fn();
 vi.mock("../../../../../src/web/ui/confirm/ConfirmDialogProvider.js", () => ({ useConfirmDialog: () => ({ confirm }) }));
 vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ anyOpen: false }) }));
 
-function ComposerContainer(props: { onHeightChange: (height: number) => void }) {
+function ComposerContainer(props: { onHeightChange: (height: number) => void; widgetsDocked: boolean }) {
   return <SessionActionsProvider><ActualComposerContainer {...props} /></SessionActionsProvider>;
 }
 function mount() {
-  return render(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+  return render(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
 }
 function type(input: string, caret = input.length) {
   const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -215,7 +215,7 @@ describe("composer argument completion", () => {
     await act(async () => oldReply([{ value: "old", label: "Old result" }]));
     expect(screen.queryByRole("option", { name: /Old result/ })).toBeNull();
     chat.state = { ...chat.state };
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(screen.getByRole("option", { name: /Staging/ })).toBeTruthy();
     expect(chat.completeCommandArguments).toHaveBeenCalledTimes(2);
     fireEvent.keyDown(textarea, { key: "Enter" });
@@ -255,12 +255,12 @@ describe("composer argument completion", () => {
     fireEvent.keyUp(textarea, { key: "ArrowLeft" });
     await waitFor(() => expect(chat.completeCommandArguments).toHaveBeenLastCalledWith("s1", "deploy", "", expect.any(AbortSignal)));
     chat.app.activeSessionId = "s2";
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(screen.queryByRole("listbox")).toBeNull();
     type("/deploy pr");
     await screen.findByRole("option");
     chat.app.connection = "connecting";
-    view.rerender(<MantineProvider><ComposerContainer onHeightChange={() => {}} /></MantineProvider>);
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 });

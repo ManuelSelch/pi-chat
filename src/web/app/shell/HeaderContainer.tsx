@@ -1,6 +1,7 @@
 import { atHome, visibleTabs } from "../state/app-state.js";
 import { useAppController } from "../AppControllerContext.js";
 import { useOverlays } from "../overlays/OverlayController.js";
+import { focusComposer } from "../../ui/focus/composer-focus.js";
 import { HeaderView } from "./HeaderView.js";
 
 export function HeaderContainer() {
@@ -20,7 +21,11 @@ export function HeaderContainer() {
       activeSessionId={app.activeSessionId}
       buttons={state.extensions.buttons}
       badges={state.extensions.badges}
-      onOpenProjects={() => overlays.open("projects")}
+      projectsOpened={overlays.state.projects}
+      onOpenProjects={() => {
+        overlays.toggle("projects");
+        if (overlays.projectsPresentation === "sidebar") focusComposer();
+      }}
       onOpenSettings={() => overlays.open("settings")}
       onAction={chat.runExtensionAction}
       onFocusTab={chat.focusTab}

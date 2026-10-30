@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
+import { useMediaQuery } from "@mantine/hooks";
 import type { Tab } from "../state/view-types.js";
 
 export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab";
@@ -38,7 +39,9 @@ function reduce(state: OverlayState, action: OverlayAction): OverlayState {
 
 interface OverlayControllerValue {
   state: OverlayState;
+  /** Blocking overlays only; desktop project navigation does not own focus. */
   anyOpen: boolean;
+  projectsPresentation: "sidebar" | "drawer";
   open(name: OverlayName): void;
   close(name: OverlayName): void;
   toggle(name: OverlayName): void;
@@ -50,15 +53,17 @@ const OverlayContext = createContext<OverlayControllerValue | undefined>(undefin
 
 export function OverlayController({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reduce, initialState);
+  const desktop = useMediaQuery("(min-width: 640px)", undefined, { getInitialValueInEffect: false });
   const value = useMemo<OverlayControllerValue>(() => ({
     state,
-    anyOpen: state.projects || state.folderPicker || state.settings || state.quickOpen || state.closingTab !== undefined,
+    projectsPresentation: desktop ? "sidebar" : "drawer",
+    anyOpen: (!desktop && state.projects) || state.folderPicker || state.settings || state.quickOpen || state.closingTab !== undefined,
     open: (name) => dispatch({ type: "open", name }),
     close: (name) => dispatch({ type: "close", name }),
     toggle: (name) => dispatch({ type: "toggle", name }),
     requestCloseTab: (tab) => dispatch({ type: "requestCloseTab", tab }),
     closeAll: () => dispatch({ type: "closeAll" }),
-  }), [state]);
+  }), [state, desktop]);
 
   return <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>;
 }

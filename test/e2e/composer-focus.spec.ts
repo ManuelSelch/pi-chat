@@ -36,7 +36,7 @@ for (const overlay of ["settings", "projects", "folder picker", "quick open"] as
         // This also exercises handover: the older drawer exits while a new modal opens.
         await app.Focus.OpenFolderFromProjects();
         await app.Focus.DismissDialog("Open server folder", "Cancel");
-      } else await app.Focus.DismissDialog("Projects");
+      } else await app.Projects.Close();
     } else {
       await app.Focus.OpenQuickOpen();
       await app.Focus.DismissQuickOpen();

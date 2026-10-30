@@ -11,7 +11,7 @@ import { finishUiTransitions as finishTransitions } from "../../../infra/ui/fini
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
 vi.mock("../../../../src/web/app/use-pi-chat.js", () => ({ usePiChat: () => controller }));
-let controller: AppController;
+let controller: Omit<AppController, "promptPresentation">;
 let view: ReturnType<typeof render>;
 const session = (id = "s1"): ChatState => ({ ...initialChatState, sessionId: id, projectPath: "/project", status: "idle" });
 const tab = (id = "s1", status: "idle" | "running" = "idle") => ({ sessionId: id, title: id, projectPath: "/project", projectName: "project", status });
@@ -53,7 +53,130 @@ beforeEach(() => {
     runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
   };
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
+
+function mountDesktop() {
+  const matchMedia = window.matchMedia;
+  vi.spyOn(window, "matchMedia").mockImplementation(query => ({
+    ...matchMedia(query), matches: query === "(min-width: 640px)",
+  }));
+  mount();
+}
+function openProjects() { click(screen.getByRole("button", { name: "Projects and sessions" })); }
+function projects() { return screen.getByRole("navigation", { name: "Projects" }); }
+
+describe("desktop projects sidebar focus", () => {
+  it("keeps typing usable with projects open and preserves the draft", () => {
+    mountDesktop();
+    fireEvent.change(composer(), { target: { value: "Existing draft" } });
+
+    openProjects();
+
+    expect(projects()).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(composer());
+    expect(composer().value).toBe("Existing draft");
+    fireEvent.keyDown(composer(), { key: "Enter" });
+    expect(controller.prompt).toHaveBeenCalledWith("Existing draft");
+    expect(projects()).toBeTruthy();
+  });
+
+  it("toggles from the header and returns focus after closing inside the sidebar", () => {
+    mountDesktop();
+    openProjects();
+    openProjects();
+    expect(screen.queryByRole("navigation", { name: "Projects" })).toBeNull();
+
+    openProjects();
+    click(within(projects()).getByRole("button", { name: "Close projects" }));
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it("closes on sidebar Escape without aborting, but allows composer Escape to abort", () => {
+    mountDesktop();
+    update({ status: "running" });
+    openProjects();
+    within(projects()).getByRole("button", { name: "Open folder" }).focus();
+
+    escape();
+
+    expect(controller.abort).not.toHaveBeenCalled();
+    expect(screen.queryByRole("navigation", { name: "Projects" })).toBeNull();
+    expect(document.activeElement).toBe(composer());
+    escape();
+    expect(controller.abort).toHaveBeenCalledOnce();
+  });
+
+  it("keeps navigation focus across background updates and gives a real modal ownership", async () => {
+    mountDesktop();
+    openProjects();
+    const folder = within(projects()).getByRole("button", { name: "Open folder" });
+    folder.focus();
+
+    update({ status: "running", steeringMessages: ["Keep working"] });
+    expect(document.activeElement).toBe(folder);
+
+    click(screen.getByRole("button", { name: "Settings" }));
+    await finishTransitions();
+    expectDialogFocus("Settings");
+    expect(projects()).toBeTruthy();
+    escape();
+    await finishTransitions();
+    expect(document.activeElement).toBe(composer());
+    expect(projects()).toBeTruthy();
+    expect(controller.abort).not.toHaveBeenCalled();
+  });
+
+  it("keeps command completion usable while the sidebar is open", () => {
+    mountDesktop();
+    openProjects();
+
+    fireEvent.change(composer(), { target: { value: "/" } });
+
+    expect(screen.getByRole("listbox", { name: "Commands" })).toBeTruthy();
+    expect(projects()).toBeTruthy();
+    escape();
+    expect(screen.queryByRole("listbox", { name: "Commands" })).toBeNull();
+    expect(projects()).toBeTruthy();
+    expect(controller.abort).not.toHaveBeenCalled();
+  });
+
+  it("does not steal resized navigation focus when the phone modal becomes a sidebar", async () => {
+    let desktop = false;
+    let change: ((event: MediaQueryListEvent) => void) | undefined;
+    const matchMedia = window.matchMedia;
+    vi.spyOn(window, "matchMedia").mockImplementation(query => query === "(min-width: 640px)" ? {
+      ...matchMedia(query), matches: desktop,
+      addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => { change = listener; },
+      removeEventListener: vi.fn(),
+    } as MediaQueryList : matchMedia(query));
+    mount();
+    openProjects();
+    await finishTransitions();
+    expectDialogFocus("Projects");
+
+    act(() => { desktop = true; change?.({ matches: true } as MediaQueryListEvent); });
+    await finishTransitions();
+
+    expect(projects().contains(document.activeElement)).toBe(true);
+    expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull();
+    expect(document.body.hasAttribute("data-scroll-locked")).toBe(false);
+    click(within(projects()).getByRole("button", { name: "Close projects" }));
+    expect(document.activeElement).toBe(composer());
+  });
+
+  it("returns focus to the header when closing navigation at Home", () => {
+    controller.app.activeSessionId = "";
+    controller.app.tabs = [];
+    controller.state = initialChatState;
+    mountDesktop();
+    openProjects();
+
+    click(within(projects()).getByRole("button", { name: "Close projects" }));
+
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Projects and sessions" }));
+  });
+});
 
 describe("composer focus across real app overlays", () => {
   it.each([["Settings", "Settings"], ["Projects and sessions", "Projects"]])("restores composer focus after closing %s from its header button", async (button, name) => {

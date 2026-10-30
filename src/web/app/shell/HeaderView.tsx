@@ -13,6 +13,7 @@ interface HeaderViewProps {
   activeSessionId: string;
   buttons: readonly PiChatButton[];
   badges: readonly PiChatBadge[];
+  projectsOpened: boolean;
   onOpenProjects: () => void;
   onOpenSettings: () => void;
   onAction: (actionId: string) => void;
@@ -29,6 +30,7 @@ export function HeaderView({
   activeSessionId,
   buttons,
   badges,
+  projectsOpened,
   onOpenProjects,
   onOpenSettings,
   onAction,
@@ -41,7 +43,7 @@ export function HeaderView({
       <Group h={58} px="lg" justify="space-between" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" miw={0}>
           <Tooltip label="Projects and sessions">
-            <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Projects and sessions" onClick={onOpenProjects}>
+            <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Projects and sessions" data-projects-toggle aria-expanded={projectsOpened} onClick={onOpenProjects}>
               <IconLayoutSidebar size={18} />
             </ActionIcon>
           </Tooltip>

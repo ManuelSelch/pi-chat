@@ -32,7 +32,7 @@ function Contents() {
   const overlays = useOverlays();
   return <SessionActionsProvider>
     <button onClick={() => overlays.open("quickOpen")}>Open palette</button>
-    <QuickOpenContainer /><ComposerContainer onHeightChange={() => {}} />
+    <QuickOpenContainer /><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} />
     <output>{JSON.stringify(overlays.state)}</output>
   </SessionActionsProvider>;
 }

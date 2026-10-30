@@ -9,7 +9,7 @@ import { HeaderContainer } from "../../../../../src/web/app/shell/HeaderContaine
 
 const chat = { app: { ...initialAppState }, state: initialChatState };
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
-vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ open: vi.fn() }) }));
+vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ state: { projects: false }, toggle: vi.fn() }) }));
 afterEach(cleanup);
 
 function snapshot(name: string | undefined, sequence: number, isStreaming = false) {

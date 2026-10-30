@@ -15,6 +15,11 @@ export class BrowserFocusDriver {
     await this.page.keyboard.type(text);
   }
 
+  async SubmitDraft(): Promise<void> {
+    await this.ShouldBeOnComposer();
+    await this.composer.press("Enter");
+  }
+
   async ShouldHaveDraft(text: string): Promise<void> { await expect(this.composer).toHaveValue(text); }
 
   async ShouldBeLoading(): Promise<void> {
@@ -42,8 +47,9 @@ export class BrowserFocusDriver {
   }
 
   async OpenFolderFromProjects(): Promise<void> {
-    await this.page.getByRole("dialog", { name: "Projects", exact: true }).getByRole("button", { name: "Open folder", exact: true }).click();
-    await this.page.getByRole("dialog", { name: "Projects", exact: true }).waitFor({ state: "detached" });
+    const panel = this.page.getByRole("dialog", { name: "Projects", exact: true }).or(this.page.getByRole("navigation", { name: "Projects", exact: true }));
+    await panel.getByRole("button", { name: "Open folder", exact: true }).click();
+    await expect(panel).toHaveCount(0);
     await this.ShouldBeInsideDialog("Open server folder");
   }
 

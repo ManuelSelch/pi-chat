@@ -58,7 +58,7 @@ it("cancels file waits on confirmed close and never replays them after reconnect
 });
 it("dismisses a failed turn from the composer without mutating SDK state", () => {
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
-  render(<MantineProvider><AppControllerProvider><SessionActionsProvider><ComposerContainer onHeightChange={() => {}} /></SessionActionsProvider></AppControllerProvider></MantineProvider>);
+  render(<MantineProvider><AppControllerProvider><SessionActionsProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></SessionActionsProvider></AppControllerProvider></MantineProvider>);
   connect([snapshotData({ sessionId: "s", runtime: { status: "idle", lastError: "Model request failed" } })]); expect(screen.getByRole("alert").textContent).toContain("Model request failed"); fireEvent.click(screen.getByRole("button", { name: "Dismiss error" })); expect(screen.queryByRole("alert")).toBeNull();
 });
 it("correlates completion and folder requests and rejects them on disconnect", async () => {

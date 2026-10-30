@@ -19,6 +19,7 @@ export function ProjectSessionContainer() {
   return (
     <ProjectSessionDrawer
       opened={overlays.state.projects}
+      presentation={overlays.projectsPresentation}
       onClose={onClose}
       currentSessionPath={state.sessionPath ?? ""}
       currentProjectPath={state.projectPath}

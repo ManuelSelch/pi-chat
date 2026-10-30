@@ -46,7 +46,7 @@ export class PiChatBrowserDriver {
     this.Home = new BrowserHomeDriver(page);
     this.Tabs = new BrowserTabsDriver(page, world);
     this.Skills = new BrowserSkillsDriver(page, this.composer);
-    this.Projects = new BrowserProjectsDriver(page);
+    this.Projects = new BrowserProjectsDriver(page, world);
     this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
     this.Extensions = new BrowserExtensionsDriver(widgetFixture);

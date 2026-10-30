@@ -14,13 +14,13 @@ const catalogue: ProjectCatalogue = { projects: [
 ] };
 function show(archiveSession = vi.fn(async () => {})) {
   const pinProject = vi.fn(async () => {}), openSession = vi.fn(), newSession = vi.fn();
-  render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath hideArchivedSessions={false} openSession={openSession} newSession={newSession} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
+  render(<MantineProvider><ProjectSessionDrawer opened presentation="drawer" onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project" catalogue={catalogue} busy={false} showDisplayPath hideArchivedSessions={false} openSession={openSession} newSession={newSession} onOpenFolder={vi.fn()} archiveSession={archiveSession} pinProject={pinProject} /></MantineProvider>);
   return { archiveSession, pinProject, openSession, newSession };
 }
 describe("archive panel", () => {
   it("hides Archived headings and rows by default, including after expanding the archive", () => {
     const drawer = (hideArchivedSessions?: boolean) => <MantineProvider><ProjectSessionDrawer
-      opened onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project"
+      opened presentation="drawer" onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project"
       catalogue={catalogue} busy={false} showDisplayPath hideArchivedSessions={hideArchivedSessions}
       openSession={vi.fn()} newSession={vi.fn()} onOpenFolder={vi.fn()}
     /></MantineProvider>;
@@ -69,7 +69,7 @@ describe("archive panel", () => {
       { ...catalogue.projects[1]!, path: "/repo", name: "Repository", repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "main", detached: false, primary: true } },
       { ...catalogue.projects[0]!, path: "/feature", name: "Feature", pinned: false, repositoryPath: "/repo", repositoryName: "Repository", worktree: { branch: "feature", detached: false, primary: false } },
     ] };
-    render(<MantineProvider><ProjectSessionDrawer opened onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project" catalogue={projects} busy={false} showDisplayPath openSession={vi.fn()} newSession={vi.fn()} onOpenFolder={vi.fn()} /></MantineProvider>);
+    render(<MantineProvider><ProjectSessionDrawer opened presentation="drawer" onClose={vi.fn()} currentSessionPath="/active.jsonl" currentProjectPath="/project" catalogue={projects} busy={false} showDisplayPath openSession={vi.fn()} newSession={vi.fn()} onOpenFolder={vi.fn()} /></MantineProvider>);
     expect(screen.queryByText("Pinned projects")).toBeNull();
     expect(screen.queryByText("Recent projects")).toBeNull();
     for (const pinned of ["A pinned", "Z empty pinned", "Repository"]) {

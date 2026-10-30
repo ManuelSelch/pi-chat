@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { useHotkeys, useMediaQuery } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 import { argumentContext, applyArgumentCompletion } from "./argument-completion.js";
 import { useArgumentCompletion } from "./use-argument-completion.js";
 import { commandQuery, filterCommands, menuItems, type MenuItem } from "./command-menu.js";
@@ -8,17 +8,18 @@ import { useAppController } from "../../app/AppControllerContext.js";
 import { useSessionActions } from "../../sessions/actions/SessionActionsProvider.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
-import { placeWidgets, WIDGET_DOCK_QUERY } from "../../extensions/widgets/widget-placement.js";
+import { placeWidgets } from "../../extensions/widgets/widget-placement.js";
 import { ComposerView } from "./ComposerView.js";
 import { focusComposer } from "../../ui/focus/composer-focus.js";
 
 interface ComposerContainerProps {
   onHeightChange: (height: number) => void;
+  widgetsDocked: boolean;
 }
 
 const DEFAULT_FOOTER_HEIGHT = 170;
 
-export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
+export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerContainerProps) {
   const chat = useAppController();
   const overlays = useOverlays();
   const { actions: sessionActions, error: actionError, clearError: clearActionError } = useSessionActions();
@@ -46,7 +47,7 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
   ];
   const { above: widgetsAbove, below: widgetsBelow } = placeWidgets(
     state.widgets,
-    useMediaQuery(WIDGET_DOCK_QUERY) ?? false,
+    widgetsDocked,
   );
   const canSubmit = !loading && (state.status === "idle" || state.status === "running");
   const query = menuDismissed || !canSubmit ? undefined : commandQuery(input);
@@ -164,11 +165,17 @@ export function ComposerContainer({ onHeightChange }: ComposerContainerProps) {
     }
   }
 
+  const previousReadiness = useRef({ sessionId: app.activeSessionId, loading });
   useLayoutEffect(() => {
+    const previous = previousReadiness.current;
+    previousReadiness.current = { sessionId: app.activeSessionId, loading };
+    // A phone drawer becoming navigation transfers focus into that navigation.
+    // Only a real session/readiness change may override that deliberate focus.
+    if (previous.sessionId === app.activeSessionId && previous.loading === loading && document.activeElement?.closest("[data-projects-sidebar]")) return;
     // Readiness/tab changes request focus; overlay exit callbacks finish any
     // request blocked by a still-mounted dialog or its exit transition.
     focus();
-  }, [app.activeSessionId, focus]);
+  }, [app.activeSessionId, loading, focus]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;

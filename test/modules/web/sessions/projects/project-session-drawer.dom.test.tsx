@@ -45,12 +45,13 @@ const groupedCatalogue: ProjectCatalogue = {
 
 afterEach(cleanup);
 
-function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string; currentSessionPath?: string; hideArchivedSessions?: boolean } = {}) {
+function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: string; currentSessionPath?: string; hideArchivedSessions?: boolean; presentation?: "sidebar" | "drawer" } = {}) {
   const archiveSession = vi.fn(async () => undefined), pinProject = vi.fn(async () => undefined), removeProject = vi.fn(async () => undefined), openSession = vi.fn(), newSession = vi.fn(), onOpenFolder = vi.fn();
+  const onClose = vi.fn();
   const drawer = (data: ProjectCatalogue) => (
     <MantineProvider>
       <ProjectSessionDrawer
-        opened onClose={vi.fn()} currentSessionPath={options.currentSessionPath ?? "/sessions/current.jsonl"} currentProjectPath={options.currentPath ?? "/work/current"}
+        opened presentation={options.presentation ?? "drawer"} onClose={onClose} currentSessionPath={options.currentSessionPath ?? "/sessions/current.jsonl"} currentProjectPath={options.currentPath ?? "/work/current"}
         catalogue={data} busy={options.busy ?? false} showDisplayPath hideArchivedSessions={options.hideArchivedSessions ?? false}
         openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
         archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
@@ -58,10 +59,30 @@ function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: 
     </MantineProvider>
   );
   const { rerender } = render(drawer(options.data ?? catalogue));
-  return { archiveSession, pinProject, openSession, newSession, onOpenFolder, updateCatalogue: (data: ProjectCatalogue) => rerender(drawer(data)) };
+  return { archiveSession, pinProject, openSession, newSession, onOpenFolder, onClose, updateCatalogue: (data: ProjectCatalogue) => rerender(drawer(data)) };
 }
 
 describe("ProjectSessionDrawer", () => {
+  it("renders desktop navigation without a dialog or focus trap", () => {
+    show({ presentation: "sidebar" });
+
+    expect(screen.getByRole("navigation", { name: "Projects" })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "Close projects" })).toBeTruthy();
+  });
+
+  it.each(["sidebar", "drawer"] as const)("keeps %s open after selecting or creating a session", presentation => {
+    const { openSession, newSession, onClose } = show({ presentation });
+
+    fireEvent.click(screen.getByText("Current chat"));
+    expect(openSession).toHaveBeenCalledWith("/sessions/current.jsonl");
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "New session in other" }));
+    expect(newSession).toHaveBeenCalledWith("/work/other");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it.each([
     { currentSessionPath: "/sessions/main.jsonl", label: "Main chat" },
     { currentSessionPath: "/sessions/feature.jsonl", label: "feat/worktree-projects-panel" },
