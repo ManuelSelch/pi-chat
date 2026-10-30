@@ -79,7 +79,7 @@
 | [docs/tagged-dependencies/DESIGN.md](../../docs/tagged-dependencies/DESIGN.md) | 2962 | 23 | 0 |
 | [docs/tagged-dependencies/REQUIREMENTS.md](../../docs/tagged-dependencies/REQUIREMENTS.md) | 9668 | 46 | 0 |
 | [docs/usage.md](../../docs/usage.md) | 5721 | 108 | 2 |
-| [docs/web-organization/REQUIREMENTS.md](../../docs/web-organization/REQUIREMENTS.md) | 23058 | 314 | 2 |
+| `docs/web-organization/REQUIREMENTS.md` (retired; [current guidance](../../docs/development.md#frontend-organization)) | 23058 | 314 | 2 |
 | [docs/websocket-logging/REQUIREMENTS.md](../../docs/websocket-logging/REQUIREMENTS.md) | 4739 | 50 | 1 |
 | [docs/widget-colors/ANSI-PROBE.md](../../docs/widget-colors/ANSI-PROBE.md) | 7980 | 93 | 2 |
 | [docs/widget-colors/DESIGN.md](../../docs/widget-colors/DESIGN.md) | 7018 | 65 | 0 |
@@ -431,6 +431,8 @@
 - [docs/pi-server-extraction/INVENTORY.md](../../docs/pi-server-extraction/INVENTORY.md), line 69.
 
 ### docs/web-organization/REQUIREMENTS.md
+
+- Retired in the first small migration; current guidance is in [Development](../../docs/development.md#frontend-organization). The locations below describe the original inventory baseline, not live dependencies.
 
 - [docs/development.md](../../docs/development.md), line 101.
 - [docs/pi-server-extraction/INVENTORY.md](../../docs/pi-server-extraction/INVENTORY.md), line 70.

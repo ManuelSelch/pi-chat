@@ -87,17 +87,32 @@ Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests
 - `extensions/`: runtime slots, prompts, widgets, and footer metadata.
 - `ui/`: application-independent primitives, theme, and generic confirmation.
 
-Application services depend on shared types and other services, not presentation.
-Feature containers may consume app context/state and overlay coordination; views
-stay prop-driven. Only app composition imports the shell and `AppOverlays`.
-Shared UI has no app/feature dependencies; extension views do not import chat or
-shell components. Use direct file imports, including type-only imports, without
-barrels or compatibility shims.
+These are responsibility groups, not strict architectural layers. Containers
+bind application context/state and overlay coordination to prop-driven views;
+shared `ui/` primitives have no app/feature imports. App composition imports the
+shell and `AppOverlays`; features do not import those composition components.
 
-`AppOverlays` assembles overlays in their existing order; providers remain in
-`App`. Settings stays mounted while closed to preserve chime playback. App owns
-Home/transcript selection, composer height, and widget docking.
+`app/state/` and `app/connection/` depend on SDK/shared types and application
+state, not feature presentation. The composition boundary is broader:
+`usePiChat` integrates Inbox lifecycle and endpoint loading, while
+`AppControllerProvider` composes prompt presentation, runtime themes, session
+drafts and file actions. Most imports address files directly; server settings
+has an existing public entry point at `settings/server/index.ts`. Include
+type-only imports when reviewing dependency boundaries.
 
-See the [web organization plan](web-organization/REQUIREMENTS.md) for detailed
-boundaries and migration history, and the [architecture overview](architecture.md)
-for component diagrams and data flow.
+`AppOverlays` assembles runtime prompts, session dialogs, Quick Switcher,
+Inbox/Projects navigation, folder selection and Settings. Settings stays mounted
+while closed to preserve chime playback. App owns Home/transcript selection,
+composer height and responsive workspace geometry. Widget rendering, dock
+geometry and pure placement rules live separately in `extensions/widgets/`;
+App and the composer share the placement helper.
+
+Runtime prompts represent server/extension interactions, distinct from generic
+application confirmations in `ui/confirm/`. Rich prompts reuse chat's lazy
+Markdown renderer; it is not exclusively a transcript/tool dependency. Home and
+Quick Switcher share ranking helpers within `sessions/`. Global layer order,
+Markdown styles and shared animations remain in `app/styles.css`; component CSS
+modules stay beside their consumers.
+
+See the [architecture overview](architecture.md) for component diagrams and data
+flow, and the [testing guide](../test/README.md) for permanent workflow coverage.
