@@ -31,6 +31,44 @@ test("parks and explicitly resumes a saved conversation without losing its draft
   await app.Inbox.shouldHaveLater(0, true);
 });
 
+for (const action of ["close", "snooze", "archive"] as const) {
+  test(`${action} current session returns Home with another session still open`, async () => {
+    await savedConversation();
+    await app.Inbox.create({ responses: [{ prompt: "Other conversation", reply: "Other saved response" }] });
+    await app.Chat.SendPrompt("Other conversation");
+    await app.Chat.ShouldShowAssistantReply("Other saved response");
+    await app.Inbox.select("Inbox conversation");
+
+    if (action === "close") await app.Inbox.closeView();
+    else if (action === "snooze") await app.Inbox.parkCurrent();
+    else await app.Inbox.archiveCurrent();
+
+    await app.Inbox.shouldShowHome();
+    await app.Inbox.shouldBeInSection("Other conversation", "Ready");
+    if (action === "close") await app.Inbox.shouldBeInSection("Inbox conversation", "Ready");
+    if (action === "snooze") await app.Inbox.shouldHaveLater(1);
+    if (action === "archive") await app.Inbox.shouldHaveNoArchiveNotice();
+
+    await app.Inbox.select("Other conversation");
+    await app.Chat.ShouldShowAssistantReply("Other saved response");
+  });
+}
+
+for (const action of ["snooze", "archive"] as const) {
+  test(`${action} a background session does not leave the current conversation`, async () => {
+    await savedConversation();
+    await app.Inbox.create({ responses: [{ prompt: "Other conversation", reply: "Other saved response" }] });
+    await app.Chat.SendPrompt("Other conversation");
+    await app.Chat.ShouldShowAssistantReply("Other saved response");
+
+    if (action === "snooze") await app.Inbox.parkReady("Inbox conversation");
+    else await app.Inbox.archiveReady("Inbox conversation");
+
+    await app.Chat.ShouldShowAssistantReply("Other saved response");
+    await app.Inbox.shouldBeInSection("Other conversation", "Ready");
+  });
+}
+
 test("remembers Later across reload and search does not expand it", async () => {
   await savedConversation();
   await app.Inbox.parkCurrent();

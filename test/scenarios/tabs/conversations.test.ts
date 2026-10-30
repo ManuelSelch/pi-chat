@@ -92,6 +92,12 @@ it("closes the active tab, preserves the other conversation, and returns home", 
   const second = await app.Tabs.Create();
   await app.Tabs.Close(second);
 
+  app.Browser.ShouldBeAtHome();
+  app.Tabs.ShouldContain([first]);
+  app.Tabs.ShouldHaveCount(1);
+
+  await app.Tabs.SwitchTo(first);
+
   app.Tabs.ShouldBeActive(first);
   app.Tabs.ShouldHaveCount(1);
   app.Chat.ShouldHaveAssistantReply("Kept.");

@@ -15,16 +15,15 @@ test("hides archived sessions by default and persists opting back into Archived 
   await app.Settings.Open();
   await app.Settings.ShouldHideArchivedSessions(true);
   await app.Settings.Close();
-  const target = await app.Tabs.Create({ responses: [{ prompt: "Archive this conversation", reply: "Ready to archive" }] });
-  await app.Chat.SendPrompt("Archive this conversation");
-  await app.Chat.ShouldShowAssistantReply("Ready to archive");
-  await app.Chat.ShouldBeIdle();
-
-  await app.Tabs.Create({ responses: [{ prompt: "Keep this conversation", reply: "Still open" }] });
+  const remaining = await app.Tabs.Create({ responses: [{ prompt: "Keep this conversation", reply: "Still open" }] });
   await app.Chat.SendPrompt("Keep this conversation");
   await app.Chat.ShouldShowAssistantReply("Still open");
   await app.Chat.ShouldBeIdle();
-  await app.Tabs.SwitchTo(target);
+
+  await app.Tabs.Create({ responses: [{ prompt: "Archive this conversation", reply: "Ready to archive" }] });
+  await app.Chat.SendPrompt("Archive this conversation");
+  await app.Chat.ShouldShowAssistantReply("Ready to archive");
+  await app.Chat.ShouldBeIdle();
 
   await app.Projects.Open();
   await app.Projects.ShouldShowActiveSession("Archive this conversation");
@@ -32,7 +31,9 @@ test("hides archived sessions by default and persists opting back into Archived 
   await app.Projects.ShouldNotShowSession("Archive this conversation");
   await app.Projects.ShouldHideArchivedSection();
   await app.Projects.Close();
+  await app.Home.ShouldBeVisible();
 
+  await app.Tabs.SwitchTo(remaining);
   await app.Settings.Open();
   await app.Settings.SetHideArchivedSessions(false);
   await app.Settings.Close();

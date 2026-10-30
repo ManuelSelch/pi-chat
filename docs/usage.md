@@ -40,6 +40,9 @@ or dismiss a prompt.
   return. Empty idle sessions are closed and removed from live inventory.
 - **Archive** is separate from Later. It preserves the saved transcript without
   showing a success notice or Undo action. Restore sessions through archived history.
+- Closing, moving to Later or archiving the current session returns to Home,
+  even when other sessions are open. Acting on a different session in the sidebar
+  leaves the current conversation visible.
 - Drafts survive switching and parking/resuming during the page lifetime,
   but not browser reloads.
 - Single-session linked-worktree rows show just the project and branch. Hover

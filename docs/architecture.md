@@ -89,7 +89,11 @@ status; Ready includes all remaining idle conversations except browser-local
 Later membership. Selecting unloaded history opens its path; loaded rows focus
 their runtime. It does not introduce unread-response state. Explicitly closing a
 view clears selection and restores the original Home; empty idle runtimes also
-close. SDK updates preserve deliberate deselection.
+close. Removing the selected runtime during a live connection (including parking or
+archiving it) also restores Home rather than selecting another runtime. Background
+session actions leave the current selection intact. SDK updates preserve deliberate
+deselection; runtime replacement transfers selection, while startup/reconnect retain
+their existing selection fallback.
 
 `sessions/inbox` owns pure row/reconciliation rules, server-endpoint-scoped
 localStorage membership, lifecycle coordination and component/container UI.

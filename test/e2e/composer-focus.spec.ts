@@ -105,15 +105,19 @@ for (const cancel of ["Escape", "Keep open"] as const) {
   });
 }
 
-test("focuses the remaining conversation after accepting close of a running session", async () => {
-  await app.Tabs.Create({ responses: [] });
+test("returns Home after closing a running session and focuses the remaining conversation on explicit selection", async () => {
+  const remaining = await app.Tabs.Create({ responses: [] });
   const running = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.Chat.SendPrompt("Start working");
   await app.Chat.ShouldBeSteering();
   await app.Tabs.RequestClose(running);
   await app.Focus.ShouldBeInsideDialog("Close running session?");
   await app.Focus.AcceptCloseRunningSession();
+
+  await app.Home.ShouldBeVisible();
   await app.Tabs.ShouldHaveCount(1);
+
+  await app.Tabs.SwitchTo(remaining);
   await app.Focus.TypeWithoutRefocusing("Remaining conversation draft");
   await app.Focus.ShouldHaveDraft("Remaining conversation draft");
 });

@@ -62,8 +62,27 @@ it("restores local focus when the selected runtime survives reconnect and falls 
   expect(state.activeSessionId).toBe("a");
   expect(state.sessions.b).toBeUndefined();
 });
-it("prunes closed projections and selects a remaining visible conversation", () => {
-  state = harness.reduce(state, coreEvent("session.closed", { reason: "requested" }, "a", 1)); expect(state.sessions.a).toBeUndefined(); expect(state.activeSessionId).toBe("b");
+it("returns Home when the selected runtime closes instead of selecting another conversation", () => {
+  state = harness.reduce(state, coreEvent("session.closed", { reason: "requested" }, "a", 1));
+
+  expect(state.sessions.a).toBeUndefined();
+  expect(state.activeSessionId).toBe("");
+  expect(atHome(state)).toBe(true);
+  expect(activeSession(state).messages).toEqual([]);
+  expect(state.tabs.map(tab => tab.sessionId)).toEqual(["b"]);
+
+  state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "background" }, "b", 1));
+
+  expect(atHome(state)).toBe(true);
+  expect(state.activeSessionId).toBe("");
+  expect(state.sessions.b?.draft?.text).toBe("background");
+});
+it("closing a background runtime preserves the selected conversation", () => {
+  state = harness.reduce(state, coreEvent("session.closed", { reason: "requested" }, "b", 1));
+
+  expect(state.activeSessionId).toBe("a");
+  expect(atHome(state)).toBe(false);
+  expect(activeSession(state).messages[0]).toMatchObject({ text: "first" });
 });
 it("ignores stale correlated results without transcript, error or navigation changes", () => {
   const previous = { ...state, error: "existing" }; expect(harness.reduce(previous, { version: 2, type: "response", requestId: "missing", ok: false, error: { code: "notFound", message: "file missing" } })).toBe(previous);

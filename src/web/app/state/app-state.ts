@@ -89,12 +89,16 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
     return [id, projectChatState(next, previous, event, hiddenErrors[id], source)];
   }));
   const tabs = sdk.inventory === state.sdkInventory ? state.tabs : sdk.inventory.map(tab => ({ ...tab, status: tab.status === "closing" ? "blocked" as const : tab.status }));
-  // A runtime switch replaces the selected identity; transfer focus to the new
-  // identity before the generic removal fallback can select another tab.
+  // A runtime switch replaces the selected identity; transfer focus before
+  // treating a missing selected runtime as a closed conversation.
   const replacement = message?.type === "event" && message.event === "session.replaced" ? message.data : undefined;
   const selectedId = replacement?.previousSessionId === state.activeSessionId ? replacement.snapshot.sessionId : state.activeSessionId;
+  const selectedRemoved = state.connection === "open" && sdk.connection.phase === "ready"
+    && state.tabs.some(tab => tab.sessionId === state.activeSessionId)
+    && !tabs.some(tab => tab.sessionId === selectedId);
+  const viewClosed = state.viewClosed || selectedRemoved;
   let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
-    tabs, activeSessionId: state.viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
+    tabs, viewClosed, activeSessionId: viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, catalogueKnown: sdk.projectsRevision > 0, appFeatures: sdk.features };
   if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };
