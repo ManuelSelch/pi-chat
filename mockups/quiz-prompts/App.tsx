@@ -26,7 +26,7 @@ export function App() {
  {status!=="pending"&&<Paper p="md" withBorder mt="lg"><Text size="sm">{status==="submitted"?"Answer and reasoning submitted. This preview does not grade or run the next question.":"Quiz cancelled. No answer submitted."}</Text><Button variant="subtle" mt="xs" size="xs" onClick={()=>chooseState("select")}>Restart preview</Button></Paper>}
  </main>
  <footer className="composer-area"><div className="composer-inner">
- {status==="pending"&&minimized&&<PendingPrompt stage={stage} hasDraft={Boolean(answer||reasoning)} onOpen={()=>setMinimized(false)}/>}
+ {status==="pending"&&minimized&&<PendingPrompt stage={stage} onOpen={()=>setMinimized(false)}/>}
  <Paper className="composer" p="md" withBorder><Textarea aria-label="Chat message" variant="unstyled" minRows={2} placeholder={status==="pending"?"Read the explanation, then reopen the pending question…":"Message Pi…"} disabled={status==="pending"}/><Group justify="space-between"><Text size="xs" c="dimmed">{status==="pending"?"Pi is waiting for your answer":"Preview only"}</Text><ActionIcon aria-label="Send message" variant="filled" disabled><IconArrowUp size={17}/></ActionIcon></Group></Paper>
  <Text className="runtime-label" size="xs" c="dimmed">One small topic · Adaptive checks · No mastery score</Text>
  </div></footer>
