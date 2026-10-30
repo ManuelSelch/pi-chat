@@ -11,3 +11,4 @@ dist/
 .quiz-prompts-runtime.json
 
 .projects-sidebar-runtime.json
+.session-inbox-runtime.json
