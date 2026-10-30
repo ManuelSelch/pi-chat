@@ -65,6 +65,10 @@ export class BrowserSkillsDriver {
     await expect(card).toContainText(`/skills/${name}/SKILL.md`);
   }
   async ShouldHaveRead(name: string, instructions: string): Promise<void> {
+    // Compact transcript is the default, so tool cards render inside a collapsed
+    // "Used …" group; expand it before interacting with the inner card.
+    const group = this.page.getByTestId("tool-group");
+    if (await group.count()) await group.locator("> summary").click();
     const card = this.page.getByTestId("tool-card");
     await expect(card).toHaveCount(1);
     await expect(card.locator("summary")).toHaveText(`[skill]${name}`);

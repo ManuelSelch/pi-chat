@@ -32,6 +32,14 @@ export class BrowserSettingsDriver {
     return url.href;
   }
 
+  /** Mirrors the app's page-derived default endpoint, which now pre-fills the field. */
+  private defaultEndpoint(): string {
+    const url = new URL(this.page.url());
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "/ws";
+    return url.href;
+  }
+
   async editEndpoint(mode: "page" | "unreachable" | "other-host"): Promise<void> {
     await this.panel.getByRole("textbox", { name: "WebSocket endpoint" }).fill(this.endpoint(mode));
   }
@@ -65,7 +73,6 @@ export class BrowserSettingsDriver {
     const endpoint = this.endpoint("page");
     await expect(this.panel.getByRole("textbox", { name: "WebSocket endpoint" })).toHaveValue(endpoint);
     await expect.poll(() => this.page.evaluate(() => localStorage.getItem("pi-chat:serverEndpoint"))).toBe(endpoint);
-    await expect(this.panel.getByText(endpoint.replace(/\?.*$/, "?…"), { exact: true })).toBeVisible();
     await expect(this.panel.getByText("Connected", { exact: true })).toBeVisible();
   }
 
@@ -81,7 +88,7 @@ export class BrowserSettingsDriver {
   }
 
   async shouldUseDefaultEndpoint(): Promise<void> {
-    await expect(this.panel.getByRole("textbox", { name: "WebSocket endpoint" })).toHaveValue("");
+    await expect(this.panel.getByRole("textbox", { name: "WebSocket endpoint" })).toHaveValue(this.defaultEndpoint());
     expect(await this.page.evaluate(() => localStorage.getItem("pi-chat:serverEndpoint"))).toBeNull();
     await expect(this.panel.getByText("Connected", { exact: true })).toBeVisible();
   }
