@@ -14,7 +14,10 @@ const chat = {
   state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as typeof initialChatState.status, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),
   prompt: vi.fn(),
+  closeTab: vi.fn(),
   archiveSession: vi.fn().mockResolvedValue(undefined),
+  inboxEnabled: false,
+  inbox: { park: vi.fn() },
 };
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 const confirm = vi.fn();
@@ -40,6 +43,7 @@ beforeEach(() => {
   chat.state.sessionName = undefined;
   chat.state.sessionPath = undefined;
   chat.state.status = "idle";
+  chat.inboxEnabled = false;
   chat.archiveSession.mockResolvedValue(undefined);
   confirm.mockResolvedValue(false);
   chat.completeCommandArguments.mockResolvedValue([{ value: "staging", label: "Staging", description: "Test environment" }]);
@@ -54,7 +58,7 @@ describe("composer session actions", () => {
     const textarea = type("/");
     expect(screen.queryByRole("option", { name: /Rename session/ })).toBeNull();
     expect(screen.getByRole("option", { name: /New session/ })).toBeTruthy();
-    expect(screen.getByRole("option", { name: /Close tab/ })).toBeTruthy();
+    expect(screen.getByRole("option", { name: /Close Session/ })).toBeTruthy();
     expect(screen.queryByRole("option", { name: /Delete session/ })).toBeNull();
     type("/archive");
     fireEvent.keyDown(textarea, { key: "Enter" });
@@ -84,15 +88,40 @@ describe("composer session actions", () => {
     expect(chat.prompt).not.toHaveBeenCalled();
   });
 
-  it("does not offer or execute archive while the session is running", () => {
+  it("keeps Archive Session listed but disabled while the session is running", () => {
     chat.state.sessionPath = "/sessions/s1.jsonl";
     chat.state.status = "running";
     mount();
     const textarea = type("/archive");
-    expect(screen.queryByRole("option", { name: /Archive session/ })).toBeNull();
+    expect(screen.getByRole("option", { name: /Archive Session/ }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(chat.archiveSession).not.toHaveBeenCalled();
     expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
+  it("runs an exact /close submission after dismissing completion", async () => {
+    mount();
+    const textarea = type("/close");
+    fireEvent.keyDown(textarea, { key: "Escape" });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    expect(chat.closeTab).toHaveBeenCalledWith("s1");
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
+  it("enables Later once a running Inbox session completes, then parks it", () => {
+    chat.inboxEnabled = true;
+    (chat.app as { catalogue?: unknown }).catalogue = { projects: [{ path: "/repo", name: "repo", sessions: [{ path: "/sessions/s1.jsonl", title: "One", modified: 0, messageCount: 1 }] }] };
+    chat.state.sessionPath = "/sessions/s1.jsonl";
+    chat.state.status = "running";
+    const view = mount();
+    type("/");
+    expect(screen.getByRole("option", { name: /Later/ }).getAttribute("aria-disabled")).toBe("true");
+    chat.state.status = "idle";
+    view.rerender(<MantineProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></MantineProvider>);
+    const later = screen.getByRole("option", { name: /Later/ });
+    expect(later.getAttribute("aria-disabled")).toBeNull();
+    fireEvent.mouseDown(later);
+    expect(chat.inbox.park).toHaveBeenCalledWith("s1");
   });
 });
 

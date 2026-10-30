@@ -2,6 +2,8 @@ export interface SessionAction {
   id: string;
   name: string;
   description: string;
+  /** Listed but not runnable while the underlying session state forbids it. */
+  disabled?: boolean;
   run(): void;
 }
 
@@ -16,7 +18,8 @@ export interface SessionActionState {
 
 export interface SessionActionOperations {
   newSession(path?: string): void;
-  closeTab(sessionId: string): void;
+  closeSession(sessionId: string): void;
+  parkSession(sessionId: string): void;
   archiveSession(sessionId: string, path: string): void;
   openFolder(): void;
   openSettings(): void;
@@ -31,17 +34,29 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
       if (sessionCurrent()) operations.newSession(state.sessionId ? state.projectPath : undefined);
     } });
     if (state.sessionId) {
-      if (state.navigation === "tabs" || (!state.busy && state.sessionPath)) actions.push({
-        id: "close-tab", name: state.navigation === "inbox" ? "Move to Later" : "Close tab",
-        description: state.navigation === "inbox" ? "Park this idle conversation for later" : "Close this session's tab", run: () => {
-          const latest = current();
-          if (sessionCurrent() && latest.navigation === state.navigation && (state.navigation === "tabs" || (!latest.busy && latest.sessionPath === state.sessionPath))) operations.closeTab(state.sessionId);
+      actions.push({
+        id: "close-session", name: "Close Session",
+        description: state.navigation === "inbox" ? "Close this session and keep it in Ready" : "Close this session's tab", run: () => {
+          if (sessionCurrent()) operations.closeSession(state.sessionId);
         },
       });
-      if (state.sessionPath && !state.busy) actions.push({ id: "archive-session", name: "Archive session", description: "Keep this session in Archived and close its tab", run: () => {
-        const latest = current();
-        if (sessionCurrent() && !latest.busy && latest.sessionPath === state.sessionPath) operations.archiveSession(state.sessionId, state.sessionPath!);
-      } });
+      if (state.navigation === "inbox") actions.push({
+        id: "later-session", name: "Later",
+        description: "Park this idle conversation for later",
+        disabled: state.busy || !state.sessionPath,
+        run: () => {
+          const latest = current();
+          if (sessionCurrent() && !latest.busy && latest.sessionPath === state.sessionPath) operations.parkSession(state.sessionId);
+        },
+      });
+      actions.push({
+        id: "archive-session", name: "Archive Session", description: "Keep this session in Archived and close its tab",
+        disabled: state.busy || !state.sessionPath,
+        run: () => {
+          const latest = current();
+          if (sessionCurrent() && !latest.busy && latest.sessionPath === state.sessionPath) operations.archiveSession(state.sessionId, state.sessionPath!);
+        },
+      });
     }
   }
   actions.push(

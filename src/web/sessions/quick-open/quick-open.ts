@@ -66,7 +66,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionPath
   }
 
   return [...sessions, ...projects, ...actions.map((action): QuickOpenItem => ({
-    kind: "action", action, path: action.id, title: action.name, project: action.description, modified: 0,
+    kind: "action", action, path: action.id, title: action.name, project: action.description, modified: 0, disabled: action.disabled,
   }))];
 }
 

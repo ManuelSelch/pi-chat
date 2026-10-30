@@ -33,6 +33,7 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               ref={index === activeIndex ? activeRef : undefined}
               role="option"
               aria-selected={index === activeIndex}
+              aria-disabled={command.kind === "action" && command.disabled ? true : undefined}
               onPointerMove={(event) => {
                 if (index !== activeIndex) mouseActive.current = index;
                 onPointerMove(event, index, activeIndex, onHover);
@@ -43,10 +44,11 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               style={{
                 borderRadius: "var(--mantine-radius-sm)",
                 background: index === activeIndex ? THEME.surface.panelHover : undefined,
+                opacity: command.kind === "action" && command.disabled ? 0.45 : undefined,
               }}
             >
               <Group gap={6} wrap="nowrap">
-                <Text size="sm" fw={600}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.name}`}</Text>
+                <Text size="sm" fw={600} c={command.kind === "action" && command.disabled ? "dimmed" : undefined}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.name}`}</Text>
                 {command.kind === "command" && command.argumentHint ? <Text size="xs" c="dimmed">{command.argumentHint}</Text> : null}
                 {command.kind !== "argument" ? <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge> : null}
               </Group>
