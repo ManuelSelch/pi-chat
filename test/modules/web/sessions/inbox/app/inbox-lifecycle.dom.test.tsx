@@ -43,6 +43,20 @@ it("parks an unloaded saved conversation without opening or closing a runtime", 
   expect(operations.open).not.toHaveBeenCalled();
 });
 
+it("retains Later subtitles while an unsaved sibling exists and compacts when it closes", () => {
+  app = { ...app, tabs: [{ ...app.tabs[0]!, sessionId: "unsaved", sessionPath: undefined, title: "New conversation" }], catalogue: { projects: app.catalogue.projects.map(project => ({ ...project, worktree: { primary: false, detached: false, branch: "feat/worktree" } })) } };
+  saveLater(endpoint, [{ path: "/a", phase: "parked" }]);
+  const { result, rerender } = mount();
+
+  expect(result.current.later[0]).toMatchObject({ primaryLabel: "feat/worktree", secondaryLabel: "A" });
+
+  app = { ...app, tabs: [] };
+  rerender();
+
+  expect(result.current.later[0]?.secondaryLabel).toBeUndefined();
+  expect(result.current.later[0]?.title).toBe("A");
+});
+
 it("selects unloaded Ready history by path and focuses a loaded runtime without reopening it", async () => {
   const { result, rerender } = mount();
 

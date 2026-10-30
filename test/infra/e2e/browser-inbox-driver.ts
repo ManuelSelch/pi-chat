@@ -144,15 +144,36 @@ export class BrowserInboxDriver {
     const metadata = button.locator(":scope > div").first();
     await expect(metadata.locator(":scope > span").nth(1)).toHaveText(projectName);
   }
+  async shouldShowCompactWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
+    const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
+    await expect(button).toHaveAttribute("title", title);
+    await expect(button.getByTitle(branch, { exact: true })).toBeVisible();
+    await expect(button.getByText(title, { exact: true })).toHaveCount(0);
+    await expect(button.locator(":scope > *")).toHaveCount(2);
+    const metadata = button.locator(":scope > div").first();
+    await expect(metadata.getByRole("img")).toBeVisible();
+    if (!later) await expect(metadata.locator(":scope > span").last()).toHaveText(/^(just now|\d+[mhd])$/);
+    const row = button.locator("..");
+    const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
+    if (await archive.count()) {
+      await row.hover();
+      const primaryBox = await button.getByTitle(branch, { exact: true }).boundingBox();
+      const actionBox = await archive.boundingBox();
+      expect(primaryBox!.x + primaryBox!.width).toBeLessThanOrEqual(actionBox!.x);
+    }
+  }
   async shouldShowWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
     const primary = button.getByTitle(branch, { exact: true });
-    const secondary = button.getByTitle(title, { exact: true });
+    const secondary = button.locator("p").getByText(title, { exact: true });
     await expect(primary).toBeVisible();
     await expect(secondary).toBeVisible();
-    const primarySize = await primary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
-    const secondarySize = await secondary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
-    expect(primarySize).toBeGreaterThan(secondarySize);
+    // Responsive drawer replacement can detach nodes between visibility and style reads.
+    await expect.poll(async () => {
+      const primarySize = await primary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+      const secondarySize = await secondary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+      return primarySize - secondarySize;
+    }).toBeGreaterThan(0);
     const primaryBox = await primary.boundingBox();
     const secondaryBox = await secondary.boundingBox();
     expect(primaryBox!.x).toBe(secondaryBox!.x);

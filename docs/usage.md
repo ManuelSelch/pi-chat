@@ -42,8 +42,11 @@ or dismiss a prompt.
   showing a success notice or Undo action. Restore sessions through archived history.
 - Drafts survive switching and parking/resuming during the page lifetime,
   but not browser reloads.
-- Linked-worktree rows show the branch prominently and the conversation title
-  below in smaller text. Main checkouts keep the conversation title prominent.
+- Single-session linked-worktree rows show just the project and branch. Hover
+  the row for its conversation title; title search and action names are unchanged.
+  Worktrees with multiple unarchived conversations retain smaller title subtitles
+  to distinguish them, including conversations in Later. Main checkouts keep
+  the conversation title prominent. Recency uses compact `1m`, `2h`, `3d` labels.
   Status dots sit beside project names. While a session is running, its row and
   header hide Move to Later (pause icon) and Archive actions; Close view remains available.
 - The sidebar's bottom gear opens Settings. If the sidebar is hidden, reopen

@@ -95,6 +95,12 @@ close. SDK updates preserve deliberate deselection.
 localStorage membership, lifecycle coordination and component/container UI.
 The model derives primary/secondary row labels from checkout metadata: linked
 worktrees promote their branch, while main checkouts retain the session title.
+A single-conversation linked checkout omits the subtitle; multiple conversations
+retain titles for disambiguation. Counts include unarchived catalogue history
+(including Later) and unsaved live siblings, deduplicated against saved paths,
+before status/search filtering. Later derives labels with the same live inventory.
+The row exposes its full title on hover and uses suffix-free recency locally;
+shared Home/Quick Switcher time formatting is unchanged.
 Project context uses the catalogue repository name rather than the checkout folder
 name for both live and saved rows; before discovery, live rows retain the runtime
 project name.
