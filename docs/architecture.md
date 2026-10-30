@@ -94,7 +94,9 @@ Original titles and stable path/runtime identities remain unchanged for search
 and lifecycle actions; the view only renders the derived labels.
 Parking a loaded runtime stores intent before calling the existing close operation;
 parking unloaded history only stores membership. Resume uses
-the existing open operation; archive/Undo use existing archive operations.
+the existing open operation; archive uses the existing server archive operation.
+Successful archives do not create page-lifetime Undo state or a success notice;
+Inbox notices display dismissible errors only.
 Authoritative inventory and catalogue updates resolve pending intents and
 remove archived, missing or externally reopened entries. Reconciliation waits for
 a published catalogue revision: revision zero is the server cold-start placeholder,

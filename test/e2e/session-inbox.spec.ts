@@ -64,34 +64,32 @@ test("closing the view preserves background work and completion becomes Ready wi
   await app.Inbox.closeView();
   await app.Inbox.finishResponse("Background conversation");
 
-  await app.Inbox.shouldShowEmptyView();
+  await app.Inbox.shouldShowHome();
   await app.Inbox.select("Background conversation");
   await app.Chat.ShouldShowAssistantReply("Finished in background");
 });
 
-test("archive Undo restores the conversation and its unsent draft", async () => {
+test("archiving the current conversation returns Home without an archive notice or Undo action", async () => {
   await savedConversation();
-  await app.Focus.TypeWithoutRefocusing("Draft before archive");
 
   await app.Inbox.archiveCurrent();
-  await app.Inbox.shouldHaveLater(0);
-  await app.Inbox.undoArchive();
 
-  await app.Chat.ShouldShowAssistantReply("Saved response");
-  await app.Focus.ShouldHaveDraft("Draft before archive");
+  await app.Inbox.shouldShowHome();
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldHaveLater(0);
+  await app.Inbox.shouldHaveNoArchiveNotice();
 });
 
-test("archiving a parked session and Undo retain Later membership without reopening it", async () => {
+test("archiving a parked conversation removes it from Later without an archive notice or reopening it", async () => {
   await savedConversation();
   await app.Inbox.parkCurrent();
+
   await app.Inbox.archiveLater("Inbox conversation");
+
   await app.Inbox.shouldHaveLater(0, true);
-
-  await app.Inbox.undoArchiveToLater();
-
-  await app.Inbox.shouldHaveLater(1, true);
-  await app.Inbox.resume("Inbox conversation");
-  await app.Chat.ShouldShowAssistantReply("Saved response");
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldShowHome();
+  await app.Inbox.shouldHaveNoArchiveNotice();
 });
 
 test("does not park an unsaved session and discards its empty runtime on close", async () => {
@@ -105,7 +103,7 @@ test("does not park an unsaved session and discards its empty runtime on close",
   await app.Inbox.shouldHaveReady(0);
   await app.Inbox.reload();
   await app.Inbox.shouldHaveReady(0);
-  await app.Inbox.shouldShowEmptyView();
+  await app.Inbox.shouldShowHome();
 });
 
 test("blocked prompts remain in Needs you when selected, and closing the view retains the chosen answer", async () => {
@@ -147,18 +145,15 @@ test("saved Ready history survives a backend restart without reopening Later", a
   await app.Chat.ShouldShowAssistantReply("Saved response");
 });
 
-test("opens unloaded Ready history and archive Undo restores it without opening a runtime", async () => {
+test("archiving unloaded Ready history stays at Home without an archive notice", async () => {
   await savedConversation();
   await app.RestartBackend();
 
   await app.Inbox.archiveReady("Inbox conversation");
-  await app.Inbox.shouldHaveReady(0);
-  await app.Inbox.undoArchiveToLater();
 
-  await app.Inbox.shouldShowEmptyView();
-  await app.Inbox.shouldHaveReady(1);
-  await app.Inbox.select("Inbox conversation");
-  await app.Chat.ShouldShowAssistantReply("Saved response");
+  await app.Inbox.shouldShowHome();
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldHaveNoArchiveNotice();
 });
 
 test("row hitboxes and header controls do not overlap at desktop and phone widths", async () => {

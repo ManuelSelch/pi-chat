@@ -36,10 +36,10 @@ or dismiss a prompt.
 - The header **×** returns to the original Home search. Nonempty sessions,
   background work and their drafts stay unchanged; select a sidebar row to
   return. Empty idle sessions are closed and removed from live inventory.
-- **Archive** is separate from Later. It preserves the saved transcript and
-  offers **Undo archive** for the latest archive during this page visit.
-- Drafts survive switching, parking/resuming and archive Undo during the page
-  lifetime, but not browser reloads.
+- **Archive** is separate from Later. It preserves the saved transcript without
+  showing a success notice or Undo action. Restore sessions through archived history.
+- Drafts survive switching and parking/resuming during the page lifetime,
+  but not browser reloads.
 - Linked-worktree rows show the branch prominently and the conversation title
   below in smaller text. Main checkouts keep the conversation title prominent.
   Status dots sit beside project names; running rows hide Later/archive actions.

@@ -117,7 +117,7 @@ export class PiChatBrowserDriver {
   async RestartBackend(): Promise<void> {
     await this.restartBackend();
     await this.Inbox.reload();
-    await this.Inbox.shouldShowEmptyView();
+    await this.Inbox.shouldShowHome();
   }
 
   async WaitUntilReady(): Promise<void> {
