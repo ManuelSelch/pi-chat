@@ -4,7 +4,7 @@
 Explore an optional Settings toggle that hides the horizontal tabs and represents the same open sessions in the persistent sidebar. This request authorizes research and mockups only, not production implementation. All changes stay in the shared mockups workspace; production requirements and technical design are deferred until a direction is chosen.
 
 ## Revision and approval
-- Revision: 10.
+- Revision: 11.
 - Status: in review; not approved for implementation.
 - Direction selected: user prefers B (Inbox) and requested an untimed Later section, collapsed by default. Flat Later rows with project context are proposed for the user's small session count.
 - Approval evidence: direction only; no approval for production implementation.
@@ -39,7 +39,7 @@ The following are Pi Chat design proposals inspired by those patterns, not claim
 - Working sessions cannot be moved to Later in this revision. Simulate response ready changes the selected Working session into Needs you.
 - Send a local message to simulate Working. Nothing is actually sent. The empty-state New session action creates a local fake session.
 - Search title/project/branch; per-section counts reflect the filtered view; there is no total-count badge beside the Inbox heading. Later is filtered too and its count shows matches during a search, but search never automatically expands it.
-- The sidebar New session button is omitted; the user creates sessions through the existing quickswitcher (not simulated here).
+- The sidebar New session button remains omitted. A plus icon at the top-right of the main header creates/selects a local session in the current project, or Quick Chats if no session is selected. It remains available while another session is working. The existing production quickswitcher remains an alternative (not simulated here).
 - Browse projects and its project shortcuts are removed from the Inbox. The explanatory Later/archive footer note is also removed; the bottom gear remains.
 - Phone (760px and below) uses a modal drawer, retained until explicitly dismissed; desktop is non-modal. This approximates existing Pi Chat behavior rather than changing production breakpoints.
 - No motion beyond library defaults; reduced-motion CSS is included.
@@ -62,4 +62,4 @@ The existing app exposes idle/running/blocked statuses. The mock's attention sta
 - Flat Later rows with project labels are proposed for review; revisit grouping only if the list actually grows.
 
 ## Review and verification
-Source inspection and HTTP serving checks for revisions 1–10. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
+Source inspection and HTTP serving checks for revisions 1–11. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
