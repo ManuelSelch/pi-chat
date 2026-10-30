@@ -13,13 +13,17 @@ function SessionRow({ session, active, choose, deferSession, compact = false }: 
     <UnstyledButton className="session-main" onClick={() => choose(session.id)} aria-current={active === session.id ? 'page' : undefined}>
       {!compact && <div className="session-context"><span>{session.project}</span><span>{session.time}</span></div>}
       <div className="session-title"><span className={`dot ${session.status}`} aria-label={statusLabels[session.status]} /><span>{session.title}</span></div>
-      {!compact && session.status === 'ready' && <div className="session-detail">{session.branch || 'Personal conversation'}</div>}
+      {!compact && session.status === 'ready' && session.branch && <div className="session-detail">{session.branch}</div>}
     </UnstyledButton>
     <ActionIcon className="later-action" size="sm" variant="subtle" color="gray" aria-label={`Move ${session.title} to Later`} title={session.status === 'working' ? 'Wait for the run to finish' : 'Move to Later · not archived'} disabled={session.status === 'working'} onClick={() => deferSession(session.id)}><IconClockPause size={15}/></ActionIcon>
   </div>;
 }
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
-  return <section className="session-section"><div className="section-label"><span>{title}</span><span>{count}</span></div>{children}</section>;
+function Section({ title, count, children, collapsible = false }: { title: string; count: number; children: React.ReactNode; collapsible?: boolean }) {
+  const [expanded, setExpanded] = useState(true);
+  return <section className="session-section">
+    {collapsible ? <UnstyledButton className="section-label section-toggle" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}><span>{expanded ? <IconChevronDown size={12}/> : <IconChevronRight size={12}/>} {title}</span><span>{count}</span></UnstyledButton> : <div className="section-label"><span>{title}</span><span>{count}</span></div>}
+    {(!collapsible || expanded) && children}
+  </section>;
 }
 export function Sidebar(props: Props) {
   const { concept, sessions, active, choose, deferSession, restore, create, close, sidebarMode } = props;
@@ -41,7 +45,7 @@ export function Sidebar(props: Props) {
     <div className="sidebar-scroll">
       {!sidebarMode ? <><div className="sidebar-note">Open sessions appear in the tab bar.</div>{projects.map(project => <UnstyledButton key={project} className="project-line" onClick={() => choose(open.find(s => s.project === project)?.id ?? active)}><IconFolder size={15}/>{project}<span className="count">{open.filter(s => s.project === project).length}</span></UnstyledButton>)}</> : <>
         {concept === 'a' && <Section title="Open" count={visible.length}>{visible.map(s => row(s))}</Section>}
-        {concept === 'b' && (['attention', 'working', 'ready'] as const).map(status => <Section key={status} title={statusLabels[status]} count={visible.filter(s => s.status === status).length}>
+        {concept === 'b' && (['attention', 'ready', 'working'] as const).map(status => <Section key={status} title={statusLabels[status]} count={visible.filter(s => s.status === status).length} collapsible={status === 'working'}>
           {visible.filter(s => s.status === status).map(s => row(s))}
           {!visible.some(s => s.status === status) && <div className="section-empty">{status === 'attention' ? 'All caught up.' : 'Nothing here.'}</div>}
         </Section>)}
