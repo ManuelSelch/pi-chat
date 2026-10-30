@@ -7,17 +7,46 @@ import { useServerSettings } from "../../../../../../src/web/settings/server/app
 const page = { protocol: "https:", host: "pi.example", search: "" };
 const preference = { endpoint: "wss://pi.example/ws", override: "", hasStoredOverride: false };
 afterEach(cleanup);
-function setup(options: { stored?: boolean; confirm?: boolean; error?: string } = {}) {
+function setup(options: { stored?: boolean; confirm?: boolean; error?: string; endpoint?: string } = {}) {
   const confirm = vi.fn(async (_options: ConfirmOptions) => options.confirm ?? true);
   const persist = vi.fn(() => options.error);
   const reload = vi.fn();
   const hook = renderHook(() => useServerSettings({
-    preference: options.stored ? { ...preference, override: preference.endpoint, hasStoredOverride: true } : preference,
+    preference: options.stored ? { ...preference, endpoint: options.endpoint ?? preference.endpoint, override: options.endpoint ?? preference.endpoint, hasStoredOverride: true } : preference,
     page, confirm, persist, reload,
   }));
   return { hook, confirm, persist, reload };
 }
 describe("server settings workflow", () => {
+  it("prefills the default endpoint as editable text without enabling Save or Reset", () => {
+    const { hook, persist, reload } = setup();
+
+    expect(hook.result.current.draft).toBe(preference.endpoint);
+    expect(hook.result.current.canSave).toBe(false);
+    expect(hook.result.current.canReset).toBe(false);
+    expect(persist).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("prefills a saved endpoint including its query without enabling Save", () => {
+    const endpoint = "wss://pi.example/ws?profile=work";
+    const { hook } = setup({ stored: true, endpoint });
+
+    expect(hook.result.current.draft).toBe(endpoint);
+    expect(hook.result.current.canSave).toBe(false);
+    expect(hook.result.current.canReset).toBe(true);
+  });
+
+  it("clearing the prefilled default does not enable a redundant save", async () => {
+    const { hook, confirm, persist } = setup();
+    act(() => hook.result.current.edit(""));
+
+    expect(hook.result.current.canSave).toBe(false);
+    await act(() => hook.result.current.save());
+    expect(confirm).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+  });
+
   it("keeps edits local until confirmed then persists before reloading", async () => {
     const { hook, confirm, persist, reload } = setup();
     expect(hook.result.current.canSave).toBe(false);
@@ -48,7 +77,7 @@ describe("server settings workflow", () => {
   });
   it("shows storage failure without reloading", async () => {
     const { hook, reload } = setup({ error: "Could not save" });
-    act(() => hook.result.current.edit("wss://pi.example/ws"));
+    act(() => hook.result.current.edit("wss://pi.example/other"));
     await act(() => hook.result.current.save());
     expect(hook.result.current.error).toBe("Could not save");
     expect(reload).not.toHaveBeenCalled();
@@ -61,7 +90,7 @@ describe("server settings workflow", () => {
     expect(reload).toHaveBeenCalledOnce();
   });
   it("blank input removes an existing override on save", async () => {
-    const { hook, persist } = setup({ stored: true });
+    const { hook, persist } = setup({ stored: true, endpoint: "wss://pi.example/other" });
     act(() => hook.result.current.edit(""));
     await act(() => hook.result.current.save());
     expect(persist).toHaveBeenCalledWith("");

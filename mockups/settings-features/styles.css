@@ -1,0 +1,1 @@
+body { margin: 0; } .shell { min-height: 100vh; background: var(--mantine-color-body); } .section-title { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; } .endpoint { overflow-wrap: anywhere; } .preview-note { max-width: 400px; padding: 24px; }

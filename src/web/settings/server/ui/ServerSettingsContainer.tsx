@@ -14,7 +14,6 @@ export function ServerSettingsContainer({ preference, connected, failed }: { pre
   });
   return <ServerSettingsPanel
     {...settings}
-    endpoint={redactEndpoint(preference.endpoint)}
     placeholder={redactEndpoint(defaultEndpoint(page))}
     connected={connected}
     failed={failed}

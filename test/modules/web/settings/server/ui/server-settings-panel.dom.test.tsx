@@ -7,7 +7,7 @@ import { ServerSettingsPanel, type ServerSettingsPanelProps } from "../../../../
 afterEach(cleanup);
 function mount(overrides: Partial<ServerSettingsPanelProps> = {}) {
   const props: ServerSettingsPanelProps = {
-    endpoint: "wss://pi.example/ws?…", placeholder: "wss://pi.example/ws", connected: false, failed: true,
+    placeholder: "wss://pi.example/ws", connected: false, failed: true,
     draft: "wss://offline/ws", otherHost: false, busy: false, canSave: true, canReset: true,
     onEdit: vi.fn(), onSave: vi.fn(), onReset: vi.fn(), ...overrides,
   };
@@ -15,6 +15,18 @@ function mount(overrides: Partial<ServerSettingsPanelProps> = {}) {
   return props;
 }
 describe("backend server panel", () => {
+  it("shows the editable endpoint and status without duplicate endpoint text or routine descriptions", () => {
+    mount({ draft: "wss://pi.example/ws?profile=work", connected: true, failed: false });
+    const field = screen.getByRole("textbox", { name: "WebSocket endpoint" }) as HTMLInputElement;
+
+    expect(field.value).toBe("wss://pi.example/ws?profile=work");
+    expect(screen.getByText("Connected")).toBeTruthy();
+    expect(screen.queryByText("Current endpoint")).toBeNull();
+    expect(screen.queryByText("wss://pi.example/ws?…")).toBeNull();
+    expect(screen.queryByText("Leave blank to use this page’s server.")).toBeNull();
+    expect(screen.queryByText("Remembered in this browser for this site. Applying reloads the page; server sessions keep running.")).toBeNull();
+  });
+
   it("retains edit/save/reset controls without a connection", () => {
     const props = mount();
     expect(screen.getByText("Disconnected")).toBeTruthy();
