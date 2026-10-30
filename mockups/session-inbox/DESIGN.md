@@ -5,9 +5,9 @@ Explore an optional Settings toggle that hides the horizontal tabs and represent
 
 ## Revision and approval
 - Revision: 14.
-- Status: in review; not approved for implementation.
+- Status: approved for implementation; production technical design approval remains separate.
 - Direction selected: user prefers B (Inbox) and requested an untimed Later section, collapsed by default. Flat Later rows with project context are proposed for the user's small session count.
-- Approval evidence: direction only; no approval for production implementation.
+- Approval evidence: user requested “implement the session-inbox based on the approved mock,” approving revision 14 concept B. Production clarifications: Needs you includes blocked prompts only; completed responses become Ready. Later survives reloads using browser/server-scoped saved paths, closing idle runtimes on park and reopening on explicit resume; drafts survive during the page lifetime.
 
 ## Research
 Reviewed the official T3 Code marketing screenshot and current upstream thread documentation for revision 1 (mutable sources, not a pinned release).
@@ -59,9 +59,9 @@ The existing app exposes idle/running/blocked statuses. The mock's attention sta
 
 ## Outstanding questions
 - Q1 (resolved): user selected B (Inbox).
-- Q2: Should Needs you include every completed response until explicitly moved to Later, or only blocked questions/approvals?
+- Q2 (resolved): only blocked questions/approvals; completed responses become Ready.
 - Q3 (resolved): user clarified closing a tab means returning later, not finished work, and requested a separate untimed Later section collapsed by default. Archive remains separate.
 - Flat Later rows with project labels are proposed for review; revisit grouping only if the list actually grows.
 
 ## Review and verification
-Source inspection and HTTP serving checks for revisions 1–14. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
+Source inspection and HTTP serving checks for revisions 1–14. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production requirements and technical design are in `plans/session-inbox/`; technical design approval remains required before production changes.
