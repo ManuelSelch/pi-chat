@@ -118,11 +118,11 @@ linked worktree branch above its conversation title; main checkouts retain the
 title as primary. Single-conversation linked checkouts omit the subtitle;
 multiple conversations retain titles for disambiguation. Counts include unarchived
 catalogue history (including Later) and unsaved live siblings, deduplicated against
-saved paths before status/search filtering. Later uses the same live inventory.
+saved paths before status filtering. Later uses the same live inventory.
 Rows expose the full title on hover and use suffix-free recency locally; shared
 Home/Quick Switcher time formatting is unchanged. Project context uses the
 catalogue repository name, falling back to the runtime project name before
-discovery. Search/actions continue using original identities.
+discovery. Row actions continue using original identities. The panel has no search field; empty status groups and an empty Later shelf are omitted entirely.
 
 ### Focus and overlays
 

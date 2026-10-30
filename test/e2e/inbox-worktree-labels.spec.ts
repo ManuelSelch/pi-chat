@@ -18,9 +18,8 @@ test("a single worktree session uses two lines while retaining title-based disco
   await app.Inbox.setEnabled(true);
 
   await app.Inbox.shouldShowCompactWorktreeLabels(title, branch);
-  await app.Inbox.search(title);
+  await app.Inbox.shouldHaveNoSearch();
   await app.Inbox.shouldHaveReady(1);
-  await app.Inbox.search("");
 
   await app.RestartBackend();
 
@@ -100,7 +99,7 @@ test("linked worktrees keep branch-first labels across running, Ready and Later 
   await app.Inbox.setEnabled(true);
 
   await app.Inbox.shouldShowCompactWorktreeLabels(title, branch);
-  await app.Inbox.shouldHaveTightSectionHeadings();
+  await app.Inbox.shouldHaveTightSectionHeadings({ working: false, later: false });
 
   await app.Chat.SendPrompt("Continue working");
   await app.Inbox.shouldBeInSection(title, "Working");

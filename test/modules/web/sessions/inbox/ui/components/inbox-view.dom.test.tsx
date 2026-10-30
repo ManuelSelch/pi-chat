@@ -6,7 +6,7 @@ import { InboxView, type InboxViewProps } from "../../../../../../../src/web/ses
 afterEach(cleanup);
 const props = (): InboxViewProps => ({
   opened: true, presentation: "sidebar", activeSessionId: "a", pending: false,
-  query: "", onQuery: vi.fn(), workingOpen: true, onWorkingToggle: vi.fn(), laterOpen: false, onLaterToggle: vi.fn(),
+  workingOpen: true, onWorkingToggle: vi.fn(), laterOpen: false, onLaterToggle: vi.fn(),
   rows: [
     { key: "a", sessionId: "a", path: "/a", title: "Question", primaryLabel: "Question", project: "Project", status: "blocked" },
     { key: "b", sessionId: "b", path: "/b", title: "Background", primaryLabel: "Background", project: "Project", status: "running" },
@@ -15,6 +15,29 @@ const props = (): InboxViewProps => ({
   later: [{ key: "/later", path: "/later", title: "Parked", primaryLabel: "Parked", project: "Project", status: "idle" }],
   onClose: vi.fn(), onSettings: vi.fn(), onSelect: vi.fn(), onOpenSaved: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onResume: vi.fn(),
 });
+it.each(["sidebar", "drawer"] as const)("omits search and empty groups in the %s and restores populated groups", presentation => {
+  const p = { ...props(), presentation };
+  const { rerender } = render(<MantineProvider><InboxView {...p} rows={[]} later={[]} /></MantineProvider>);
+
+  expect(screen.queryByRole("textbox", { name: "Search sessions" })).toBeNull();
+  expect(screen.queryAllByRole("region")).toHaveLength(0);
+  expect(screen.queryByRole("button", { name: /^Later/ })).toBeNull();
+  expect(screen.getByText("Inbox clear")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+
+  rerender(<MantineProvider><InboxView {...p} /></MantineProvider>);
+
+  expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Needs you", "Ready", "Working"]);
+  expect(screen.getByRole("button", { name: /^Later/ }).getAttribute("aria-expanded")).toBe("false");
+
+  rerender(<MantineProvider><InboxView {...p} rows={p.rows.filter(row => row.status === "idle")} later={[]} laterOpen /></MantineProvider>);
+
+  expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Ready"]);
+  expect(screen.queryByRole("button", { name: /^Later/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Working/ })).toBeNull();
+  expect(screen.getByRole("button", { name: "Open Completed" })).toBeTruthy();
+});
+
 it("shows status sections in approved order and Later collapsed", () => {
   render(<MantineProvider><InboxView {...props()} /></MantineProvider>);
   expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Needs you", "Ready", "Working"]);

@@ -46,7 +46,9 @@ questions/approvals. **Ready** includes all unarchived idle conversations except
 those in Later, including saved history after a server restart. Selecting an
 unloaded conversation opens it; history is never reopened automatically.
 **Working** can be collapsed independently. Selecting a session does not answer
-or dismiss a prompt.
+or dismiss a prompt. The Inbox has no search field; use Home search or Quick
+Switcher instead. A status group with no sessions, and the entire Later shelf when
+empty, are hidden rather than shown as an empty heading.
 
 - **Move to Later** parks a saved, idle conversation, closing its runtime if loaded.
   Later is untimed, collapsed by default, and remembered in this browser for
@@ -63,7 +65,7 @@ or dismiss a prompt.
 - Drafts survive switching and parking/resuming during the page lifetime,
   but not browser reloads.
 - Single-session linked-worktree rows show just the project and branch. Hover
-  the row for its conversation title; title search and action names are unchanged.
+  the row for its conversation title; action names are unchanged.
   Worktrees with multiple unarchived conversations retain smaller title subtitles
   to distinguish them, including conversations in Later. Main checkouts keep
   the conversation title prominent. Recency uses compact `1m`, `2h`, `3d` labels.

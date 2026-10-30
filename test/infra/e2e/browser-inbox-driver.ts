@@ -103,6 +103,10 @@ export class BrowserInboxDriver {
   }
   async shouldHaveReady(count: number): Promise<void> {
     await expect(this.panel().getByRole("region", { name: "Ready", exact: true }).getByRole("button", { name: /^Open / })).toHaveCount(count);
+    if (!count) await this.shouldHideStatusGroup("Ready");
+  }
+  async shouldHideStatusGroup(section: "Working" | "Ready" | "Needs you"): Promise<void> {
+    await expect(this.panel().getByRole("region", { name: section, exact: true })).toHaveCount(0);
   }
   async parkReady(title: string): Promise<void> {
     const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true }).locator("..");
@@ -116,7 +120,7 @@ export class BrowserInboxDriver {
     await row.getByRole("button", { name: `Archive ${title}`, exact: true }).click();
     await expect(this.panel().getByRole("button", { name: `Open ${title}`, exact: true })).toHaveCount(0);
   }
-  async shouldHaveSoundGeometry(title: string): Promise<void> {
+  async shouldHaveSoundGeometry(title: string, expectations: { working: boolean; later: boolean }): Promise<void> {
     const button = this.panel().getByRole("button", { name: `Open ${title}`, exact: true });
     const row = button.locator("..");
     await row.hover();
@@ -133,9 +137,16 @@ export class BrowserInboxDriver {
     const titleBox = await button.getByText(title, { exact: true }).boundingBox();
     const actionBox = await row.getByRole("button", { name: `Move ${title} to Later`, exact: true }).boundingBox();
     expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(actionBox!.x);
-    const toggles = [this.panel().getByRole("button", { name: /^Working/ }), this.later()];
-    for (const toggle of toggles) {
-      const widths = await toggle.evaluate(element => ({ width: element.getBoundingClientRect().width, parentWidth: element.parentElement!.getBoundingClientRect().width }));
+    const toggles = [
+      { control: this.panel().getByRole("button", { name: /^Working/ }), expected: expectations.working },
+      { control: this.later(), expected: expectations.later },
+    ];
+    for (const { control, expected } of toggles) {
+      if (!expected) {
+        await expect(control).toHaveCount(0);
+        continue;
+      }
+      const widths = await control.evaluate(element => ({ width: element.getBoundingClientRect().width, parentWidth: element.parentElement!.getBoundingClientRect().width }));
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
     }
   }
@@ -198,10 +209,17 @@ export class BrowserInboxDriver {
     const padding = await button.locator(":scope > div").nth(1).evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
     expect(padding).toBe(0);
   }
-  async shouldHaveTightSectionHeadings(): Promise<void> {
-    const ready = this.panel().getByRole("region", { name: "Ready", exact: true }).locator(":scope > div").first();
-    const working = this.panel().getByRole("button", { name: /^Working/ });
-    for (const heading of [ready, working, this.later()]) {
+  async shouldHaveTightSectionHeadings(expectations: { working: boolean; later: boolean }): Promise<void> {
+    const headings = [
+      { heading: this.panel().getByRole("region", { name: "Ready", exact: true }).locator(":scope > div").first(), expected: true },
+      { heading: this.panel().getByRole("button", { name: /^Working/ }), expected: expectations.working },
+      { heading: this.later(), expected: expectations.later },
+    ];
+    for (const { heading, expected } of headings) {
+      if (!expected) {
+        await expect(heading).toHaveCount(0);
+        continue;
+      }
       expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))).toBe(2);
     }
   }
@@ -259,5 +277,10 @@ export class BrowserInboxDriver {
     await expect(this.page.getByRole("dialog", { name: "Settings", exact: true })).toBeVisible();
     await expect(this.page.getByRole("dialog", { name: "Sessions", exact: true })).toHaveCount(0);
   }
-  async search(query: string): Promise<void> { await this.panel().getByRole("textbox", { name: "Search sessions", exact: true }).fill(query); }
+  async shouldHaveNoSearch(): Promise<void> {
+    await expect(this.panel().getByRole("textbox", { name: "Search sessions", exact: true })).toHaveCount(0);
+  }
+  async shouldHideLater(): Promise<void> {
+    await expect(this.later()).toHaveCount(0);
+  }
 }

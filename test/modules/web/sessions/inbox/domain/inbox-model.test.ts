@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { historyRows, inboxRows, matchingRows, reconcileLater, type LaterEntry } from "../../../../../../src/web/sessions/inbox/domain/inbox-model.js";
+import { historyRows, inboxRows, reconcileLater, type LaterEntry } from "../../../../../../src/web/sessions/inbox/domain/inbox-model.js";
 import { loadLater, saveLater, laterStorageKey } from "../../../../../../src/web/sessions/inbox/infra/later-storage.js";
 import type { ProjectCatalogue, Tab } from "../../../../../../src/web/app/state/view-types.js";
 
@@ -24,7 +24,6 @@ it.each(["idle", "blocked", "running"] as const)("uses repository context rather
   expect(rows.find(row => row.sessionId === "runtime")).toMatchObject({
     project: "my-project", primaryLabel: "feature/setup", secondaryLabel: "Open A", status,
   });
-  expect(matchingRows(rows, "my-project")).toHaveLength(2);
 });
 
 it("uses repository context for unloaded Ready and Later history", () => {
@@ -71,8 +70,6 @@ it.each(["idle", "blocked", "running"] as const)("promotes the linked-worktree b
   const rows = inboxRows([{ ...tab, status }], linked, new Set());
 
   expect(rows.find(row => row.sessionId === "runtime")).toMatchObject({ primaryLabel: "feat/worktree", secondaryLabel: "Open A", title: "Open A", path: "/a", status });
-  expect(matchingRows(rows, "Open A")).toHaveLength(1);
-  expect(matchingRows(rows, "feat/worktree")).toHaveLength(2);
 });
 
 it("retains distinct conversation subtitles for saved sessions sharing one worktree, including Later history", () => {
@@ -85,7 +82,7 @@ it("retains distinct conversation subtitles for saved sessions sharing one workt
   expect(inboxRows([], linked, new Set(["/b"]))).toMatchObject([{ path: "/a", primaryLabel: "feat/worktree", secondaryLabel: "Saved A" }]);
 });
 
-it.each(["idle", "blocked", "running"] as const)("hides the title of a single linked-worktree conversation (%s), retaining search and identity", status => {
+it.each(["idle", "blocked", "running"] as const)("hides the title of a single linked-worktree conversation (%s) while retaining identity", status => {
   const linked = { projects: catalogue.projects.map(project => ({ ...project, sessions: project.sessions.slice(0, 1), worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
 
   const rows = inboxRows([{ ...tab, status }], linked, new Set());
@@ -94,7 +91,6 @@ it.each(["idle", "blocked", "running"] as const)("hides the title of a single li
   expect(rows[0]).toMatchObject({ title: "Open A", primaryLabel: "feat/worktree", path: "/a", status });
   expect(rows[0]?.secondaryLabel).toBeUndefined();
   expect(historyRows(linked)[0]?.secondaryLabel).toBeUndefined();
-  expect(matchingRows(rows, "Open A")).toHaveLength(1);
 });
 
 it("counts unsaved live siblings for Ready and Later labels, without counting archived history", () => {

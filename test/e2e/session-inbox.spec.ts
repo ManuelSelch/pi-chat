@@ -28,7 +28,7 @@ test("parks and explicitly resumes a saved conversation without losing its draft
   await app.Inbox.resume("Inbox conversation");
   await app.Chat.ShouldShowAssistantReply("Saved response");
   await app.Focus.ShouldHaveDraft("Unsent draft");
-  await app.Inbox.shouldHaveLater(0, true);
+  await app.Inbox.shouldHideLater();
 });
 
 for (const action of ["close", "snooze", "archive"] as const) {
@@ -69,20 +69,17 @@ for (const action of ["snooze", "archive"] as const) {
   });
 }
 
-test("remembers Later across reload and search does not expand it", async () => {
+test("remembers Later across reload without sidebar search and hides it after the last resume", async () => {
   await savedConversation();
   await app.Inbox.parkCurrent();
 
   await app.Inbox.reload();
 
   await app.Inbox.shouldHaveLater(1);
-  await app.Inbox.search("Inbox conversation");
-  await app.Inbox.shouldHaveLater(1);
-  await app.Inbox.search("no match");
-  await app.Inbox.shouldHaveLater(0);
-  await app.Inbox.search("");
+  await app.Inbox.shouldHaveNoSearch();
   await app.Inbox.resume("Inbox conversation");
   await app.Chat.ShouldShowAssistantReply("Saved response");
+  await app.Inbox.shouldHideLater();
 });
 
 test("closing the view preserves background work and completion becomes Ready without reopening it", async () => {
@@ -114,7 +111,9 @@ test("archiving the current conversation returns Home without an archive notice 
 
   await app.Inbox.shouldShowHome();
   await app.Inbox.shouldHaveReady(0);
-  await app.Inbox.shouldHaveLater(0);
+  await app.Inbox.shouldHideStatusGroup("Needs you");
+  await app.Inbox.shouldHideStatusGroup("Working");
+  await app.Inbox.shouldHideLater();
   await app.Inbox.shouldHaveNoArchiveNotice();
 });
 
@@ -124,7 +123,7 @@ test("archiving a parked conversation removes it from Later without an archive n
 
   await app.Inbox.archiveLater("Inbox conversation");
 
-  await app.Inbox.shouldHaveLater(0, true);
+  await app.Inbox.shouldHideLater();
   await app.Inbox.shouldHaveReady(0);
   await app.Inbox.shouldShowHome();
   await app.Inbox.shouldHaveNoArchiveNotice();
@@ -203,7 +202,7 @@ test("row hitboxes and header controls do not overlap at desktop and phone width
 
   for (const width of [1680, 1024, 640, 390]) {
     await app.Browser.SetViewport(width, 844);
-    await app.Inbox.shouldHaveSoundGeometry(title);
+    await app.Inbox.shouldHaveSoundGeometry(title, { working: false, later: false });
     if (width < 640) await app.Inbox.close();
     await app.Inbox.shouldHaveSoundHeaderGeometry();
     if (width < 640) await app.Inbox.open();

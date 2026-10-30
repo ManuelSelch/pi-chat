@@ -71,8 +71,3 @@ export function reconcileLater(entries: readonly LaterEntry[], tabs: readonly Ta
     return open.has(entry.path) ? [] : [{ ...entry, phase: "parked" as const }];
   });
 }
-
-export function matchingRows(rows: readonly InboxRow[], query: string): InboxRow[] {
-  const needle = query.trim().toLocaleLowerCase();
-  return rows.filter(row => [row.title, row.project, row.branch].some(value => value?.toLocaleLowerCase().includes(needle)));
-}
