@@ -113,6 +113,11 @@ export class BrowserInboxDriver {
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
     }
   }
+  async shouldShowProjectName(title: string, projectName: string, later = false): Promise<void> {
+    const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
+    const metadata = button.locator(":scope > div").first();
+    await expect(metadata.locator(":scope > span").nth(1)).toHaveText(projectName);
+  }
   async shouldShowWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
     const primary = button.getByTitle(branch, { exact: true });

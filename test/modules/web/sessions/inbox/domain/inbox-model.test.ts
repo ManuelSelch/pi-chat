@@ -13,6 +13,40 @@ it("uses real runtime status and catalogue context, without marking completed re
   expect(inboxRows([tab], catalogue, new Set())[0]).toMatchObject({ title: "Open A", status: "idle", project: "Project", branch: "main", modified: 10 });
 });
 
+it.each(["idle", "blocked", "running"] as const)("uses repository context rather than the checkout name for %s live rows", status => {
+  const linked = { projects: catalogue.projects.map(project => ({
+    ...project, name: "checkout-folder", repositoryName: "my-project",
+    worktree: { primary: false, detached: false, branch: "feature/setup" },
+  })) };
+
+  const rows = inboxRows([{ ...tab, projectName: "checkout-folder", status }], linked, new Set());
+
+  expect(rows.find(row => row.sessionId === "runtime")).toMatchObject({
+    project: "my-project", primaryLabel: "feature/setup", secondaryLabel: "Open A", status,
+  });
+  expect(matchingRows(rows, "my-project")).toHaveLength(2);
+});
+
+it("uses repository context for unloaded Ready and Later history", () => {
+  const linked = { projects: catalogue.projects.map(project => ({
+    ...project, name: "checkout-folder", repositoryName: "my-project",
+    worktree: { primary: false, detached: false, branch: "feature/setup" },
+  })) };
+
+  expect(historyRows(linked)).toMatchObject([
+    { project: "my-project", primaryLabel: "feature/setup", secondaryLabel: "Saved A" },
+    { project: "my-project", primaryLabel: "feature/setup", secondaryLabel: "Saved B" },
+  ]);
+  expect(inboxRows([], linked, new Set(["/b"]))).toMatchObject([{ path: "/a", project: "my-project" }]);
+});
+
+it("keeps catalogue names for ordinary projects and runtime names before discovery", () => {
+  expect(inboxRows([{ ...tab, projectName: "Runtime name" }], catalogue, new Set())[0]).toMatchObject({ project: "Project" });
+  expect(inboxRows([tab], { projects: [] }, new Set())[0]).toMatchObject({ project: "Project" });
+  const quickChats = { projects: catalogue.projects.map(project => ({ ...project, name: "Quick Chats", worktree: undefined })) };
+  expect(historyRows(quickChats)[0]).toMatchObject({ project: "Quick Chats" });
+});
+
 it("shows every unarchived saved conversation after restart without reopening runtimes", () => {
   expect(inboxRows([], catalogue, new Set())).toMatchObject([
     { path: "/a", status: "idle", title: "Saved A" },
