@@ -1,0 +1,78 @@
+:root{--page:#fff;--panel:#fafbfc;--line:#e9ecef;--ink:#24262b;--muted:#868e96;--selected:#e7f5ff;--blue:#228be6}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:var(--page);font-size:14px}
+.review{padding:28px 32px;max-width:1900px;margin:auto;background:#f4f5f7;min-height:100dvh}
+.review-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.review h1{font-size:24px;letter-spacing:-.5px;font-weight:600;margin:10px 0 20px}
+.review-controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.scale-label,.review-footnote{font-size:12px;color:#697078}
+.review-description{margin:18px 0;color:#515860;min-height:24px}
+.preview-host{width:100%}
+.preview-box{margin:auto;overflow:hidden;background:white;border-radius:8px;box-shadow:0 5px 25px #19212d16;outline:1px solid #dce0e5}
+.preview-box iframe{display:block;border:0;transform-origin:top left}
+.review-footnote{text-align:center;margin-top:20px}
+.workspace{height:100dvh;overflow:hidden;position:relative;background:var(--page)}
+.app-header{height:54px;border-bottom:1px solid var(--line);display:flex;gap:20px;align-items:center;padding:0 18px}
+.brand{display:flex;gap:12px;align-items:center;min-width:180px}
+.brand strong{font-size:16px;font-weight:600}
+.project-path{font-size:12px;color:var(--muted);flex:1}
+.tab-strip{height:42px;border-bottom:1px solid var(--line);padding:0 18px;display:flex;align-items:center;gap:12px}
+.tab{height:100%;display:flex;align-items:center;gap:9px;font-size:12px;border-bottom:2px solid var(--blue);padding:0 10px;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-dot{display:inline-block;width:6px;height:6px;background:#40a567;border-radius:50%;flex-shrink:0}
+.projects{position:absolute;top:96px;left:0;bottom:0;width:288px;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;padding:12px}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px}
+.panel-heading strong{font-size:14px;font-weight:500}
+.project-list{overflow:auto;flex:1;min-height:0}
+.project-group{padding-bottom:5px}
+.project-group:first-child{border-bottom:1px solid var(--line);margin-bottom:10px;padding-bottom:10px}
+.project-heading{display:flex;align-items:center;gap:5px;min-height:35px}
+.project-toggle{display:flex;gap:8px;align-items:center;flex:1;min-width:0;padding:5px 3px;font-size:13px;border-radius:4px}
+.project-toggle span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.project-toggle svg{color:#868e96;flex-shrink:0}
+.project-toggle:hover,.session-row:hover{background:#eef0f2}
+.count{font-size:10px;color:var(--muted);min-width:18px;text-align:center;background:#eef0f2;border-radius:4px;padding:1px 3px}
+.session-row{display:block;width:100%;padding:6px 8px 6px 30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;border-radius:5px;font-weight:400}
+.session-row.selected{background:var(--selected);color:#1971c2}
+.open-folder{margin-top:10px;flex-shrink:0;font-size:12px}
+.chat-area{position:absolute;top:96px;left:0;right:0;bottom:0}
+.chat-column{width:min(800px,calc(100% - 64px));margin:auto;height:100%;display:flex;flex-direction:column}
+.transcript{flex:1;min-height:0;overflow:auto;padding:32px 8px 20px;scrollbar-width:thin}
+.conversation-meta{color:var(--muted);font-size:12px;margin-bottom:28px}
+.conversation-meta span{margin:0 8px}
+.user-message{background:#f1f3f5;border-radius:8px;padding:13px 16px;margin:0 0 27px auto;max-width:90%;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}
+.assistant-message{line-height:1.75;margin-bottom:30px}
+.assistant-message p{margin:10px 0}
+.assistant-message ul{padding-left:23px;margin:12px 0}
+.speaker{font-weight:600;color:#495057;font-size:12px}
+.muted{color:var(--muted)}
+.composer{border:1px solid #d5d9de;border-radius:9px;padding:8px 10px;background:white;box-shadow:0 2px 8px #00000006;flex-shrink:0}
+.composer:focus-within{border-color:#74b4eb;box-shadow:0 0 0 2px #228be612}
+.composer textarea{border:0!important;box-shadow:none!important;padding:5px;font-size:14px}
+.composer-tools{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#495057;padding-left:5px;gap:6px}
+.composer-caption{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);padding:10px 2px 16px;flex-shrink:0}
+.composer-caption>span:last-child{margin-left:auto}
+.mobile-shade{display:none}
+@media(min-width:1400px){.panel-open .chat-area{left:0}.projects{width:calc((100vw - 800px) / 2 - 32px);max-width:340px}}
+@media(min-width:640px) and (max-width:1399px){.panel-open .chat-area{left:288px}.chat-column{width:calc(100% - 48px);max-width:800px}}
+@media(max-width:639px){
+  .app-header{padding:0 10px;gap:10px;height:50px}.brand{min-width:0;gap:8px}.brand strong{font-size:14px}.project-path{text-align:right}
+  .tab-strip{height:40px;padding:0 10px}
+  .chat-area{top:90px}.chat-column{width:calc(100% - 24px)}
+  .transcript{padding:16px 2px 8px;font-size:13px}
+  .conversation-meta{margin-bottom:16px;font-size:11px}.assistant-message{margin-bottom:20px}
+  .user-message{max-width:95%;padding:10px 12px;margin-bottom:18px}
+  .projects{top:90px;bottom:auto;height:216px;width:100%;max-width:none;border-right:0;border-bottom:1px solid var(--line);padding:7px 12px 9px}
+  .panel-heading{padding-bottom:4px}.project-list{padding-right:4px}
+  .project-group:first-child{margin-bottom:4px;padding-bottom:4px}
+  .project-heading{min-height:30px}.session-row{padding-top:5px;padding-bottom:5px}
+  .open-folder{display:none}.panel-open .chat-area{top:306px}
+  .composer-caption{padding-bottom:10px}.composer-caption>span:last-child{font-size:9px}
+  .composer-tools .muted{display:none}
+  .mobile-drawer.panel-open .chat-area{top:90px}
+  .mobile-drawer .projects{z-index:3;top:0;bottom:0;height:auto;width:330px;max-width:90vw;padding:14px}
+  .mobile-drawer .mobile-shade{display:block;position:absolute;inset:0;z-index:2;border:0;background:#0005}
+  .mobile-drawer .panel-heading{padding-bottom:16px}
+  .mobile-drawer .open-folder{display:block}
+  .review{padding:16px 10px}.review-heading{align-items:flex-start;flex-direction:column;gap:0}.review h1{font-size:20px}
+  .review-controls{margin-top:20px}.review-description{font-size:13px}
+}
