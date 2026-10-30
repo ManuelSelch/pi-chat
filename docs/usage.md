@@ -40,6 +40,9 @@ or dismiss a prompt.
   offers **Undo archive** for the latest archive during this page visit.
 - Drafts survive switching, parking/resuming and archive Undo during the page
   lifetime, but not browser reloads.
+- Linked-worktree rows show the branch prominently and the conversation title
+  below in smaller text. Main checkouts keep the conversation title prominent.
+  Status dots sit beside project names; running rows hide Later/archive actions.
 - The sidebar's bottom gear opens Settings. If the sidebar is hidden, reopen
   it with the header toggle. Phone navigation remains a modal drawer until
   dismissed; opening Settings dismisses it.

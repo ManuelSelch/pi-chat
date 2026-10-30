@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { rmdirSync } from "node:fs";
 import { SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
@@ -61,14 +62,20 @@ export class PiChatBrowserDriver {
     this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
     try {
+      if (options.linkedWorktree && (!options.projectName || !options.projectBranch)) throw new Error("Linked fixtures require an isolated project name and branch");
       if (options.projectBranch) {
-        execFileSync("git", ["init", "--initial-branch", options.projectBranch, world.projectPath], { stdio: "ignore" });
-        execFileSync("git", ["-C", world.projectPath, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-m", "Fixture"], { stdio: "ignore" });
+        const repository = options.linkedWorktree ? resolve(world.projectPath, "..", "primary-checkout") : world.projectPath;
+        execFileSync("git", ["init", "--initial-branch", options.linkedWorktree ? "main" : options.projectBranch, repository], { stdio: "ignore" });
+        execFileSync("git", ["-C", repository, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-m", "Fixture"], { stdio: "ignore" });
+        if (options.linkedWorktree) {
+          rmdirSync(world.projectPath); // Empty, test-owned directory; never remove recursively.
+          execFileSync("git", ["-C", repository, "worktree", "add", "-b", options.projectBranch, world.projectPath], { stdio: "ignore" });
+        }
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,

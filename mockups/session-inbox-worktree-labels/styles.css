@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f5f7; }
+.review { max-width: 640px; margin: 32px auto; padding: 16px; }
+.panel { width: 340px; max-width: 100%; background: var(--mantine-color-body); border: 1px solid var(--mantine-color-default-border); border-radius: 8px; padding: 12px; }
+.panel section { margin-bottom: 16px; }
+.row { position: relative; border: 1px solid transparent; border-radius: 6px; }
+.row:hover { background: var(--mantine-color-default-hover); }
+.row.selected { background: var(--mantine-primary-color-light); border-color: var(--mantine-primary-color-light-hover); }
+.dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.actions { position: absolute; right: 4px; top: 28px; opacity: 0; }
+.row:hover .actions, .row:focus-within .actions { opacity: 1; }
+@media (hover: none) { .actions { opacity: 1; } }

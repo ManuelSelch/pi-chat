@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { inboxRows, reconcileLater, type LaterEntry } from "../../../../../../src/web/sessions/inbox/domain/inbox-model.js";
+import { historyRows, inboxRows, matchingRows, reconcileLater, type LaterEntry } from "../../../../../../src/web/sessions/inbox/domain/inbox-model.js";
 import { loadLater, saveLater, laterStorageKey } from "../../../../../../src/web/sessions/inbox/infra/later-storage.js";
 import type { ProjectCatalogue, Tab } from "../../../../../../src/web/app/state/view-types.js";
 
@@ -29,6 +29,50 @@ it("deduplicates history against live status and excludes parked and archived hi
   expect(rows).toHaveLength(2);
   expect(rows.find(row => row.path === "/a")).toMatchObject({ sessionId: "runtime", status: "running" });
   expect(rows.find(row => row.sessionId === "unsaved")).toMatchObject({ title: "Unsaved", path: undefined });
+});
+
+it.each(["idle", "blocked", "running"] as const)("promotes the linked-worktree branch for %s live rows without changing identity or title", status => {
+  const linked = { projects: catalogue.projects.map(project => ({ ...project, worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
+
+  const rows = inboxRows([{ ...tab, status }], linked, new Set());
+
+  expect(rows.find(row => row.sessionId === "runtime")).toMatchObject({ primaryLabel: "feat/worktree", secondaryLabel: "Open A", title: "Open A", path: "/a", status });
+  expect(matchingRows(rows, "Open A")).toHaveLength(1);
+  expect(matchingRows(rows, "feat/worktree")).toHaveLength(2);
+});
+
+it("retains distinct conversation subtitles for saved sessions sharing one worktree, including Later history", () => {
+  const linked = { projects: catalogue.projects.map(project => ({ ...project, worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
+
+  expect(historyRows(linked)).toMatchObject([
+    { primaryLabel: "feat/worktree", secondaryLabel: "Saved A" },
+    { primaryLabel: "feat/worktree", secondaryLabel: "Saved B" },
+  ]);
+  expect(inboxRows([], linked, new Set(["/b"]))).toMatchObject([{ path: "/a", primaryLabel: "feat/worktree", secondaryLabel: "Saved A" }]);
+});
+
+it.each([
+  { primary: true, detached: false, branch: "main" },
+  { primary: false, detached: false, branch: "" },
+  { primary: false, detached: true },
+  undefined,
+])("keeps conversation titles primary without a named linked worktree (%j)", worktree => {
+  const history = { projects: catalogue.projects.map(project => ({ ...project, worktree })) };
+
+  const rows = inboxRows([tab], history, new Set());
+
+  expect(rows[0]).toMatchObject({ primaryLabel: "Open A" });
+  expect(rows[0]?.secondaryLabel).toBeUndefined();
+  expect(rows[1]).toMatchObject({ primaryLabel: "Saved B" });
+});
+
+it("does not repeat a session title identical to the promoted branch", () => {
+  const linked = { projects: catalogue.projects.map(project => ({ ...project, worktree: { primary: false, detached: false, branch: "feat/worktree" } })) };
+
+  const row = inboxRows([{ ...tab, title: "feat/worktree" }], linked, new Set())[0];
+
+  expect(row).toMatchObject({ primaryLabel: "feat/worktree" });
+  expect(row?.secondaryLabel).toBeUndefined();
 });
 
 it("keeps only closed unarchived history in Later and resolves pending parking from inventory", () => {

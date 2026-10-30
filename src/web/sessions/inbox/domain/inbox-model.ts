@@ -6,6 +6,8 @@ export interface InboxRow {
   sessionId?: string;
   path?: string;
   title: string;
+  primaryLabel: string;
+  secondaryLabel?: string;
   project: string;
   branch?: string;
   modified?: number;
@@ -13,9 +15,15 @@ export interface InboxRow {
 }
 export const INBOX_STATUS_LABEL: Record<TabStatus, string> = { blocked: "Needs you", idle: "Ready", running: "Working" };
 
+function rowLabels(title: string, worktree: { primary: boolean; branch?: string } | undefined) {
+  const branch = worktree?.primary === false ? worktree.branch?.trim() || undefined : undefined;
+  return { primaryLabel: branch ?? title, secondaryLabel: branch && branch !== title.trim() ? title : undefined };
+}
+
 export function historyRows(catalogue: ProjectCatalogue): (InboxRow & { path: string })[] {
   return catalogue.projects.flatMap(project => project.sessions.filter(session => session.archivedAt === undefined).map(session => ({
     key: session.path, path: session.path, title: session.title, project: project.name,
+    ...rowLabels(session.title, project.worktree),
     branch: project.worktree?.branch, modified: session.modified, status: "idle" as const,
   })));
 }
@@ -28,12 +36,16 @@ export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, lat
   const history = new Map(historyRows(catalogue).map(row => [row.path, row]));
   const loaded = new Set(tabs.map(tab => tab.sessionPath));
   const archived = new Set(catalogue.projects.flatMap(project => project.sessions.filter(session => session.archivedAt !== undefined).map(session => session.path)));
-  const live: InboxRow[] = tabs.filter(tab => !tab.sessionPath || !archived.has(tab.sessionPath)).map(tab => ({
-    ...(tab.sessionPath ? history.get(tab.sessionPath) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath && history.has(tab.sessionPath) ? tab.sessionPath : undefined,
-    title: tab.title, project: tab.projectName,
-    branch: catalogue.projects.find(project => project.path === tab.projectPath)?.worktree?.branch,
-    status: tab.status,
-  }));
+  const live: InboxRow[] = tabs.filter(tab => !tab.sessionPath || !archived.has(tab.sessionPath)).map(tab => {
+    const project = catalogue.projects.find(project => project.path === tab.projectPath);
+    return {
+      ...(tab.sessionPath ? history.get(tab.sessionPath) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath && history.has(tab.sessionPath) ? tab.sessionPath : undefined,
+      title: tab.title, project: tab.projectName,
+      ...rowLabels(tab.title, project?.worktree),
+      branch: project?.worktree?.branch,
+      status: tab.status,
+    };
+  });
   return [...live, ...[...history.values()].filter(row => !loaded.has(row.path) && !laterPaths.has(row.path))]
     .toSorted((a, b) => (b.modified ?? Number.MAX_SAFE_INTEGER) - (a.modified ?? Number.MAX_SAFE_INTEGER));
 }

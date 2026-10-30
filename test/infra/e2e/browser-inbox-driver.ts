@@ -102,8 +102,8 @@ export class BrowserInboxDriver {
     expect(geometry.paddingX).toBe(10);
     expect(geometry.paddingY).toBe(8);
     const metadata = await button.locator(":scope > div").first().locator(":scope > *").evaluateAll(elements => elements.map(element => element.getBoundingClientRect()).map(box => ({ left: box.left, right: box.right })));
-    expect(metadata).toHaveLength(2);
-    expect(metadata[0]!.right).toBeLessThanOrEqual(metadata[1]!.left);
+    expect(metadata).toHaveLength(3);
+    for (let i = 1; i < metadata.length; i++) expect(metadata[i - 1]!.right).toBeLessThanOrEqual(metadata[i]!.left);
     const titleBox = await button.getByText(title, { exact: true }).boundingBox();
     const actionBox = await row.getByRole("button", { name: `Move ${title} to Later`, exact: true }).boundingBox();
     expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(actionBox!.x);
@@ -111,6 +111,46 @@ export class BrowserInboxDriver {
     for (const toggle of toggles) {
       const widths = await toggle.evaluate(element => ({ width: element.getBoundingClientRect().width, parentWidth: element.parentElement!.getBoundingClientRect().width }));
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
+    }
+  }
+  async shouldShowWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
+    const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
+    const primary = button.getByTitle(branch, { exact: true });
+    const secondary = button.getByTitle(title, { exact: true });
+    await expect(primary).toBeVisible();
+    await expect(secondary).toBeVisible();
+    const primarySize = await primary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+    const secondarySize = await secondary.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+    expect(primarySize).toBeGreaterThan(secondarySize);
+    const primaryBox = await primary.boundingBox();
+    const secondaryBox = await secondary.boundingBox();
+    expect(primaryBox!.x).toBe(secondaryBox!.x);
+    const metadata = button.locator(":scope > div").first();
+    await expect(metadata.getByRole("img")).toBeVisible();
+    await expect(button.locator(":scope > div").nth(1).getByRole("img", { name: /^(Ready|Working|Needs you)$/ })).toHaveCount(0);
+    const row = button.locator("..");
+    const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
+    if (await archive.count()) {
+      const actionBox = await archive.boundingBox();
+      expect(primaryBox!.x + primaryBox!.width).toBeLessThanOrEqual(actionBox!.x);
+      const secondaryPadding = await secondary.evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
+      expect(secondaryBox!.x + secondaryBox!.width - secondaryPadding).toBeLessThanOrEqual(actionBox!.x);
+    }
+  }
+  async shouldHideRunningActions(title: string): Promise<void> {
+    const button = this.panel().getByRole("button", { name: `Open ${title}`, exact: true });
+    const row = button.locator("..");
+    await row.hover();
+    await expect(row.getByRole("button", { name: `Move ${title} to Later`, exact: true })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
+    const padding = await button.locator(":scope > div").nth(1).evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
+    expect(padding).toBe(0);
+  }
+  async shouldHaveTightSectionHeadings(): Promise<void> {
+    const ready = this.panel().getByRole("region", { name: "Ready", exact: true }).locator(":scope > div").first();
+    const working = this.panel().getByRole("button", { name: /^Working/ });
+    for (const heading of [ready, working, this.later()]) {
+      expect(await heading.evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))).toBe(2);
     }
   }
   async shouldHaveSoundHeaderGeometry(): Promise<void> {

@@ -16,6 +16,17 @@ The user's production review supersedes the original runtime-only interpretation
 
 The user explicitly approved these corrections before implementation. The original baseline below is retained for review history where superseded above.
 
+### Worktree-first labels — approved refinement
+
+- User requested linked worktrees to show branch/worktree name as the large primary row label and the conversation title as smaller muted text. Keep project context above with the status indicator beside the project name, leaving the primary and secondary labels unindented. Do not repeat an identical branch/title.
+- Scope is Inbox rows (Needs you, Ready, Working and Later), not the header, stored names, lifecycle or original Projects panel.
+- The pure inbox model will derive proposed primary/secondary display labels using existing catalogue worktree metadata: only `worktree.primary === false` with a nonempty branch promotes the branch. Main checkouts, missing metadata and non-worktree sessions retain their session title.
+- `InboxRowView` receives the derived display labels; retain original title/path/runtime identity for actions and search. Multiple sessions in a linked worktree retain distinct secondary titles.
+- Internal row presentation values change; SDK/server/storage contracts and dependencies remain unchanged. Keep truncation and action reservation for non-running rows; running rows omit Move to Later/Archive entirely and reclaim that text width.
+- Planned model/component regressions cover linked versus primary, missing branch, repeated title, multiple sessions, live/history and Later. Existing lifecycle and responsive browser checks remain applicable.
+- Section headings use 2px left padding, including Needs you for consistent alignment.
+- Visual baseline: [isolated label mockup](../../mockups/session-inbox-worktree-labels/DESIGN.md), revision 4. User approved the linked refinement and reviewed mockup with “looks good. impelement”. No blocking questions.
+
 ## Components
 | Package/module | Component | Change | Responsibility |
 |---|---|---|---|

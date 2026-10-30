@@ -88,6 +88,10 @@ close. SDK updates preserve deliberate deselection.
 
 `sessions/inbox` owns pure row/reconciliation rules, server-endpoint-scoped
 localStorage membership, lifecycle coordination and component/container UI.
+The model derives primary/secondary row labels from checkout metadata: linked
+worktrees promote their branch, while main checkouts retain the session title.
+Original titles and stable path/runtime identities remain unchanged for search
+and lifecycle actions; the view only renders the derived labels.
 Parking a loaded runtime stores intent before calling the existing close operation;
 parking unloaded history only stores membership. Resume uses
 the existing open operation; archive/Undo use existing archive operations.

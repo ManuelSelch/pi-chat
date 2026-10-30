@@ -35,10 +35,10 @@ export function InboxView(p: InboxViewProps) {
     onSelect={() => later ? item.path && p.onResume(item.path) : item.sessionId ? p.onSelect(item.sessionId) : item.path && p.onOpenSaved(item.path)}
     onPark={() => { const target = item.sessionId ?? item.path; if (target) p.onPark(target); }} onArchive={() => item.path && p.onArchive(item.path)} />;
   const section = (label: string, rows: readonly InboxRow[], collapsible = false) => <section className="mb-4" aria-label={label}>
-    {collapsible ? <UnstyledButton display="flex" w="100%" px={8} py={4} mb={4} style={{ alignItems: "center", justifyContent: "space-between" }} aria-expanded={p.workingOpen} onClick={p.onWorkingToggle}>
+    {collapsible ? <UnstyledButton display="flex" w="100%" pl={2} pr={8} py={4} mb={4} style={{ alignItems: "center", justifyContent: "space-between" }} aria-expanded={p.workingOpen} onClick={p.onWorkingToggle}>
       <span className="flex items-center gap-1"><IconChevronRight size={12} className={p.workingOpen ? "rotate-90" : ""} /><Text component="span" size="xs" c="dimmed">{label}</Text></span>
       <Text component="span" size="xs" c="dimmed">{rows.length}</Text>
-    </UnstyledButton> : <Group justify="space-between" px="xs" py={4}><Text size="xs" c="dimmed">{label}</Text><Text size="xs" c="dimmed">{rows.length}</Text></Group>}
+    </UnstyledButton> : <Group justify="space-between" pl={2} pr={10} py={4}><Text size="xs" c="dimmed">{label}</Text><Text size="xs" c="dimmed">{rows.length}</Text></Group>}
     {(!collapsible || p.workingOpen) && rows.map(item => row(item))}
   </section>;
   const content = <div className="flex h-full min-h-0 flex-col gap-3 p-3">
@@ -53,7 +53,7 @@ export function InboxView(p: InboxViewProps) {
       {!p.rows.length && <Text size="xs" c="dimmed" ta="center" py="xl">{p.query ? "No sessions match." : "Inbox clear"}</Text>}
     </ScrollArea>
     <div className="max-h-[37%] shrink-0 overflow-auto border-t border-[var(--mantine-color-default-border)] pt-2">
-      <UnstyledButton display="flex" w="100%" px={4} py={8} style={{ alignItems: "center", gap: 8 }} aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
+      <UnstyledButton display="flex" w="100%" pl={2} pr={4} py={8} style={{ alignItems: "center", gap: 8 }} aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
         {p.laterOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}<IconClockPause size={14} />
         <Text component="span" size="xs" c="dimmed">Later</Text><Text component="span" size="xs" c="dimmed" ml="auto">{p.later.length}</Text>
       </UnstyledButton>
