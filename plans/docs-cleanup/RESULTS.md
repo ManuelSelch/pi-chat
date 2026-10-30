@@ -15,6 +15,17 @@
   their content; two pre-existing broken relative links in the archive-notice
   design were repaired mechanically.
 
+## Merge reconciliation
+
+- Latest `main` was incorporated before merging this cleanup. Its SDK/server
+  0.2.0 registry migration supersedes the local-archive state inspected above;
+  maintained guides now document those releases and retain extraction attribution.
+- Preserved the newer compact single-conversation worktree row behavior and its
+  catalogue/live-inventory counting rules. No production conflict resolution or
+  scenario changes were needed.
+- Reinstalled the merged lockfile, rebuilt the source-only test harness and
+  reran verification: build passed and **919 tests across 108 files** passed.
+
 ## Maintained destinations and contract locations
 
 | Consolidated area | Current documentation / executable evidence |

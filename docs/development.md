@@ -21,13 +21,13 @@ npm start
 
 Generated application `dist/` artifacts are local and are not committed. The
 server and TypeScript SDK are independent, precompiled packages; no sibling
-checkout, server source tree or package workspace is required. This checkout
-selects committed prompt-capable SDK 0.1.1 and server 0.1.2 archives in
-`package.json`/`package-lock.json`, not registry resolution. See
-[dependency provenance](../vendor/README.md) for archive/source identity and
-integrity ownership. Chat does not vendor a Swift SDK or run Swift tests.
+checkout, server source tree or package workspace is required. The SDK and server
+are both registry-pinned to `0.2.0` in `package.json`/`package-lock.json`; these
+releases replace the temporary prompt-capable archives. No npm artifacts or
+Swift SDK are vendored, and Chat does not run Swift tests. See
+[dependency provenance](../vendor/README.md) for installed-package ownership.
 `npm run verify:dependencies` checks the installed public server API and protocol
-version, not every archive byte or behavior. `build:host` compiles only Chat's
+version, not every package byte or behavior. `build:host` compiles only Chat's
 process adapter to `dist/host/index.js`; `npm start` and the extension launcher
 use that entry. See [Configuration](configuration.md) for environment variables.
 

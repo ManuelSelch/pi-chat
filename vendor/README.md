@@ -1,24 +1,19 @@
 # Dependency provenance
 
-Pi Chat currently installs **committed local npm archives**, not registry-resolved
-SDK/server releases. The manifest and lockfile are authoritative for this
-checkout. Package version strings alone do not identify these prompt-capable
-snapshots.
+Chat pins `@manuelselch/pi-sdk@0.2.0` and `@manuelselch/pi-server@0.2.0`
+from npm. The manifest and lockfile select exact registry releases with SHA-512
+integrity; no npm archives are committed in Chat. These releases replace the
+temporary prompt-capable snapshots.
 
-| Package | Version | Committed archive | Recorded source revision |
-|---|---|---|---|
-| `@manuelselch/pi-sdk` | 0.1.1 | [SDK archive](pi-sdk-0.1.1-prompts-5b747dd.tgz) | `5b747dd14acd3fb176b0b7b59dd54bdae33334e8` |
-| `@manuelselch/pi-server` | 0.1.2 | [Server archive](pi-server-0.1.2-prompts-df9dd1b.tgz) | `df9dd1b` |
-
-The server archive bundles the matching SDK snapshot. Its bundled manifest
-references the matching exact SDK version. The root lockfile records archive
-resolution and SHA-512 integrity. Keep these archive bytes, manifest selections
-and lockfile together; do not patch installed `node_modules` sources.
+Server 0.2.0 still bundles an SDK labeled 0.1.1; Chat consumes SDK 0.2.0 directly.
+The published server is consumed unchanged, without dependency overrides or
+local archive references in Chat's direct dependencies. Do not patch installed
+`node_modules` sources.
 
 `npm run verify:dependencies` checks the installed public server API and wire
 version; it is not a source-revision/checksum verifier or proof of publication.
 [Dependency fixture tests](../test/infra-tests/npm-dependencies.test.ts) inspect
-the committed archive selection, lock integrity and prompt-capable public API.
+exact release pins, registry resolution, lock integrity and the public API.
 Use the [development workflow](../docs/development.md) after an authorized update.
 Clean installation needs no sibling server/SDK checkout or Swift toolchain.
 
@@ -32,7 +27,7 @@ The SDK clean initial commits `a3edbcdfbb88b83ef773d9f966ff9ab35115d661`
 Pi Chat source `f3b1c616b140ac4c82d19d465b6205a3200b54f3`. The server clean
 initial commit `f47dfedbda627e18d2a7f7936874f4dad67d1e04` attributes Chat source
 `d38192ed590574add58dd57c82e99e706a7680eb`. These are source attributions,
-not the revisions of the current archives. Preserve package licenses and
+not the revisions of the current releases. Preserve package licenses and
 third-party notices when updating artifacts.
 
 Chat does not vendor a Swift SDK or own Swift compatibility testing. The

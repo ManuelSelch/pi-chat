@@ -17,12 +17,12 @@ interface InboxRowViewProps {
 export function InboxRowView({ row, active, later = false, pending, onSelect, onPark, onArchive }: InboxRowViewProps) {
   const actionSpace = row.status === "running" ? 0 : later ? 24 : 52;
   return <div className={`${styles.row} rounded-md border border-transparent ${active ? styles.selected : ""}`} data-session-inbox-row={row.key} data-session-path={row.path}>
-    <UnstyledButton display="block" w="100%" px={10} py={8} style={{ borderRadius: "var(--mantine-radius-md)", textAlign: "left" }} aria-label={`${later ? "Resume" : "Open"} ${row.title}`}
+    <UnstyledButton display="block" w="100%" px={10} py={8} style={{ borderRadius: "var(--mantine-radius-md)", textAlign: "left" }} aria-label={`${later ? "Resume" : "Open"} ${row.title}`} title={row.title}
       aria-current={active ? "true" : undefined} disabled={pending && (later || !row.sessionId)} onClick={onSelect}>
       <Group mb={4} wrap="nowrap" justify="space-between" gap={8}>
         <InboxStatus status={row.status} />
         <Text component="span" size="xs" c="dimmed" truncate miw={0} flex={1}>{row.project}</Text>
-        {!later && row.modified !== undefined && <Text component="span" size="xs" c="dimmed" style={{ flexShrink: 0 }}>{relativeTime(row.modified)}</Text>}
+        {!later && row.modified !== undefined && <Text component="span" size="xs" c="dimmed" style={{ flexShrink: 0 }}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
       </Group>
       <Group wrap="nowrap" gap={8} pr={actionSpace}>
         <Text component="span" size="sm" truncate miw={0} flex={1} title={row.primaryLabel}>{row.primaryLabel}</Text>

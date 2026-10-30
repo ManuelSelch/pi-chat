@@ -34,8 +34,8 @@
   "dependencies": {
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
-    "@manuelselch/pi-sdk": "file:vendor/pi-sdk-0.1.1-prompts-5b747dd.tgz",
-    "@manuelselch/pi-server": "file:vendor/pi-server-0.1.2-prompts-df9dd1b.tgz",
+    "@manuelselch/pi-sdk": "0.2.0",
+    "@manuelselch/pi-server": "0.2.0",
     "@tabler/icons-react": "^3.46.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",

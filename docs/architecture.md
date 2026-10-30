@@ -23,8 +23,7 @@ flowchart LR
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
 
 Chat consumes compiled packages, not sibling sources or a package workspace.
-The current manifest and lockfile select committed prompt-capable SDK/server
-archives. See [dependency provenance](../vendor/README.md), rather than inferring
+The current manifest and lockfile pin SDK/server 0.2.0 registry releases. See [dependency provenance](../vendor/README.md), rather than inferring
 installed behavior from a package version alone. Public server imports are the
 root, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
@@ -112,7 +111,14 @@ identities. Quick Chats stays separate; pins and recent unarchived activity driv
 ordering. Worktree labels and catalogue discovery belong to the server/model,
 not filesystem probing in views. Inbox uses repository context and promotes a
 linked worktree branch above its conversation title; main checkouts retain the
-title as primary. Search/actions continue using original identities.
+title as primary. Single-conversation linked checkouts omit the subtitle;
+multiple conversations retain titles for disambiguation. Counts include unarchived
+catalogue history (including Later) and unsaved live siblings, deduplicated against
+saved paths before status/search filtering. Later uses the same live inventory.
+Rows expose the full title on hover and use suffix-free recency locally; shared
+Home/Quick Switcher time formatting is unchanged. Project context uses the
+catalogue repository name, falling back to the runtime project name before
+discovery. Search/actions continue using original identities.
 
 ### Focus and overlays
 
