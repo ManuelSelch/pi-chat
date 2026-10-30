@@ -18,6 +18,5 @@ export function PromptDialog(p:Props) {
  <Text size="xs" c="dimmed">Optional. An empty explanation is allowed; it won’t be treated as evidence of understanding.</Text>
  </>}
  <Group justify="space-between" className="dialog-footer"><Button variant="subtle" color="gray" onClick={p.onMinimize} leftSection={<IconMinus size={15}/>}>Minimize</Button><Group gap="xs"><Button variant="default" onClick={p.onCancel}>Cancel quiz</Button><Button onClick={p.onContinue} disabled={p.stage==="select"&&!p.answer}>{p.stage==="select"?"Continue to reasoning":"Submit answer"}</Button></Group></Group>
- <Text size="xs" c="dimmed">Minimize keeps this question and your draft. Cancel ends the quiz.</Text>
  </Stack></Modal>;
 }

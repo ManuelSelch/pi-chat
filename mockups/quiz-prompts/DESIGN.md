@@ -1,7 +1,7 @@
 # Pending prompt readability mockup
 
 ## Scope
-Revision 3; review status: in review. Approval: not yet obtained.
+Revision 4; review status: in review. Approval: not yet obtained.
 Isolated Pi Chat mockup for existing select/editor prompts: minimize and reopen without cancellation, plus Markdown question content. No production modifications or backend integration.
 
 ## Layout and interaction
@@ -9,7 +9,7 @@ Isolated Pi Chat mockup for existing select/editor prompts: minimize and reopen 
 - Modal has a short heading without a stage badge, formatted question body, code block, list and display math; choices remain plain text.
 - Minimize action in header and footer releases the modal, reveals an above-composer pending control, and permits reading/scrolling the transcript.
 - Reopen restores selection or reasoning draft without a draft-saved label in the pending bar. Choice and reasoning are separate stages. Continue commits the selection to the mock reasoning stage; Submit completes the local fake question.
-- Escape/Cancel cancels; minimize does not. No automatic grading, correctness colors or progress-as-mastery.
+- Escape/Cancel cancels; minimize does not. No explanatory minimize/cancel sentence below the footer controls. No automatic grading, correctness colors or progress-as-mastery.
 - Narrow screens use a fluid modal and compact pending bar. Mantine supplies focus trapping and keyboard-accessible controls; no custom animations.
 
 ## Review states
