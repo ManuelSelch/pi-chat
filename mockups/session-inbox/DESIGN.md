@@ -4,7 +4,7 @@
 Explore an optional Settings toggle that hides the horizontal tabs and represents the same open sessions in the persistent sidebar. This request authorizes research and mockups only, not production implementation. All changes stay in the shared mockups workspace; production requirements and technical design are deferred until a direction is chosen.
 
 ## Revision and approval
-- Revision: 5.
+- Revision: 6.
 - Status: in review; not approved for implementation.
 - Direction selected: user prefers B (Inbox) and requested an untimed Later section, collapsed by default. Flat Later rows with project context are proposed for the user's small session count.
 - Approval evidence: direction only; no approval for production implementation.
@@ -26,7 +26,8 @@ The following are Pi Chat design proposals inspired by those patterns, not claim
 - C: Project inbox — Needs you shelf followed by remaining open sessions grouped by project. No duplicated rows. A session needing attention moves out of its project group to the top shelf.
 
 ## Shared interactions
-- Settings (top-right gear): Show open sessions in sidebar. On hides tabs and opens sidebar. Off restores tabs without changing the open-session set, selection, drafts or fake run states.
+- Settings gear is anchored at the sidebar's bottom-left edge, outside its scrolling content. No header gear. Reopen a hidden sidebar using the header toggle to reach Settings. On phones, opening Settings dismisses the navigation drawer.
+- Settings (sidebar bottom gear): Show open sessions in sidebar. On hides tabs and opens sidebar. Off restores tabs without changing the open-session set, selection, drafts or fake run states.
 - Select a session without closing the sidebar, or clearing its attention state. Drafts belong to each session.
 - Session rows omit activity summaries. Project, title, time and status remain; Ready rows show branch metadata only when a branch exists; no Personal conversation fallback. Fake activity text used inside the demo conversation is not sidebar content.
 - Move to Later parks an idle session outside the open queue, equivalent in intent to the user's current close-tab workflow. It is not archiving, finishing, or deleting. Hover/focus clock action and main-header button expose the same action; closing a prototype tab parks the same session.
@@ -59,4 +60,4 @@ The existing app exposes idle/running/blocked statuses. The mock's attention sta
 - Flat Later rows with project labels are proposed for review; revisit grouping only if the list actually grows.
 
 ## Review and verification
-Source inspection and HTTP serving checks for revisions 1–5. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
+Source inspection and HTTP serving checks for revisions 1–6. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.

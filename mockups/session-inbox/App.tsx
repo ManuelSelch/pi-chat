@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
 import { ActionIcon, Badge, Button, Drawer, Group, SegmentedControl, Stack, Switch, Text, Textarea, UnstyledButton } from '@mantine/core';
-import { IconArrowUp, IconCheck, IconClockPause, IconChevronRight, IconGitBranch, IconLayoutSidebar, IconPlayerPlay, IconSettings, IconX } from '@tabler/icons-react';
+import { IconArrowUp, IconCheck, IconClockPause, IconChevronRight, IconGitBranch, IconLayoutSidebar, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { Sidebar } from './Sidebar';
 import { concepts, initialSessions, statusLabels, type Concept, type Session } from './data';
 
@@ -55,12 +55,12 @@ export function App() {
     setNotice('Simulated agent completion. The session now needs you.');
   }
   function reset() { setSessions(initialSessions.map(s => ({ ...s }))); setActive('inbox'); setDrafts({}); setMessages({}); setNotice(''); }
-  const sidebar = <Sidebar concept={concept} sessions={sessions} active={active} sidebarMode={sidebarMode} choose={choose} deferSession={deferSession} restore={restore} create={create} close={() => setPanelOpen(false)}/>;
+  const sidebar = <Sidebar concept={concept} sessions={sessions} active={active} sidebarMode={sidebarMode} choose={choose} deferSession={deferSession} restore={restore} create={create} close={() => setPanelOpen(false)} openSettings={() => { if (mobile) setPanelOpen(false); setSettings(true); }}/>;
   return <div className="review-page">
     <div className="review-toolbar"><div className="review-brand"><span className="eyebrow">PI CHAT / DESIGN STUDY 01</span><strong>Sessions, without tabs</strong></div><SegmentedControl aria-label="Mockup concept" value={concept} onChange={changeConcept} data={Object.entries(concepts).map(([value, c]) => ({ value, label: c.label }))}/><Button size="xs" variant="subtle" color="gray" onClick={reset}>Reset demo</Button></div>
     <div className="concept-caption"><span>{concepts[concept].title}</span><p>{concepts[concept].description}</p><Badge variant="light" color={concept === 'b' ? 'blue' : 'gray'} size="sm">{concept === 'b' ? 'Recommended starting point' : 'Alternative direction'}</Badge></div>
     <div className={`app-shell ${panelOpen ? 'panel-open' : ''} ${!sidebarMode ? 'has-tabs' : ''}`}>
-      <header className="app-header"><Group gap={10}><ActionIcon variant="subtle" color="gray" aria-label="Toggle sidebar" aria-expanded={panelOpen} onClick={() => setPanelOpen(v => !v)}><IconLayoutSidebar size={19}/></ActionIcon><strong>Pi Chat</strong></Group><div className="breadcrumb"><span>{session?.project ?? 'Workspace'}</span><IconChevronRight size={12}/><span>{session?.title ?? 'Inbox clear'}</span></div><ActionIcon variant="subtle" color="gray" aria-label="Settings" title="Settings · toggle tabs here" onClick={() => setSettings(true)}><IconSettings size={19}/></ActionIcon></header>
+      <header className="app-header"><Group gap={10}><ActionIcon variant="subtle" color="gray" aria-label="Toggle sidebar" aria-expanded={panelOpen} onClick={() => setPanelOpen(v => !v)}><IconLayoutSidebar size={19}/></ActionIcon><strong>Pi Chat</strong></Group><div className="breadcrumb"><span>{session?.project ?? 'Workspace'}</span><IconChevronRight size={12}/><span>{session?.title ?? 'Inbox clear'}</span></div></header>
       {!sidebarMode && <div className="tabs" aria-label="Open session tabs">{open.map(s => <div className={`tab ${s.id === active ? 'active-tab' : ''}`} key={s.id}><UnstyledButton onClick={() => choose(s.id)}><span className={`dot ${s.status}`}/>{s.title}</UnstyledButton><ActionIcon size="xs" variant="subtle" color="gray" aria-label={`Close ${s.title}`} disabled={s.status === 'working'} onClick={() => deferSession(s.id)}><IconX size={12}/></ActionIcon></div>)}</div>}
       {panelOpen && <div className="desktop-sidebar">{sidebar}</div>}
       {mobile && <Drawer className="mobile-navigation" opened={panelOpen} onClose={() => setPanelOpen(false)} withCloseButton={false} padding={0} size={320} aria-label="Sessions">{sidebar}</Drawer>}

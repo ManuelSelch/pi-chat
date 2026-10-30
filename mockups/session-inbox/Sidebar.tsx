@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { ActionIcon, TextInput, UnstyledButton } from '@mantine/core';
-import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconInbox, IconMessage, IconPlus, IconSearch, IconX } from '@tabler/icons-react';
+import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconInbox, IconMessage, IconPlus, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { statusLabels, type Concept, type Session } from './data';
 
 interface Props {
   concept: Concept; sessions: Session[]; active: string; sidebarMode: boolean;
   choose: (id: string) => void; deferSession: (id: string) => void;
-  restore: (id: string) => void; create: (project?: string) => void; close: () => void;
+  restore: (id: string) => void; create: (project?: string) => void; close: () => void; openSettings: () => void;
 }
 function SessionRow({ session, active, choose, deferSession, compact = false }: { session: Session; active: string; choose: Props['choose']; deferSession: Props['deferSession']; compact?: boolean }) {
   return <div className={`session-item ${active === session.id ? 'selected' : ''} ${compact ? 'compact' : ''}`}>
@@ -26,7 +26,7 @@ function Section({ title, count, children, collapsible = false }: { title: strin
   </section>;
 }
 export function Sidebar(props: Props) {
-  const { concept, sessions, active, choose, deferSession, restore, create, close, sidebarMode } = props;
+  const { concept, sessions, active, choose, deferSession, restore, create, close, sidebarMode, openSettings } = props;
   const [query, setQuery] = useState('');
   const [laterOpen, setLaterOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(true);
@@ -68,5 +68,6 @@ export function Sidebar(props: Props) {
       {sidebarMode && <><UnstyledButton className="footer-link" aria-expanded={projectsOpen} onClick={() => setProjectsOpen(v => !v)}>{projectsOpen ? <IconChevronDown size={14}/> : <IconChevronRight size={14}/>}Browse projects<IconFolder size={14}/></UnstyledButton>{projectsOpen && <div className="project-chips">{projects.map(project => <UnstyledButton key={project} title={`Start session in ${project}`} onClick={() => create(project)}>{project === 'Quick Chats' ? <IconMessage size={12}/> : <IconFolder size={12}/>} {project}<IconPlus size={12}/></UnstyledButton>)}</div>}</>}
       <div className="sidebar-note">{sidebarMode ? 'Later is for “not now”. Archive is for finished work.' : 'Mockup · local data only'}</div>
     </div>
+    <div className="sidebar-bottom"><ActionIcon variant="subtle" color="gray" aria-label="Settings" title="Settings" onClick={openSettings}><IconSettings size={19}/></ActionIcon></div>
   </aside>;
 }
