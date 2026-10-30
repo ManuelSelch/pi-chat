@@ -14,6 +14,7 @@ import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/Q
 const chat = vi.hoisted(() => ({
   promptPresentation: { minimized: false, prompt: undefined },
   app: {} as AppState, state: {} as ChatState,
+  inboxEnabled: false, inbox: { park: vi.fn() },
   newSession: vi.fn(), closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
   openSession: vi.fn(), openProject: vi.fn(), prompt: vi.fn(), dismissError: vi.fn(),
   completeCommandArguments: vi.fn(async () => []),
@@ -21,6 +22,7 @@ const chat = vi.hoisted(() => ({
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 beforeEach(() => {
   vi.clearAllMocks();
+  chat.inboxEnabled = false;
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   chat.app = { ...initialAppState, activeSessionId: "one", tabsKnown: true, connection: "open",
     tabs: [{ sessionId: "one", title: "One", projectPath: "/repo", projectName: "repo", status: "idle" }],
@@ -52,12 +54,12 @@ async function select(menu: "composer" | "palette", name: string) {
   else fireEvent.click(option);
 }
 for (const menu of ["composer", "palette"] as const) {
-  it.each(["New session", "Close tab", "Archive session", "Open folder…", "Settings"])(`${menu}: runs shared %s`, async name => {
+  it.each(["New session", "Close Session", "Archive Session", "Open folder…", "Settings"])(`${menu}: runs shared %s`, async name => {
     mount();
     await select(menu, name);
     if (name === "New session") expect(chat.newSession).toHaveBeenCalledExactlyOnceWith("/repo");
-    if (name === "Close tab") expect(chat.closeTab).toHaveBeenCalledExactlyOnceWith("one");
-    if (name === "Archive session") await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledExactlyOnceWith("/sessions/one", true));
+    if (name === "Close Session") expect(chat.closeTab).toHaveBeenCalledExactlyOnceWith("one");
+    if (name === "Archive Session") await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledExactlyOnceWith("/sessions/one", true));
     if (name === "Open folder…") expect(screen.getByRole("status").textContent).toContain('"folderPicker":true');
     if (name === "Settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
@@ -77,7 +79,7 @@ for (const menu of ["composer", "palette"] as const) {
   });
   it(`${menu}: archive failures use the composer error display and dismissal`, async () => {
     chat.archiveSession.mockRejectedValue(new Error("Archive failed"));
-    mount(); await select(menu, "Archive session");
+    mount(); await select(menu, "Archive Session");
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Archive failed");
     fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
@@ -86,7 +88,7 @@ for (const menu of ["composer", "palette"] as const) {
 it("keeps palette archive errors session-scoped across catalogue/state refreshes", async () => {
   chat.archiveSession.mockRejectedValue(new Error("Archive failed"));
   const view = mount();
-  await select("palette", "Archive session");
+  await select("palette", "Archive Session");
   await screen.findByRole("alert");
   const refresh = () => view.rerender(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
   chat.app = { ...chat.app, catalogue: { projects: [] } };
@@ -101,14 +103,23 @@ it("keeps palette archive errors session-scoped across catalogue/state refreshes
   expect(screen.getByRole("alert").textContent).toBe("Archive failed");
 });
 
-it("refreshes palette availability when the active session starts running", async () => {
+it("keeps Archive Session listed but disabled when the active session starts running", async () => {
   const view = mount();
   fireEvent.click(screen.getByText("Open palette"));
   fireEvent.click(await screen.findByRole("button", { name: "/ Actions" }));
-  expect(screen.getByRole("option", { name: /Action: Archive session/ })).toBeTruthy();
+  expect(screen.getByRole("option", { name: /Action: Archive Session/ })).toBeTruthy();
   chat.state = { ...chat.state, status: "running" };
   view.rerender(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
-  expect(screen.queryByRole("option", { name: /Action: Archive session/ })).toBeNull();
+  const archive = screen.getByRole("option", { name: /Action: Archive Session/ });
+  expect(archive.getAttribute("disabled")).not.toBeNull();
   expect(screen.getByRole("option", { name: /Action: New session/ })).toBeTruthy();
-  expect(screen.getByRole("option", { name: /Action: Close tab/ })).toBeTruthy();
+  expect(screen.getByRole("option", { name: /Action: Close Session/ })).toBeTruthy();
+});
+
+it("lists Later in Inbox mode and runs it through inbox.park", async () => {
+  chat.inboxEnabled = true;
+  chat.app = { ...chat.app, catalogue: { projects: [{ path: "/repo", displayPath: "~/repo", name: "repo", exists: true, modified: 0, sessionCount: 1, sessions: [{ path: "/sessions/one", id: "one", title: "One", nameSource: "manual", modified: 0, created: 0, messageCount: 1 }] }] } }; 
+  mount();
+  await select("palette", "Later");
+  expect(chat.inbox.park).toHaveBeenCalledExactlyOnceWith("one");
 });

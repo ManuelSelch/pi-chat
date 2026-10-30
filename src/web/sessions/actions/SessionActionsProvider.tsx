@@ -32,7 +32,8 @@ export function SessionActionsProvider({ children }: { children: ReactNode }) {
   }
   const actions = buildSessionActions(state, {
     newSession: chat.newSession,
-    closeTab: id => { if (chat.inboxEnabled) void chat.inbox.park(id); else chat.closeTab(id); },
+    closeSession: id => chat.closeTab(id),
+    parkSession: id => { void chat.inbox.park(id); },
     archiveSession: (sessionId, path) => {
       clearError(sessionId);
       if (chat.inboxEnabled) { void chat.inbox.archive(path); return; }

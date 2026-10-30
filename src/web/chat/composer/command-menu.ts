@@ -6,7 +6,7 @@ import type { SessionAction } from "../../sessions/actions/session-actions.js";
  * action this UI performs itself, such as renaming the session. Both are shown
  * in one list so Cmd+K answers "what can I do right now?".
  */
-export type LocalAction = Pick<SessionAction, "name" | "description" | "run">;
+export type LocalAction = Pick<SessionAction, "name" | "description" | "run" | "disabled">;
 
 export type MenuItem = (SlashCommand & { kind: "command" }) | (LocalAction & { kind: "action" }) | (CommandCompletionItem & { kind: "argument" });
 

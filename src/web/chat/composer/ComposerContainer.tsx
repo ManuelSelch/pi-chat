@@ -58,7 +58,16 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
   const matches: MenuItem[] = query === undefined
     ? argumentItems.map((item) => ({ ...item, kind: "argument" }))
     : filterCommands(menuItems(sessionActions, state.actions.commands), query);
-  const activeIndex = Math.min(activeCommand, Math.max(0, matches.length - 1));
+  const disabledItem = (item: MenuItem) => item.kind === "action" && item.disabled === true;
+  function nextEnabled(from: number, step: number): number {
+    for (let offset = 1; offset <= matches.length; offset++) {
+      const index = (from + step * offset + matches.length * 2) % matches.length;
+      if (!disabledItem(matches[index]!)) return index;
+    }
+    return from;
+  }
+  const clampedCommand = Math.min(activeCommand, Math.max(0, matches.length - 1));
+  const activeIndex = matches.length > 0 && disabledItem(matches[clampedCommand]!) ? nextEnabled(clampedCommand, 1) : clampedCommand;
 
   function setInput(value: string, caret = value.length): void {
     if (loading || state.prompts.length > 0) return;
@@ -107,6 +116,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
   );
 
   function runMenuItem(item: MenuItem): void {
+    if (disabledItem(item)) return;
     if (item.kind === "argument") {
       if (!context) return;
       const completed = applyArgumentCompletion(input, context, item.value);
@@ -131,7 +141,9 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
     const message = input.trim();
     if (!message || app.connection !== "open" || !canSubmit) return;
     if (state.status === "running" && message.startsWith("!")) return;
-    if (message === "/archive") sessionActions.find(action => action.id === "archive-session")?.run();
+    const localCommand = ({ "/close": "close-session", "/later": "later-session", "/archive": "archive-session" } as const)[message as "/close" | "/later" | "/archive"];
+    const localAction = localCommand && sessionActions.find(action => action.id === localCommand);
+    if (localCommand) { if (localAction && !localAction.disabled) localAction.run(); }
     else chat.prompt(message);
     setInput("");
     setActiveCommand(0);
@@ -150,7 +162,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         const step = event.key === "ArrowDown" ? 1 : -1;
-        setActiveCommand((index) => (index + step + matches.length) % matches.length);
+        setActiveCommand(nextEnabled(activeIndex, step));
         return;
       }
       if (event.key === "Enter" || event.key === "Tab") {

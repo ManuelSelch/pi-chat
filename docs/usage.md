@@ -6,7 +6,7 @@
 | --- | --- |
 | `⌘⇧O` / `Ctrl+Shift+O` | Quick Switcher: type a session or project name |
 | `⌘O` / `Ctrl+O` | Same, in browsers that hand the key over (not Safari) |
-| `⌘K` / `Ctrl+K` | Session actions (new, archive, close tab) plus every Pi slash command |
+| `⌘K` / `Ctrl+K` | Session actions (new, close, later, archive) plus every Pi slash command |
 | `Esc` | Stop the current run; an open dialog or menu closes first |
 | `Ctrl+C` | Clear the composer, unless text is selected so Copy still works |
 
@@ -15,10 +15,19 @@
 Use Projects to browse projects and persistent sessions, or open a server folder
 to start a session without previous Pi history. Tabs keep conversations separate.
 
-Type `/archive` to archive the current idle session and close its tab without
-deleting its transcript. Archived sessions remain available under **Archived**
-in Projects, where they can be restored. There is no delete-session command or
-custom rename action; titles come from Pi.
+Session actions are available from the ⌘K menu, the Quick Switcher `/` scope, and
+typed exactly as `/close`, `/later`, or `/archive`:
+
+- **Close Session** closes the current session's runtime; it is always available
+  and closes immediately, including while the session is running.
+- **Later** parks a saved, idle conversation into Later (Inbox mode only).
+- **Archive Session** archives the current idle session without deleting its
+  transcript. Archived sessions remain available under **Archived** in Projects,
+  where they can be restored.
+
+Later and Archive Session stay listed while a session is running, blocked or
+unsaved but are disabled until it becomes an idle saved conversation. There is no
+delete-session command or custom rename action; titles come from Pi.
 
 Projects keeps Quick Chats separate from repository groups. Pinned projects
 come before recent projects, whose order uses latest unarchived conversation
@@ -48,10 +57,11 @@ unloaded conversation opens it; history is never reopened automatically.
 **Working** can be collapsed independently. Selecting a session does not answer
 or dismiss a prompt.
 
-- **Move to Later** parks a saved, idle conversation, closing its runtime if loaded.
+- **Later** parks a saved, idle conversation, closing its runtime if loaded.
   Later is untimed, collapsed by default, and remembered in this browser for
   this server. Expand it and select a conversation to reopen it explicitly.
-  Unsaved, working and blocked sessions cannot be parked.
+  Unsaved, working and blocked sessions cannot be parked; Later is hidden when
+  Inbox is off.
 - The header **×** returns to the original Home search. Nonempty sessions,
   background work and their drafts stay unchanged; select a sidebar row to
   return. Empty idle sessions are closed and removed from live inventory.
@@ -94,11 +104,12 @@ activate; Escape dismisses. Activating a session resumes it, and a folder or
 worktree follows the existing project-opening behavior. A no-match query can be
 edited without closing the switcher.
 
-Composer and Quick Switcher share New session, Close tab/Move to Later, Archive,
-Open folder and Settings actions. Availability follows the current session,
-connection and navigation mode. Restart is not a session-menu action; use
-Settings or `/pi-chat restart`. Quick Switcher activates local actions directly,
-not arbitrary extension commands or argument completion.
+Composer and Quick Switcher share New session, Close Session, Later (Inbox mode),
+Archive Session, Open folder and Settings actions. Availability follows the current
+session, connection and navigation mode; Later and Archive Session are listed but
+disabled while the session cannot be parked or archived. Restart is not a
+session-menu action; use Settings or `/pi-chat restart`. Quick Switcher activates
+local actions directly, not arbitrary extension commands or argument completion.
 
 ## Skills
 
