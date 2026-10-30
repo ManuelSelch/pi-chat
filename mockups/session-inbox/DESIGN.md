@@ -4,7 +4,7 @@
 Explore an optional Settings toggle that hides the horizontal tabs and represents the same open sessions in the persistent sidebar. This request authorizes research and mockups only, not production implementation. All changes stay in the shared mockups workspace; production requirements and technical design are deferred until a direction is chosen.
 
 ## Revision and approval
-- Revision: 12.
+- Revision: 13.
 - Status: in review; not approved for implementation.
 - Direction selected: user prefers B (Inbox) and requested an untimed Later section, collapsed by default. Flat Later rows with project context are proposed for the user's small session count.
 - Approval evidence: direction only; no approval for production implementation.
@@ -36,8 +36,8 @@ The following are Pi Chat design proposals inspired by those patterns, not claim
 - Move to Later parks an idle session outside the open queue, equivalent in intent to the user's current close-tab workflow. It is not archiving, finishing, or deleting. Hover/focus clock action and main-header button expose the same action; closing a prototype tab parks the same session.
 - Later is collapsed by default, shows a separate count, and stays collapsed when a session is moved into it. Expanded, it shows a flat list with project name above each title. No project grouping or extra grouping setting. Two seeded Later conversations demonstrate the list.
 - Clicking a Later session explicitly restores it to its previous Inbox status and selects it. No timer, reminder, automatic wake-up, or background reopening. Drafts and local messages survive parking/resuming within the current page lifetime. The sidebar has no Inbox heading, icon, or total-count badge; the close control and section counts remain.
-- Archive remains a distinct finished-work concept accessible through production project history; it is not implemented or simulated here. The old Handled vocabulary is removed.
-- Working sessions cannot be moved to Later in this revision. Simulate response ready changes the selected Working session into Needs you.
+- Archive icon sits immediately beside Move to Later in the current-session header and sidebar row hover/focus actions. Local archiving removes a session from Inbox and Later without deleting its conversation or drafts. A notice offers Undo archive to restore the most recently archived session. Production archived-history browsing is not simulated. The old Handled vocabulary is removed.
+- Working sessions cannot be moved to Later or archived in this revision. Simulate response ready changes the selected Working session into Needs you.
 - Send a local message to simulate Working. Nothing is actually sent. The empty-state New session action creates a local fake session.
 - Search title/project/branch; per-section counts reflect the filtered view; there is no total-count badge beside the Inbox heading. Later is filtered too and its count shows matches during a search, but search never automatically expands it.
 - The sidebar New session button remains omitted. A plus icon at the top-right of the main header creates/selects a local session in the current project, or Quick Chats if no session is selected. It remains available while another session is working. The existing production quickswitcher remains an alternative (not simulated here).
@@ -53,7 +53,7 @@ The following are Pi Chat design proposals inspired by those patterns, not claim
 - /session-inbox/?concept=b&state=empty (all sessions in Later)
 
 ## Fake or omitted behavior
-React and local state only. No APIs, credentials, persistence, real agent work, real history, session archive, keyboard shortcut implementation, resizer, reorder, timed snooze, notifications, or runtime changes. All states reset on reload, except the selected concept is reflected in the URL. Reset demo restores the initial sessions and drafts.
+React and local state only. No APIs, credentials, persistence, real agent work, real history, backend archiving, keyboard shortcut implementation, resizer, reorder, timed snooze, notifications, or runtime changes. All states reset on reload, except the selected concept is reflected in the URL. Reset demo restores the initial sessions and drafts.
 The existing app exposes idle/running/blocked statuses. The mock's attention state includes both blocked input and a response ready for review; the latter would require an agreed attention/read model in production. Later represents the user's close-tab-for-now intent, not a new archive lifecycle. Actual runtime closure/persistence behavior is left to a future production design. No production change is implied by prototype vocabulary.
 
 ## Outstanding questions
@@ -63,4 +63,4 @@ The existing app exposes idle/running/blocked statuses. The mock's attention sta
 - Flat Later rows with project labels are proposed for review; revisit grouping only if the list actually grows.
 
 ## Review and verification
-Source inspection and HTTP serving checks for revisions 1–12. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
+Source inspection and HTTP serving checks for revisions 1–13. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.

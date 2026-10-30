@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { ActionIcon, TextInput, UnstyledButton } from '@mantine/core';
-import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
+import { IconArchive, IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { statusLabels, type Concept, type Session } from './data';
 
 interface Props {
   concept: Concept; sessions: Session[]; active: string; sidebarMode: boolean;
-  choose: (id: string) => void; deferSession: (id: string) => void;
+  choose: (id: string) => void; deferSession: (id: string) => void; archiveSession: (id: string) => void;
   restore: (id: string) => void; close: () => void; openSettings: () => void;
 }
-function SessionRow({ session, active, choose, deferSession, compact = false }: { session: Session; active: string; choose: Props['choose']; deferSession: Props['deferSession']; compact?: boolean }) {
+function SessionRow({ session, active, choose, deferSession, archiveSession, compact = false }: { session: Session; active: string; choose: Props['choose']; deferSession: Props['deferSession']; archiveSession: Props['archiveSession']; compact?: boolean }) {
   return <div className={`session-item ${active === session.id ? 'selected' : ''} ${compact ? 'compact' : ''}`}>
     <UnstyledButton className="session-main" onClick={() => choose(session.id)} aria-current={active === session.id ? 'page' : undefined}>
       {!compact && <div className="session-context"><span>{session.project}</span><span>{session.time}</span></div>}
       <div className="session-title"><span className={`dot ${session.status}`} aria-label={statusLabels[session.status]} /><span>{session.title}</span></div>
       {!compact && session.status === 'ready' && session.branch && <div className="session-detail">{session.branch}</div>}
     </UnstyledButton>
-    <ActionIcon className="later-action" size="sm" variant="subtle" color="gray" aria-label={`Move ${session.title} to Later`} title={session.status === 'working' ? 'Wait for the run to finish' : 'Move to Later · not archived'} disabled={session.status === 'working'} onClick={() => deferSession(session.id)}><IconClockPause size={15}/></ActionIcon>
+    <div className="session-row-actions"><ActionIcon size="sm" variant="subtle" color="gray" aria-label={`Move ${session.title} to Later`} title={session.status === 'working' ? 'Wait for the run to finish' : 'Move to Later · not archived'} disabled={session.status === 'working'} onClick={() => deferSession(session.id)}><IconClockPause size={15}/></ActionIcon><ActionIcon size="sm" variant="subtle" color="gray" aria-label={`Archive ${session.title}`} title={session.status === 'working' ? 'Wait for the run to finish' : 'Archive session'} disabled={session.status === 'working'} onClick={() => archiveSession(session.id)}><IconArchive size={15}/></ActionIcon></div>
   </div>;
 }
 function Section({ title, count, children, collapsible = false }: { title: string; count: number; children: React.ReactNode; collapsible?: boolean }) {
@@ -26,16 +26,16 @@ function Section({ title, count, children, collapsible = false }: { title: strin
   </section>;
 }
 export function Sidebar(props: Props) {
-  const { concept, sessions, active, choose, deferSession, restore, close, sidebarMode, openSettings } = props;
+  const { concept, sessions, active, choose, deferSession, archiveSession, restore, close, sidebarMode, openSettings } = props;
   const [query, setQuery] = useState('');
   const [laterOpen, setLaterOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const open = sessions.filter(s => !s.later);
+  const open = sessions.filter(s => !s.later && !s.archived);
   const matches = (s: Session) => `${s.title} ${s.project} ${s.branch}`.toLowerCase().includes(query.toLowerCase());
   const visible = open.filter(matches);
-  const later = sessions.filter(s => s.later);
+  const later = sessions.filter(s => s.later && !s.archived);
   const visibleLater = later.filter(matches);
-  const row = (session: Session, compact = false) => <SessionRow key={session.id} session={session} active={active} choose={choose} deferSession={deferSession} compact={compact}/>;
+  const row = (session: Session, compact = false) => <SessionRow key={session.id} session={session} active={active} choose={choose} deferSession={deferSession} archiveSession={archiveSession} compact={compact}/>;
   const projects = [...new Set(['Quick Chats', 'pi-chat', 'pi-studio', 'notesToGo', ...open.map(s => s.project)])];
   return <aside className="sidebar" aria-label="Session navigation">
     <div className="sidebar-heading"><ActionIcon variant="subtle" color="gray" aria-label="Close sidebar" onClick={close}><IconX size={17}/></ActionIcon></div>

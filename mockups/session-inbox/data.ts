@@ -1,7 +1,7 @@
 export type Status = 'attention' | 'working' | 'ready';
 export interface Session {
   id: string; title: string; project: string; branch: string; status: Status;
-  detail: string; time: string; later?: boolean;
+  detail: string; time: string; later?: boolean; archived?: boolean;
 }
 export const initialSessions: Session[] = [
   { id: 'inbox', title: 'Session inbox navigation', project: 'pi-chat', branch: 'main', status: 'attention', detail: 'Design ready for your review', time: 'now' },
