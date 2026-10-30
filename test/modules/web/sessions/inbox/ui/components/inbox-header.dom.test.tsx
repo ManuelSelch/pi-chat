@@ -27,6 +27,18 @@ it("removes header branding without removing breadcrumbs or navigation", () => {
   expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
 });
 
+it("omits the title placeholder when no session is selected", () => {
+  const props: ComponentProps<typeof InboxHeader> = {
+    session: undefined, title: undefined, branch: undefined, opened: false, disabled: false, pending: false, saved: false,
+    buttons: [], badges: [], onToggle: vi.fn(), onNew: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onCloseView: vi.fn(), onAction: vi.fn(),
+  };
+  render(<MantineProvider><AppShell><InboxHeader {...props} /></AppShell></MantineProvider>);
+
+  expect(screen.queryByText("No session open")).toBeNull();
+  expect(screen.getByRole("button", { name: "Sessions" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
+});
+
 it("omits pause and archive while running, but retains Close view", () => {
   renderHeader("running");
 

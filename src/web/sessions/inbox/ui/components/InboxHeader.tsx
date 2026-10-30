@@ -6,7 +6,7 @@ import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
 
 interface InboxHeaderProps {
-  session: Tab | undefined; branch: string | undefined; title: string;
+  session: Tab | undefined; branch: string | undefined; title: string | undefined;
   opened: boolean; disabled: boolean; pending: boolean; saved: boolean;
   buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[];
   onToggle(): void; onNew(): void; onPark(): void; onArchive(): void; onCloseView(): void; onAction(id: string): void;
@@ -17,7 +17,7 @@ export function InboxHeader(p: InboxHeaderProps) {
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="Sessions" data-projects-toggle aria-expanded={p.opened} onClick={p.onToggle}><IconLayoutSidebar size={18} /></ActionIcon>
       <div className={styles.breadcrumb}>
         {p.session && <><Text size="xs" c="dimmed" visibleFrom="sm" maw={128} miw={0} truncate>{p.session.projectName}</Text><IconChevronRight size={12} className="hidden shrink-0 sm:block" /></>}
-        <Text size="xs" miw={0} flex={1} truncate title={p.title}>{p.title}</Text>
+        {p.title && <Text size="xs" miw={0} flex={1} truncate title={p.title}>{p.title}</Text>}
       </div>
       {p.session && <>
         {p.branch && <span className={styles.headerBranch} title={`Branch: ${p.branch}`}><IconGitBranch size={13} className="shrink-0" /><span className="truncate">{p.branch}</span></span>}

@@ -47,7 +47,7 @@ export function HeaderView({
               <IconLayoutSidebar size={18} />
             </ActionIcon>
           </Tooltip>
-          <Text c="dimmed" size="xs" truncate>{title}</Text>
+          {home ? null : <Text c="dimmed" size="xs" truncate>{title}</Text>}
         </Group>
         <Group gap="sm" wrap="nowrap">
           {home ? null : <Slot name="session.status" buttons={buttons} badges={badges} onAction={onAction} />}

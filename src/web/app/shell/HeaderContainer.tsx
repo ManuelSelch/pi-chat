@@ -12,12 +12,12 @@ export function HeaderContainer() {
   const { app, state } = chat;
   const home = atHome(app);
   const sessionName = state.sessionName?.trim();
-  const title = home ? "No session open" : state.projectPath ? sessionName || "New session" : "Connecting…";
+  const title = state.projectPath ? sessionName || "New session" : "Connecting…";
 
   if (chat.inboxEnabled) {
     const selected = visibleTabs(app).find(tab => tab.sessionId === app.activeSessionId);
     const branch = app.catalogue.projects.find(project => project.path === selected?.projectPath)?.worktree?.branch;
-    return <InboxHeader session={selected} title={selected?.title ?? "No session open"} branch={branch}
+    return <InboxHeader session={selected} title={selected?.title} branch={branch}
       opened={overlays.state.projects} disabled={app.connection !== "open"} pending={chat.inbox.pending} saved={hasSavedSession(app.catalogue, selected?.sessionPath)}
       buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction}
       onToggle={() => { overlays.toggle("projects"); if (overlays.projectsPresentation === "sidebar") focusComposer(); }}

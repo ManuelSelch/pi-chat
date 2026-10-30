@@ -21,6 +21,15 @@ function header() {
   return <MantineProvider><AppShell><HeaderContainer /></AppShell></MantineProvider>;
 }
 
+it("omits the title label at home instead of showing a placeholder", () => {
+  chat.app = { ...initialAppState, tabsKnown: true };
+  chat.state = initialChatState;
+  render(header());
+  expect(screen.queryByText("No session open")).toBeNull();
+  expect(screen.getByRole("button", { name: "Projects and sessions" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+});
+
 it("shows Pi's session title, refreshes it while running, and clears it on a later snapshot", () => {
   chat.app = { ...initialAppState, tabsKnown: false };
   chat.state = initialChatState;

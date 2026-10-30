@@ -25,7 +25,7 @@ interface QuickOpenProps {
 
 const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
 const resultIcons = { project: IconFolder, worktree: IconGitBranch, projectAction: IconFolderPlus, action: IconBolt } as const;
-const iconStyle = { flexShrink: 0, marginTop: 2, color: "var(--mantine-color-dimmed)" } as const;
+const iconStyle = { flexShrink: 0, color: "var(--mantine-color-dimmed)" } as const;
 const scopes = [
   { prefix: "", label: "All", kind: undefined },
   { prefix: "#", label: "# Folders", kind: "project" },
@@ -195,14 +195,14 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
                 onClick={() => choose(item)}
                 p="8px 12px"
               >
-                <Group gap="xs" wrap="nowrap" align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                <Group gap="xs" wrap="nowrap" align="center" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
                   {(() => {
                     if (item.kind === "session") return <SessionIndicator status={item.status} />;
                     const Icon = resultIcons[item.kind];
                     return <Icon size={16} aria-hidden="true" style={iconStyle} />;
                   })()}
                   <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
-                    <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}{item.isOpen ? <Text component="span" size="xs" c="dimmed" ml={6}>Open</Text> : null}</Text>
+                    <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}</Text>
                     <Text size="xs" c="dimmed" truncate>{resultContext(item)}</Text>
                   </Stack>
                 </Group>
