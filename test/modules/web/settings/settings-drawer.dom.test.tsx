@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ComponentProps } from "react";
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -9,7 +10,7 @@ afterEach(cleanup);
 
 const noop = () => {};
 
-function renderDrawer(extensions: typeof initialChatState.extensions, runExtensionAction = vi.fn(), setHideArchivedSessions = vi.fn()) {
+function renderDrawer(extensions: typeof initialChatState.extensions, runExtensionAction = vi.fn(), setHideArchivedSessions = vi.fn(), transcriptDensity: "comfortable" | "compact" = "compact", setTranscriptDensity = vi.fn(), overrides: Partial<ComponentProps<typeof SettingsDrawer>> = {}) {
   render(
     <MantineProvider>
       <SettingsDrawer
@@ -32,16 +33,24 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         setDisplayPathShow={noop}
         hideArchivedSessions={true}
         setHideArchivedSessions={setHideArchivedSessions}
-        transcriptDensity="comfortable"
-        setTranscriptDensity={noop}
+        transcriptDensity={transcriptDensity}
+        setTranscriptDensity={setTranscriptDensity}
         runExtensionAction={runExtensionAction}
+        {...overrides}
       />
     </MantineProvider>,
   );
   return runExtensionAction;
 }
 
-describe("SettingsDrawer extension section", () => {
+const sessionFeatures: typeof initialChatState.actions.features = [
+  { id: "thinking.level", group: "model", kind: "select", title: "Thinking", state: { value: "medium", options: ["low", "medium", "high"] } },
+  { id: "model.select", group: "model", kind: "select", title: "Model", state: { value: "p/one", options: ["p/one", "p/two"] } },
+  { id: "session.compact", group: "session", kind: "action", title: "Compact session", description: "Summarize older context to free up space.", state: { label: "Compact" } },
+];
+const restartFeature = { id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } } as const;
+
+describe("SettingsDrawer groups", () => {
   it("has no custom name editor and retains other settings", () => {
     renderDrawer(initialChatState.extensions);
     expect(screen.queryByRole("textbox", { name: "Session name" })).toBeNull();
@@ -50,19 +59,80 @@ describe("SettingsDrawer extension section", () => {
     expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
   });
 
-  it("groups all four switches under Feature Toggles and keeps Transcript separate", () => {
+  it("groups all five switches under Feature Toggles including Compact transcript", () => {
     renderDrawer(initialChatState.extensions);
     const group = screen.getByRole("group", { name: "Feature Toggles" });
 
-    expect(within(group).getAllByRole("switch")).toHaveLength(4);
-    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions"]) {
+    expect(within(group).getAllByRole("switch")).toHaveLength(5);
+    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript"]) {
       expect(within(group).getByRole("switch", { name })).toBeTruthy();
     }
     for (const name of ["Sessions", "Sounds", "Projects"]) {
       expect(screen.queryByText(name, { exact: true })).toBeNull();
     }
-    expect(screen.getByText("Transcript", { exact: true })).toBeTruthy();
-    expect(within(group).queryByRole("radiogroup", { name: "Transcript density" })).toBeNull();
+    expect(screen.queryByText("Transcript", { exact: true })).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Transcript density" })).toBeNull();
+  });
+
+  it.each([
+    ["comfortable", false, "compact"],
+    ["compact", true, "comfortable"],
+  ] as const)("reflects %s density and switches to %s", (density, checked, nextDensity) => {
+    const setTranscriptDensity = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), density, setTranscriptDensity);
+    const group = screen.getByRole("group", { name: "Feature Toggles" });
+    const toggle = within(group).getByRole("switch", { name: "Compact transcript" }) as HTMLInputElement;
+
+    expect(toggle.checked).toBe(checked);
+    fireEvent.click(toggle);
+
+    expect(setTranscriptDensity).toHaveBeenCalledExactlyOnceWith(nextDensity);
+  });
+
+  it("orders Session, Feature Toggles, extension controls, then Backend server and retains actions", () => {
+    const compactSession = vi.fn();
+    const restartServer = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
+      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures }, extensions: { ...initialChatState.extensions, buttons: [{ id: "demo", slot: "settings.section", label: "Demo", actionId: "demo" }] } },
+      appFeatures: [restartFeature], serverSettings: <span>Endpoint settings</span>, compactSession, restartServer,
+    });
+    const session = screen.getByRole("group", { name: "Session" });
+    const features = screen.getByRole("group", { name: "Feature Toggles" });
+    const backend = screen.getByRole("group", { name: "Backend server" });
+
+    expect(within(session).getByLabelText("Thinking level")).toBeTruthy();
+    expect(within(session).getByLabelText("Model")).toBeTruthy();
+    fireEvent.click(within(session).getByRole("button", { name: "Compact" }));
+    expect(within(backend).getByText("Endpoint settings")).toBeTruthy();
+    fireEvent.click(within(backend).getByRole("button", { name: "Restart" }));
+    expect(session.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(features.compareDocumentPosition(screen.getByText("Extensions")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Extensions").compareDocumentPosition(backend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(compactSession).toHaveBeenCalledOnce();
+    expect(restartServer).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Summarize older context to free up space.")).toBeNull();
+    expect(screen.queryByText(/Hide archived conversations and their Archived sections/)).toBeNull();
+  });
+
+  it("omits Session without advertised session features but retains app restart at Home", () => {
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), { appFeatures: [restartFeature], serverSettings: <span>Endpoint settings</span> });
+
+    expect(screen.queryByRole("group", { name: "Session" })).toBeNull();
+    expect(within(screen.getByRole("group", { name: "Backend server" })).getByRole("button", { name: "Restart" })).toBeTruthy();
+  });
+
+  it("keeps session controls disabled while busy and chimes disabled when unavailable", () => {
+    const compactSession = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
+      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } }, busy: true, chimesAvailable: false, compactSession,
+    });
+    const session = screen.getByRole("group", { name: "Session" });
+
+    expect((within(session).getByLabelText("Thinking level") as HTMLInputElement).disabled).toBe(true);
+    expect((within(session).getByLabelText("Model") as HTMLInputElement).disabled).toBe(true);
+    fireEvent.click(within(session).getByRole("button", { name: "Compact" }));
+    expect(compactSession).not.toHaveBeenCalled();
+    expect((screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" }) as HTMLInputElement).disabled).toBe(true);
   });
 
   it("shows the enabled archive visibility switch and dispatches changes", () => {

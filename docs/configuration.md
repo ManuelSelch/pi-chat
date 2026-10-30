@@ -51,11 +51,12 @@ The installation, repository and downstream build-tool environment must remain t
 ## Backend endpoint
 
 Settings → **Backend server** lets you enter a complete WebSocket URL, such as
-`wss://pi.home.example/ws`. Leave the field blank to use this page's server.
-**Save and reload** persists the selection and reloads the page;
-**Reset to default** removes the override and reloads. Both ask for confirmation:
-unsent drafts in all application tabs are discarded, but server sessions keep
-running. Commands are not replayed.
+`wss://pi.home.example/ws`. The field is prefilled with the current endpoint, so
+editing it is only needed for a different server. Leave the field blank to use
+this page's server. **Save and reload** persists the selection and reloads the
+page; **Reset to default** removes the override and reloads. Both ask for
+confirmation: unsent drafts in all application tabs are discarded, but server
+sessions keep running. Commands are not replayed.
 
 The override is stored under `pi-chat:serverEndpoint` in localStorage for this
 browser profile and UI origin. It survives browser restarts, but is not shared
@@ -67,8 +68,8 @@ Without an override, the URL is derived from the page's host/port, `/ws`, and pa
 query string, using `ws` for HTTP or `wss` for HTTPS. An explicit override is used
 as entered (trimmed); the page query is not appended. HTTPS pages require `wss`.
 URL credentials and fragments are rejected. Avoid putting secrets in the URL:
-storage is not a credential vault. The current-endpoint display redacts query
-strings; the editable field contains the full saved URL.
+storage is not a credential vault. The editable field is the only endpoint
+display and contains the full saved URL, including its query string.
 
 This setting does **not** bypass pi-server's existing browser-origin protection.
 The supported deployment serves Pi Chat and the backend through the same

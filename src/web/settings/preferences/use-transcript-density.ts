@@ -10,7 +10,7 @@ export function useTranscriptDensity(): {
 } {
   const [density, setDensity] = useLocalStorage<TranscriptDensity>({
     key: TRANSCRIPT_DENSITY_STORAGE_KEY,
-    defaultValue: "comfortable",
+    defaultValue: "compact",
     getInitialValueInEffect: false,
   });
   return { density, setDensity };

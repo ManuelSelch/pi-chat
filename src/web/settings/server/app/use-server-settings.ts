@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { ConfirmOptions } from "../../../ui/confirm/ConfirmDialog.js";
-import { endpointError, type EndpointPage, type EndpointPreference } from "../domain/endpoint.js";
+import { defaultEndpoint, endpointError, type EndpointPage, type EndpointPreference } from "../domain/endpoint.js";
 
 interface ServerSettingsOptions {
   preference: EndpointPreference;
@@ -11,12 +11,12 @@ interface ServerSettingsOptions {
 }
 
 export function useServerSettings({ preference, page, confirm, persist, reload }: ServerSettingsOptions) {
-  const [draft, setDraft] = useState(preference.override);
+  const [draft, setDraft] = useState(preference.endpoint);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const applying = useRef(false);
   const validation = endpointError(draft, page.protocol);
-  const canSave = !busy && !validation && draft.trim() !== preference.override;
+  const canSave = !busy && !validation && (draft.trim() || defaultEndpoint(page)) !== preference.endpoint;
   const canReset = !busy && preference.hasStoredOverride;
 
   const apply = async (value: string) => {
