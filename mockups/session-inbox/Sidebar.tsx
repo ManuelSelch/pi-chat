@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ActionIcon, TextInput, UnstyledButton } from '@mantine/core';
-import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconInbox, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
+import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { statusLabels, type Concept, type Session } from './data';
 
 interface Props {
@@ -38,7 +38,7 @@ export function Sidebar(props: Props) {
   const row = (session: Session, compact = false) => <SessionRow key={session.id} session={session} active={active} choose={choose} deferSession={deferSession} compact={compact}/>;
   const projects = [...new Set(['Quick Chats', 'pi-chat', 'pi-studio', 'notesToGo', ...open.map(s => s.project)])];
   return <aside className="sidebar" aria-label="Session navigation">
-    <div className="sidebar-heading"><div><IconInbox size={18}/><strong>{!sidebarMode ? 'Projects' : concept === 'a' ? 'Open sessions' : 'Inbox'}</strong></div><ActionIcon variant="subtle" color="gray" aria-label="Close sidebar" onClick={close}><IconX size={17}/></ActionIcon></div>
+    <div className="sidebar-heading"><ActionIcon variant="subtle" color="gray" aria-label="Close sidebar" onClick={close}><IconX size={17}/></ActionIcon></div>
     <TextInput className="session-search" aria-label="Search sessions" placeholder="Find a session…" size="xs" leftSection={<IconSearch size={14}/>} value={query} onChange={e => setQuery(e.currentTarget.value)}/>
     <div className="sidebar-scroll">
       {!sidebarMode ? <><div className="sidebar-note">Open sessions appear in the tab bar.</div>{projects.map(project => <UnstyledButton key={project} className="project-line" onClick={() => choose(open.find(s => s.project === project)?.id ?? active)}><IconFolder size={15}/>{project}<span className="count">{open.filter(s => s.project === project).length}</span></UnstyledButton>)}</> : <>
