@@ -1,0 +1,25 @@
+prepare:
+  command: [npm, ci]
+  cwd: .
+  timeoutSeconds: 300
+suites:
+  build:
+    command: [npm, run, build]
+    cwd: .
+    timeoutSeconds: 300
+    auto: after-agent
+  unit:
+    command: [npm, test]
+    cwd: .
+    timeoutSeconds: 300
+    auto: after-agent
+  e2e:
+    command: [npm, run, test:e2e]
+    cwd: .
+    timeoutSeconds: 600
+    auto: manual
+  production-smoke:
+    command: [npm, run, test:production-smoke]
+    cwd: .
+    timeoutSeconds: 300
+    auto: manual

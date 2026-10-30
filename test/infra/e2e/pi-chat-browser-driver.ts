@@ -62,14 +62,15 @@ export class PiChatBrowserDriver {
     this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; repositoryName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
     try {
-      if (options.linkedWorktree && (!options.projectName || !options.projectBranch)) throw new Error("Linked fixtures require an isolated project name and branch");
+      if (options.linkedWorktree && (!options.projectName || !options.projectBranch || !options.repositoryName)) throw new Error("Linked fixtures require an isolated checkout name, repository name and branch");
+      if (options.repositoryName && (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(options.repositoryName) || options.repositoryName === options.projectName)) throw new Error("Fixture repository name must be a safe directory name distinct from the checkout");
       if (options.projectBranch) {
-        const repository = options.linkedWorktree ? resolve(world.projectPath, "..", "primary-checkout") : world.projectPath;
+        const repository = options.linkedWorktree ? resolve(world.projectPath, "..", options.repositoryName!) : world.projectPath;
         execFileSync("git", ["init", "--initial-branch", options.linkedWorktree ? "main" : options.projectBranch, repository], { stdio: "ignore" });
         execFileSync("git", ["-C", repository, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-m", "Fixture"], { stdio: "ignore" });
         if (options.linkedWorktree) {

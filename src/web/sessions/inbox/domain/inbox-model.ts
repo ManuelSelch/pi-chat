@@ -22,7 +22,7 @@ function rowLabels(title: string, worktree: { primary: boolean; branch?: string 
 
 export function historyRows(catalogue: ProjectCatalogue): (InboxRow & { path: string })[] {
   return catalogue.projects.flatMap(project => project.sessions.filter(session => session.archivedAt === undefined).map(session => ({
-    key: session.path, path: session.path, title: session.title, project: project.name,
+    key: session.path, path: session.path, title: session.title, project: project.repositoryName ?? project.name,
     ...rowLabels(session.title, project.worktree),
     branch: project.worktree?.branch, modified: session.modified, status: "idle" as const,
   })));
@@ -40,7 +40,7 @@ export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, lat
     const project = catalogue.projects.find(project => project.path === tab.projectPath);
     return {
       ...(tab.sessionPath ? history.get(tab.sessionPath) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath && history.has(tab.sessionPath) ? tab.sessionPath : undefined,
-      title: tab.title, project: tab.projectName,
+      title: tab.title, project: project?.repositoryName ?? project?.name ?? tab.projectName,
       ...rowLabels(tab.title, project?.worktree),
       branch: project?.worktree?.branch,
       status: tab.status,

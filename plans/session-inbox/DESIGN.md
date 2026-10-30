@@ -27,6 +27,16 @@ The user explicitly approved these corrections before implementation. The origin
 - Section headings use 2px left padding, including Needs you for consistent alignment.
 - Visual baseline: [isolated label mockup](../../mockups/session-inbox-worktree-labels/DESIGN.md), revision 4. User approved the linked refinement and reviewed mockup with “looks good. impelement”. No blocking questions.
 
+### Worktree repository-name regression — approved correction
+
+- Confirmed cause: saved Inbox rows use checkout `name`; live rows overwrite context with `tab.projectName`. Neither uses the existing catalogue `repositoryName`, unlike the original Projects grouping.
+- The Inbox domain model will resolve project context from catalogue `repositoryName ?? name` for saved rows and catalogue-backed live rows. Live rows without a catalogue entry retain their runtime project name. This is handling incomplete discovery, not supporting an older protocol.
+- Preserve branch-first labels, conversation subtitles, identities, lifecycle, non-repository names and Quick Chats. Scope excludes header, SDK/server, stored names and original Projects panel. No layout redesign or new dependency.
+- The browser fixture accepts an explicit `repositoryName` and creates the real primary Git checkout directory with that name; it must be a safe directory name distinct from the linked checkout. The scenario supplies `my-project` rather than depending on a hidden fixture constant.
+- Regression contract: [repository-name browser scenario](../../test/e2e/inbox-worktree-labels.spec.ts) uses a real linked Git worktree whose repository, checkout and branch have distinct names. Assert the exact project-context text for live, backend-restarted unloaded Ready, Later on desktop/phone, and resumed rows, while retaining branch/subtitle assertions.
+- Supporting unit tests will cover catalogue-based naming across live statuses, saved history and missing catalogue metadata. Existing worktree-label and lifecycle scenarios remain unchanged.
+- Verification planned: focused unit/browser regressions, full relevant suites, build/typecheck. Scenario preparation has not run tests yet. No blocking questions.
+
 ## Components
 | Package/module | Component | Change | Responsibility |
 |---|---|---|---|
