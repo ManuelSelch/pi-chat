@@ -30,6 +30,8 @@ export function SettingsContainer() {
 
   return (
     <SettingsDrawer
+      inboxEnabled={chat.inboxEnabled}
+      setInboxEnabled={chat.setInboxEnabled}
       opened={overlays.state.settings}
       onClose={() => overlays.close("settings")}
       state={state}

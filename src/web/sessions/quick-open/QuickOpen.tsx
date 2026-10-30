@@ -3,7 +3,8 @@ import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from
 import { IconBolt, IconFolder, IconFolderPlus, IconGitBranch, IconMessage } from "@tabler/icons-react";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../app/state/view-types.js";
-import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, relativeTime, type QuickOpenItem } from "./quick-open.js";
+import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, type QuickOpenItem } from "./quick-open.js";
+import { relativeTime } from "../../ui/relative-time.js";
 import { usePointerModality } from "../../ui/usePointerModality.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 

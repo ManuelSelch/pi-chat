@@ -11,6 +11,7 @@ export interface SessionActionState {
   sessionPath?: string;
   connected: boolean;
   busy: boolean;
+  navigation: "tabs" | "inbox";
 }
 
 export interface SessionActionOperations {
@@ -30,9 +31,13 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
       if (sessionCurrent()) operations.newSession(state.sessionId ? state.projectPath : undefined);
     } });
     if (state.sessionId) {
-      actions.push({ id: "close-tab", name: "Close tab", description: "Close this session's tab", run: () => {
-        if (sessionCurrent()) operations.closeTab(state.sessionId);
-      } });
+      if (state.navigation === "tabs" || (!state.busy && state.sessionPath)) actions.push({
+        id: "close-tab", name: state.navigation === "inbox" ? "Move to Later" : "Close tab",
+        description: state.navigation === "inbox" ? "Park this idle conversation for later" : "Close this session's tab", run: () => {
+          const latest = current();
+          if (sessionCurrent() && latest.navigation === state.navigation && (state.navigation === "tabs" || (!latest.busy && latest.sessionPath === state.sessionPath))) operations.closeTab(state.sessionId);
+        },
+      });
       if (state.sessionPath && !state.busy) actions.push({ id: "archive-session", name: "Archive session", description: "Keep this session in Archived and close its tab", run: () => {
         const latest = current();
         if (sessionCurrent() && !latest.busy && latest.sessionPath === state.sessionPath) operations.archiveSession(state.sessionId, state.sessionPath!);

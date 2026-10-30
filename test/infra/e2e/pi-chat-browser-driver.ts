@@ -9,6 +9,7 @@ import { BrowserChatDriver } from "./browser-chat-driver.js";
 import { BrowserHomeDriver } from "./browser-home-driver.js";
 import { BrowserTabsDriver } from "./browser-tabs-driver.js";
 import { BrowserSkillsDriver } from "./browser-skills-driver.js";
+import { BrowserInboxDriver } from "./browser-inbox-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 import { BrowserSettingsDriver } from "./browser-settings-driver.js";
 import { BrowserPromptsDriver } from "./browser-prompts-driver.js";
@@ -27,6 +28,7 @@ export class PiChatBrowserDriver {
   readonly Tabs: BrowserTabsDriver;
   readonly Skills: BrowserSkillsDriver;
   readonly Projects: BrowserProjectsDriver;
+  readonly Inbox: BrowserInboxDriver;
   readonly Settings: BrowserSettingsDriver;
   readonly Focus: BrowserFocusDriver;
   readonly Prompts: BrowserPromptsDriver;
@@ -49,6 +51,7 @@ export class PiChatBrowserDriver {
     this.Tabs = new BrowserTabsDriver(page, world);
     this.Skills = new BrowserSkillsDriver(page, this.composer);
     this.Projects = new BrowserProjectsDriver(page, world);
+    this.Inbox = new BrowserInboxDriver(page, world);
     this.Settings = new BrowserSettingsDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
     this.Prompts = new BrowserPromptsDriver(page);

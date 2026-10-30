@@ -2,7 +2,7 @@ import { expect, it, vi } from "vitest";
 import { buildSessionActions, type SessionActionState } from "../../../../../src/web/sessions/actions/session-actions.js";
 
 function setup(overrides: Partial<SessionActionState> = {}) {
-  let state: SessionActionState = { sessionId: "one", projectPath: "/repo", sessionPath: "/sessions/one", connected: true, busy: false, ...overrides };
+  let state: SessionActionState = { sessionId: "one", projectPath: "/repo", sessionPath: "/sessions/one", connected: true, busy: false, navigation: "tabs", ...overrides };
   const operations = { newSession: vi.fn(), closeTab: vi.fn(), archiveSession: vi.fn(), openFolder: vi.fn(), openSettings: vi.fn() };
   const actions = buildSessionActions(state, operations, () => state);
   return { actions, operations, update: (changes: Partial<SessionActionState>) => { state = { ...state, ...changes }; } };
@@ -27,6 +27,18 @@ it("hides archive while busy but retains New session and Close tab", () => {
   const { actions } = setup({ busy: true });
   expect(actions.map(action => action.id)).toEqual(["new-session", "close-tab", "open-folder", "settings"]);
 });
+it("offers guarded Move to Later instead of Close tab in Inbox mode", () => {
+  const { actions, operations, update } = setup({ navigation: "inbox" });
+  const close = actions.find(action => action.id === "close-tab")!;
+  expect(close.name).toBe("Move to Later");
+
+  update({ busy: true });
+  close.run();
+  expect(operations.closeTab).not.toHaveBeenCalled();
+  expect(setup({ navigation: "inbox", busy: true }).actions.some(action => action.id === "close-tab")).toBe(false);
+  expect(setup({ navigation: "inbox", sessionPath: undefined }).actions.some(action => action.id === "close-tab")).toBe(false);
+});
+
 it("does not offer Archive without a persisted session path", () => {
   expect(setup({ sessionPath: undefined }).actions.some(action => action.id === "archive-session")).toBe(false);
 });

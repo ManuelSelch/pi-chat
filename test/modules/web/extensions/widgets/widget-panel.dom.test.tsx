@@ -192,9 +192,8 @@ describe("WidgetDock", () => {
 
     const panel = screen.getByLabelText("Extension panels");
     expect(panel.style.position).toBe("fixed");
-    // Mantine turns the numbers into scaled rem, so the offset is checked in
-    // the unit it actually emits. Sits below the 96px header, not under it.
-    expect(panel.style.top).toContain(`${WIDGET_DOCK_TOP / 16}rem`);
+    // Both navigation modes position widgets below their actual header height.
+    expect(panel.style.top).toBe(`calc(var(--pi-header-height, ${WIDGET_DOCK_TOP - 12}px) + 12px)`);
     expect(panel.style.right).toContain("1rem");
   });
 

@@ -3,7 +3,8 @@ import { Badge, Box, Button, Center, Group, Stack, Text, TextInput, UnstyledButt
 import { THEME } from "../../ui/theme.js";
 import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../app/state/view-types.js";
-import { buildQuickOpenItems, rankQuickOpen, relativeTime } from "../quick-open/quick-open.js";
+import { buildQuickOpenItems, rankQuickOpen } from "../quick-open/quick-open.js";
+import { relativeTime } from "../../ui/relative-time.js";
 
 interface HomeProps {
   catalogue: ProjectCatalogue;

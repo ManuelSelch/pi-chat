@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { usePromptPresentation } from "../extensions/prompts/app/use-prompt-presentation.js";
 import { usePiChat } from "./use-pi-chat.js";
 import { SessionThemeProvider } from "./theme/SessionThemeProvider.js";
+import { SessionDraftProvider } from "../sessions/drafts/app/SessionDraftProvider.js";
 import { FileActionsProvider } from "../chat/markdown/FileActions.js";
 
 export type AppController = ReturnType<typeof usePiChat> & { promptPresentation: ReturnType<typeof usePromptPresentation> };
@@ -17,7 +18,7 @@ export function AppControllerProvider({ children }: { children: ReactNode }) {
   return (
     <AppControllerContext.Provider value={{ ...controller, promptPresentation }}>
       <SessionThemeProvider palette={palette}>
-        <FileActionsProvider openFile={controller.openFile}>{children}</FileActionsProvider>
+        <SessionDraftProvider><FileActionsProvider openFile={controller.openFile}>{children}</FileActionsProvider></SessionDraftProvider>
       </SessionThemeProvider>
     </AppControllerContext.Provider>
   );

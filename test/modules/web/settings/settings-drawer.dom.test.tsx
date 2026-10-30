@@ -23,6 +23,8 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         compactSession={noop}
         restartServer={noop}
         appFeatures={[]}
+        inboxEnabled={false}
+        setInboxEnabled={noop}
         chimesEnabled={false}
         setChimesEnabled={noop}
         chimesAvailable

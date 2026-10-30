@@ -2,6 +2,7 @@ import { createContext, useContext, useRef, useState, type ReactNode } from "rea
 import { useAppController } from "../../app/AppControllerContext.js";
 import { atHome } from "../../app/state/app-state.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
+import { hasSavedSession } from "../inbox/domain/inbox-model.js";
 import { buildSessionActions, type SessionAction, type SessionActionState } from "./session-actions.js";
 
 interface SessionActionsValue {
@@ -19,9 +20,10 @@ export function SessionActionsProvider({ children }: { children: ReactNode }) {
   const state: SessionActionState = {
     sessionId: atHome(chat.app) ? "" : chat.app.activeSessionId,
     projectPath: chat.state.projectPath || undefined,
-    sessionPath: chat.state.sessionPath,
+    sessionPath: chat.inboxEnabled && !hasSavedSession(chat.app.catalogue, chat.state.sessionPath) ? undefined : chat.state.sessionPath,
     connected: chat.app.connection === "open",
-    busy: chat.state.status === "running" || chat.state.status === "aborting",
+    busy: chat.inboxEnabled ? chat.state.status !== "idle" : chat.state.status === "running" || chat.state.status === "aborting",
+    navigation: chat.inboxEnabled ? "inbox" : "tabs",
   };
   const latest = useRef(state);
   latest.current = state;
@@ -30,15 +32,16 @@ export function SessionActionsProvider({ children }: { children: ReactNode }) {
   }
   const actions = buildSessionActions(state, {
     newSession: chat.newSession,
-    closeTab: chat.closeTab,
+    closeTab: id => { if (chat.inboxEnabled) void chat.inbox.park(id); else chat.closeTab(id); },
     archiveSession: (sessionId, path) => {
       clearError(sessionId);
+      if (chat.inboxEnabled) { void chat.inbox.archive(path); return; }
       void chat.archiveSession(path, true).catch((error: unknown) => {
         setErrors(current => ({ ...current, [sessionId]: error instanceof Error ? error.message : String(error) }));
       });
     },
     openFolder: () => overlays.open("folderPicker"),
-    openSettings: () => overlays.open("settings"),
+    openSettings: () => { if (chat.inboxEnabled && overlays.projectsPresentation === "drawer") overlays.close("projects"); overlays.open("settings"); },
   }, () => latest.current);
   return <SessionActionsContext.Provider value={{ actions, error: errors[state.sessionId], clearError }}>{children}</SessionActionsContext.Provider>;
 }

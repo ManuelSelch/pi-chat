@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useLocalStorage } from "@mantine/hooks";
+import { useInboxLifecycle } from "../sessions/inbox/app/use-inbox-lifecycle.js";
 import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "./state/app-state.js";
 import { browserTransport } from "./connection/browser-transport.js";
@@ -72,8 +74,16 @@ export function usePiChat() {
   // User-visible focus remains application-owned; the SDK always gets an ID.
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
+  const [inboxEnabled, setInboxEnabled] = useLocalStorage({ key: "pi-chat:session-inbox", defaultValue: false, getInitialValueInEffect: false });
+  const inbox = useInboxLifecycle(app, serverEndpoint.endpoint, {
+    close: id => request(client => client.closeSession(id)),
+    open: path => request(client => client.openSession(path)),
+    archive: archiveSession,
+    focus: id => dispatch({ type: "focusSession", sessionId: id }),
+  });
   return {
-    app, state: session, serverEndpoint, browseDirectories, startFolderSession, completeCommandArguments,
+    app, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox,
+    closeView: () => dispatch({ type: "closeView" }), browseDirectories, startFolderSession, completeCommandArguments,
     openFile, archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });

@@ -5,6 +5,23 @@ import { createAppReducer } from "./sdk-harness.js";
 let harness: ReturnType<typeof createAppReducer>; let state: AppState;
 beforeEach(() => { harness = createAppReducer(); state = harness.initialize(initialAppState, [snapshotData({ sessionId: "a", messages: [{ id: "a-1", role: "user", text: "first" }] }), snapshotData({ sessionId: "b", messages: [{ id: "b-1", role: "user", text: "second" }] })]); });
 afterEach(() => harness.client.dispose());
+it("closes only the selected view and preserves deliberate deselection across SDK updates", () => {
+  state = reduceAppMessage(state, { type: "closeView" });
+
+  expect(state.activeSessionId).toBe("");
+  expect(atHome(state)).toBe(true);
+  expect(activeSession(state).messages).toEqual([]);
+  expect(state.tabs).toHaveLength(2);
+
+  state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "background" }, "b", 1));
+
+  expect(state.activeSessionId).toBe("");
+  expect(state.sessions.b?.draft?.text).toBe("background");
+
+  state = reduceAppMessage(state, { type: "focusSession", sessionId: "b" });
+  expect(state.activeSessionId).toBe("b");
+});
+
 it("keeps separate transcripts and sequences for busy and background sessions", () => {
   for (let sequence = 1; sequence <= 5; sequence++) state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "x" }, "b", sequence));
   state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "kept" }, "a", 1));

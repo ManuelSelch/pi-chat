@@ -37,11 +37,11 @@ export function WidgetDock({ widgets }: { widgets: readonly Widget[] }) {
     <Box
       aria-label="Extension panels"
       pos="fixed"
-      top={WIDGET_DOCK_TOP}
+      top="calc(var(--pi-header-height, 96px) + 12px)"
       right={16}
       style={{
         width: `clamp(200px, calc((100vw - var(--pi-workspace-left, 0px) - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
-        maxHeight: `calc(100vh - ${WIDGET_DOCK_TOP + 16}px)`,
+        maxHeight: "calc(100vh - var(--pi-header-height, 96px) - 28px)",
         overflowY: "auto",
         zIndex: 100,
       }}

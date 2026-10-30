@@ -76,6 +76,23 @@ flowchart TD
   drafts and composer focus remain browser-owned. The domain integration driver
   uses the same SDK/view binding, rather than a second WebSocket/reducer path.
 
+### Session navigation
+
+The optional Inbox is browser presentation over the same SDK inventory as tabs.
+Its Needs you/Ready/Working sections map directly to blocked/idle/running; it does
+not introduce unread-response state. Explicitly closing a view clears browser
+selection without closing a runtime, and SDK updates preserve that deselection.
+
+`sessions/inbox` owns pure row/reconciliation rules, server-endpoint-scoped
+localStorage membership, lifecycle coordination and component/container UI.
+Parking stores intent before calling the existing close operation. Resume uses
+the existing open operation; archive/Undo use existing archive operations.
+Authoritative inventory and catalogue updates resolve pending intents and
+remove archived, missing or externally reopened entries. No wire changes are
+required. `sessions/drafts/app/SessionDraftProvider` owns page-lifetime drafts,
+transferring unsaved runtime keys to stable session paths so reopened identities
+reuse the same draft.
+
 ## Server
 
 The implementation below belongs to the independent `pi-server` repository, not Chat sources. Chat installs its pinned compiled npm package and owns only `src/host`: environment/static asset wiring, PID/log/signal lifecycle and build-before-restart policy. Root embedding and `/extensions`, `/testing`, `/testing/loopback` are the only supported server imports. See [development](development.md) for dependency updates, [Swift fixture notes](../vendor/README.md) and [S4 cutover](pi-server-extraction/S4-CUTOVER.md).

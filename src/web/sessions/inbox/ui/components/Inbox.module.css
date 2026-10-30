@@ -1,0 +1,13 @@
+.panel {
+  background: var(--mantine-color-body);
+  border-right: 1px solid var(--mantine-color-default-border);
+}
+.row { position: relative; }
+.row:hover { background: var(--mantine-color-default-hover); }
+.row.selected {
+  background: var(--mantine-primary-color-light);
+  border-color: var(--mantine-primary-color-light-hover);
+}
+.actions { opacity: 0; }
+.row:hover .actions, .row:focus-within .actions { opacity: 1; }
+@media (hover: none) { .actions { opacity: 1; } }

@@ -1,3 +1,4 @@
+import { InboxContainer } from "../../sessions/inbox/ui/containers/InboxContainer.js";
 import { useAppController } from "../AppControllerContext.js";
 import { PromptModal } from "../../extensions/prompts/PromptModal.js";
 import { CloseSessionDialog } from "../../sessions/dialogs/CloseSessionDialog.js";
@@ -23,7 +24,7 @@ export function AppOverlays() {
         onConfirm={chat.closeTab}
       />
       <QuickOpenContainer />
-      <ProjectSessionContainer />
+      {chat.inboxEnabled ? <InboxContainer /> : <ProjectSessionContainer />}
       <FolderPickerContainer />
       <SettingsContainer />
     </>

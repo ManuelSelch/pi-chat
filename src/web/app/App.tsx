@@ -14,6 +14,8 @@ import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
 import { SessionActionsProvider } from "../sessions/actions/SessionActionsProvider.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
+import { InboxEmpty } from "../sessions/inbox/ui/components/InboxEmpty.js";
+import { InboxNoticeContainer } from "../sessions/inbox/ui/containers/InboxNoticeContainer.js";
 import { workspaceLayout } from "./shell/domain/workspace-layout.js";
 
 /** Breathing room between the last message and the composer. */
@@ -40,12 +42,14 @@ function AppContent() {
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const home = atHome(app);
+  const headerHeight = chat.inboxEnabled ? 58 : 96;
   const { width } = useViewportSize();
   const layout = workspaceLayout(width, overlays.state.projects);
   const { docked: widgetsDocked } = placeWidgets(state.widgets, layout.widgetsDocked);
 
   return (
-    <AppShell header={{ height: 96 }} padding={0} style={{
+    <AppShell header={{ height: headerHeight }} padding={0} style={{
+      "--pi-header-height": `${headerHeight}px`,
       "--pi-workspace-left": `${layout.left}px`,
       "--pi-projects-width": layout.sidebarWidth,
     } as CSSProperties}>
@@ -55,8 +59,9 @@ function AppContent() {
 
       <AppOverlays />
 
-      <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? "calc(100dvh - 96px)" : undefined}>
-        {home ? (
+      <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
+        <InboxNoticeContainer />
+        {home && chat.inboxEnabled ? <InboxEmpty hasOpenSessions={app.tabs.length > 0} onNew={() => chat.newSession()} /> : home ? (
           <Home
             catalogue={app.catalogue}
             onOpenSession={chat.openSession}

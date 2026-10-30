@@ -20,6 +20,8 @@ interface SettingsDrawerProps {
   compactSession: () => void;
   restartServer: () => void;
   appFeatures: readonly WebFeature[];
+  inboxEnabled: boolean;
+  setInboxEnabled: (value: boolean) => void;
   chimesEnabled: boolean;
   setChimesEnabled: (value: boolean) => void;
   chimesAvailable: boolean;
@@ -32,7 +34,7 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -48,6 +50,10 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, s
     <Drawer {...focusReturn} opened={opened} onClose={onClose} title="Settings" size="md" position="right">
       <Stack gap="md">
         {serverSettings}
+        <Panel>
+          <SectionHeader icon={<IconMessageCircle size={16} />}>Sessions</SectionHeader>
+          <Switch label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
+        </Panel>
         <Panel>
           <SectionHeader icon={<IconBell size={16} />}>Sounds</SectionHeader>
           <Switch

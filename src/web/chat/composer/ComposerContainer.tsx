@@ -10,6 +10,7 @@ import { useOverlays } from "../../app/overlays/OverlayController.js";
 import { clearInputIntent } from "../../app/keyboard/shortcuts.js";
 import { placeWidgets } from "../../extensions/widgets/widget-placement.js";
 import { ComposerView } from "./ComposerView.js";
+import { useSessionDrafts } from "../../sessions/drafts/app/SessionDraftProvider.js";
 import { focusComposer } from "../../ui/focus/composer-focus.js";
 
 interface ComposerContainerProps {
@@ -24,7 +25,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
   const overlays = useOverlays();
   const { actions: sessionActions, error: actionError, clearError: clearActionError } = useSessionActions();
   const { app, state } = chat;
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const { input, setInput: saveDraft } = useSessionDrafts(app.activeSessionId, state.sessionPath);
   const [activeCommand, setActiveCommand] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
   const [selection, setSelection] = useState({ sessionId: app.activeSessionId, start: 0, end: 0 });
@@ -33,7 +34,6 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const home = atHome(app);
-  const input = drafts[app.activeSessionId] ?? "";
   const busy = state.status === "running" || state.status === "aborting";
   const connecting = app.connection === "connecting" && app.tabs.length === 0;
   const loading = app.openingTabs > 0 || !app.activeSessionId;
@@ -62,14 +62,14 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
 
   function setInput(value: string, caret = value.length): void {
     if (loading || state.prompts.length > 0) return;
-    setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
+    saveDraft(value);
     setSelection({ sessionId: app.activeSessionId, start: caret, end: caret });
     pendingCaret.current = caret;
   }
 
   function changeInput(value: string, start = value.length, end = start): void {
     if (loading || state.prompts.length > 0) return;
-    setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
+    saveDraft(value);
     setSelection({ sessionId: app.activeSessionId, start, end });
     setActiveCommand(0);
     setMenuDismissed(false);

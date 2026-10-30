@@ -8,7 +8,7 @@ A local browser workspace for [Pi](https://github.com/earendil-works/pi), using 
 
 - Streaming chat with Markdown, LaTeX, and light/dark themes.
 - Tool cards with highlighted code, edit diffs, and file previews.
-- Persistent session tabs, project browsing, and a Quick Switcher.
+- Persistent session tabs, optional sidebar Inbox with Later, project browsing, and a Quick Switcher.
 - Native steering to guide Pi during a run.
 - Pi commands, skills, argument completion, and bash execution.
 - Extension dialogs, ANSI-styled plain-text widgets, status labels, and experimental web UI hooks.

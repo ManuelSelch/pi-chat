@@ -19,6 +19,30 @@ Type `/archive` to archive the current idle session and close its tab without
 deleting its transcript. Archived sessions remain available under **Archived**
 in Projects, where they can be restored. There is no delete-session command.
 
+### Session inbox
+
+Enable **Settings → Show open sessions in sidebar** to replace horizontal tabs
+with the Inbox. The preference is off by default. **Needs you** contains blocked
+questions/approvals; completed responses become **Ready**. **Working** can be
+collapsed independently. Selecting a session does not answer or dismiss a prompt.
+
+- **Move to Later** parks a saved, idle conversation and closes its runtime.
+  Later is untimed, collapsed by default, and remembered in this browser for
+  this server. Expand it and select a conversation to reopen it explicitly.
+  Unsaved, working and blocked sessions cannot be parked.
+- The header **×** closes only the view. Open sessions, background work and
+  drafts stay unchanged; select a sidebar row to return.
+- **Archive** is separate from Later. It preserves the saved transcript and
+  offers **Undo archive** for the latest archive during this page visit.
+- Drafts survive switching, parking/resuming and archive Undo during the page
+  lifetime, but not browser reloads.
+- The sidebar's bottom gear opens Settings. If the sidebar is hidden, reopen
+  it with the header toggle. Phone navigation remains a modal drawer until
+  dismissed; opening Settings dismisses it.
+- Turning Inbox off restores tabs without losing open sessions or Later
+  membership. Use Quick Switcher for projects and history, or disable Inbox
+  to use Projects browsing and its Archived sections.
+
 ## Skills
 
 Invoke a loaded skill with `/skill:name [task]`. Skill instructions appear as a

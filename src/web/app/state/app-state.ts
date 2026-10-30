@@ -6,6 +6,7 @@ export type AppAction =
   | { type: "sdkState"; state: ReadonlyDeep<ClientState>; message?: ReadonlyDeep<ServerMessage> }
   | { type: "clearError"; sessionId?: string }
   | { type: "focusSession"; sessionId: string }
+  | { type: "closeView" }
   | { type: "sessionOpened"; sessionId: string }
   | { type: "openPending" }
   | { type: "closePending"; sessionId: string }
@@ -15,6 +16,7 @@ export interface AppState {
   serverInstanceId?: string;
   tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
+  viewClosed?: boolean;
   /** Views share SDK projections, adding only browser notices/error dismissal. */
   sessions: Record<string, ChatState>;
   sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
@@ -37,7 +39,7 @@ export const initialAppState: AppState = {
 };
 
 export function atHome(state: AppState): boolean {
-  return state.tabsKnown && state.openingTabs === 0 && visibleTabs(state).length === 0;
+  return state.tabsKnown && state.openingTabs === 0 && (state.viewClosed === true || visibleTabs(state).length === 0);
 }
 export function visibleError(state: AppState, session: ChatState): string | undefined {
   return state.error ?? session.error;
@@ -46,14 +48,16 @@ export function visibleTabs(state: AppState): ReadonlyDeep<AppTab>[] {
   return state.tabs.filter((tab) => !state.closingSessionIds.includes(tab.sessionId));
 }
 export function activeSession(state: AppState): ChatState {
+  if (state.viewClosed) return initialChatState;
   return (Object.hasOwn(state.sessions, state.activeSessionId) ? state.sessions[state.activeSessionId] : undefined)
     ?? Object.values(state.sessions)[0] ?? initialChatState;
 }
 
 /** Application presentation only; PiClient is the sole wire/projection owner. */
 export function reduceAppMessage(state: AppState, action: AppAction): AppState {
-  if (action.type === "focusSession") return state.tabs.some(tab => tab.sessionId === action.sessionId) ? { ...state, activeSessionId: action.sessionId } : state;
-  if (action.type === "sessionOpened") return { ...state, activeSessionId: action.sessionId, error: undefined, openingTabs: Math.max(0, state.openingTabs - 1) };
+  if (action.type === "closeView") return { ...state, activeSessionId: "", viewClosed: true };
+  if (action.type === "focusSession") return state.tabs.some(tab => tab.sessionId === action.sessionId) ? { ...state, activeSessionId: action.sessionId, viewClosed: false } : state;
+  if (action.type === "sessionOpened") return { ...state, activeSessionId: action.sessionId, viewClosed: false, error: undefined, openingTabs: Math.max(0, state.openingTabs - 1) };
   if (action.type === "openPending") return { ...state, openingTabs: state.openingTabs + 1 };
   if (action.type === "closePending") {
     return state.closingSessionIds.includes(action.sessionId) ? state : { ...state, closingSessionIds: [...state.closingSessionIds, action.sessionId] };
@@ -88,7 +92,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   const replacement = message?.type === "event" && message.event === "session.replaced" ? message.data : undefined;
   const selectedId = replacement?.previousSessionId === state.activeSessionId ? replacement.snapshot.sessionId : state.activeSessionId;
   let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
-    tabs, activeSessionId: tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
+    tabs, activeSessionId: state.viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, appFeatures: sdk.features };
   if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };

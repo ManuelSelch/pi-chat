@@ -7,6 +7,7 @@ import { initialChatState, type ChatState } from "../../../../../src/web/app/sta
 import { OverlayController, useOverlays } from "../../../../../src/web/app/overlays/OverlayController.js";
 import { ConfirmDialogProvider } from "../../../../../src/web/ui/confirm/ConfirmDialogProvider.js";
 import { SessionActionsProvider } from "../../../../../src/web/sessions/actions/SessionActionsProvider.js";
+import { SessionDraftProvider } from "../../../../../src/web/sessions/drafts/app/SessionDraftProvider.js";
 import { ComposerContainer } from "../../../../../src/web/chat/composer/ComposerContainer.js";
 import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/QuickOpenContainer.js";
 
@@ -31,11 +32,11 @@ beforeEach(() => {
 afterEach(cleanup);
 function Contents() {
   const overlays = useOverlays();
-  return <SessionActionsProvider>
+  return <SessionDraftProvider><SessionActionsProvider>
     <button onClick={() => overlays.open("quickOpen")}>Open palette</button>
     <QuickOpenContainer /><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} />
     <output>{JSON.stringify(overlays.state)}</output>
-  </SessionActionsProvider>;
+  </SessionActionsProvider></SessionDraftProvider>;
 }
 function mount() {
   return render(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
