@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActionIcon, Button, TextInput, UnstyledButton } from '@mantine/core';
+import { ActionIcon, TextInput, UnstyledButton } from '@mantine/core';
 import { IconArrowUpRight, IconClockPause, IconChevronDown, IconChevronRight, IconFolder, IconInbox, IconMessage, IconPlus, IconSearch, IconX } from '@tabler/icons-react';
 import { statusLabels, type Concept, type Session } from './data';
 
@@ -40,7 +40,6 @@ export function Sidebar(props: Props) {
   const projects = [...new Set(['Quick Chats', 'pi-chat', 'pi-studio', 'notesToGo', ...open.map(s => s.project)])];
   return <aside className="sidebar" aria-label="Session navigation">
     <div className="sidebar-heading"><div><IconInbox size={18}/><strong>{!sidebarMode ? 'Projects' : concept === 'a' ? 'Open sessions' : 'Inbox'}</strong><span className="count">{open.length}</span></div><ActionIcon variant="subtle" color="gray" aria-label="Close sidebar" onClick={close}><IconX size={17}/></ActionIcon></div>
-    <Button variant="default" fullWidth leftSection={<IconPlus size={15}/>} onClick={() => create()}>New session</Button>
     <TextInput className="session-search" aria-label="Search sessions" placeholder="Find a session…" size="xs" leftSection={<IconSearch size={14}/>} value={query} onChange={e => setQuery(e.currentTarget.value)}/>
     <div className="sidebar-scroll">
       {!sidebarMode ? <><div className="sidebar-note">Open sessions appear in the tab bar.</div>{projects.map(project => <UnstyledButton key={project} className="project-line" onClick={() => choose(open.find(s => s.project === project)?.id ?? active)}><IconFolder size={15}/>{project}<span className="count">{open.filter(s => s.project === project).length}</span></UnstyledButton>)}</> : <>
