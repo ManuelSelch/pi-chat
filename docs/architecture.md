@@ -90,6 +90,9 @@ close. SDK updates preserve deliberate deselection.
 localStorage membership, lifecycle coordination and component/container UI.
 The model derives primary/secondary row labels from checkout metadata: linked
 worktrees promote their branch, while main checkouts retain the session title.
+Project context uses the catalogue repository name rather than the checkout folder
+name for both live and saved rows; before discovery, live rows retain the runtime
+project name.
 Original titles and stable path/runtime identities remain unchanged for search
 and lifecycle actions; the view only renders the derived labels.
 Parking a loaded runtime stores intent before calling the existing close operation;
