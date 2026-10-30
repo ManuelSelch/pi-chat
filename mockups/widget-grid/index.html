@@ -1,14 +1,61 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Composer widget grid</title><link rel="stylesheet" href="./styles.css"></head>
-<body><main><header>Pi Chat · Widget grid preview</header><section class="transcript"><p>Resize the window to compare split-screen widths.</p><p>Widgets above the composer share columns when at least 466px is available. Below-composer widgets remain stacked.</p></section>
-<section class="widgets" aria-label="Widgets above composer">
-<article><button aria-expanded="true">⌄ pipeline</button><pre>✓ unit tests passed
-✓ typecheck passed</pre></article>
-<article><button aria-expanded="true">⌄ memory</button><pre>Project context loaded
-4 notes available</pre></article>
-<article><button aria-expanded="true">⌄ todo</button><pre>○ Check responsive layout
-○ Review widget spacing
-○ Keep transcript readable</pre></article>
-</section><textarea aria-label="Message Pi" placeholder="Ask Pi anything…"></textarea>
-<section class="below" aria-label="Widgets below composer"><article><button aria-expanded="true">⌄ usage</button><pre>42k tokens · unchanged stacked layout</pre></article></section>
-</main><script>document.querySelectorAll('article button').forEach(button=>button.addEventListener('click',()=>{const open=button.getAttribute('aria-expanded')==='true';button.setAttribute('aria-expanded',String(!open));button.nextElementSibling.hidden=open;}));</script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pi Chat · Widget grid</title>
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<main>
+  <header class="app-header">
+    <strong>Pi Chat</strong>
+    <span>Widget grid · revision 3</span>
+  </header>
+
+  <section class="transcript" aria-label="Transcript">
+    <p class="user">Three panels above the composer look ragged when one of them is tall.</p>
+    <article class="message">
+      <strong>Pi</strong>
+      <p>Keeping the cards bottom-aligned as they are today, and limiting the grid to two cards per row so a third card never squeezes into the same row as a tall one.</p>
+      <p class="muted">Resize the window: two columns need at least 466px of composer width, otherwise the cards stack in one column.</p>
+    </article>
+  </section>
+
+  <div class="widgets-wrap">
+    <section id="widgets" class="widgets" aria-label="Widgets above composer"></section>
+  </div>
+
+  <form class="composer" id="composer">
+    <textarea id="input" aria-label="Message Pi" placeholder="Filter Pi…" rows="2"></textarea>
+  </form>
+
+  <div class="footer">
+    <span class="pill pill-strong">92k / 1.0M · 9%</span>
+    <span class="pill">openrouter $62.17 used</span>
+    <span class="muted">openrouter/deepseek/deepseek-v4.1-flash · thinking: high</span>
+  </div>
+
+  <section class="demo" aria-label="Review controls">
+    <div class="row">
+      <span class="label">Scenario</span>
+      <button type="button" data-scenario="three" aria-pressed="true">3 widgets</button>
+      <button type="button" data-scenario="two" aria-pressed="false">2 widgets</button>
+      <button type="button" data-scenario="five" aria-pressed="false">5 widgets</button>
+    </div>
+    <div class="row">
+      <span class="label">Layout</span>
+      <button type="button" data-layout="current" aria-pressed="false">Current (auto-fit)</button>
+      <button type="button" data-layout="proposed" aria-pressed="true">Proposed (max 2)</button>
+    </div>
+    <div class="row">
+      <span class="label">Odd panel</span>
+      <button type="button" data-odd="half" aria-pressed="true">half width</button>
+      <button type="button" data-odd="full" aria-pressed="false">full width</button>
+    </div>
+    <p class="hint">Review-only controls: fake widget output, no backend. “Current” reproduces today’s auto-fitting grid, which fits three cards on a wide composer.</p>
+  </section>
+</main>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

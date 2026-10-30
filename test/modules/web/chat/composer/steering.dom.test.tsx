@@ -46,9 +46,11 @@ describe("composer widgets", () => {
     mount();
     const above = screen.getByRole("button", { name: "above" }).parentElement!.parentElement!;
     const below = screen.getByRole("button", { name: "below" }).parentElement!.parentElement!;
-    expect(above.style.display).toBe("grid");
+    // The column rule lives in the stylesheet, keyed on these classes.
+    expect(above.className).toContain("widget-grid-rows");
+    expect(above.parentElement!.className).toContain("widget-grid");
     expect(above.style.maxHeight).toBe("");
-    expect(below.style.display).not.toBe("grid");
+    expect(below.className).not.toContain("widget-grid-rows");
   });
 });
 

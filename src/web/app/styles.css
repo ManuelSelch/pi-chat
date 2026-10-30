@@ -44,6 +44,22 @@ html::-webkit-scrollbar {
 .markdown-thinking { font-size: 13px; line-height: 1.55; color: var(--pi-thinking-text, var(--mantine-color-dimmed)); }
 /* Terminal-oriented widget text stays compact, without Markdown styling. */
 .ansi-widget { font-size: 13px; line-height: 1.5; }
+
+/* Widget panels above the composer share at most two columns, measured against
+   the composer column rather than the viewport: the projects sidebar also takes
+   width. 466px is two 230px cards plus the 6px gap. The wrapper is the size
+   container because a container cannot query itself. */
+.widget-grid { container-type: inline-size; }
+.widget-grid-rows {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  /* Cards keep their natural heights and stay flush along the bottom edge. */
+  align-items: end;
+}
+@container (min-width: 466px) {
+  .widget-grid-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .markdown-thinking p, .markdown-thinking ul { margin: 4px 0; }
 .markdown-thinking ul { padding-left: 18px; }
 .markdown > :first-child { margin-top: 0; }

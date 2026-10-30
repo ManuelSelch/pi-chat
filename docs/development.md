@@ -154,14 +154,16 @@ Inbox/Projects navigation, folder selection and Settings. Settings stays mounted
 while closed to preserve chime playback. App owns Home/transcript selection,
 composer height and responsive workspace geometry. Widget rendering, dock
 geometry and pure placement rules live separately in `extensions/widgets/`;
-App and the composer share the placement helper.
+App and the composer share the placement helper. The above-composer card grid
+keeps its column rule in `app/styles.css` because the two-column threshold is a
+container query on the composer column, which inline styles cannot express.
 
 Runtime prompts represent server/extension interactions, distinct from generic
 application confirmations in `ui/confirm/`. Rich prompts reuse chat's lazy
 Markdown renderer; it is not exclusively a transcript/tool dependency. Home and
 Quick Switcher share ranking helpers within `sessions/`. Global layer order,
-Markdown styles and shared animations remain in `app/styles.css`; component CSS
-modules stay beside their consumers.
+Markdown styles, the widget grid container query and shared animations remain in
+`app/styles.css`; component CSS modules stay beside their consumers.
 
 See the [architecture overview](architecture.md) for component diagrams and data
 flow, and the [testing guide](../test/README.md) for permanent workflow coverage.

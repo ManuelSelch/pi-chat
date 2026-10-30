@@ -108,7 +108,7 @@ export class BrowserWidgetDriver {
   async shouldBeAbsent(): Promise<void> { await expect(this.content()).toHaveCount(0); }
 }
 
-/** Names own stable handles; low-level extension inputs remain available separately. */
+/** Widgets above the composer share a grid; docked widgets are a single column. */
 export class BrowserWidgetsDriver {
   private readonly widgets = new Map<string, BrowserWidgetDriver>();
   constructor(private readonly page: Page, private readonly extensions: ExtensionInputs) {}
@@ -117,6 +117,57 @@ export class BrowserWidgetsDriver {
     let widget = this.widgets.get(key);
     if (!widget) { widget = new BrowserWidgetDriver(this.page, this.extensions, key); this.widgets.set(key, widget); }
     return widget;
+  }
+
+  private grid(): Locator { return this.page.locator(".widget-grid-rows"); }
+
+  private card(key: string): Locator {
+    return this.page.getByRole("button", { name: new RegExp(`^${key}`) }).locator("..");
+  }
+
+  private async box(locator: Locator, what: string): Promise<{ x: number; y: number; width: number; height: number }> {
+    const box = await locator.boundingBox();
+    assert(box, `${what} is not visible`);
+    return box;
+  }
+
+  /** Waits until every named card is rendered in the grid, in the given order. */
+  async shouldShowCards(keys: readonly string[]): Promise<void> {
+    await expect(this.grid().locator("> *")).toHaveCount(keys.length);
+    for (const key of keys) await expect(this.card(key)).toBeVisible();
+  }
+
+  /** Cards in one grid row share a bottom edge, so the row is identified by it. */
+  async shouldPackAtMostTwoPerRow(): Promise<void> {
+    const cards = this.grid().locator("> *");
+    const count = await cards.count();
+    assert(count > 0, "The above-composer widget grid holds no cards");
+    const rows = new Map<number, number>();
+    for (let index = 0; index < count; index += 1) {
+      const box = await this.box(cards.nth(index), `Widget card ${index}`);
+      const bottom = Math.round(box.y + box.height);
+      rows.set(bottom, (rows.get(bottom) ?? 0) + 1);
+    }
+    expect(Math.max(...rows.values())).toBeLessThanOrEqual(2);
+  }
+
+  async shouldAlignCardBottoms(keys: readonly [string, string]): Promise<void> {
+    const left = await this.box(this.card(keys[0]), `Widget card ${keys[0]}`);
+    const right = await this.box(this.card(keys[1]), `Widget card ${keys[1]}`);
+    expect(Math.abs(left.y + left.height - (right.y + right.height))).toBeLessThanOrEqual(1);
+    expect(right.x).toBeGreaterThanOrEqual(left.x + left.width - 1);
+  }
+
+  async shouldBeginBelow(key: string, above: string): Promise<void> {
+    const card = await this.box(this.card(key), `Widget card ${key}`);
+    const previous = await this.box(this.card(above), `Widget card ${above}`);
+    expect(card.y).toBeGreaterThanOrEqual(previous.y + previous.height - 1);
+  }
+
+  async shouldSpanFullRow(key: string): Promise<void> {
+    const card = await this.box(this.card(key), `Widget card ${key}`);
+    const grid = await this.box(this.grid(), "The above-composer widget grid");
+    expect(Math.abs(card.width - grid.width)).toBeLessThanOrEqual(1);
   }
 
   async useLayout(layout: "docked" | "composer"): Promise<void> {

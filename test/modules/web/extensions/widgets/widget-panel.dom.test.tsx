@@ -28,21 +28,35 @@ const todo: Widget = {
 };
 
 describe("WidgetPanel", () => {
-  it("bottom-aligns unequal-height grid widgets without changing order or disclosure", () => {
+  it("keeps bottom alignment and lets a lone last card span the grid", () => {
+    render(
+      <MantineProvider><WidgetPanel grid widgets={[todo, { ...todo, key: "build", lines: ["running…"] }, { ...todo, key: "cleanup", lines: ["Cleanup 3/4"] }]} /></MantineProvider>,
+    );
+    const grid = screen.getByRole("button", { name: "todo" }).parentElement!.parentElement!;
+    // The grid is sized by its own container, so the column rule lives in the
+    // stylesheet rather than in inline styles jsdom could not evaluate.
+    expect(grid.className).toContain("widget-grid-rows");
+    expect(grid.parentElement!.className).toContain("widget-grid");
+    // Bottom alignment and the column count are stylesheet rules, so jsdom
+    // cannot evaluate them here; the browser scenario asserts the real
+    // geometry (flush card bottoms, at most two per row).
+    expect(grid.style.maxHeight).toBe("");
+    expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["todo", "build", "cleanup"]);
+    const cards = screen.getAllByRole("button").map(button => button.parentElement!);
+    // Two cards share the first row; the odd one out spans the whole row.
+    expect(cards.map(card => card.style.gridColumn)).toEqual(["", "", "1 / -1"]);
+    expect(cards[0]!.style.minWidth).toContain("0");
+    expect(cards[0]!.style.marginBottom).toContain("0");
+    fireEvent.click(screen.getByRole("button", { name: "todo" }));
+    expect(screen.getAllByRole("region")).toHaveLength(2);
+  });
+
+  it("does not span any card when the grid holds an even number of cards", () => {
     render(
       <MantineProvider><WidgetPanel grid widgets={[todo, { ...todo, key: "build", lines: ["running…"] }]} /></MantineProvider>,
     );
-    const panel = screen.getByRole("button", { name: "todo" }).parentElement!.parentElement!;
-    expect(panel.style.display).toBe("grid");
-    expect(panel.style.gridTemplateColumns).toBe("repeat(auto-fit, minmax(min(100%, 230px), 1fr))");
-    expect(panel.style.alignItems).toBe("end");
-    expect(panel.style.maxHeight).toBe("");
-    expect(screen.getAllByRole("button").map(button => button.textContent)).toEqual(["todo", "build"]);
-    const card = screen.getByRole("button", { name: "todo" }).parentElement!;
-    expect(card.style.minWidth).toContain("0");
-    expect(card.style.marginBottom).toContain("0");
-    fireEvent.click(screen.getByRole("button", { name: "todo" }));
-    expect(screen.getAllByRole("region")).toHaveLength(1);
+    const cards = screen.getAllByRole("button").map(button => button.parentElement!);
+    expect(cards.map(card => card.style.gridColumn)).toEqual(["", ""]);
   });
 
   it("keeps the default layout stacked", () => {

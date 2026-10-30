@@ -156,8 +156,10 @@ lines and renders styled plain text through Fancy-ANSI, not Markdown. HTTP(S)
 OSC 8 links open with safe new-tab attributes; Markdown/bare URLs remain literal.
 This is not full terminal emulation or comprehensive control-code sanitization.
 Widget disclosure is local to each keyed block. Rendering, dock geometry and pure
-placement are separate modules. Only above-composer widgets use a container-width
-responsive, bottom-aligned grid; below-composer and docked widgets remain stacked.
+placement are separate modules. Only above-composer widgets use a grid sized by
+the composer column: at most two bottom-aligned cards per row, and a lone last
+card of an odd count spans the row. Below-composer and docked widgets remain
+stacked.
 
 Theme production belongs to each server runtime. Required open/create palettes
 populate the SDK's runtime cache; ordinary snapshots/reload do not refresh it.

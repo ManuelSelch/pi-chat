@@ -178,7 +178,8 @@ prompt does not answer/cancel it; explicit Stop cancels pending work.
 Widgets show ANSI-styled plain text with independent collapse controls, not
 Markdown. HTTP(S) OSC 8 hyperlinks supplied by extensions open in a new tab;
 Markdown link syntax and bare URLs remain literal. Above-composer widgets form
-a responsive bottom-aligned grid; docked and below-composer widgets stay stacked.
+a bottom-aligned grid of at most two cards per row, with a lone last card
+spanning the row; docked and below-composer widgets stay stacked.
 Colors follow the runtime's Pi output, not browser-side Markdown interpretation.
 
 ## Opening local file links

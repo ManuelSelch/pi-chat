@@ -1,6 +1,30 @@
 import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
+test.describe("widget grid above the composer", () => {
+  let app: PiChatBrowserDriver;
+  test.beforeEach(async ({ page }) => {
+    app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+    await app.Widgets.useLayout("composer");
+    await app.Tabs.Create({ responses: [] });
+  });
+  test.afterEach(async () => { await app?.dispose(); });
+
+  test("packs three panels as two cards and a full-width last card", async () => {
+    await app.Widgets.named("git").show("pi-chat · main ⇡2\nmain ↑5\n✓ 2 branches");
+    await app.Widgets.named("pipeline").show("● Local 0/4 · stale\n⚠ build stale\n› e2e running\n✕ e2e failed\n○ sonar skipped");
+    await app.Widgets.named("cleanup").show("Cleanup 3/4 · Removing feat/settings-features · 19s");
+    await app.Widgets.shouldShowCards(["git", "pipeline", "cleanup"]);
+
+    // Two cards share the first row and stay bottom-aligned; the odd card
+    // starts a new row and spans it instead of leaving half the row empty.
+    await app.Widgets.shouldAlignCardBottoms(["git", "pipeline"]);
+    await app.Widgets.shouldBeginBelow("cleanup", "git");
+    await app.Widgets.shouldSpanFullRow("cleanup");
+    await app.Widgets.shouldPackAtMostTwoPerRow();
+  });
+});
+
 for (const layout of ["docked", "composer"] as const) {
   test.describe(`${layout} widgets`, () => {
     let app: PiChatBrowserDriver;
