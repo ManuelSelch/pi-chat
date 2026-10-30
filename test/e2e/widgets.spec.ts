@@ -5,7 +5,7 @@ for (const layout of ["docked", "composer"] as const) {
   test.describe(`${layout} widgets`, () => {
     let app: PiChatBrowserDriver;
     test.beforeEach(async ({ page }) => {
-      app = await PiChatBrowserDriver.start(page);
+      app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
       await app.Widgets.useLayout(layout);
       await app.Tabs.Create({ responses: [] });
     });

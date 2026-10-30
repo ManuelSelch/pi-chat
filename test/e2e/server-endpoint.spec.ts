@@ -2,7 +2,7 @@ import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 let app: PiChatBrowserDriver;
-test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page); });
+test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page, { inboxEnabled: false }); });
 test.afterEach(async () => { await app?.dispose(); });
 
 test("saves the explicit endpoint, restores after reload, and resets to the page server", async () => {

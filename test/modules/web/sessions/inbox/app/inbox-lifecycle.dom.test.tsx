@@ -59,14 +59,13 @@ it("selects unloaded Ready history by path and focuses a loaded runtime without 
   expect(operations.focus).toHaveBeenLastCalledWith("new");
 });
 
-it("unarchives an unloaded Ready conversation without creating a runtime", async () => {
+it("archives an unloaded Ready conversation without creating a runtime", async () => {
   app = { ...app, tabs: [] };
   const { result } = mount();
 
   await act(async () => result.current.archive("/a"));
-  await act(async () => result.current.undo());
 
-  expect(operations.archive.mock.calls).toEqual([["/a", true], ["/a", false]]);
+  expect(operations.archive).toHaveBeenCalledExactlyOnceWith("/a", true);
   expect(operations.open).not.toHaveBeenCalled();
   expect(result.current.later).toEqual([]);
 });
@@ -157,7 +156,7 @@ it("leaves the open runtime alone when durable parking intent cannot be stored",
   vi.restoreAllMocks();
 });
 
-it("does not offer Undo or lose membership after a failed archive", async () => {
+it("preserves membership and reports a failed archive", async () => {
   app = { ...app, tabs: [] };
   saveLater(endpoint, [{ path: "/a", phase: "parked" }]);
   operations.archive.mockRejectedValue(new Error("Archive failed"));
@@ -165,7 +164,6 @@ it("does not offer Undo or lose membership after a failed archive", async () => 
 
   await act(async () => result.current.archive("/a"));
 
-  expect(result.current.canUndo).toBe(false);
   expect(result.current.later).toHaveLength(1);
   expect(result.current.error).toBe("Archive failed");
 });
@@ -185,37 +183,38 @@ it("keeps Later on failed resume and focuses the new runtime after success", asy
   expect(result.current.later).toEqual([]);
 });
 
-it("does not prune restored Later membership against the archived catalogue while Undo refresh is in flight", async () => {
+it("does not restore archived Later membership against stale catalogue or inventory updates", async () => {
   app = { ...app, tabs: [] };
-  const catalogue = app.catalogue;
   saveLater(endpoint, [{ path: "/a", phase: "parked" }]);
   const { result, rerender } = mount();
-  await act(async () => result.current.archive("/a"));
-  app = { ...app, catalogue: { projects: catalogue.projects.map(project => ({ ...project, sessions: project.sessions.map(session => ({ ...session, archivedAt: 1 })) })) } };
-  rerender();
 
-  await act(async () => result.current.undo());
-  // Inventory can refresh before the unarchive catalogue event reaches React.
+  await act(async () => result.current.archive("/a"));
   app = { ...app, tabs: [], sdkInventory: [] };
   rerender();
 
-  expect(loadLater(endpoint)).toEqual([{ path: "/a", phase: "parked" }]);
-  app = { ...app, catalogue };
-  rerender();
-  expect(result.current.later).toHaveLength(1);
+  expect(loadLater(endpoint)).toEqual([]);
+  expect(result.current.later).toEqual([]);
+  expect(operations.open).not.toHaveBeenCalled();
 });
 
-it("archives Later only after confirmation and Undo restores it without opening a runtime", async () => {
+it("removes Later membership only after archive confirmation without opening a runtime", async () => {
   app = { ...app, tabs: [] };
   saveLater(endpoint, [{ path: "/a", phase: "parked" }]);
+  let finish!: () => void;
+  operations.archive.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
   const { result } = mount();
+  let archive!: Promise<void>;
 
-  await act(async () => result.current.archive("/a"));
-  expect(result.current.later).toEqual([]);
-  expect(result.current.canUndo).toBe(true);
+  act(() => { archive = result.current.archive("/a"); });
 
-  await act(async () => result.current.undo());
-  expect(operations.archive.mock.calls).toEqual([["/a", true], ["/a", false]]);
+  expect(result.current.pending).toBe(true);
+  expect(result.current.later).toHaveLength(1);
   expect(loadLater(endpoint)).toEqual([{ path: "/a", phase: "parked" }]);
+
+  await act(async () => { finish(); await archive; });
+
+  expect(result.current.later).toEqual([]);
+  expect(loadLater(endpoint)).toEqual([]);
+  expect(operations.archive).toHaveBeenCalledExactlyOnceWith("/a", true);
   expect(operations.open).not.toHaveBeenCalled();
 });

@@ -45,7 +45,7 @@ beforeEach(() => {
     state: session(),
     serverEndpoint: { endpoint: "ws://localhost:3000/ws", override: "", hasStoredOverride: false },
     inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(),
-    inbox: { later: [], pending: false, error: undefined, canUndo: false, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), undo: vi.fn(async () => {}), dismissError: vi.fn() },
+    inbox: { later: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(async () => ({ path: "/project", parentPath: "/", breadcrumbs: [{ name: "project", path: "/project" }], entries: [] })),
     startFolderSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
     openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),

@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import type { TestWorld } from "../pi-chat/test-world.js";
+import type { AssistantResponse, TestWorld } from "../pi-chat/test-world.js";
 import { pageCoverage } from "./coverage/browser-coverage.js";
 
 export class BrowserInboxDriver {
@@ -9,6 +9,32 @@ export class BrowserInboxDriver {
   }
   private later(): Locator { return this.panel().getByRole("button", { name: /^Later/ }); }
 
+  async shouldUseMode(enabled: boolean): Promise<void> {
+    await expect(this.page.getByRole("banner").getByRole("button", { name: "Sessions", exact: true })).toHaveCount(enabled ? 1 : 0);
+    if (enabled) await expect(this.panel()).toBeVisible();
+    await this.page.getByRole("button", { name: "Settings", exact: true }).click();
+    const settings = this.page.getByRole("dialog", { name: "Settings", exact: true });
+    await expect(settings.getByRole("switch", { name: "Show open sessions in sidebar", exact: true })).toBeChecked({ checked: enabled });
+    await this.page.keyboard.press("Escape");
+    await expect(settings).toHaveCount(0);
+  }
+  async shouldHaveHeaderSessionActions(visible: boolean): Promise<void> {
+    const header = this.page.getByRole("banner");
+    for (const name of ["Move current session to Later", "Archive current session"]) {
+      const action = header.getByRole("button", { name, exact: true });
+      if (visible) {
+        await expect(action).toBeVisible();
+        await expect(action).toBeEnabled();
+      } else await expect(action).toHaveCount(0);
+    }
+    await expect(header.getByRole("button", { name: "Close current session view", exact: true })).toBeEnabled();
+  }
+  async shouldHaveUnbrandedHeader(): Promise<void> {
+    const header = this.page.getByRole("banner");
+    await expect(header.getByText("Pi Chat", { exact: true })).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "Sessions", exact: true })).toBeVisible();
+    await expect(header.getByRole("button", { name: "New session", exact: true })).toBeVisible();
+  }
   async setEnabled(enabled: boolean): Promise<void> {
     if (!(await this.page.getByRole("button", { name: "Settings", exact: true }).isVisible())) await this.open();
     await this.page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -55,9 +81,9 @@ export class BrowserInboxDriver {
   }
   async closeView(): Promise<void> {
     await this.page.getByRole("button", { name: "Close current session view", exact: true }).click();
-    await this.shouldShowEmptyView();
+    await this.shouldShowHome();
   }
-  async shouldShowEmptyView(): Promise<void> {
+  async shouldShowHome(): Promise<void> {
     await expect(this.page.getByRole("textbox", { name: "Message Pi" })).not.toBeVisible();
     await expect(this.page.getByRole("textbox", { name: "Search sessions and projects", exact: true })).toBeVisible();
     await expect(this.page.getByRole("main").getByRole("button", { name: "New session", exact: true })).toBeVisible();
@@ -88,7 +114,7 @@ export class BrowserInboxDriver {
     const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true }).locator("..");
     await row.hover();
     await row.getByRole("button", { name: `Archive ${title}`, exact: true }).click();
-    await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).toBeVisible();
+    await expect(this.panel().getByRole("button", { name: `Open ${title}`, exact: true })).toHaveCount(0);
   }
   async shouldHaveSoundGeometry(title: string): Promise<void> {
     const button = this.panel().getByRole("button", { name: `Open ${title}`, exact: true });
@@ -112,6 +138,11 @@ export class BrowserInboxDriver {
       const widths = await toggle.evaluate(element => ({ width: element.getBoundingClientRect().width, parentWidth: element.parentElement!.getBoundingClientRect().width }));
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
     }
+  }
+  async shouldShowProjectName(title: string, projectName: string, later = false): Promise<void> {
+    const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
+    const metadata = button.locator(":scope > div").first();
+    await expect(metadata.locator(":scope > span").nth(1)).toHaveText(projectName);
   }
   async shouldShowWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
@@ -177,14 +208,10 @@ export class BrowserInboxDriver {
     const row = this.panel().getByRole("button", { name: `Resume ${title}`, exact: true }).locator("..");
     await row.hover();
     await row.getByRole("button", { name: `Archive ${title}`, exact: true }).click();
-    await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).toBeVisible();
+    await expect(this.panel().getByRole("button", { name: `Resume ${title}`, exact: true })).toHaveCount(0);
   }
-  async undoArchiveToLater(): Promise<void> {
-    await this.page.getByRole("button", { name: "Undo archive", exact: true }).click();
-    await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).not.toBeVisible();
-  }
-  async create(): Promise<void> {
-    const release = this.world.reserveSession([]);
+  async create(options: { responses: readonly AssistantResponse[] } = { responses: [] }): Promise<void> {
+    const release = this.world.reserveSession(options.responses);
     try {
       await this.page.getByRole("banner").getByRole("button", { name: "New session", exact: true }).click();
       await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeEnabled();
@@ -192,20 +219,18 @@ export class BrowserInboxDriver {
   }
   async archiveCurrent(): Promise<void> {
     await this.page.getByRole("button", { name: "Archive current session", exact: true }).click();
-    await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).toBeVisible();
+    await expect(this.page.getByRole("button", { name: "Archive current session", exact: true })).toHaveCount(0);
   }
-  async undoArchive(): Promise<void> {
-    const release = this.world.reserveSession([]);
-    try {
-      await this.page.getByRole("button", { name: "Undo archive", exact: true }).click();
-      await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeEnabled();
-      await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).not.toBeVisible();
-    } finally { release(); }
+  async shouldHaveNoArchiveNotice(): Promise<void> {
+    await expect(this.page.getByRole("status").filter({ hasText: "Session archived." })).toHaveCount(0);
+    await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).toHaveCount(0);
   }
-  async reload(): Promise<void> {
+  async reload(inboxEnabled = true): Promise<void> {
     await pageCoverage.get(this.page)?.checkpoint();
     await this.page.reload({ waitUntil: "networkidle" });
-    await expect(this.panel()).toBeVisible();
+    await expect(this.page.getByRole("banner")).toBeVisible();
+    if (inboxEnabled) await expect(this.panel()).toBeVisible();
+    else await expect(this.page.getByRole("banner").getByRole("button", { name: "Projects and sessions", exact: true })).toBeVisible();
   }
   async shouldBeDrawer(): Promise<void> { await expect(this.page.getByRole("dialog", { name: "Sessions", exact: true })).toBeVisible(); }
   async openSettings(): Promise<void> {

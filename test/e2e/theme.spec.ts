@@ -3,7 +3,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 import { themeData } from "../infra/v2-fixtures.js";
 
 test("custom Pi palettes color shell, portals and real extension widgets without recoloring old ANSI", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page, { probeThemeReconnect: true });
+  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, probeThemeReconnect: true });
   const dark = themeData();
   dark.name = "browser-plum"; dark.colors.accent = "#b982d3";
   const light = { ...themeData(), name: "browser-pine", appearance: "light" as const,

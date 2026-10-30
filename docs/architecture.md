@@ -78,7 +78,12 @@ flowchart TD
 
 ### Session navigation
 
-The optional Inbox combines saved, unarchived catalogue history with SDK runtime
+The Inbox is enabled by default through the browser-local `pi-chat:session-inbox`
+preference in `usePiChat`; explicitly saved opt-outs retain tabs/projects navigation.
+SettingsDrawer groups the four existing boolean switches under Feature Toggles;
+preference ownership and persistence are unchanged.
+
+The Inbox combines saved, unarchived catalogue history with SDK runtime
 inventory, deduplicated by session path. Needs you/Working use live blocked/running
 status; Ready includes all remaining idle conversations except browser-local
 Later membership. Selecting unloaded history opens its path; loaded rows focus
@@ -90,11 +95,16 @@ close. SDK updates preserve deliberate deselection.
 localStorage membership, lifecycle coordination and component/container UI.
 The model derives primary/secondary row labels from checkout metadata: linked
 worktrees promote their branch, while main checkouts retain the session title.
+Project context uses the catalogue repository name rather than the checkout folder
+name for both live and saved rows; before discovery, live rows retain the runtime
+project name.
 Original titles and stable path/runtime identities remain unchanged for search
 and lifecycle actions; the view only renders the derived labels.
 Parking a loaded runtime stores intent before calling the existing close operation;
 parking unloaded history only stores membership. Resume uses
-the existing open operation; archive/Undo use existing archive operations.
+the existing open operation; archive uses the existing server archive operation.
+Successful archives do not create page-lifetime Undo state or a success notice;
+Inbox notices display dismissible errors only.
 Authoritative inventory and catalogue updates resolve pending intents and
 remove archived, missing or externally reopened entries. Reconciliation waits for
 a published catalogue revision: revision zero is the server cold-start placeholder,

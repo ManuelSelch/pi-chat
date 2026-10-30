@@ -7,7 +7,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 // Infrastructure regression: inspect the collector, not application scenario behavior.
 test("coverage retains executed scripts across a real browser reload", async ({ page }, testInfo) => {
   test.skip(process.env.PI_CHAT_COVERAGE !== "1", "Only exercises the opt-in collector");
-  const app = await PiChatBrowserDriver.start(page);
+  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
     await page.evaluate("(() => { function coverageBeforeReload() { return 41; } coverageBeforeReload(); })();\n//# sourceURL=coverage-probe-before.js");
     await app.Tabs.Create({ responses: [{ prompt: "Before reload", reply: "Saved" }] });

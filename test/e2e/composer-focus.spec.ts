@@ -6,6 +6,7 @@ let startupGate: Promise<void> | undefined;
 test.beforeEach(async ({ page }) => {
   startupGate = undefined;
   app = await PiChatBrowserDriver.start(page, {
+    inboxEnabled: false,
     // Expose the real Settings confirmation without ever restarting a test process.
     restart: { restart: async () => { throw new Error("The cancelled restart must not execute"); } },
     extensions: [async pi => {

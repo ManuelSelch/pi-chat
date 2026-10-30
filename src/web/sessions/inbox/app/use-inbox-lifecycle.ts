@@ -9,7 +9,6 @@ interface InboxOperations {
   archive(path: string, archived: boolean): Promise<void>;
   focus(id: string): void;
 }
-interface ArchiveUndo { path: string; later: boolean; open: boolean }
 const errorText = (cause: unknown) => cause && typeof cause === "object" && "message" in cause ? String(cause.message) : String(cause);
 const unknownOutcome = (cause: unknown) => cause !== null && typeof cause === "object" && "outcome" in cause && cause.outcome === "unknown";
 
@@ -26,10 +25,8 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   const locked = useRef(false);
   const uncertain = useRef(false);
   const waitForTabs = useRef<AppState["tabs"] | undefined>(undefined);
-  const waitForCatalogue = useRef<AppState["catalogue"] | undefined>(undefined);
   const latest = useRef({ app, operations });
   latest.current = { app, operations };
-  const [undoRecord, setUndoRecord] = useState<ArchiveUndo>();
 
   function persist(next: LaterEntry[]) {
     if (!initial.readable) throw new Error(initial.error);
@@ -41,9 +38,8 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   // authoritative inventory/catalogue/connection updates resolve uncertainty.
   useEffect(() => {
     if (app.connection !== "open" || !app.tabsKnown || !app.catalogueKnown || locked.current || !initial.readable) return;
-    if (waitForTabs.current === app.tabs || waitForCatalogue.current === app.catalogue) return;
+    if (waitForTabs.current === app.tabs) return;
     waitForTabs.current = undefined;
-    waitForCatalogue.current = undefined;
     uncertain.current = false;
     const closing = new Set(app.sdkInventory.filter(tab => tab.status === "closing").flatMap(tab => tab.sessionPath ? [tab.sessionPath] : []));
     const next = reconcileLater(entriesRef.current, app.tabs, app.catalogue, closing);
@@ -101,23 +97,8 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   const archive = (path: string) => run(async () => {
     const tab = latest.current.app.tabs.find(tab => tab.sessionPath === path);
     if (tab && tab.status !== "idle") return;
-    const record = { path, later: entriesRef.current.some(entry => entry.path === path), open: Boolean(tab) };
     await latest.current.operations.archive(path, true);
-    setUndoRecord(record);
     persist(entriesRef.current.filter(entry => entry.path !== path));
-  });
-
-  const undo = () => run(async () => {
-    if (!undoRecord) return;
-    waitForCatalogue.current = undoRecord.later && !hasSavedSession(latest.current.app.catalogue, undoRecord.path) ? latest.current.app.catalogue : undefined;
-    try { await latest.current.operations.archive(undoRecord.path, false); }
-    catch (cause) { waitForCatalogue.current = undefined; throw cause; }
-    if (undoRecord.later) persist([...entriesRef.current.filter(entry => entry.path !== undoRecord.path), { path: undoRecord.path, phase: "parked" }]);
-    else if (undoRecord.open) {
-      const id = await latest.current.operations.open(undoRecord.path);
-      latest.current.operations.focus(id);
-    }
-    setUndoRecord(undefined);
   });
 
   const later = useMemo(() => {
@@ -127,7 +108,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   }, [entries, app.catalogue, app.tabs]);
   return {
     later,
-    pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => tab.sessionPath === entry.path && tab.status === "closing")), error, canUndo: Boolean(undoRecord),
-    select, park, resume, archive, undo, dismissError: () => setError(undefined),
+    pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => tab.sessionPath === entry.path && tab.status === "closing")), error,
+    select, park, resume, archive, dismissError: () => setError(undefined),
   };
 }

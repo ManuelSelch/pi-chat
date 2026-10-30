@@ -2,7 +2,7 @@ import { expect, test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 test("shares session actions between composer and quickswitcher", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page);
+  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
     await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
     await app.Chat.SendPrompt("Hello");
@@ -34,7 +34,7 @@ test("shares session actions between composer and quickswitcher", async ({ page 
 
 // Run against the complete production stylesheet stack, not just component CSS.
 test("shows keyboard selection and compact mockup scope controls", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page);
+  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
     await page.locator("body").press("Meta+o");
     const input = page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" });
