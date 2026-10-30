@@ -55,7 +55,7 @@ export function App() {
     setNotice('Simulated agent completion. The session now needs you.');
   }
   function reset() { setSessions(initialSessions.map(s => ({ ...s }))); setActive('inbox'); setDrafts({}); setMessages({}); setNotice(''); }
-  const sidebar = <Sidebar concept={concept} sessions={sessions} active={active} sidebarMode={sidebarMode} choose={choose} deferSession={deferSession} restore={restore} create={create} close={() => setPanelOpen(false)} openSettings={() => { if (mobile) setPanelOpen(false); setSettings(true); }}/>;
+  const sidebar = <Sidebar concept={concept} sessions={sessions} active={active} sidebarMode={sidebarMode} choose={choose} deferSession={deferSession} restore={restore} close={() => setPanelOpen(false)} openSettings={() => { if (mobile) setPanelOpen(false); setSettings(true); }}/>;
   return <div className="review-page">
     <div className="review-toolbar"><div className="review-brand"><span className="eyebrow">PI CHAT / DESIGN STUDY 01</span><strong>Sessions, without tabs</strong></div><SegmentedControl aria-label="Mockup concept" value={concept} onChange={changeConcept} data={Object.entries(concepts).map(([value, c]) => ({ value, label: c.label }))}/><Button size="xs" variant="subtle" color="gray" onClick={reset}>Reset demo</Button></div>
     <div className="concept-caption"><span>{concepts[concept].title}</span><p>{concepts[concept].description}</p><Badge variant="light" color={concept === 'b' ? 'blue' : 'gray'} size="sm">{concept === 'b' ? 'Recommended starting point' : 'Alternative direction'}</Badge></div>
