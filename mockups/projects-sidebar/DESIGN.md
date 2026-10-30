@@ -1,7 +1,7 @@
 # Projects sidebar mockup
 
 - Revision: 1.
-- Status: in review; not approved for production implementation.
+- Status: approved for the wide/compact layouts and phone option B; option A is not approved.
 - Goal: explore keeping project navigation open while the session stays usable, preserving Pi Chat's plain light styling and single-column project list.
 - User decision: selecting or creating a session must keep Projects open (Q2 resolved).
 - Wide (1680 px demo): place Projects in spare left margin; opening/closing does not move the centered 800 px chat. The panel can grow up to 340 px in the available gutter.
@@ -13,5 +13,6 @@
 - The review shell offers sized live iframe previews. Actual-size link follows the browser viewport. Query parameters: size=wide|compact|phone on the review page; canvas=1 for the actual workspace; mobile=stacked|drawer for the narrow-screen variant.
 - Fake/omitted: no backend, persistence, real folder picking, archive/pin mutations, full tab management, widget dock, or live agent execution. Mobile software-keyboard behavior and production focus/shortcut integration need later design/testing.
 - Motion: none.
-- Open questions: approve wide gutter / compact reserved-space behavior? Prefer stacked or modal phone treatment, or another direction?
-- Approval evidence: none. This prototype is not authorization to modify production code.
+- Open questions: none for the mockup. Technical design approval remains a separate workflow gate.
+- Approval evidence: user approved revision 1 with “for phone still use the modal drawer (option B) wide and compact looks good. approved. implement it”. Preserve both source variants as review history; implement only option B on phones.
+- Preview: agent-owned managed Vite process 51682 stopped after approval; process exit and absence of listener on port 4180 confirmed.
