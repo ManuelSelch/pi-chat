@@ -1,6 +1,12 @@
 # Pi Chat extension API
 
-Pi Chat exposes a small server-side registry for local Pi extensions. The API is intentionally simple: extensions can add buttons/badges to known UI slots, register actions for those buttons, keep small extension-owned state, and listen to chat lifecycle hooks.
+Pi Chat consumes a small server-side registry owned by the independent
+`@manuelselch/pi-server/extensions` package. Extensions can add buttons/badges to
+known UI slots, register actions, keep extension-owned state and listen to chat
+lifecycle hooks. Register extension-bearing packages explicitly through Pi's
+resource loading; Chat does not copy extension source into the browser. See
+[package ownership](architecture.md#package-boundaries) and the
+[installed contract boundary](protocol.md).
 
 ```ts
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -27,6 +33,28 @@ export default function demo(_pi: ExtensionAPI): void {
   });
 }
 ```
+
+## Native Pi UI contributions
+
+The registry below is distinct from Pi's native `ctx.ui` prompt/widget methods.
+Those interactions use server-owned registries and SDK presentation state:
+
+- Questions may occur outside a model turn. They expire after five minutes;
+  losing the controller starts a 60-second grace period. Minimize/reopen is
+  browser-only and does not pause either timer or submit an answer.
+- Rich prompt bodies reuse safe lazy Markdown/code/math rendering without raw
+  HTML or remote images. Question choices can require explicit Continue;
+  ordinary literal menus remain immediate. Draft/selection/minimized state is
+  browser-owned, not an extension history store.
+- Widgets carry ANSI-styled plain string lines. Markdown is literal; HTTP(S)
+  OSC 8 links are supported with safe new-tab attributes. Formatting does not
+  imply arbitrary terminal-control support or client-side code execution.
+- Pi runtime theme colors are produced server-side. Browser remembered shell
+  appearance does not reinterpret an extension's literal RGB/ANSI strings.
+
+See [presentation ownership](architecture.md#runtime-prompts-widgets-and-themes),
+[user interactions](usage.md#extension-prompts-and-widgets) and
+[browser contracts](../test/e2e/prompt-presentation.spec.ts).
 
 ## Slots
 

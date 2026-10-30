@@ -82,11 +82,24 @@ An unreachable or rejected saved endpoint does not automatically fall back to
 another server. Open Settings even while disconnected and correct the address or
 use **Reset to default**.
 
+## Server-side Pi resources and MCP
+
+Models, credentials, skills, extensions and MCP connections belong to the Pi
+runtime on the server. The server registers upstream codemode, tool-search and
+MCP extensions; Pi's existing settings, project trust, exposure and activation
+rules still apply. The browser neither scans resource directories nor manages
+MCP credentials/subprocesses. A missing authenticated tool must be diagnosed in
+the server's Pi environment, not by adding secrets to the endpoint URL.
+
 ## Pi themes
 
 Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,
 status colors, messages and diff colors. Extension widgets use the same runtime's
 Pi colors; literal RGB and already-rendered ANSI strings are preserved.
+
+For the original Pi Chat palette, use the bundled [Classic light and dark
+themes](../themes/README.md). That guide covers installation, terminal appearance
+pairs and the limits of matching the original browser colors.
 
 - Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
   project theme resource allowed by Pi's existing trust/resource rules).

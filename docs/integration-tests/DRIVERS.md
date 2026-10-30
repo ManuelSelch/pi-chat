@@ -1,19 +1,35 @@
-# Pi Chat integration drivers
+# Application drivers
 
-`test/infra/pi-chat/pi-chat-driver.ts` is the test-only application root. Use
-ordinary imperative TypeScript workflows, with the driver named `app`:
+Scenarios express outcomes through product-language drivers, not sockets,
+selectors or arbitrary waits. [Test placement](../../test/README.md) separates
+module/DOM tests, non-rendered application scenarios, browser workflows and
+support-infrastructure tests. Choose the lowest boundary that faithfully proves
+the outcome: protocol projections cannot prove focus, geometry or rendering.
+
+## Non-rendered application driver
+
+[PiChatDriver](../../test/infra/pi-chat/pi-chat-driver.ts) starts an embedded
+public server, harness-backed real Pi sessions and a WebSocket client using
+`PiClient` plus the production `bindPiChat`/application-state binding. It does
+not render React or implement another wire-session reducer. Only model replies
+are scripted; messages flow through Pi/runtime/server/SDK machinery.
 
 ```ts
-import { PiChatDriver } from "../../test/infra/pi-chat/pi-chat-driver.js";
+import { afterEach, it } from "vitest";
+import { PiChatDriver } from "../../infra/pi-chat/pi-chat-driver.js";
 
-const app = await PiChatDriver.start({
-  responses: [{ prompt: "Hello", reply: "Hello from Pi Chat." }],
-});
-try {
+let app: PiChatDriver | undefined;
+afterEach(async () => { await app?.dispose(); app = undefined; });
+
+it("retains the conversation after reconnect", async () => {
+  app = await PiChatDriver.start({
+    responses: [{ prompt: "Hello", reply: "Hello from Pi Chat." }],
+  });
+
   await app.Chat.SendPrompt("Hello");
   await app.Chat.WaitUntilIdle();
-  app.Chat.ShouldHaveAssistantReply("Hello from Pi Chat.");
   await app.Browser.Reconnect();
+
   app.Browser.ShouldBeUsable();
   app.Chat.ShouldContainMessages([
     { role: "user", text: "Hello" },
@@ -22,199 +38,111 @@ try {
   app.Chat.ShouldHaveMessageCount(2);
   app.Chat.ShouldHaveNoDuplicateMessages();
   app.Chat.ShouldHaveConsumedResponses();
-} finally {
-  await app.dispose();
-}
+});
 ```
 
-In Vitest, register each successfully started driver for `afterEach` cleanup, as
-shown in `test/scenarios/chat/prompt-reply.test.ts`. Startup also cleans up partial setup;
-`dispose()` is idempotent. Pair response consumption assertions with transcript
-assertions: consuming a scripted action alone does not prove delivery to a client.
+This example uses the relative import depth of
+[`test/scenarios/browser/reconnect.test.ts`](../../test/scenarios/browser/reconnect.test.ts).
+Register successfully created drivers for cleanup; `start()` cleans partial
+startup and `dispose()` is idempotent. Keep setup, action and assertion phases
+readable. Consuming a scripted response alone does not prove it reached a client.
 
-## Multiple conversations
+### Driver surfaces
 
-```ts
-const app = await PiChatDriver.start({ startAtHome: true });
-try {
-  app.Browser.ShouldBeAtHome();
-  const first = await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "First tab." }] });
-  await app.Chat.SendPrompt("Hello");
-  await app.Chat.WaitUntilIdle();
-  app.Chat.ShouldHaveConsumedResponses();
-  const second = await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Second tab." }] });
-  await app.Chat.SendPrompt("Hello");
-  await app.Chat.WaitUntilIdle();
-  app.Chat.ShouldHaveConsumedResponses();
-  await app.Tabs.SwitchTo(first);
-  await app.Browser.Reconnect();
-  app.Tabs.ShouldBeActive(first);
-  app.Chat.ShouldHaveAssistantReply("First tab.");
-  await app.Tabs.Close(second);
-  await app.Tabs.Close(first);
-  app.Browser.ShouldBeAtHome();
-} finally {
-  await app.dispose();
-}
-```
+| Driver | Current operations / assertions |
+|---|---|
+| `Chat` | Send prompt, steer, wait for streaming/idle, release held response, abort; assert ordered history, exact counts, replies, queue and consumed responses |
+| `Browser` | Reconnect, take control; assert usable/Home state |
+| `Tabs` | Create, switch, close, open persisted history, obtain saved path; assert active handle/membership/count |
+| `Projects` | Browse/open server folders; assert current project or retained Home |
+| `Extensions` | Run registered extension commands, wait/respond to opaque prompt handles, observe notifications/widgets and prompt removal |
 
-## Implemented slices
+- `start({ startAtHome: true })` starts with no conversation. Otherwise one
+  conversation is created. Supply each new session's response script through
+  `Tabs.Create({ responses })`, not shared global state.
+- `SendPrompt` validates the next script and waits for a fresh consumed user
+  message, not just admission. `WaitUntilIdle` checks fresh settlement on the
+  same connection, or authoritative current state after reconnect.
+- `ShouldContainMessages` is ordered containment, not equality. Pair with exact
+  count and duplicate checks where the contract requires an exact transcript.
+- `{ hold: true }` provides deterministic control of a model response. Use
+  `WaitUntilStreaming` and `ReleaseControlledResponse`, not timing-only sleeps.
+- Tab operations must be awaited serially. Opaque handles reject foreign/closed
+  identities; saved-history reopening restores a new runtime identity.
+- Reconnect creates a fresh client/projection rather than trusting cached
+  transcript data. Take-control tests verify the previous controller closes.
+- `Extensions.RunCommand` waits for first fresh visible UI output, not completion
+  of a blocked command. Answer prompts explicitly; prompt handles enforce
+  conversation ownership and cannot be reused after settlement.
+- Feature drivers share a narrow private context. Bounded event-driven waits
+  include operation/state/recent-message diagnostics; no silent no-op assertions.
 
-- `PiChatDriver.start({ responses?, timeoutMs?, startAtHome?, extensions? })`: a loopback server
-  and isolated temporary project with a harness-backed real session factory.
-  Default startup opens one session for backward compatibility; `startAtHome: true`
-  starts with no sessions. Supply each new conversation's responses to `Tabs.Create`.
-- `Chat.SendPrompt(text)`: validates the next domain response script and awaits a
-  **new** user message confirming acceptance. Missing/mismatched scripts fail;
-  the harness never calls a real model provider.
-- `Chat.WaitUntilIdle()`: awaits a fresh idle event for the submitted turn, then
-  checks current browser state and fails on runtime errors. Complete this before
-  reconnecting or submitting the next prompt in this slice.
-- `Chat.ShouldContainMessages(expected)`: ordered containment, not exact equality.
-  Pair with `ShouldHaveMessageCount(count)` for an exact transcript.
-- `Chat.ShouldHaveAssistantReply(text)`, `ShouldNotHaveAssistantReply(text)`,
-  `ShouldHaveNoDuplicateMessages()`, and `ShouldHaveConsumedResponses()` (for
-  the active conversation).
-- `Chat.WaitUntilStreaming()` waits for an active model turn; `Chat.Abort()`
-  waits for the active run to settle without a late assistant response.
-  Controlled test responses can be held with `hold: true` and released through
-  `Chat.ReleaseControlledResponse()`.
-- `Browser.Reconnect()`: closes the prior client, creates a fresh client/state,
-  waits for all open tab snapshots (or the home catalogue), and checks active identity.
-- `Browser.TakeControl()`: opens a second browser connection, waits for its
-  authoritative state, and verifies that the previous controller is replaced
-  without changing the active conversation.
-- `Browser.ShouldBeUsable()` / `ShouldBeAtHome()`: checks connected, loaded state.
-- `Tabs.Create({ responses? })`: creates a real isolated session via a correlated
-  server command, then waits for its tab and snapshot. Returns an opaque tab handle.
-- `Tabs.SessionPath(tab?)` returns the persisted path after a conversation has
-  produced a message.
-- `Tabs.Open(sessionPath, { responses? })` reopens an isolated persisted session,
-  waits for its fresh tab state, and restores its transcript. Missing paths fail
-  without creating a tab.
-- `Tabs.Active()`, `SwitchTo(tab)`, `Close(tab)`, `ShouldBeActive(tab)`,
-  `ShouldContain(tabs)`, and `ShouldHaveCount(count)`. Focus and close await fresh
-  acknowledgements, including same-tab focus; closing the last tab awaits a new
-  home catalogue. Handles survive reconnect but reject closed/foreign tabs.
-  Tab operations must be awaited sequentially.
-- `Projects.Browse(path?)`: browses a server folder through the correlated folder
-  protocol and returns its validated directory listing.
-- `Projects.Open(path?)`: opens a valid server folder as a new conversation and
-  waits for its tab and authoritative snapshot. Failed opens reject with the
-  recoverable server error without changing the active project.
-- `Projects.ShouldRemainAtHome()` and `ShouldBeOpen(path?)`: semantic project
-  state assertions.
-- `Extensions.RunCommand(name)`: dispatches a registered extension slash command
-  and awaits its first fresh prompt, widget, or notification. It does not wait
-  for a blocked command to finish; respond to its prompt explicitly.
-- `Extensions.WaitForPrompt(title)` returns an opaque handle that survives
-  reconnect; `RespondToPrompt(handle, result)` waits for removal. Foreign,
-  wrong-conversation, and already-answered handles are rejected.
-- `Extensions.WaitForNotification(text, level?)` waits for fresh command output;
-  `ShouldShowNotification`, `ShouldShowPrompt`, `ShouldHaveNoPrompts`,
-  `ShouldShowWidget`, and `ShouldNotShowWidget` assert browser-projected state.
+### Isolation and limits
 
-Inline Pi extension factories are explicit via `start({ extensions: [factory] })`.
-Each session independently loads them through the harness's real resource loader.
-The adapter binds the actual browser UI; confirmations are answered over the
-server protocol, not by the harness's mock UI. See
-`test/scenarios/extensions/confirmation.test.ts` and
-`test/infra/pi-chat/fixtures/confirmation-extension.ts`. This slice covers
-extension commands, not declarative web-extension actions or reload.
+[TestWorld](../../test/infra/pi-chat/test-world.ts) owns temporary project/history,
+per-session settings/resources/model scripts and cleanup, including in-flight
+creation. Opening persisted sessions is restricted to its session directory.
+Continuing a persisted project and runtime replacement explicitly throw as
+unsupported; do not interpret them as tested or fall back to personal providers.
+The non-rendered driver's server does not inject a private catalogue lister/store,
+so its default catalogue can read normal on-disk metadata. It is not the boundary
+for destructive archive/pin tests. Use the browser world's private catalogue for
+those operations.
 
-Feature drivers share a narrow internal context. The private client validates
-protocol schemas and uses the **production browser reducers** to reconstruct the
-conversation; assertions do not read the server runtime's message history.
-All waits are event-driven and bounded (default 5 seconds), with operation,
-predicate, state, close details, and recent messages in diagnostics. No sleeps or
-polling are used. Mocked responses pass through real Pi session events and the
-real application/server transport. Each session has independent settings,
-model-runtime services, history, and scripts within the world's temporary project.
-The server and world share idempotent disposal, including already-closed sessions
-and in-flight creation. The directory is removed at final cleanup. The current
-project catalogue service still reads the normal on-disk catalogue; test sessions
-are in-memory and never write to it. React rendering is not exercised here.
+## Real browser driver
 
-## Coverage and commands
+[PiChatBrowserDriver](../../test/infra/e2e/pi-chat-browser-driver.ts) drives the
+built frontend in Chromium against an ephemeral loopback server and real Pi
+sessions with scripted model responses. Its catalogue/history/archive metadata
+are test-owned. It composes feature drivers for Chat, Tabs, Home, Projects, Inbox,
+Settings, Focus, Prompts, Widgets, Theme, Skills and Extensions. Locators, retrying
+assertions, viewport and reload mechanics stay in these drivers.
+
+Browser scenarios import [coverage fixtures](../../test/infra/e2e/coverage/fixtures.ts)
+so optional coverage attaches before navigation and flushes before teardown.
+Browser-only resources such as fixture skills are installed per session through
+`Tabs.Create` options; response `readSkill` uses the actual read tool. New page
+navigation must checkpoint coverage; extra pages/popups are not collected by the
+current coverage collector. Do not infer popup coverage from a successful link
+opening assertion.
+
+## Existing executable contracts
+
+- [Prompt/reply](../../test/scenarios/chat/prompt-reply.test.ts),
+  [steering](../../test/scenarios/chat/steering.test.ts),
+  [active-turn reconnect](../../test/scenarios/browser/active-turn-reconnect.test.ts),
+  [takeover](../../test/scenarios/browser/takeover.test.ts) and
+  [persisted reopening](../../test/scenarios/tabs/persisted-open.test.ts).
+- [Project archive](../../test/e2e/project-archive.spec.ts),
+  [pinning](../../test/e2e/project-pin.spec.ts),
+  [responsive Projects](../../test/e2e/projects-sidebar.spec.ts),
+  [Inbox](../../test/e2e/session-inbox.spec.ts) and
+  [worktree labels](../../test/e2e/inbox-worktree-labels.spec.ts).
+- [Focus](../../test/e2e/composer-focus.spec.ts),
+  [endpoint recovery](../../test/e2e/server-endpoint.spec.ts),
+  [rich prompts](../../test/e2e/prompt-presentation.spec.ts),
+  [widgets](../../test/e2e/widgets.spec.ts), [themes](../../test/e2e/theme.spec.ts)
+  and [skills](../../test/e2e/skills.spec.ts).
+
+These links identify maintained contract locations, not a claim that every
+legacy requirement is covered or that the suites passed at this revision.
+Server/SDK internals and Swift compatibility tests belong to their repositories.
+
+## Setup and commands
+
+Follow [development setup](../development.md#local-workflow): install with
+lifecycle scripts disabled and explicitly compile the pinned source-only harness.
+Do not enable automatic dependency scripts just to build that Git dependency.
+The manifest/lockfile identify the harness revision; no local checkout is needed.
 
 ```sh
-npm ci
-npm test
 npm test -- test/scenarios
 npm test -- test/infra-tests
 npm test -- test/modules
-```
-
-The default suite includes prompt/reply, reconnect restoration, and repeated
-identical prompts before and after reconnect, creation from home, independent
-multi-tab transcripts, active/background tab closure, and reconnect/recreation
-from home, valid folder browsing/opening, invalid-folder recovery, controlled
-active-response abort without transcript corruption, and controller takeover with
-conversation restoration, extension confirmation/cancellation, pending-prompt
-reconnect, widget restoration, and per-tab extension isolation.
-Driver/client/world tests cover script validation,
-semantic diagnostics, bounded waits, server rejection, pending-wait cancellation,
-failed creation and retry, closed handles, isolated paths, concurrent creation
-guards, idempotent disposal, partial-startup cleanup, and cleanup during
-in-flight creation.
-
-Latest verification: 75 test files / 500 tests passed with `--maxWorkers=4`;
-build/typecheck passed with the root Pi SDK dependencies at 1.0.2.
-
-## Visible-browser project metadata coverage
-
-`PiChatBrowserDriver` in `test/infra/e2e/` runs Playwright against the built
-frontend and the real loopback backend, with harness-backed Pi sessions. Its
-catalogue, session-path validation and archive metadata are isolated inside the
-world's temporary directory; it never archives normal user sessions.
-
-`test/e2e/project-archive.spec.ts` creates two persisted conversations, archives
-the active one through the visible Projects panel, checks its active row is
-removed and its Restore row appears under Archived, and verifies that its tab
-closes without disturbing the other conversation. A browser reload must retain
-the archived state. Selectors and retrying assertions live in
-`BrowserProjectsDriver`; there are no fixed sleeps or mocked archive replies.
-
-`test/e2e/project-pin.spec.ts` pins and unpins the fixture project through that
-same panel, verifies the updated controls and preserved session row, and reloads
-after each mutation to confirm both states persist. Known projects reuse the
-catalogue scan for pin/unpin; pinning a previously unknown folder still triggers
-full discovery. Unit tests check that the fast path does not scan sessions or
-rerun Git, including linked-worktree pins and empty pin-only repositories.
-
-Run these scenarios with:
-
-```sh
 npm run build
 npx playwright test test/e2e/project-archive.spec.ts test/e2e/project-pin.spec.ts
 ```
 
-## Harness setup
-
-The dev dependency is pinned to the ManuelSelch harness fork at commit
-`7ade82c6c7de2ae85f69df1c442a515b63c6dadc`. `npm ci` installs it directly
-from GitHub; no local checkout or tarball is required. Git/network access and
-the fork's `prepare` install script are needed to build its exported JavaScript.
-Root Pi SDK dependencies are pinned to 1.0.2 in `package.json`/`package-lock.json`.
-
-`TestSession.prepare(...turns)` installs model playbooks without sending prompts.
-The drivers submit prompts through Pi Chat and assert response consumption.
-`PiRuntimeAdapter.fromRuntime(runtime)` attaches to the harness-initialized session
-without another extension startup event and owns runtime disposal. Each runtime
-uses its session's model runtime, settings, and resource loader.
-
-The standalone compatibility spike was removed because prompt/reply and reconnect
-are covered by the normal scenarios. Run `npm test -- test/scenarios` instead.
-
-## Next slice
-
-The core multi-session, project selection/error, extension confirmation UI,
-persisted-session reopening, and controlled active-turn reconnect slices are
-covered. Broader extension actions/reload remain. Continuing/reopening persisted sessions
-and replacing a runtime explicitly reject unsupported operations rather than
-falling back to production settings or providers. Folder workflows currently
-allow the world's isolated project only; arbitrary external folders are still
-rejected by the test factory.
-
-Next: broader extension actions/reload; see
-[REQUIREMENTS.md](REQUIREMENTS.md) for the broader plan.
+Browser tests require Chromium. Run shared-build-output workflows serially; see
+[coverage and CI](../development.md#e2e-coverage) and
+[focus assertion discipline](../../test/README.md#composer-focus-regressions).

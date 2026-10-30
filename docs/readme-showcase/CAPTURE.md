@@ -1,65 +1,76 @@
-# Capture the README showcase
+# README showcase assets
 
-The script builds Pi Chat, runs its real browser UI against isolated real Pi SDK sessions with scripted model responses, and assembles a **Product first** image. It does not use your existing Pi Chat server, personal sessions, extensions, account credentials, or a live model provider.
+[Capture script](../../scripts/capture-readme.ts) builds Pi Chat, serves the real
+frontend through an isolated browser driver with scripted Pi model responses,
+and assembles the Product first image. The script does not use the user's live
+Chat server, personal sessions, provider credentials or live model responses.
+Existing committed PNGs are presentation assets, not proof of current UI state.
 
-## Run
+## Current limitation
+
+Source inspection shows stale UI assumptions: the script expects Projects as a
+`dialog` at its desktop viewport and does not explicitly select tabs mode, while
+current desktop navigation is a sidebar and Inbox defaults on. Its light capture
+also assumes a browser color-scheme change controls appearance, which is not a
+runtime-theme guarantee. The complete capture has **not** been revalidated for
+this UI. Do not treat the command or retained screenshots as a current successful
+visual acceptance run. Correcting the capture workflow is a separately reviewed
+behavioral change, not part of documentation maintenance.
+
+## Invocation and isolation
+
+First follow [development setup](../development.md#local-workflow), including
+explicit compilation of the source-only harness. Chromium is required:
 
 ```sh
-npm ci
 npx playwright install chromium
 npm run capture:readme
-```
-
-Optional arguments:
-
-```sh
-# Use an existing production build during capture-script iteration.
+# Reuse an already-built frontend:
 npm run capture:readme -- --skip-build
-
-# Write to a different directory (relative paths resolve from the repository root).
+# Write to a separate directory:
 npm run capture:readme -- --output /tmp/pi-chat-showcase
 ```
 
-The build is required because the browser driver serves the production UI from `dist/web`. The script reuses the existing browser driver and test harness, so development dependencies must be installed. It does not require a separately running dev server or image-processing package.
+These are the script's supported arguments, not a claim that its stale selectors
+currently succeed. The script builds unless `--skip-build` is supplied; the
+driver serves `dist/web`. Run it serially with other workflows that rebuild the
+same output. Capture starts a headless browser and creates screenshots; obtain
+permission before agent-owned visual-review automation.
+
+The script creates a private agent directory before SDK/driver imports, fixture
+projects and an ephemeral loopback backend. Cleanup attempts driver, browser and
+agent-directory disposal even after failure. Only model replies/sample skill are
+fictional; tool execution, transport and rendering use real application code.
+Folder paths are hidden using the application's preference rather than editing
+image pixels or production styles.
 
 ## Outputs
 
 The default output directory is `docs/images/showcase/`:
 
-| File | Contents |
-| --- | --- |
-| `workspace.png` | Populated dark-mode chat, three named session tabs, a real completed skill-read tool card, highlighted TypeScript, and a Markdown table |
-| `projects.png` | Actual Projects drawer with expanded, isolated demo projects and sessions |
-| `quick-switcher.png` | Actual Quick Switcher modal with search, scope controls, three demo sessions, and keyboard hints |
-| `light.png` | The same populated session in the application's light theme |
-| `pi-chat-showcase.png` | Assembled Product first layout: bold Workspace heading, large hero, three supporting cards with names only |
-| `preview.html` | Self-contained image composition for local inspection; ignored by Git |
+| File | Intended content |
+|---|---|
+| `workspace.png` | Populated chat, completed skill-read card, code and a Markdown table |
+| `projects.png` | Project navigation with isolated demo projects and sessions |
+| `quick-switcher.png` | Session-scope results with keyboard controls |
+| `light.png` | Light appearance of the populated workspace |
+| `pi-chat-showcase.png` | Combined Product first composition |
 | `manifest.json` | Capture settings and output inventory |
+| `preview.html` | Self-contained composition for local inspection; ignored by Git |
 
-The combined image is 2400 pixels wide (1200 CSS pixels at 2× device scale). Individual captures remain available for full-size inspection or linking. Re-running overwrites these named outputs, not the existing legacy screenshots. No README edit is performed automatically.
+The combined image is 2400 pixels wide (1200 CSS pixels at 2× scale). The root
+README uses the [combined asset](../images/showcase/pi-chat-showcase.png).
+Re-running overwrites the named outputs, not legacy standalone PNGs, and does not
+automatically edit README. Browser/font/platform differences can change pixels;
+there is no byte-identical cross-platform image guarantee.
 
-Suggested integration after reviewing the generated image:
+## Checks and boundaries
 
-```markdown
-![Pi Chat workspace, projects, Quick Switcher, and light mode](./docs/images/showcase/pi-chat-showcase.png)
-```
-
-## Capture behavior and limits
-
-- The responses and sample skill are fictional demo data; only the model response boundary is scripted. Tool execution, session naming, transport, panels, Markdown, syntax highlighting, theme behavior, and rendering use the real application and Pi runtime.
-- A separate agent directory, temporary fixture projects, and an ephemeral loopback HTTP port keep the run isolated. The browser, server, and temporary directories are cleaned up on completion or ordinary errors.
-- The script uses accessible UI interactions and waits for meaningful rendered state, not arbitrary sleeps. Page JavaScript errors fail the run.
-- Folder paths are hidden through the application's own Settings switch. Capture fixture folders have readable names (`pi-chat-demo` and `retry-review`) without changing production behavior.
-- PNG captures are framed/cropped only at assembly time. The script does not alter the real app DOM, CSS, transcript content, or controls to make them resemble the illustrative mockup.
-- The real project navigation is a drawer, not the mockup's invented permanent sidebar. The Quick Switcher capture uses its Sessions scope to show all three demo sessions without temporary folder paths; assembly fits the entire modal without cropping. The tool card is shown in its native collapsed state so the prompt and answer fit in the hero.
-- Browser/font/platform differences can change rasterization; the script guarantees curated reproducible scenarios, not byte-identical PNGs across machines.
-
-## Verification
-
-```sh
-npm test
-npx tsc --noEmit
-npm run capture:readme
-```
-
-The full capture is also an integration smoke check: it asserts the completed tool, rich answer, populated Projects drawer, Quick Switcher session results, light theme, and absence of browser JavaScript errors before assembling the image. Unit tests cover the four-image ordering, approved labels, embedded/offline composition, input validation, and cleanup of named fixture folders.
+The script asserts intended tool/content/navigation states, absence of page
+JavaScript errors and non-clipped results before composing images. Those checks
+must actually complete before a capture can be called verified.
+[Composition tests](../../test/infra-tests/readme-showcase.test.ts) cover image
+ordering, labels, offline assembly and input validation;
+[fixture tests](../../test/infra-tests/showcase-fixtures.test.ts) cover cleanup.
+Neither substitutes for a successful current browser capture or user visual
+acceptance.

@@ -17,7 +17,24 @@ to start a session without previous Pi history. Tabs keep conversations separate
 
 Type `/archive` to archive the current idle session and close its tab without
 deleting its transcript. Archived sessions remain available under **Archived**
-in Projects, where they can be restored. There is no delete-session command.
+in Projects, where they can be restored. There is no delete-session command or
+custom rename action; titles come from Pi.
+
+Projects keeps Quick Chats separate from repository groups. Pinned projects
+come before recent projects, whose order uses latest unarchived conversation
+activity across their checkouts. Archived activity does not promote a project.
+Other projects contains visible projects without unarchived conversations;
+removing project-history membership there does not delete files.
+
+Related Git checkouts share a repository group while retaining checkout-specific
+sessions/actions. Registered worktrees can appear before they have conversations.
+Unavailable Git/path metadata degrades to the available project information;
+opening a group alone does not start a session. Folder-path visibility is a
+browser preference, not a change to checkout identity.
+
+Desktop navigation stays open alongside the conversation; compact desktop
+layouts reserve sidebar space, while phones use a modal drawer. Selecting or
+creating a session keeps navigation open. Real dialogs still take focus.
 
 ### Session inbox
 
@@ -59,6 +76,30 @@ or dismiss a prompt.
   membership. Use Quick Switcher for projects and history, or disable Inbox
   to use Projects browsing and its Archived sections.
 
+## Quick Switcher and local actions
+
+Open Quick Switcher from Home or a conversation. Search names, paths, project
+context and branches; results distinguish folders, worktrees, sessions and
+available local actions. Empty unscoped search shows recent sessions.
+
+| Prefix | Restricts results to |
+| --- | --- |
+| `#` | Folders/projects |
+| `%` | Worktrees |
+| `@` | Sessions |
+| `/` | Local actions |
+
+Click a scope or cycle with Tab/Shift+Tab, use arrows to select and Enter to
+activate; Escape dismisses. Activating a session resumes it, and a folder or
+worktree follows the existing project-opening behavior. A no-match query can be
+edited without closing the switcher.
+
+Composer and Quick Switcher share New session, Close tab/Move to Later, Archive,
+Open folder and Settings actions. Availability follows the current session,
+connection and navigation mode. Restart is not a session-menu action; use
+Settings or `/pi-chat restart`. Quick Switcher activates local actions directly,
+not arbitrary extension commands or argument completion.
+
 ## Skills
 
 Invoke a loaded skill with `/skill:name [task]`. Skill instructions appear as a
@@ -71,7 +112,9 @@ menu discovery, not manually typed invocations.
 
 Type `!command` to run bash in the session's server-side working directory. Its
 output is included in the next model prompt. Use `!!command` to show the result
-without including it in model context.
+without including it in model context. Neither form starts an assistant reply;
+`!!` is context exclusion, not secrecy or a sandbox. Commands run with the
+server user's permissions, not on the browser device.
 
 Bash output is displayed after the command completes, not streamed. Bash-only
 sessions are not guaranteed to survive a restart before an assistant response
@@ -104,6 +147,43 @@ suggestion replaces that prefix with its `value`, preserving text after the
 caret. Pi owns filtering and ordering. No Pi Chat-specific extension API is
 needed. Native command dialogs, filesystem completion, and general
 `addAutocompleteProvider()` hooks are not part of this support.
+
+## Extension prompts and widgets
+
+Extension questions are server-owned interactions, not chat messages. Rich
+questions can show Markdown, code and math. Choice questions with **Continue**
+wait for explicit submission; ordinary literal selection menus remain immediate.
+
+Minimize a question to read the conversation, then use Reopen to continue.
+Selections/reasoning survive switching sessions and reconnecting within this
+page, but not browser refresh. Minimize does not submit, cancel or pause expiry.
+While disconnected or superseded, questions can be reopened for reading but not
+answered. Failed submissions retain the draft for retry. Escape on a minimized
+prompt does not answer/cancel it; explicit Stop cancels pending work.
+
+Widgets show ANSI-styled plain text with independent collapse controls, not
+Markdown. HTTP(S) OSC 8 hyperlinks supplied by extensions open in a new tab;
+Markdown link syntax and bare URLs remain literal. Above-composer widgets form
+a responsive bottom-aligned grid; docked and below-composer widgets stay stacked.
+Colors follow the runtime's Pi output, not browser-side Markdown interpretation.
+
+## Opening local file links
+
+Activating a local Markdown file link opens it in the default application on the
+**server machine**, currently supported on macOS. A remote browser does not open
+its own local copy. HTTP(S)/mailto links retain normal browser behavior.
+
+Relative paths resolve against the link's session project. Absolute paths,
+parent paths and local `file:` URLs are supported; readable files outside the
+project are allowed. Nonlocal file-URL hosts, unsafe schemes, directories and
+unsupported platforms produce errors. This action does not send a model prompt,
+run bash or add a history entry, and can be used while a model turn runs.
+
+Failures appear as dismissible temporary file/session notices outside chat
+history. Success means the OS accepted the request, not that another application
+displayed the file. Requests are not replayed after reconnect; stopping a browser
+wait cannot undo an already accepted OS open. This is not an inline preview,
+upload or download endpoint.
 
 ## File content previews
 
