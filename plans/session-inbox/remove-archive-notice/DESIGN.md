@@ -6,7 +6,7 @@ Remove the persistent “Session archived. Undo archive” notice and its page-l
 ## Components
 | Package/module | Component | Change | Responsibility |
 |---|---|---|---|
-| Inbox application | [useInboxLifecycle](../../../../src/web/sessions/inbox/app/use-inbox-lifecycle.ts) | Changed | Remove Undo record/operation and its Undo-only catalogue barrier; retain archive confirmation, Later cleanup and failure handling |
+| Inbox application | [useInboxLifecycle](../../../src/web/sessions/inbox/app/use-inbox-lifecycle.ts) | Changed | Remove Undo record/operation and its Undo-only catalogue barrier; retain archive confirmation, Later cleanup and failure handling |
 | Inbox presentation | InboxNotice / InboxNoticeContainer | Changed | Render dismissible errors only; remove success notice and Undo props |
 | Tests / documentation | session-inbox browser scenarios, lifecycle tests, usage and architecture | Changed | Replace Undo-specific expectations with notice-free archive outcomes; retain unrelated regressions |
 
@@ -30,7 +30,7 @@ Remove the persistent “Session archived. Undo archive” notice and its page-l
 - Preserve the parent approved design; do not rewrite it to conceal the changed contract.
 
 ## Verification
-- Prepared executable scenarios in [session-inbox.spec.ts](../../../../test/e2e/session-inbox.spec.ts) cover current, Later and unloaded Ready archive without notice/Undo, preserving membership removal and Home behavior.
+- Prepared executable scenarios in [session-inbox.spec.ts](../../../test/e2e/session-inbox.spec.ts) cover current, Later and unloaded Ready archive without notice/Undo, preserving membership removal and Home behavior.
 - Existing driver archive methods currently wait for Undo to appear. After approval replace that completion signal with disappearance of the archived row/current header control; keep the new no-notice assertion strict.
 - Replace Undo-only lifecycle tests with archive success/failure checks; add error-only notice component coverage. Run focused tests, browser regressions and typecheck/build.
 

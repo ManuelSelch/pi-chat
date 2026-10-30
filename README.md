@@ -31,4 +31,6 @@ or `/pi-chat` to check its status.
 - [Configuration](docs/configuration.md): server settings, environment variables, and troubleshooting.
 - [Development](docs/development.md): local setup, testing, source organization, and screenshot capture.
 - [Architecture](docs/architecture.md): components and data flow.
+- [Protocol integration](docs/protocol.md): SDK ownership, operation outcomes, and recovery.
 - [Extension API](docs/extension-api.md): experimental web UI extension integration.
+- [All system guides](docs/README.md): drivers, dependency provenance, themes, and capture limitations.

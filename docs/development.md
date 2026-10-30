@@ -19,8 +19,17 @@ npm run build
 npm start
 ```
 
-Generated application `dist/` artifacts are local and are not committed. The server and TypeScript SDK are independent, precompiled packages; no sibling checkout, server source tree or package workspace is required. The SDK is registry-pinned to `0.1.0` and the server to `0.1.1` in package.json and package-lock.json. The published server replaces the temporary colored-widget tarball; no npm artifacts or Swift SDK are vendored, and Chat does not run Swift tests. Run `npm run verify:dependencies` to check the installed public server API and protocol version. `build:host` compiles only Chat’s process adapter to `dist/host/index.js`; `npm start` and the extension launcher use that entry. See
-[Configuration](configuration.md) for server environment variables.
+Generated application `dist/` artifacts are local and are not committed. The
+server and TypeScript SDK are independent, precompiled packages; no sibling
+checkout, server source tree or package workspace is required. This checkout
+selects committed prompt-capable SDK 0.1.1 and server 0.1.2 archives in
+`package.json`/`package-lock.json`, not registry resolution. See
+[dependency provenance](../vendor/README.md) for archive/source identity and
+integrity ownership. Chat does not vendor a Swift SDK or run Swift tests.
+`npm run verify:dependencies` checks the installed public server API and protocol
+version, not every archive byte or behavior. `build:host` compiles only Chat's
+process adapter to `dist/host/index.js`; `npm start` and the extension launcher
+use that entry. See [Configuration](configuration.md) for environment variables.
 
 ## Verification
 
@@ -51,10 +60,13 @@ Chromium and Chat-owned worker V8 coverage, and generate
 Regenerate the report from retained raw data with `npm run coverage:e2e:report`.
 
 Ordinary `test:e2e` runs do not collect coverage. The coverage runner clears only
-`coverage-e2e/`; Vitest's `coverage/` is independent. The independent server and both
-SDKs are outside the measured scope (`sonar.sources=src`). CI waits for unit and
-E2E success before importing both LCOV reports into Sonar. Vitest supplies
-unexecuted root source files so they remain uncovered in combined analysis.
+`coverage-e2e/`; Vitest's `coverage/` is independent. Vitest includes `src/` and
+the E2E converter accepts Chat's `src/web/`, `src/host/` and `src/shared/`;
+independent server/SDK coverage belongs to those repositories. Sonar analysis
+uses the exclusions in `sonar-project.properties`, not an explicit source-root
+setting. CI waits for unit and E2E success before importing both LCOV reports.
+Vitest supplies unexecuted source files so they remain uncovered in combined
+analysis.
 
 Coverage uses the exact Playwright transform cache and Node source maps for the
 Chat-owned worker code. Server internals are covered by the independent server CI, not copied into Chat coverage. Browser execution is mandatory; external server execution does not satisfy Chat coverage. Upgrading Playwright requires rerunning the reload regression
@@ -67,6 +79,37 @@ Server memory and session-open profiling diagnostics now live in the independent
 
 To regenerate the README showcase, run `npm run capture:readme`. See the
 [capture guide](readme-showcase/CAPTURE.md) for isolation, output files, and options.
+Run suites/capture serially when they share `dist/`: production lifecycle smoke
+can rebuild and replace assets while another browser run is serving them.
+
+### CI and static analysis
+
+[Tests workflow](../.github/workflows/tests.yml) builds on Node 24, runs isolated
+production lifecycle smoke and uploads assets. Unit tests produce Vitest LCOV;
+E2E depends on the build, downloads those assets and produces browser/worker
+LCOV. Only E2E runs in the official Playwright container; keep its image version
+aligned with the lockfile. The container avoids per-run browser/system-library
+installation; Node setup and Bash remain explicit.
+
+Sonar waits for unit/E2E, imports both reports and waits for the quality gate.
+It requires `SONAR_PROJECT_KEY`, `SONAR_ORGANIZATION` and `SONAR_TOKEN`; fork PRs
+without access to the token are not scanned. Mockups are excluded from analysis;
+coverage exclusions are separate. Source fixes or a local green suite do not
+prove closure of an issue in a fresh remote analysis.
+
+## Documentation and scenario workflow
+
+Executable scenarios permanently describe approved behavior. Prepare and approve
+changed outcomes before implementation; keep selectors, waits and transport
+mechanics inside drivers. Pure documentation cleanup does not require inventing
+new behavioral scenarios or weakening existing ones.
+
+Maintain implemented responsibilities, state lifetimes, contracts and operational
+guidance under `docs/` alongside code. Temporary proposals/supporting designs
+belong under `plans/<feature>/`; they are not current-system references. Preserve
+approved baselines through review and explicit acceptance, then remove temporary
+artifacts at authorized closeout. Link relevant scenario files rather than
+maintaining a second Markdown requirements catalogue.
 
 ## Server boundary
 
@@ -74,7 +117,13 @@ To regenerate the README showcase, run `npm run capture:readme`. See the
 
 Consumers use only public root, `/extensions`, `/testing` and `/testing/loopback` APIs. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
 
-Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests and production lifecycle smoke. Fakes come from compiled server testing exports. Plain-Node loopback package checks retain workspace isolation and cleanup-file safety coverage without a Swift harness; server internals and Swift compatibility suites belong to their respective package repositories. See the [historical S4 handover](pi-server-extraction/S4-CUTOVER.md) for extraction pins and rollback, and [Swift test ownership](swift-test-ownership/REQUIREMENTS.md) for the current boundary.
+Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests
+and production lifecycle smoke. Fakes come from compiled server testing exports.
+Plain-Node loopback package checks retain workspace isolation and cleanup-file
+safety coverage without a Swift harness; server internals and Swift compatibility
+suites belong to their respective package repositories. See the
+[driver guide](integration-tests/DRIVERS.md), [testing guide](../test/README.md)
+and [package ownership](architecture.md#package-boundaries).
 
 ## Frontend organization
 
