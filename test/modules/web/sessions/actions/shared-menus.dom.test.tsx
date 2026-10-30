@@ -14,6 +14,7 @@ import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/Q
 const chat = vi.hoisted(() => ({
   promptPresentation: { minimized: false, prompt: undefined },
   app: {} as AppState, state: {} as ChatState,
+  inbox: { later: [] as { path: string }[] },
   newSession: vi.fn(), closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
   openSession: vi.fn(), openProject: vi.fn(), prompt: vi.fn(), dismissError: vi.fn(),
   completeCommandArguments: vi.fn(async () => []),
@@ -27,6 +28,7 @@ beforeEach(() => {
     appFeatures: [{ id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } }],
   };
   chat.state = { ...initialChatState, status: "idle", projectPath: "/repo", sessionPath: "/sessions/one" };
+  chat.inbox = { later: [] };
   chat.archiveSession.mockResolvedValue(undefined);
 });
 afterEach(cleanup);

@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { buildSessionActions } from "../../../../../src/web/sessions/actions/session-actions.js";
 import { QuickOpen } from "../../../../../src/web/sessions/quick-open/QuickOpen.js";
 import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
+import type { Tab } from "../../../../../src/web/app/state/view-types.js";
 
 afterEach(cleanup);
 const catalogue: ProjectCatalogue = { projects: [
@@ -15,18 +16,32 @@ const catalogue: ProjectCatalogue = { projects: [
   { path: "/detached", displayPath: "~/trees/review", name: "review", exists: true, modified: 0, sessionCount: 0, sessions: [],
     repositoryName: "pi-chat", worktree: { detached: true, primary: false, commit: "abcdef123456" } },
 ] };
-function setup(data = catalogue) {
+function setup(data = catalogue, tabs: Tab[] = [], laterPaths?: ReadonlySet<string>) {
   const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
   const actions = buildSessionActions({ sessionId: "", connected: true, busy: false, navigation: "tabs" }, {
     newSession: handlers.onNewSession, closeTab: vi.fn(), archiveSession: vi.fn(),
     openFolder: handlers.onOpenFolder, openSettings: handlers.onOpenSettings,
   });
-  render(<MantineProvider><QuickOpen opened catalogue={data} tabs={[]} actions={actions} {...handlers} /></MantineProvider>);
+  render(<MantineProvider><QuickOpen opened catalogue={data} tabs={tabs} actions={actions} laterPaths={laterPaths} {...handlers} /></MantineProvider>);
   return handlers;
 }
+function tab(sessionPath: string, status: Tab["status"]): Tab {
+  return { sessionId: sessionPath, sessionPath, title: sessionPath, projectPath: "/repo", projectName: "repo", status };
+}
+it("shows the reused status indicator per session, including the Later snooze icon", () => {
+  const data: ProjectCatalogue = { projects: [{ path: "/repo", displayPath: "~/repo", name: "repo", exists: true, modified: 1, sessionCount: 3, sessions: [
+    { path: "/sessions/run", id: "run", title: "Running", nameSource: "manual", modified: 3, created: 0, messageCount: 1 },
+    { path: "/sessions/block", id: "block", title: "Blocked", nameSource: "manual", modified: 2, created: 0, messageCount: 1 },
+    { path: "/sessions/later", id: "later", title: "Parked", nameSource: "manual", modified: 1, created: 0, messageCount: 1 },
+  ] }] };
+  setup(data, [tab("/sessions/run", "running"), tab("/sessions/block", "blocked")], new Set(["/sessions/later"]));
+  expect(within(screen.getByRole("option", { name: /Session: Running/ })).getByRole("img", { name: "Working" })).toBeTruthy();
+  expect(within(screen.getByRole("option", { name: /Session: Blocked/ })).getByRole("img", { name: "Needs you" })).toBeTruthy();
+  expect(screen.getByRole("option", { name: /Session: Parked/ }).querySelector(".tabler-icon-clock-pause")).not.toBeNull();
+});
 it("identifies each type by icon and accessible name without visible right-hand labels", () => {
   setup();
-  expect(screen.getByRole("option", { name: /Session: Improve search.*pi-chat.*feat\/palette/ }).querySelector(".tabler-icon-message")).not.toBeNull();
+  expect(within(screen.getByRole("option", { name: /Session: Improve search.*pi-chat.*feat\/palette/ })).getByRole("img", { name: "Ready" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "# Folders" }));
   expect(screen.getByRole("option", { name: /Folder action: pi-chat.*New session.*~\/repo/ }).querySelector(".tabler-icon-folder-plus")).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "% Worktrees" }));

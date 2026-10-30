@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
+import type { Tab, TabStatus } from "../../../../../src/web/app/state/view-types.js";
 import { buildQuickOpenItems, parseQuickOpenQuery, rankQuickOpen } from "../../../../../src/web/sessions/quick-open/quick-open.js";
 
 const HOUR = 3_600_000;
+
+function tab(sessionPath: string, status: TabStatus = "idle"): Tab {
+  return { sessionId: sessionPath, sessionPath, title: sessionPath, projectPath: "/work", projectName: "work", status };
+}
 
 const catalogue: ProjectCatalogue = {
   projects: [
@@ -32,7 +37,7 @@ const catalogue: ProjectCatalogue = {
   ],
 };
 
-const items = buildQuickOpenItems(catalogue, ["/s/plugin.jsonl"]);
+const items = buildQuickOpenItems(catalogue, [tab("/s/plugin.jsonl")]);
 
 describe("quick open", () => {
   it("flattens sessions and projects, marking the ones already in a tab", () => {
@@ -40,6 +45,14 @@ describe("quick open", () => {
     expect(items.filter((item) => item.kind === "project")).toHaveLength(2);
     expect(items.find((item) => item.path === "/s/plugin.jsonl")?.isOpen).toBe(true);
     expect(items.find((item) => item.path === "/s/obsidian.jsonl")?.isOpen).toBe(false);
+  });
+
+  it("derives a session status indicator from live tabs and Later entries", () => {
+    const statuses = buildQuickOpenItems(catalogue, [tab("/s/plugin.jsonl", "running"), tab("/s/old.jsonl", "blocked")], [], new Set(["/s/obsidian.jsonl"]));
+    expect(statuses.find((item) => item.path === "/s/plugin.jsonl")?.status).toBe("running");
+    expect(statuses.find((item) => item.path === "/s/old.jsonl")?.status).toBe("blocked");
+    expect(statuses.find((item) => item.path === "/s/obsidian.jsonl")?.status).toBe("later");
+    expect(items.find((item) => item.path === "/s/obsidian.jsonl")?.status).toBe("idle");
   });
 
   it("shows the most recent sessions before anything is typed", () => {

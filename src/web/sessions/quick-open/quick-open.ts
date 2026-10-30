@@ -1,4 +1,4 @@
-import type { ProjectCatalogue } from "../../app/state/view-types.js";
+import type { ProjectCatalogue, Tab, TabStatus } from "../../app/state/view-types.js";
 
 import type { SessionAction } from "../actions/session-actions.js";
 
@@ -19,6 +19,8 @@ export interface QuickOpenItem {
   detached?: boolean;
   commit?: string;
   messageCount?: number;
+  /** Session status indicator; sessions without a live tab are ready. */
+  status?: TabStatus | "later";
   /** A session already held by a tab is focused rather than opened twice. */
   isOpen?: boolean;
   latestSessionPath?: string;
@@ -27,7 +29,9 @@ export interface QuickOpenItem {
 }
 
 /** Sessions and checkouts share catalogue metadata; primary checkouts remain projects. */
-export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionPaths: readonly string[], actions: readonly SessionAction[] = []): QuickOpenItem[] {
+export function buildQuickOpenItems(catalogue: ProjectCatalogue, tabs: readonly Tab[], actions: readonly SessionAction[] = [], laterPaths: ReadonlySet<string> = new Set()): QuickOpenItem[] {
+  const openSessionPaths = new Set(tabs.flatMap(tab => tab.sessionPath ? [tab.sessionPath] : []));
+  const statusByPath = new Map(tabs.flatMap(tab => tab.sessionPath ? [[tab.sessionPath, tab.status] as const] : []));
   const sessions: QuickOpenItem[] = [];
   const projects: QuickOpenItem[] = [];
 
@@ -60,7 +64,8 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, openSessionPath
         project: project.name,
         modified: session.modified,
         messageCount: session.messageCount,
-        isOpen: openSessionPaths.includes(session.path),
+        status: laterPaths.has(session.path) ? "later" : statusByPath.get(session.path) ?? "idle",
+        isOpen: openSessionPaths.has(session.path),
       });
     }
   }

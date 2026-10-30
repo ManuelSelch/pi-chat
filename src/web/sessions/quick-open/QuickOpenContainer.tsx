@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useHotkeys } from "@mantine/hooks";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
@@ -5,10 +6,11 @@ import { useSessionActions } from "../actions/SessionActionsProvider.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {
-  const { app, openSession, openProject, newSession } = useAppController();
+  const { app, openSession, openProject, newSession, inbox } = useAppController();
   const { actions } = useSessionActions();
   const overlays = useOverlays();
   const opened = overlays.state.quickOpen;
+  const laterPaths = useMemo(() => new Set(inbox.later.map(row => row.path)), [inbox.later]);
 
   useHotkeys(
     [
@@ -29,6 +31,7 @@ export function QuickOpenContainer() {
         onOpenProject={openProject}
         onNewSession={(path) => { void newSession(path); }}
         actions={actions}
+        laterPaths={laterPaths}
       />
     </>
   );
