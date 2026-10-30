@@ -1,7 +1,7 @@
 # Pending prompt readability mockup
 
 ## Scope
-Revision 4; review status: in review. Approval: not yet obtained.
+Revision 4; review status: approved. User approval: “okay the mockup looks good. Next create the design doc which explains how to implement this, and how pi-chat and the pi-sdk protocol api has to change”. Approval applies to the visual mockup, not to the technical design or production implementation.
 Isolated Pi Chat mockup for existing select/editor prompts: minimize and reopen without cancellation, plus Markdown question content. No production modifications or backend integration.
 
 ## Layout and interaction
