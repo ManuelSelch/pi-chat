@@ -33,7 +33,7 @@
 | [docs/mcp-runtime/DESIGN.md](../../docs/mcp-runtime/DESIGN.md) | 2382 | 34 | 1 |
 | [docs/npm-dependencies/DESIGN.md](../../docs/npm-dependencies/DESIGN.md) | 2363 | 22 | 0 |
 | [docs/npm-dependencies/VERIFICATION.md](../../docs/npm-dependencies/VERIFICATION.md) | 1598 | 12 | 0 |
-| [docs/pi-chat-classic-theme/DESIGN.md](../../docs/pi-chat-classic-theme/DESIGN.md) | 2826 | 33 | 0 |
+| `docs/pi-chat-classic-theme/DESIGN.md` (retired; [current guide](../../themes/README.md)) | 2826 | 33 | 0 |
 | [docs/pi-chat-commands/DESIGN.md](../../docs/pi-chat-commands/DESIGN.md) | 4244 | 45 | 0 |
 | [docs/pi-chat-commands/REQUIREMENTS.md](../../docs/pi-chat-commands/REQUIREMENTS.md) | 2027 | 25 | 0 |
 | [docs/pi-server-extraction/BOUNDARIES.md](../../docs/pi-server-extraction/BOUNDARIES.md) | 18071 | 105 | 2 |
@@ -227,7 +227,8 @@
 
 ### docs/pi-chat-classic-theme/DESIGN.md
 
-- None found by this scan.
+- Retired in the Classic Theme migration; current guidance is in the [themes guide](../../themes/README.md), linked from [configuration](../../docs/configuration.md#pi-themes).
+- No incoming references found at the original inventory baseline.
 
 ### docs/pi-chat-commands/DESIGN.md
 

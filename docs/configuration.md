@@ -88,6 +88,10 @@ Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,
 status colors, messages and diff colors. Extension widgets use the same runtime's
 Pi colors; literal RGB and already-rendered ANSI strings are preserved.
 
+For the original Pi Chat palette, use the bundled [Classic light and dark
+themes](../themes/README.md). That guide covers installation, terminal appearance
+pairs and the limits of matching the original browser colors.
+
 - Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
   project theme resource allowed by Pi's existing trust/resource rules).
   Start from a valid Pi theme, not a partial Mantine palette.
