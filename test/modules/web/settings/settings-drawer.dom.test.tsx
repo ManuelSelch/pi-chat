@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { MantineProvider } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialChatState } from "../../../../src/web/app/state/chat-state.js";
 import { SettingsDrawer } from "../../../../src/web/settings/SettingsDrawer.js";
@@ -48,6 +48,21 @@ describe("SettingsDrawer extension section", () => {
     expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
     expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
     expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
+  });
+
+  it("groups all four switches under Feature Toggles and keeps Transcript separate", () => {
+    renderDrawer(initialChatState.extensions);
+    const group = screen.getByRole("group", { name: "Feature Toggles" });
+
+    expect(within(group).getAllByRole("switch")).toHaveLength(4);
+    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions"]) {
+      expect(within(group).getByRole("switch", { name })).toBeTruthy();
+    }
+    for (const name of ["Sessions", "Sounds", "Projects"]) {
+      expect(screen.queryByText(name, { exact: true })).toBeNull();
+    }
+    expect(screen.getByText("Transcript", { exact: true })).toBeTruthy();
+    expect(within(group).queryByRole("radiogroup", { name: "Transcript density" })).toBeNull();
   });
 
   it("shows the enabled archive visibility switch and dispatches changes", () => {

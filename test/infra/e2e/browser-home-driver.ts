@@ -4,10 +4,10 @@ export class BrowserHomeDriver {
   constructor(private readonly page: Page) {}
 
   async ShouldBeVisible(): Promise<void> {
-    await expect(this.page.getByRole("button", { name: "New session" })).toBeVisible();
+    await expect(this.page.getByRole("main").getByRole("button", { name: "New session", exact: true })).toBeVisible();
   }
 
   async NewSession(): Promise<void> {
-    await this.page.getByRole("button", { name: "New session" }).click();
+    await this.page.getByRole("main").getByRole("button", { name: "New session", exact: true }).click();
   }
 }

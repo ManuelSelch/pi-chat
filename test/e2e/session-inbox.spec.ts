@@ -6,7 +6,7 @@ let app: PiChatBrowserDriver;
 let prompts: PromptExtensionFixture;
 test.beforeEach(async ({ page }) => {
   prompts = new PromptExtensionFixture();
-  app = await PiChatBrowserDriver.start(page, { extensions: [prompts.extension], projectName: "a-very-long-checkout-name-that-must-truncate-before-controls", projectBranch: "fix/a-very-long-branch-name-that-must-truncate-before-controls" });
+  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [prompts.extension], projectName: "a-very-long-checkout-name-that-must-truncate-before-controls", projectBranch: "fix/a-very-long-branch-name-that-must-truncate-before-controls" });
   await app.Browser.SetViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });

@@ -5,7 +5,7 @@ import { PromptExtensionFixture } from "../infra/pi-chat/fixtures/prompt-extensi
 for (const width of [1280, 390]) {
   test(`rich prompts preserve evidence while reading and switching tabs (${width}px)`, async ({ page }) => {
     const fixture = new PromptExtensionFixture();
-    const app = await PiChatBrowserDriver.start(page, { extensions: [fixture.extension] });
+    const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [fixture.extension] });
     try {
       await app.Browser.SetViewport(width);
       const other = await app.Tabs.Create({ responses: [] });
@@ -46,7 +46,7 @@ for (const width of [1280, 390]) {
 
 test("explicit Stop releases a minimized native prompt without submitting evidence", async ({ page }) => {
   const fixture = new PromptExtensionFixture();
-  const app = await PiChatBrowserDriver.start(page, { extensions: [fixture.extension] });
+  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [fixture.extension] });
   try {
     await app.Tabs.Create({ responses: [] });
     await app.Chat.SendPrompt("/prompt-checks ");

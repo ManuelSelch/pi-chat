@@ -62,7 +62,7 @@ export class PiChatBrowserDriver {
     this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
@@ -103,6 +103,11 @@ export class PiChatBrowserDriver {
         server = createServer();
         await listen(port);
       });
+      if (options.inboxEnabled !== undefined) {
+        await page.addInitScript((enabled: boolean) => {
+          if (localStorage.getItem("pi-chat:session-inbox") === null) localStorage.setItem("pi-chat:session-inbox", JSON.stringify(enabled));
+        }, options.inboxEnabled);
+      }
       if (options.probeThemeReconnect) await driver.Theme.prepareReconnectProbe();
       await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
       await driver.Home.ShouldBeVisible();

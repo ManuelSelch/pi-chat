@@ -78,7 +78,12 @@ flowchart TD
 
 ### Session navigation
 
-The optional Inbox combines saved, unarchived catalogue history with SDK runtime
+The Inbox is enabled by default through the browser-local `pi-chat:session-inbox`
+preference in `usePiChat`; explicitly saved opt-outs retain tabs/projects navigation.
+SettingsDrawer groups the four existing boolean switches under Feature Toggles;
+preference ownership and persistence are unchanged.
+
+The Inbox combines saved, unarchived catalogue history with SDK runtime
 inventory, deduplicated by session path. Needs you/Working use live blocked/running
 status; Ready includes all remaining idle conversations except browser-local
 Later membership. Selecting unloaded history opens its path; loaded rows focus

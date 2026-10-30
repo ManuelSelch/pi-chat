@@ -74,7 +74,7 @@ export function usePiChat() {
   // User-visible focus remains application-owned; the SDK always gets an ID.
   const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
-  const [inboxEnabled, setInboxEnabled] = useLocalStorage({ key: "pi-chat:session-inbox", defaultValue: false, getInitialValueInEffect: false });
+  const [inboxEnabled, setInboxEnabled] = useLocalStorage({ key: "pi-chat:session-inbox", defaultValue: true, getInitialValueInEffect: false });
   const inbox = useInboxLifecycle(app, serverEndpoint.endpoint, {
     close: id => request(client => client.closeSession(id)),
     open: path => request(client => client.openSession(path)),

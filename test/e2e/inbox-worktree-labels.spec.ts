@@ -5,7 +5,7 @@ let app: PiChatBrowserDriver;
 const branch = "feature/csmm-6-setup-shadcn";
 const title = "Set up shadcn components";
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { projectName: "worktree-labels", projectBranch: branch, linkedWorktree: true });
+  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, projectName: "worktree-labels", projectBranch: branch, linkedWorktree: true });
   await app.Browser.SetViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });

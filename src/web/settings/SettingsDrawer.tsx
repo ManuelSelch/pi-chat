@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, Drawer, SegmentedControl, Select, Stack, Switch, Text } from "@mantine/core";
 import { MANTINE_COLOR } from "../ui/theme.js";
-import { IconArchive, IconBell, IconBrain, IconCpu, IconFolder, IconMessageCircle, IconPuzzle, IconRefresh } from "@tabler/icons-react";
+import { IconArchive, IconBrain, IconCpu, IconMessageCircle, IconPuzzle, IconRefresh, IconAdjustments } from "@tabler/icons-react";
 import type { ThinkingLevel, WebFeature } from "../app/state/view-types.js";
 import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
@@ -51,17 +51,31 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, s
       <Stack gap="md">
         {serverSettings}
         <Panel>
-          <SectionHeader icon={<IconMessageCircle size={16} />}>Sessions</SectionHeader>
-          <Switch label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
-        </Panel>
-        <Panel>
-          <SectionHeader icon={<IconBell size={16} />}>Sounds</SectionHeader>
-          <Switch
-            checked={chimesEnabled}
-            onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
-            disabled={!chimesAvailable}
-            label="Chime when a run finishes or needs an answer"
-          />
+          <div role="group" aria-label="Feature Toggles">
+            <SectionHeader icon={<IconAdjustments size={16} />}>Feature Toggles</SectionHeader>
+            <Switch label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
+            <Switch
+              mt="sm"
+              checked={chimesEnabled}
+              onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
+              disabled={!chimesAvailable}
+              label="Chime when a run finishes or needs an answer"
+            />
+            <Switch
+              mt="sm"
+              checked={displayPathShow}
+              onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
+              label="Show folder path in projects panel"
+            />
+            <Switch
+              mt="sm"
+              checked={hideArchivedSessions}
+              onChange={(event) => setHideArchivedSessions(event.currentTarget.checked)}
+              label="Hide archived sessions"
+              aria-label="Hide archived sessions"
+              description="Hide archived conversations and their Archived sections in the projects panel. Your history stays saved."
+            />
+          </div>
         </Panel>
         <Panel>
           <SectionHeader icon={<IconMessageCircle size={16} />}>Transcript</SectionHeader>
@@ -75,22 +89,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, s
               { label: "Comfortable", value: "comfortable" },
               { label: "Compact", value: "compact" },
             ]}
-          />
-        </Panel>
-        <Panel>
-          <SectionHeader icon={<IconFolder size={16} />}>Projects</SectionHeader>
-          <Switch
-            checked={displayPathShow}
-            onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
-            label="Show folder path in projects panel"
-          />
-          <Switch
-            mt="sm"
-            checked={hideArchivedSessions}
-            onChange={(event) => setHideArchivedSessions(event.currentTarget.checked)}
-            label="Hide archived sessions"
-            aria-label="Hide archived sessions"
-            description="Hide archived conversations and their Archived sections in the projects panel. Your history stays saved."
           />
         </Panel>
         {thinkingFeature ? (

@@ -4,7 +4,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 let app: PiChatBrowserDriver;
 
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page);
+  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
 });
 
 test.afterEach(async () => {

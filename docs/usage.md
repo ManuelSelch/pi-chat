@@ -21,8 +21,10 @@ in Projects, where they can be restored. There is no delete-session command.
 
 ### Session inbox
 
-Enable **Settings → Show open sessions in sidebar** to replace horizontal tabs
-with the Inbox. The preference is off by default. **Needs you** contains blocked
+**Settings → Feature Toggles → Show open sessions in sidebar** replaces horizontal
+tabs with the Inbox and is on by default. Explicit browser preferences are preserved.
+The same group contains chimes, folder paths and archived-session visibility;
+Transcript settings remain separate. **Needs you** contains blocked
 questions/approvals. **Ready** includes all unarchived idle conversations except
 those in Later, including saved history after a server restart. Selecting an
 unloaded conversation opens it; history is never reopened automatically.
@@ -42,7 +44,8 @@ or dismiss a prompt.
   but not browser reloads.
 - Linked-worktree rows show the branch prominently and the conversation title
   below in smaller text. Main checkouts keep the conversation title prominent.
-  Status dots sit beside project names; running rows hide Later/archive actions.
+  Status dots sit beside project names. While a session is running, its row and
+  header hide Move to Later (pause icon) and Archive actions; Close view remains available.
 - The sidebar's bottom gear opens Settings. If the sidebar is hidden, reopen
   it with the header toggle. Phone navigation remains a modal drawer until
   dismissed; opening Settings dismisses it.

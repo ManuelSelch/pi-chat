@@ -16,7 +16,6 @@ export function InboxHeader(p: InboxHeaderProps) {
     <Group h={58} px={{ base: "xs", sm: "lg" }} gap="sm" wrap="nowrap">
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="Sessions" data-projects-toggle aria-expanded={p.opened} onClick={p.onToggle}><IconLayoutSidebar size={18} /></ActionIcon>
       <div className={styles.breadcrumb}>
-        <Text size="sm" fw={600} style={{ flexShrink: 0 }}>Pi Chat</Text>
         {p.session && <><Text size="xs" c="dimmed" visibleFrom="sm" maw={128} miw={0} truncate>{p.session.projectName}</Text><IconChevronRight size={12} className="hidden shrink-0 sm:block" /></>}
         <Text size="xs" miw={0} flex={1} truncate title={p.title}>{p.title}</Text>
       </div>
@@ -28,8 +27,10 @@ export function InboxHeader(p: InboxHeaderProps) {
           <Slot name="session.header.right" buttons={p.buttons} badges={p.badges} onAction={p.onAction} />
         </div>
         <div className={styles.headerActions}>
-          <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Move current session to Later" title="Move to Later" disabled={p.disabled || p.pending || p.session.status !== "idle" || !p.saved} onClick={p.onPark}><IconClockPause size={17} /></ActionIcon>
-          <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Archive current session" title="Archive session" disabled={p.disabled || p.pending || p.session.status !== "idle" || !p.saved} onClick={p.onArchive}><IconArchive size={17} /></ActionIcon>
+          {p.session.status !== "running" && <>
+            <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Move current session to Later" title="Move to Later" disabled={p.disabled || p.pending || p.session.status !== "idle" || !p.saved} onClick={p.onPark}><IconClockPause size={17} /></ActionIcon>
+            <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Archive current session" title="Archive session" disabled={p.disabled || p.pending || p.session.status !== "idle" || !p.saved} onClick={p.onArchive}><IconArchive size={17} /></ActionIcon>
+          </>}
           <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Close current session view" title="Close view · discard empty session" onClick={p.onCloseView}><IconX size={17} /></ActionIcon>
         </div>
       </>}
