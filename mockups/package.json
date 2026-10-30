@@ -6,16 +6,21 @@
     "dev": "vite --host 127.0.0.1"
   },
   "devDependencies": {
-    "vite": "8.3.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "typescript": "7.0.2",
-    "@vitejs/plugin-react": "6.1.1",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
     "@mantine/core": "9.6.1",
     "@mantine/hooks": "9.6.1",
     "@tabler/icons-react": "3.46.0",
-    "react-grab": "0.2.0"
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "katex": "0.16.22",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-grab": "0.2.0",
+    "react-markdown": "10.1.0",
+    "rehype-katex": "7.0.1",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
   }
 }
