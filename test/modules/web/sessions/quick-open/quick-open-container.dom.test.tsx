@@ -12,11 +12,13 @@ import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/Q
 const controller = vi.hoisted(() => ({
   app: { activeSessionId: "active", tabs: [] as Tab[], tabsKnown: true, openingTabs: 0, closingSessionIds: [] as string[], connection: "open", appFeatures: [], catalogue: { projects: [] } as ProjectCatalogue },
   state: {} as typeof initialChatState, newSession: vi.fn(), openSession: vi.fn(), openProject: vi.fn(),
+  inbox: { later: [] as { path: string }[] },
 }));
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => controller }));
 beforeEach(() => {
   controller.app.tabs = [];
   controller.app.activeSessionId = "";
+  controller.inbox.later = [];
   controller.state = { ...initialChatState, projectPath: "/current" };
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });

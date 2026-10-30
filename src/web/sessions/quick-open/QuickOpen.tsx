@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { IconBolt, IconFolder, IconFolderPlus, IconGitBranch, IconMessage } from "@tabler/icons-react";
+import { IconBolt, IconClockPause, IconFolder, IconFolderPlus, IconGitBranch } from "@tabler/icons-react";
+import { InboxStatus } from "../inbox/ui/components/InboxStatus.js";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../app/state/view-types.js";
 import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, type QuickOpenItem } from "./quick-open.js";
@@ -19,10 +20,12 @@ interface QuickOpenProps {
   onOpenProject: (path: string) => void;
   onNewSession: (path: string) => void;
   actions?: readonly SessionAction[];
+  laterPaths?: ReadonlySet<string>;
 }
 
 const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
-const resultIcons = { session: IconMessage, project: IconFolder, worktree: IconGitBranch, projectAction: IconFolderPlus, action: IconBolt };
+const resultIcons = { project: IconFolder, worktree: IconGitBranch, projectAction: IconFolderPlus, action: IconBolt } as const;
+const iconStyle = { flexShrink: 0, marginTop: 2, color: "var(--mantine-color-dimmed)" } as const;
 const scopes = [
   { prefix: "", label: "All", kind: undefined },
   { prefix: "#", label: "# Folders", kind: "project" },
@@ -44,8 +47,14 @@ function resultContext(item: QuickOpenItem): string {
   return item.displayPath ?? item.path;
 }
 
+/** Reuses the existing session status indicator and snooze icon for Later. */
+function SessionIndicator({ status }: { status: QuickOpenItem["status"] }) {
+  if (status === "later") return <IconClockPause size={16} aria-hidden="true" style={iconStyle} />;
+  return <span style={{ ...iconStyle, display: "inline-flex", justifyContent: "center", width: 16 }}><InboxStatus status={status ?? "idle"} /></span>;
+}
+
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, actions = [] }: QuickOpenProps) {
+export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, actions = [], laterPaths }: QuickOpenProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -53,7 +62,7 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
 
-  const items = buildQuickOpenItems(catalogue, tabs.flatMap((tab) => tab.sessionPath ? [tab.sessionPath] : []), actions);
+  const items = buildQuickOpenItems(catalogue, tabs, actions, laterPaths);
   const scopeKind = parseQuickOpenQuery(query).kind;
   const rankedResults = rankQuickOpen(items, query);
   const results = query.trim() ? folderSearchChoices(rankedResults) : rankedResults;
@@ -188,8 +197,9 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
               >
                 <Group gap="xs" wrap="nowrap" align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
                   {(() => {
+                    if (item.kind === "session") return <SessionIndicator status={item.status} />;
                     const Icon = resultIcons[item.kind];
-                    return <Icon size={16} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2, color: "var(--mantine-color-dimmed)" }} />;
+                    return <Icon size={16} aria-hidden="true" style={iconStyle} />;
                   })()}
                   <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
                     <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}{item.isOpen ? <Text component="span" size="xs" c="dimmed" ml={6}>Open</Text> : null}</Text>
