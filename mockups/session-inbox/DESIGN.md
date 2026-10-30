@@ -4,7 +4,7 @@
 Explore an optional Settings toggle that hides the horizontal tabs and represents the same open sessions in the persistent sidebar. This request authorizes research and mockups only, not production implementation. All changes stay in the shared mockups workspace; production requirements and technical design are deferred until a direction is chosen.
 
 ## Revision and approval
-- Revision: 13.
+- Revision: 14.
 - Status: in review; not approved for implementation.
 - Direction selected: user prefers B (Inbox) and requested an untimed Later section, collapsed by default. Flat Later rows with project context are proposed for the user's small session count.
 - Approval evidence: direction only; no approval for production implementation.
@@ -26,6 +26,7 @@ The following are Pi Chat design proposals inspired by those patterns, not claim
 - C: Project inbox — Needs you shelf followed by remaining open sessions grouped by project. No duplicated rows. A session needing attention moves out of its project group to the top shelf.
 
 ## Shared interactions
+- The header × closes only the current session view: clears selection and shows an empty workspace without changing its queue membership, status, drafts, messages, or running work. An idle session remains in Ready; a blocked/running session retains its actual status. Sidebar selection reopens it. This differs from Move to Later and Archive, and from the prototype tab-close action.
 - Indicators reuse production status colors: Needs you/blocked = Mantine red-6, Working/running = yellow-6 (amber/orange), Ready/idle = green-6. Applies consistently to sidebar rows, header, tabs, and demo status dots.
 - The current session title appears only in the header breadcrumb (project → session), not again above the transcript. Sidebar rows still identify their sessions.
 - The duplicate Current session/title/metadata block above the conversation is removed. Branch context, status dot/label, and compact Move to Later action sit at the right of the same header. The mock data currently models branches only, not a distinct worktree name/path; no new worktree behavior is implied. On phones branch text truncates, status uses a dot with an accessible title, and the breadcrumb session title truncates rather than wrapping.
@@ -63,4 +64,4 @@ The existing app exposes idle/running/blocked statuses. The mock's attention sta
 - Flat Later rows with project labels are proposed for review; revisit grouping only if the list actually grows.
 
 ## Review and verification
-Source inspection and HTTP serving checks for revisions 1–13. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
+Source inspection and HTTP serving checks for revisions 1–14. No browser automation, screenshots, builds or full suites requested or run. User performs visual and interaction review. Production planning and design approval are separate later steps.
