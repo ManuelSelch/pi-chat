@@ -13,7 +13,7 @@ const props = (): InboxViewProps => ({
     { key: "c", sessionId: "c", path: "/c", title: "Completed", project: "Quick Chats", status: "idle" },
   ],
   later: [{ key: "/later", path: "/later", title: "Parked", project: "Project", status: "idle" }],
-  onClose: vi.fn(), onSettings: vi.fn(), onSelect: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onResume: vi.fn(),
+  onClose: vi.fn(), onSettings: vi.fn(), onSelect: vi.fn(), onOpenSaved: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onResume: vi.fn(),
 });
 it("shows status sections in approved order and Later collapsed", () => {
   render(<MantineProvider><InboxView {...props()} /></MantineProvider>);
@@ -34,6 +34,19 @@ it("collapses Working independently while keeping its count and toggle available
   fireEvent.click(working);
   expect(p.onWorkingToggle).toHaveBeenCalledOnce();
   expect(screen.getByRole("button", { name: "Open Completed" })).toBeTruthy();
+});
+
+it("opens and parks unloaded Ready rows by saved path", () => {
+  const p = props();
+  p.rows = [{ key: "/saved", path: "/saved", title: "Saved", project: "Project", status: "idle" }];
+  render(<MantineProvider><InboxView {...p} /></MantineProvider>);
+
+  fireEvent.click(screen.getByRole("button", { name: "Open Saved" }));
+  expect(p.onOpenSaved).toHaveBeenCalledWith("/saved");
+  expect(p.onSelect).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Move Saved to Later" }));
+  expect(p.onPark).toHaveBeenCalledWith("/saved");
 });
 
 it("selects without parking and exposes fixed Settings and explicit resume", () => {

@@ -40,7 +40,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   // Do not reconcile a command against inventory from before its result. New
   // authoritative inventory/catalogue/connection updates resolve uncertainty.
   useEffect(() => {
-    if (app.connection !== "open" || !app.tabsKnown || locked.current || !initial.readable) return;
+    if (app.connection !== "open" || !app.tabsKnown || !app.catalogueKnown || locked.current || !initial.readable) return;
     if (waitForTabs.current === app.tabs || waitForCatalogue.current === app.catalogue) return;
     waitForTabs.current = undefined;
     waitForCatalogue.current = undefined;
@@ -50,7 +50,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
     if (JSON.stringify(next) === JSON.stringify(entriesRef.current)) return;
     try { persist(next); uncertain.current = false; }
     catch (cause) { setError(errorText(cause)); }
-  }, [app.sdkInventory, app.tabs, app.catalogue, app.connection, app.tabsKnown, pending]);
+  }, [app.sdkInventory, app.tabs, app.catalogue, app.connection, app.tabsKnown, app.catalogueKnown, pending]);
 
   async function run(operation: () => Promise<void>) {
     if (locked.current || uncertain.current || latest.current.app.connection !== "open") return;
@@ -62,14 +62,26 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
     finally { locked.current = false; setPending(false); }
   }
 
-  const park = (id: string) => run(async () => {
-    const tab = latest.current.app.tabs.find(tab => tab.sessionId === id);
-    if (!tab || tab.status !== "idle" || !tab.sessionPath || !hasSavedSession(latest.current.app.catalogue, tab.sessionPath)) return;
-    const path = tab.sessionPath;
+  const select = (path: string) => run(async () => {
+    const tab = latest.current.app.tabs.find(tab => tab.sessionPath === path);
+    if (tab) { latest.current.operations.focus(tab.sessionId); return; }
+    if (!hasSavedSession(latest.current.app.catalogue, path)) return;
+    const id = await latest.current.operations.open(path);
+    latest.current.operations.focus(id);
+  });
+
+  const park = (target: string) => run(async () => {
+    const tab = latest.current.app.tabs.find(tab => tab.sessionId === target || tab.sessionPath === target);
+    const path = tab?.sessionPath ?? target;
+    if ((tab && tab.status !== "idle") || !hasSavedSession(latest.current.app.catalogue, path)) return;
+    if (!tab) {
+      persist([...entriesRef.current.filter(entry => entry.path !== path), { path, phase: "parked" }]);
+      return;
+    }
     const previous = entriesRef.current;
     persist([...previous.filter(entry => entry.path !== path), { path, phase: "parking" }]);
     waitForTabs.current = latest.current.app.tabs;
-    try { await latest.current.operations.close(id); }
+    try { await latest.current.operations.close(tab.sessionId); }
     catch (cause) {
       if (unknownOutcome(cause)) uncertain.current = true;
       else { waitForTabs.current = undefined; persist(previous); }
@@ -116,6 +128,6 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   return {
     later,
     pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => tab.sessionPath === entry.path && tab.status === "closing")), error, canUndo: Boolean(undoRecord),
-    park, resume, archive, undo, dismissError: () => setError(undefined),
+    select, park, resume, archive, undo, dismissError: () => setError(undefined),
   };
 }

@@ -10,7 +10,25 @@ const catalogue: ProjectCatalogue = { projects: [{ path: "/p", displayPath: "/p"
 const tab: Tab = { sessionId: "runtime", sessionPath: "/a", projectPath: "/p", projectName: "Project", title: "Open A", status: "idle" };
 
 it("uses real runtime status and catalogue context, without marking completed responses unread", () => {
-  expect(inboxRows([tab], catalogue)[0]).toMatchObject({ title: "Open A", status: "idle", project: "Project", branch: "main", modified: 10 });
+  expect(inboxRows([tab], catalogue, new Set())[0]).toMatchObject({ title: "Open A", status: "idle", project: "Project", branch: "main", modified: 10 });
+});
+
+it("shows every unarchived saved conversation after restart without reopening runtimes", () => {
+  expect(inboxRows([], catalogue, new Set())).toMatchObject([
+    { path: "/a", status: "idle", title: "Saved A" },
+    { path: "/b", status: "idle", title: "Saved B" },
+  ]);
+});
+
+it("deduplicates history against live status and excludes parked and archived history", () => {
+  const archived = { ...catalogue, projects: catalogue.projects.map(project => ({ ...project, sessions: [...project.sessions, { ...project.sessions[0]!, path: "/archived", archivedAt: 20 }] })) };
+  const unsaved = { ...tab, sessionId: "unsaved", sessionPath: "/future", title: "Unsaved" };
+
+  const rows = inboxRows([{ ...tab, status: "running" }, unsaved, { ...tab, sessionId: "archived", sessionPath: "/archived" }], archived, new Set(["/b"]));
+
+  expect(rows).toHaveLength(2);
+  expect(rows.find(row => row.path === "/a")).toMatchObject({ sessionId: "runtime", status: "running" });
+  expect(rows.find(row => row.sessionId === "unsaved")).toMatchObject({ title: "Unsaved", path: undefined });
 });
 
 it("keeps only closed unarchived history in Later and resolves pending parking from inventory", () => {

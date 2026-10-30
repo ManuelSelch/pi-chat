@@ -11,7 +11,7 @@ export function InboxContainer() {
   const [query, setQuery] = useState("");
   const [workingOpen, setWorkingOpen] = useState(true);
   const [laterOpen, setLaterOpen] = useState(false);
-  const rows = useMemo(() => inboxRows(visibleTabs(chat.app), chat.app.catalogue), [chat.app.tabs, chat.app.closingSessionIds, chat.app.catalogue]);
+  const rows = useMemo(() => inboxRows(visibleTabs(chat.app), chat.app.catalogue, new Set(chat.inbox.later.map(row => row.path))), [chat.app.tabs, chat.app.closingSessionIds, chat.app.catalogue, chat.inbox.later]);
   // Mounting happens only on enabling Inbox, including a remembered preference.
   const open = useRef(overlays.open);
   useEffect(() => { open.current("projects"); }, []);
@@ -23,6 +23,6 @@ export function InboxContainer() {
     laterOpen={laterOpen} onLaterToggle={() => setLaterOpen(value => !value)}
     onClose={() => overlays.close("projects")}
     onSettings={() => { if (overlays.projectsPresentation === "drawer") overlays.close("projects"); overlays.open("settings"); }}
-    onSelect={chat.focusTab} onPark={id => void chat.inbox.park(id)} onResume={path => void chat.inbox.resume(path)}
+    onSelect={chat.focusTab} onOpenSaved={path => void chat.inbox.select(path)} onPark={id => void chat.inbox.park(id)} onResume={path => void chat.inbox.resume(path)}
     onArchive={path => void chat.inbox.archive(path)} />;
 }

@@ -8,6 +8,37 @@
   background: var(--mantine-primary-color-light);
   border-color: var(--mantine-primary-color-light-hover);
 }
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.headerBranch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  min-width: 0;
+  flex: 0 1 auto;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+.headerStatus { flex-shrink: 0; font-size: var(--mantine-font-size-xs); color: var(--mantine-color-dimmed); }
+.headerExtras {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  max-width: 25%;
+  flex: 0 1 auto;
+  overflow-x: auto;
+}
+.headerExtras:empty { display: none; }
+.headerActions { display: flex; align-items: center; flex-shrink: 0; gap: 4px; }
+.headerActions > * { flex-shrink: 0; }
+@media (max-width: 639px) { .headerBranch { display: none; } }
 .actions { opacity: 0; }
 .row:hover .actions, .row:focus-within .actions { opacity: 1; }
 @media (hover: none) { .actions { opacity: 1; } }

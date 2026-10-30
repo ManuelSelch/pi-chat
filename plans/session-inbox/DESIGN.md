@@ -3,6 +3,19 @@
 ## Overview
 Implement revision 14 concept B as an optional browser presentation over existing PiClient inventory and catalogue. Keep server/SDK wire contracts unchanged: Later uses existing close/open operations, archive retains its existing server lifecycle, and closing a view only changes browser selection.
 
+### Production-review correction proposal
+
+The user's production review supersedes the original runtime-only interpretation of Ready and the replacement empty workspace:
+
+- **Ready:** every saved, unarchived idle conversation, excluding those explicitly parked in Later. Derive membership from the catalogue, then overlay live inventory by session path. Blocked/running conversations appear only in their respective sections; unsaved live sessions remain visible. Deduplicate loaded and saved representations. No separate remembered-open-session list or automatic runtime reopening is needed.
+- **Selection and actions:** selecting a loaded row focuses its runtime; selecting an unloaded Ready row opens its saved path through the existing SDK operation. Parking an unloaded saved row only stores Later membership; parking a loaded idle row retains the existing close lifecycle. Archive/Undo continue to use server metadata; unarchiving an unloaded conversation makes it Ready again without creating a runtime. The inbox model and lifecycle controller own these decisions; views receive values and callbacks.
+- **Closing empty sessions:** the original close cleanup must remain for an idle session with no conversation messages and no pending prompts/run. Header × calls the existing runtime-close operation for that case, removing the empty session from live inventory rather than leaving a Ready row. This is disposal of an empty runtime, not deletion of saved conversation history. Nonempty sessions retain close-view behavior: header × clears selection without stopping work or changing membership. Do not infer emptiness solely from absence in the catalogue; a first conversation may be running or not yet persisted.
+- **Home:** reuse the original `Home` component whenever no conversation is selected/open, including after header ×, parking/archiving the last runtime, and starting with catalogue history but no live runtimes. Preserve its search, New session and Open folder actions. Remove the replacement `InboxEmpty` component. Header without selection says No session open, not Inbox clear when saved Ready rows exist.
+- **Visual correction:** `main.tsx` imports unlayered Mantine CSS, whose UnstyledButton reset overrides layered Tailwind width/display/padding utilities. This explains the collapsed row hitboxes and control overlap in the supplied screenshot. Use scoped Mantine layout/spacing props for the affected inbox buttons and text, and match the approved mock's row/context typography, spacing and action reservation. The same correction must cover the top-right header controls: reserve non-shrinking space for each action, truncate breadcrumb/branch text first, and prevent extension slots or status labels from overlapping adjacent icons at narrow widths. Do not change the global CSS cascade or redesign the mock.
+- **Verification:** add catalogue-only Ready, loaded/history deduplication, Later exclusion, unloaded-row actions and original-Home regressions. Browser tests must recreate the backend with saved history but no live runtimes, then open a Ready row. Assert actual row padding/hitbox geometry and non-overlap of metadata, title and action controls at desktop and phone widths, not just element presence. Retest existing sessions, focus and navigation flows.
+
+The user explicitly approved these corrections before implementation. The original baseline below is retained for review history where superseded above.
+
 ## Components
 | Package/module | Component | Change | Responsibility |
 |---|---|---|---|

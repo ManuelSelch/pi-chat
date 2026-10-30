@@ -11,11 +11,65 @@ let app: AppState;
 let operations: { close: ReturnType<typeof vi.fn<(id: string) => Promise<void>>>; open: ReturnType<typeof vi.fn<(path: string) => Promise<string>>>; archive: ReturnType<typeof vi.fn<(path: string, archived: boolean) => Promise<void>>>; focus: ReturnType<typeof vi.fn<(id: string) => void>> };
 beforeEach(() => {
   localStorage.clear();
-  app = { ...initialAppState, connection: "open", tabsKnown: true, activeSessionId: "a", tabs: [{ sessionId: "a", sessionPath: "/a", title: "A", projectName: "P", projectPath: "/p", status: "idle" }], catalogue: { projects: [{ path: "/p", displayPath: "/p", name: "P", exists: true, modified: 1, sessionCount: 1, sessions: [history] }] } };
+  app = { ...initialAppState, connection: "open", tabsKnown: true, catalogueKnown: true, activeSessionId: "a", tabs: [{ sessionId: "a", sessionPath: "/a", title: "A", projectName: "P", projectPath: "/p", status: "idle" }], catalogue: { projects: [{ path: "/p", displayPath: "/p", name: "P", exists: true, modified: 1, sessionCount: 1, sessions: [history] }] } };
   operations = { close: vi.fn(async () => {}), open: vi.fn(async () => "new"), archive: vi.fn(async () => {}), focus: vi.fn() };
 });
 afterEach(cleanup);
 const mount = () => renderHook(() => useInboxLifecycle(app, endpoint, operations));
+
+it("does not discard Later against the cold-start catalogue placeholder", () => {
+  const catalogue = app.catalogue;
+  app = { ...app, tabs: [], catalogue: { projects: [] }, catalogueKnown: false };
+  saveLater(endpoint, [{ path: "/a", phase: "parked" }]);
+  const { result, rerender } = mount();
+
+  expect(loadLater(endpoint)).toEqual([{ path: "/a", phase: "parked" }]);
+
+  app = { ...app, catalogue, catalogueKnown: true };
+  rerender();
+  expect(result.current.later).toHaveLength(1);
+  expect(loadLater(endpoint)).toEqual([{ path: "/a", phase: "parked" }]);
+});
+
+it("parks an unloaded saved conversation without opening or closing a runtime", async () => {
+  app = { ...app, tabs: [] };
+  const { result } = mount();
+
+  await act(async () => result.current.park("/a"));
+
+  expect(loadLater(endpoint)).toEqual([{ path: "/a", phase: "parked" }]);
+  expect(result.current.later).toHaveLength(1);
+  expect(operations.close).not.toHaveBeenCalled();
+  expect(operations.open).not.toHaveBeenCalled();
+});
+
+it("selects unloaded Ready history by path and focuses a loaded runtime without reopening it", async () => {
+  const { result, rerender } = mount();
+
+  await act(async () => result.current.select("/a"));
+
+  expect(operations.focus).toHaveBeenCalledWith("a");
+  expect(operations.open).not.toHaveBeenCalled();
+
+  app = { ...app, tabs: [] };
+  rerender();
+  await act(async () => result.current.select("/a"));
+
+  expect(operations.open).toHaveBeenCalledExactlyOnceWith("/a");
+  expect(operations.focus).toHaveBeenLastCalledWith("new");
+});
+
+it("unarchives an unloaded Ready conversation without creating a runtime", async () => {
+  app = { ...app, tabs: [] };
+  const { result } = mount();
+
+  await act(async () => result.current.archive("/a"));
+  await act(async () => result.current.undo());
+
+  expect(operations.archive.mock.calls).toEqual([["/a", true], ["/a", false]]);
+  expect(operations.open).not.toHaveBeenCalled();
+  expect(result.current.later).toEqual([]);
+});
 
 it("persists parking intent before close and commits only after completion", async () => {
   operations.close.mockImplementation(async () => {

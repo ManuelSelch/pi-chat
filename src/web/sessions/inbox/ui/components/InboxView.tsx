@@ -11,7 +11,7 @@ export interface InboxViewProps {
   rows: readonly InboxRow[]; later: readonly InboxRow[];
   query: string; onQuery(value: string): void;
   workingOpen: boolean; onWorkingToggle(): void; laterOpen: boolean; onLaterToggle(): void;
-  onClose(): void; onSettings(): void; onSelect(id: string): void; onPark(id: string): void; onArchive(path: string): void; onResume(path: string): void;
+  onClose(): void; onSettings(): void; onSelect(id: string): void; onOpenSaved(path: string): void; onPark(id: string): void; onArchive(path: string): void; onResume(path: string): void;
 }
 export function InboxView(p: InboxViewProps) {
   const focusReturn = useComposerFocusReturn(p.opened && p.presentation === "drawer");
@@ -32,10 +32,10 @@ export function InboxView(p: InboxViewProps) {
 
   const row = (item: InboxRow, later = false) => <InboxRowView key={item.key} row={item}
     active={!later && item.sessionId === p.activeSessionId} later={later} pending={p.pending}
-    onSelect={() => later ? item.path && p.onResume(item.path) : item.sessionId && p.onSelect(item.sessionId)}
-    onPark={() => item.sessionId && p.onPark(item.sessionId)} onArchive={() => item.path && p.onArchive(item.path)} />;
+    onSelect={() => later ? item.path && p.onResume(item.path) : item.sessionId ? p.onSelect(item.sessionId) : item.path && p.onOpenSaved(item.path)}
+    onPark={() => { const target = item.sessionId ?? item.path; if (target) p.onPark(target); }} onArchive={() => item.path && p.onArchive(item.path)} />;
   const section = (label: string, rows: readonly InboxRow[], collapsible = false) => <section className="mb-4" aria-label={label}>
-    {collapsible ? <UnstyledButton className="mb-1 flex w-full items-center justify-between px-2 py-1" aria-expanded={p.workingOpen} onClick={p.onWorkingToggle}>
+    {collapsible ? <UnstyledButton display="flex" w="100%" px={8} py={4} mb={4} style={{ alignItems: "center", justifyContent: "space-between" }} aria-expanded={p.workingOpen} onClick={p.onWorkingToggle}>
       <span className="flex items-center gap-1"><IconChevronRight size={12} className={p.workingOpen ? "rotate-90" : ""} /><Text component="span" size="xs" c="dimmed">{label}</Text></span>
       <Text component="span" size="xs" c="dimmed">{rows.length}</Text>
     </UnstyledButton> : <Group justify="space-between" px="xs" py={4}><Text size="xs" c="dimmed">{label}</Text><Text size="xs" c="dimmed">{rows.length}</Text></Group>}
@@ -50,12 +50,12 @@ export function InboxView(p: InboxViewProps) {
       {section("Needs you", p.rows.filter(item => item.status === "blocked"))}
       {section("Ready", p.rows.filter(item => item.status === "idle"))}
       {section("Working", p.rows.filter(item => item.status === "running"), true)}
-      {!p.rows.length && <Text size="xs" c="dimmed" ta="center" py="xl">{p.query ? "No open sessions match." : "Inbox clear"}</Text>}
+      {!p.rows.length && <Text size="xs" c="dimmed" ta="center" py="xl">{p.query ? "No sessions match." : "Inbox clear"}</Text>}
     </ScrollArea>
     <div className="max-h-[37%] shrink-0 overflow-auto border-t border-[var(--mantine-color-default-border)] pt-2">
-      <UnstyledButton className="flex w-full items-center gap-2 px-1 py-2" aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
+      <UnstyledButton display="flex" w="100%" px={4} py={8} style={{ alignItems: "center", gap: 8 }} aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
         {p.laterOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}<IconClockPause size={14} />
-        <Text component="span" size="xs" c="dimmed">Later</Text><Text component="span" size="xs" c="dimmed" className="ml-auto">{p.later.length}</Text>
+        <Text component="span" size="xs" c="dimmed">Later</Text><Text component="span" size="xs" c="dimmed" ml="auto">{p.later.length}</Text>
       </UnstyledButton>
       {p.laterOpen && (p.later.length ? p.later.map(item => row(item, true)) : <Text size="xs" c="dimmed" p="xs">{p.query ? "No Later sessions match." : "No sessions in Later."}</Text>)}
     </div>

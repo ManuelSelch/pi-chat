@@ -24,14 +24,18 @@ export function hasSavedSession(catalogue: ProjectCatalogue, path: string | unde
   return path !== undefined && catalogue.projects.some(project => project.sessions.some(session => session.path === path && session.archivedAt === undefined));
 }
 
-export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue): InboxRow[] {
+export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, laterPaths: ReadonlySet<string>): InboxRow[] {
   const history = new Map(historyRows(catalogue).map(row => [row.path, row]));
-  return tabs.map(tab => ({
+  const loaded = new Set(tabs.map(tab => tab.sessionPath));
+  const archived = new Set(catalogue.projects.flatMap(project => project.sessions.filter(session => session.archivedAt !== undefined).map(session => session.path)));
+  const live: InboxRow[] = tabs.filter(tab => !tab.sessionPath || !archived.has(tab.sessionPath)).map(tab => ({
     ...(tab.sessionPath ? history.get(tab.sessionPath) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath && history.has(tab.sessionPath) ? tab.sessionPath : undefined,
     title: tab.title, project: tab.projectName,
     branch: catalogue.projects.find(project => project.path === tab.projectPath)?.worktree?.branch,
     status: tab.status,
   }));
+  return [...live, ...[...history.values()].filter(row => !loaded.has(row.path) && !laterPaths.has(row.path))]
+    .toSorted((a, b) => (b.modified ?? Number.MAX_SAFE_INTEGER) - (a.modified ?? Number.MAX_SAFE_INTEGER));
 }
 
 export function reconcileLater(entries: readonly LaterEntry[], tabs: readonly Tab[], catalogue: ProjectCatalogue, closingPaths: ReadonlySet<string> = new Set()): LaterEntry[] {

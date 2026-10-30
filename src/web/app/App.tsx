@@ -14,7 +14,6 @@ import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
 import { SessionActionsProvider } from "../sessions/actions/SessionActionsProvider.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
-import { InboxEmpty } from "../sessions/inbox/ui/components/InboxEmpty.js";
 import { InboxNoticeContainer } from "../sessions/inbox/ui/containers/InboxNoticeContainer.js";
 import { workspaceLayout } from "./shell/domain/workspace-layout.js";
 
@@ -61,7 +60,7 @@ function AppContent() {
 
       <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
-        {home && chat.inboxEnabled ? <InboxEmpty hasOpenSessions={app.tabs.length > 0} onNew={() => chat.newSession()} /> : home ? (
+        {home ? (
           <Home
             catalogue={app.catalogue}
             onOpenSession={chat.openSession}

@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
@@ -42,6 +43,7 @@ export class PiChatBrowserDriver {
     private readonly world: TestWorld,
     widgetFixture: WidgetExtensionFixture,
     private readonly cleanup: () => Promise<void>,
+    private readonly restartBackend: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
     this.Browser = new BrowserBrowserDriver(page);
@@ -59,12 +61,16 @@ export class PiChatBrowserDriver {
     this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; projectBranch?: string; probeThemeReconnect?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
     try {
-      server = createPiServer({
+      if (options.projectBranch) {
+        execFileSync("git", ["init", "--initial-branch", options.projectBranch, world.projectPath], { stdio: "ignore" });
+        execFileSync("git", ["-C", world.projectPath, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-m", "Fixture"], { stdio: "ignore" });
+      }
+      const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
         catalogue: {
           lister: { listAll: () => SessionManager.list(world.projectPath, world.sessionDir) },
@@ -72,17 +78,23 @@ export class PiChatBrowserDriver {
           metadataFile: join(world.projectPath, ".pi-chat", "projects.json"),
         },
       });
-      await new Promise<void>((resolveListen, reject) => {
+      server = createServer();
+      const listen = (port: number) => new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
-        server!.httpServer.listen(0, "127.0.0.1", () => {
+        server!.httpServer.listen(port, "127.0.0.1", () => {
           server!.httpServer.off("error", reject);
           resolveListen();
         });
       });
+      await listen(0);
       const port = (server.httpServer.address() as AddressInfo).port;
       const driver = new PiChatBrowserDriver(page, world, widgetFixture, async () => {
         await server!.close();
         await world.dispose();
+      }, async () => {
+        await server!.close();
+        server = createServer();
+        await listen(port);
       });
       if (options.probeThemeReconnect) await driver.Theme.prepareReconnectProbe();
       await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
@@ -93,6 +105,12 @@ export class PiChatBrowserDriver {
       await world.dispose().catch(() => undefined);
       throw error;
     }
+  }
+
+  async RestartBackend(): Promise<void> {
+    await this.restartBackend();
+    await this.Inbox.reload();
+    await this.Inbox.shouldShowEmptyView();
   }
 
   async WaitUntilReady(): Promise<void> {

@@ -78,17 +78,23 @@ flowchart TD
 
 ### Session navigation
 
-The optional Inbox is browser presentation over the same SDK inventory as tabs.
-Its Needs you/Ready/Working sections map directly to blocked/idle/running; it does
-not introduce unread-response state. Explicitly closing a view clears browser
-selection without closing a runtime, and SDK updates preserve that deselection.
+The optional Inbox combines saved, unarchived catalogue history with SDK runtime
+inventory, deduplicated by session path. Needs you/Working use live blocked/running
+status; Ready includes all remaining idle conversations except browser-local
+Later membership. Selecting unloaded history opens its path; loaded rows focus
+their runtime. It does not introduce unread-response state. Explicitly closing a
+view clears selection and restores the original Home; empty idle runtimes also
+close. SDK updates preserve deliberate deselection.
 
 `sessions/inbox` owns pure row/reconciliation rules, server-endpoint-scoped
 localStorage membership, lifecycle coordination and component/container UI.
-Parking stores intent before calling the existing close operation. Resume uses
+Parking a loaded runtime stores intent before calling the existing close operation;
+parking unloaded history only stores membership. Resume uses
 the existing open operation; archive/Undo use existing archive operations.
 Authoritative inventory and catalogue updates resolve pending intents and
-remove archived, missing or externally reopened entries. No wire changes are
+remove archived, missing or externally reopened entries. Reconciliation waits for
+a published catalogue revision: revision zero is the server cold-start placeholder,
+not authoritative empty history. No wire changes are
 required. `sessions/drafts/app/SessionDraftProvider` owns page-lifetime drafts,
 transferring unsaved runtime keys to stable session paths so reopened identities
 reuse the same draft.

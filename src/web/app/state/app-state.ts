@@ -28,6 +28,8 @@ export interface AppState {
   openingTabs: number;
   closingSessionIds: string[];
   tabsKnown: boolean;
+  /** Revision zero is the server cold-start placeholder, before discovery. */
+  catalogueKnown: boolean;
   connection: "connecting" | "open" | "superseded";
   error?: string;
 }
@@ -35,7 +37,7 @@ export interface AppState {
 export const initialAppState: AppState = {
   tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {}, hiddenErrors: {},
   catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
-  tabsKnown: false, connection: "connecting",
+  tabsKnown: false, catalogueKnown: false, connection: "connecting",
 };
 
 export function atHome(state: AppState): boolean {
@@ -94,7 +96,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
     tabs, activeSessionId: state.viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
-    catalogue: sdk.catalogue, appFeatures: sdk.features };
+    catalogue: sdk.catalogue, catalogueKnown: sdk.projectsRevision > 0, appFeatures: sdk.features };
   if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };
   else {
     const { phase, error } = sdk.connection;

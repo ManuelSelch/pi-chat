@@ -23,15 +23,19 @@ in Projects, where they can be restored. There is no delete-session command.
 
 Enable **Settings → Show open sessions in sidebar** to replace horizontal tabs
 with the Inbox. The preference is off by default. **Needs you** contains blocked
-questions/approvals; completed responses become **Ready**. **Working** can be
-collapsed independently. Selecting a session does not answer or dismiss a prompt.
+questions/approvals. **Ready** includes all unarchived idle conversations except
+those in Later, including saved history after a server restart. Selecting an
+unloaded conversation opens it; history is never reopened automatically.
+**Working** can be collapsed independently. Selecting a session does not answer
+or dismiss a prompt.
 
-- **Move to Later** parks a saved, idle conversation and closes its runtime.
+- **Move to Later** parks a saved, idle conversation, closing its runtime if loaded.
   Later is untimed, collapsed by default, and remembered in this browser for
   this server. Expand it and select a conversation to reopen it explicitly.
   Unsaved, working and blocked sessions cannot be parked.
-- The header **×** closes only the view. Open sessions, background work and
-  drafts stay unchanged; select a sidebar row to return.
+- The header **×** returns to the original Home search. Nonempty sessions,
+  background work and their drafts stay unchanged; select a sidebar row to
+  return. Empty idle sessions are closed and removed from live inventory.
 - **Archive** is separate from Later. It preserves the saved transcript and
   offers **Undo archive** for the latest archive during this page visit.
 - Drafts survive switching, parking/resuming and archive Undo during the page

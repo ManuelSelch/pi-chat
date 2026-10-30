@@ -38,6 +38,31 @@ it("restores a closing tab and focus when teardown fails", async () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => result.current.closeTab("s")); expect(result.current.app.closingSessionIds).toEqual(["s"]);
   await act(async () => socket.reject("operationFailed", "Partial close; retry explicitly")); expect(result.current.app.closingSessionIds).toEqual([]); expect(result.current.app.activeSessionId).toBe("s"); expect(result.current.app.tabs).toHaveLength(1);
 });
+it("closes an empty idle runtime instead of retaining an empty Inbox session", async () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect();
+
+  act(() => result.current.closeView());
+
+  expect(socket.requests.at(-1)).toMatchObject({ method: "session.close", sessionId: "s" });
+  await act(async () => {
+    socket.deliver(coreEvent("session.closed", { reason: "requested" }, "s", 1));
+    socket.reply({ state: "completed" });
+  });
+  expect(result.current.app.tabs).toEqual([]);
+});
+
+it.each(["running", "blocked", "nonempty"] as const)("only clears selection for a %s conversation", kind => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect([snapshotData({ sessionId: "s", runtime: { status: kind === "running" ? "running" : "idle" }, prompts: kind === "blocked" ? [{ id: "p", title: "Answer", kind: "editor" }] : [], messages: kind === "nonempty" ? [{ id: "u", role: "user", text: "Hello" }] : [] })]);
+
+  act(() => result.current.closeView());
+
+  expect(socket.requests).toHaveLength(1);
+  expect(result.current.app.activeSessionId).toBe("");
+  expect(result.current.app.tabs).toHaveLength(1);
+});
+
 it("keeps focus local and preserves it over reconnect with authoritative snapshots", () => {
   const { result } = renderHook(() => usePiChat()); const snapshots = [snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "b" })]; const socket = connect(snapshots);
   act(() => result.current.focusTab("b")); expect(result.current.app.activeSessionId).toBe("b"); expect(socket.requests).toHaveLength(1);

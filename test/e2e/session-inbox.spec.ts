@@ -6,7 +6,7 @@ let app: PiChatBrowserDriver;
 let prompts: PromptExtensionFixture;
 test.beforeEach(async ({ page }) => {
   prompts = new PromptExtensionFixture();
-  app = await PiChatBrowserDriver.start(page, { extensions: [prompts.extension] });
+  app = await PiChatBrowserDriver.start(page, { extensions: [prompts.extension], projectName: "a-very-long-checkout-name-that-must-truncate-before-controls", projectBranch: "fix/a-very-long-branch-name-that-must-truncate-before-controls" });
   await app.Browser.SetViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });
@@ -94,16 +94,18 @@ test("archiving a parked session and Undo retain Later membership without reopen
   await app.Chat.ShouldShowAssistantReply("Saved response");
 });
 
-test("does not park an unsaved session and keeps its draft when the view is closed", async () => {
+test("does not park an unsaved session and discards its empty runtime on close", async () => {
   await app.Tabs.Create({ responses: [] });
   await app.Inbox.setEnabled(true);
   await app.Focus.TypeWithoutRefocusing("Unsaved conversation draft");
 
   await app.Inbox.shouldPreventParking();
   await app.Inbox.closeView();
-  await app.Inbox.select("New session");
 
-  await app.Focus.ShouldHaveDraft("Unsaved conversation draft");
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.reload();
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldShowEmptyView();
 });
 
 test("blocked prompts remain in Needs you when selected, and closing the view retains the chosen answer", async () => {
@@ -124,6 +126,55 @@ test("blocked prompts remain in Needs you when selected, and closing the view re
   await app.Prompts.Minimize("Check 1");
   await app.Prompts.Stop();
   prompts.ShouldHaveAnswers([]);
+});
+
+test("saved Ready history survives a backend restart without reopening Later", async () => {
+  await savedConversation();
+
+  await app.RestartBackend();
+
+  await app.Inbox.shouldHaveReady(1);
+  await app.Inbox.shouldBeInSection("Inbox conversation", "Ready");
+  await app.Inbox.parkReady("Inbox conversation");
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldHaveLater(1);
+
+  await app.RestartBackend();
+
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.shouldHaveLater(1);
+  await app.Inbox.resume("Inbox conversation");
+  await app.Chat.ShouldShowAssistantReply("Saved response");
+});
+
+test("opens unloaded Ready history and archive Undo restores it without opening a runtime", async () => {
+  await savedConversation();
+  await app.RestartBackend();
+
+  await app.Inbox.archiveReady("Inbox conversation");
+  await app.Inbox.shouldHaveReady(0);
+  await app.Inbox.undoArchiveToLater();
+
+  await app.Inbox.shouldShowEmptyView();
+  await app.Inbox.shouldHaveReady(1);
+  await app.Inbox.select("Inbox conversation");
+  await app.Chat.ShouldShowAssistantReply("Saved response");
+});
+
+test("row hitboxes and header controls do not overlap at desktop and phone widths", async () => {
+  const title = "A long conversation title that truncates before actions";
+  await app.Tabs.Create({ responses: [{ prompt: title, reply: "Saved response" }] });
+  await app.Chat.SendPrompt(title);
+  await app.Chat.ShouldShowAssistantReply("Saved response");
+  await app.Inbox.setEnabled(true);
+
+  for (const width of [1680, 1024, 640, 390]) {
+    await app.Browser.SetViewport(width, 844);
+    await app.Inbox.shouldHaveSoundGeometry(title);
+    if (width < 640) await app.Inbox.close();
+    await app.Inbox.shouldHaveSoundHeaderGeometry();
+    if (width < 640) await app.Inbox.open();
+  }
 });
 
 test("mode toggling preserves selection and drafts, and phones retain a modal navigation drawer", async () => {
