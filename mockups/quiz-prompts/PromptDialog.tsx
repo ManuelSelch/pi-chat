@@ -1,11 +1,11 @@
-import { ActionIcon, Badge, Button, Group, Modal, Radio, Stack, Text, Textarea, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Radio, Stack, Text, Textarea, Tooltip } from "@mantine/core";
 import { IconMinus } from "@tabler/icons-react";
 import { RichText } from "./RichText";
 import { options, question } from "./content";
 export type Stage = "select" | "editor";
 interface Props {opened:boolean; stage:Stage; answer:string; reasoning:string; onAnswer:(v:string)=>void; onReasoning:(v:string)=>void; onMinimize:()=>void; onCancel:()=>void; onContinue:()=>void;}
 export function PromptDialog(p:Props) {
- return <Modal opened={p.opened} onClose={p.onCancel} withCloseButton={false} closeOnClickOutside={false} centered size={720} padding="lg" overlayProps={{backgroundOpacity:0.55,blur:2}} title={<Group gap="xs"><Text fw={650}>Check 2 · Working with collections</Text><Badge variant="light" color="gray" size="xs">{p.stage==="select"?"Choose an answer":"Explain your reasoning"}</Badge></Group>}>
+ return <Modal opened={p.opened} onClose={p.onCancel} withCloseButton={false} closeOnClickOutside={false} centered size={720} padding="lg" overlayProps={{backgroundOpacity:0.55,blur:2}} title={<Text fw={650}>Check 2 · Working with collections</Text>}>
  <div className="minimize-action"><Tooltip label="Minimize without cancelling"><ActionIcon variant="subtle" color="gray" aria-label="Minimize question" onClick={p.onMinimize}><IconMinus size={19}/></ActionIcon></Tooltip></div>
  <Stack gap="lg">
  {p.stage==="select" ? <>
