@@ -7,6 +7,7 @@ import { ComposerContainer as ActualComposerContainer } from "../../../../../src
 import { initialChatState, type ChatState } from "../../../../../src/web/app/state/chat-state.js";
 
 const chat = {
+  promptPresentation: { minimized: false, prompt: undefined },
   app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [] },
   state: { ...initialChatState, status: "running" } as ChatState,
   prompt: vi.fn(), completeCommandArguments: vi.fn(async () => []),

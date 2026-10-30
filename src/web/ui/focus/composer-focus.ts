@@ -32,7 +32,11 @@ export function useComposerFocusReturn(opened: boolean) {
     const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
     const previous = previousFocus.current;
     if (dialogs.length === 0) {
-      if (!focusComposer() && previous?.isConnected && !previous.matches(":disabled")) previous.focus({ preventScroll: true });
+      if (!focusComposer()) {
+        const pending = document.querySelector<HTMLButtonElement>("[data-pending-prompt-reopen]:not(:disabled)");
+        if (pending) pending.focus({ preventScroll: true });
+        else if (previous?.isConnected && !previous.matches(":disabled")) previous.focus({ preventScroll: true });
+      }
     } else if (dialogs.length === 1 && !dialogs[0]!.contains(document.activeElement) && previous?.isConnected && dialogs[0]!.contains(previous)) {
       // Only return to a trigger inside the remaining parent. An old exit
       // callback must never pull focus out of a newer or nested dialog.

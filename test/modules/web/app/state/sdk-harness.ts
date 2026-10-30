@@ -15,6 +15,6 @@ export function createAppReducer() {
   return { client, reduce, initialize(state: AppState, snapshots: SessionSnapshot[] = [], catalogue = { projects: [] } as ReturnType<typeof initializeResult>["projects"]["catalogue"]): AppState {
     if (client.getState().connection.phase === "reconnecting") { scheduled.shift()!(); handlers.open(); }
     const request = sent.findLast(request => request.method === "server.initialize")!;
-    return reduce(state, { version: 2, type: "response", requestId: request.requestId, ok: true, result: initializeResult(snapshots, catalogue) });
+    return reduce(state, { version: 2, type: "response", requestId: request.requestId, ok: true, result: JSON.parse(JSON.stringify(initializeResult(snapshots, catalogue))) });
   } };
 }

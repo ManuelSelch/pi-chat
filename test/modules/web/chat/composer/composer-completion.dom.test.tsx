@@ -8,6 +8,7 @@ import { initialChatState } from "../../../../../src/web/app/state/chat-state.js
 import type { CommandCompletionItem } from "../../../../../src/shared/protocol.js";
 
 const chat = {
+  promptPresentation: { minimized: false, prompt: undefined },
   app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [] },
   state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as typeof initialChatState.status, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),

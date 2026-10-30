@@ -338,7 +338,8 @@ describe("composer focus across real app overlays", () => {
     controller.app.activeSessionId = "s2";
     controller.app.tabs = [tab(), tab("s2")];
     update({ sessionId: "s2" });
-    expectDialogFocus("Question");
+    expect(composer().disabled).toBe(true);
+    expect(document.activeElement).not.toBe(composer());
     await finishTransitions();
     expectDialogFocus("Question");
   });

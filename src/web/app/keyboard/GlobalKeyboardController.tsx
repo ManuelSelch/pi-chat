@@ -6,9 +6,10 @@ import { escapeIntent } from "./shortcuts.js";
 export function GlobalKeyboardController() {
   const chat = useAppController();
   const overlays = useOverlays();
-  const state = useRef({ overlayOpen: false, menuOpen: false, busy: false, abort: chat.abort, sidebarOpen: false, closeProjects: () => {} });
+  const state = useRef({ overlayOpen: false, menuOpen: false, promptPending: false, busy: false, abort: chat.abort, sidebarOpen: false, closeProjects: () => {} });
   state.current = {
-    overlayOpen: overlays.anyOpen || chat.state.prompts.length > 0,
+    overlayOpen: overlays.anyOpen || (chat.state.prompts.length > 0 && !chat.promptPresentation.minimized),
+    promptPending: chat.state.prompts.length > 0,
     menuOpen: false,
     busy: chat.state.status === "running" || chat.state.status === "aborting",
     abort: chat.abort,
@@ -28,7 +29,7 @@ export function GlobalKeyboardController() {
         return;
       }
       const menuOpen = document.querySelector("[data-command-menu]") !== null;
-      if (escapeIntent({ ...current, overlayOpen, menuOpen }) === "abort") current.abort();
+      if (escapeIntent({ ...current, overlayOpen, menuOpen }) === "abort" && !current.promptPending) current.abort();
     }
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);

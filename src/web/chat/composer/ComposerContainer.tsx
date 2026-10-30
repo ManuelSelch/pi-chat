@@ -49,7 +49,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
     state.widgets,
     widgetsDocked,
   );
-  const canSubmit = !loading && (state.status === "idle" || state.status === "running");
+  const canSubmit = !loading && state.prompts.length === 0 && (state.status === "idle" || state.status === "running");
   const query = menuDismissed || !canSubmit ? undefined : commandQuery(input);
   const context = canSubmit && !menuDismissed && !composing && !home && !overlays.anyOpen && state.prompts.length === 0 && app.connection === "open" && selection.sessionId === app.activeSessionId
     ? argumentContext(input, selection.start, selection.end, state.actions.commands)
@@ -61,14 +61,14 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
   const activeIndex = Math.min(activeCommand, Math.max(0, matches.length - 1));
 
   function setInput(value: string, caret = value.length): void {
-    if (loading) return;
+    if (loading || state.prompts.length > 0) return;
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
     setSelection({ sessionId: app.activeSessionId, start: caret, end: caret });
     pendingCaret.current = caret;
   }
 
   function changeInput(value: string, start = value.length, end = start): void {
-    if (loading) return;
+    if (loading || state.prompts.length > 0) return;
     setDrafts((current) => ({ ...current, [app.activeSessionId]: value }));
     setSelection({ sessionId: app.activeSessionId, start, end });
     setActiveCommand(0);
@@ -197,6 +197,13 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
         connection: app.connection,
         connecting,
         loading,
+        promptPending: state.prompts.length > 0,
+        pendingPrompt: chat.promptPresentation.minimized && chat.promptPresentation.prompt ? {
+          title: chat.promptPresentation.prompt.title.split("\n")[0]!,
+          reopen: chat.promptPresentation.reopen,
+          stop: () => chat.abort(),
+          stopDisabled: app.connection !== "open" || state.status === "aborting",
+        } : undefined,
         error: actionError ?? visibleError(app, state),
         busy,
         steering: state.status === "running",

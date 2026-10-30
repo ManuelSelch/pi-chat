@@ -12,6 +12,7 @@ export type AppAction =
   | { type: "commandFailed"; error: string; opening?: boolean; closingSessionId?: string };
 
 export interface AppState {
+  serverInstanceId?: string;
   tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
   /** Views share SDK projections, adding only browser notices/error dismissal. */
@@ -86,7 +87,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   // identity before the generic removal fallback can select another tab.
   const replacement = message?.type === "event" && message.event === "session.replaced" ? message.data : undefined;
   const selectedId = replacement?.previousSessionId === state.activeSessionId ? replacement.snapshot.sessionId : state.activeSessionId;
-  let next: AppState = { ...state, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
+  let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
     tabs, activeSessionId: tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, appFeatures: sdk.features };

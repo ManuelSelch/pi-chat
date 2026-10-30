@@ -1,4 +1,5 @@
 import { Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { PendingPrompt } from "../../extensions/prompts/PendingPrompt.js";
 import { THEME } from "../../ui/theme.js";
 import { Notice } from "../../ui/Notice.js";
 import type { RefObject, FormEvent, KeyboardEvent } from "react";
@@ -14,6 +15,8 @@ export interface ComposerViewModel {
   connection: "connecting" | "open" | "superseded";
   connecting: boolean;
   loading: boolean;
+  promptPending?: boolean;
+  pendingPrompt?: { title: string; reopen(): void; stop(): void; stopDisabled: boolean };
   error?: string;
   busy: boolean;
   steering: boolean;
@@ -99,6 +102,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
           </Paper>
         ) : null}
         <WidgetPanel widgets={widgetsAbove} grid />
+        {model.pendingPrompt ? <PendingPrompt title={model.pendingPrompt.title} onReopen={model.pendingPrompt.reopen} onStop={model.pendingPrompt.stop} stopDisabled={model.pendingPrompt.stopDisabled} /> : null}
         {menuOpen ? (
           <div data-command-menu>
             <CommandMenu
@@ -136,8 +140,8 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
               onCompositionStart={() => actions.compositionChanged(true)}
               onCompositionEnd={() => actions.compositionChanged(false)}
               onKeyDown={actions.keyDown}
-              disabled={loading}
-              placeholder={loading ? "Loading session…" : steering ? "Steer Pi…" : "Ask Pi anything…"}
+              disabled={loading || model.promptPending}
+              placeholder={loading ? "Loading session…" : model.promptPending ? "Pi is waiting for your answer…" : steering ? "Steer Pi…" : "Ask Pi anything…"}
               value={input}
               variant="unstyled"
               flex={1}

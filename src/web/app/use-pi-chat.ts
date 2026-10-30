@@ -83,7 +83,10 @@ export function usePiChat() {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
       control((client) => client.abort(id));
     },
-    respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) => control((client) => client.respondToPrompt(target(sessionId), promptId, result)),
+    respondToPrompt: (promptId: string, result: UiPromptResult, sessionId?: string) => request(client => client.respondToPrompt(target(sessionId), promptId, result)).catch((error: unknown) => {
+      dispatch({ type: "commandFailed", error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }),
     focusTab: (sessionId: string) => dispatch({ type: "focusSession", sessionId }),
     setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
     compactSession: () => control((client) => client.compactSession(app.activeSessionId)),

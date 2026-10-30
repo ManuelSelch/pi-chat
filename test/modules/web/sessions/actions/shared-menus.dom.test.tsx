@@ -11,6 +11,7 @@ import { ComposerContainer } from "../../../../../src/web/chat/composer/Composer
 import { QuickOpenContainer } from "../../../../../src/web/sessions/quick-open/QuickOpenContainer.js";
 
 const chat = vi.hoisted(() => ({
+  promptPresentation: { minimized: false, prompt: undefined },
   app: {} as AppState, state: {} as ChatState,
   newSession: vi.fn(), closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
   openSession: vi.fn(), openProject: vi.fn(), prompt: vi.fn(), dismissError: vi.fn(),

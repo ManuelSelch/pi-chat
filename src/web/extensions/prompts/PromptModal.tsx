@@ -1,35 +1,26 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Button, Group, Modal, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Radio, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { IconMinus } from "@tabler/icons-react";
+import { Markdown } from "../../chat/markdown/MarkdownLazy.js";
 import { THEME } from "../../ui/theme.js";
 import type { UiPrompt, UiPromptResult } from "../../app/state/view-types.js";
 import { usePromptFocus } from "./use-prompt-focus.js";
 import { useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
+import { createPromptDraft, type PromptDraft } from "./domain/prompt-drafts.js";
 
 interface PromptModalProps {
   prompt?: UiPrompt;
   onRespond: (promptId: string, result: UiPromptResult) => void;
+  draft?: PromptDraft;
+  onDraftChange?: (patch: Partial<PromptDraft>) => void;
+  minimized?: boolean;
+  onMinimize?: () => void;
+  disabled?: boolean;
 }
 
-/**
- * The browser side of a blocking `ctx.ui` question. An extension is suspended
- * until this answers, so dismissing must send an explicit cancellation rather
- * than just closing the window.
- */
-/** Below this a filter box is more clutter than help. */
 const SEARCH_THRESHOLD = 8;
-
-/**
- * Extensions pass whole status reports as the prompt title, including bar
- * charts drawn with block characters. Those only line up in a monospace font.
- */
 const PREFORMATTED = /[░▒▓█│├└─┌┐┘]/;
-
-/**
- * An extension running a menu in a loop answers one select and immediately asks
- * the next one. Closing and reopening the modal in between makes the whole
- * dialog blink, so an answered prompt stays on screen this long to give its
- * successor a chance to take its place.
- */
+/** Only immediate menu redraws use the anti-flicker handover delay. */
 const HANDOVER_MS = 400;
 
 function splitHeading(title: string): { heading: string; body?: string } {
@@ -37,285 +28,173 @@ function splitHeading(title: string): { heading: string; body?: string } {
   const body = rest.join("\n").trim();
   return { heading: first.trim(), ...(body ? { body } : {}) };
 }
-
-/**
- * Whether `next` is the same menu redrawn, in which case the caret and the
- * filter survive the handover instead of jumping back to the first option.
- * Both the heading counter and the option labels change as items are toggled,
- * so only the shape of the menu is compared.
- */
 function isSameMenu(previous: UiPrompt, next: UiPrompt): boolean {
-  if (previous.kind !== "select" || next.kind !== "select") return false;
+  if (previous.kind !== "select" || next.kind !== "select" || previous.submission === "explicit" || next.submission === "explicit") return false;
   if ((previous.options?.length ?? 0) !== (next.options?.length ?? 0)) return false;
   const shape = (title: string) => splitHeading(title).heading.replace(/[\d/]+/g, "");
   return shape(previous.title) === shape(next.title);
 }
 
-export function PromptModal({ prompt, onRespond }: PromptModalProps) {
-  const [value, setValue] = useState("");
-  const [query, setQuery] = useState("");
-  const [activeOption, setActiveOption] = useState(0);
-  // What is on screen: the live prompt, or the one just answered while its
-  // successor is still in flight.
+/** Pure prompt view. Production drafts belong to the browser presentation controller. */
+export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraftChange, minimized = false, onMinimize, disabled = false }: PromptModalProps) {
+  const [localDraft, setLocalDraft] = useState(() => createPromptDraft(prompt ?? {}));
+  const lastDraft = useRef(localDraft);
+  const draft = onDraftChange ? controlledDraft ?? lastDraft.current : localDraft;
+  const { value, query, activeOption, selectedOption } = draft;
+  const patchRef = useRef(onDraftChange);
+  patchRef.current = onDraftChange;
+  function patch(patch: Partial<PromptDraft>): void {
+    if (patchRef.current) patchRef.current(patch);
+    else setLocalDraft(current => ({ ...current, ...patch }));
+  }
+
   const [shown, setShown] = useState<UiPrompt | undefined>(prompt);
   const [closing, setClosing] = useState(false);
-  const focusReturn = useComposerFocusReturn(Boolean(shown) && !closing);
+  const wasMinimized = useRef(minimized);
+  const visible = Boolean(shown) && !closing && !minimized && (prompt !== undefined || !wasMinimized.current);
+  const focusReturn = useComposerFocusReturn(visible);
   const previous = useRef<UiPrompt | undefined>(undefined);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
-  // Last real pointer position. Scrolling the list fires mouse events without
-  // the pointer having moved, which would drag the selection back under it.
   const pointer = useRef<{ x: number; y: number } | null>(null);
   const mouseActive = useRef<number | null>(null);
-
-  // No live prompt means the extension has not asked the next question yet, so
-  // the lingering dialog must not accept input.
-  const waiting = prompt === undefined;
+  const waiting = prompt === undefined || disabled || minimized;
+  const explicit = shown?.kind === "select" && shown.submission === "explicit";
   const allOptions = shown?.options ?? [];
-  const searchable = allOptions.length > SEARCH_THRESHOLD;
+  const searchable = allOptions.length > SEARCH_THRESHOLD && !explicit;
   const needle = query.trim().toLowerCase();
-  const options = needle ? allOptions.filter((option) => option.toLowerCase().includes(needle)) : allOptions;
+  const options = needle ? allOptions.filter(option => option.toLowerCase().includes(needle)) : allOptions;
   const active = Math.min(activeOption, Math.max(options.length - 1, 0));
-
-  // Mantine autofocus runs when the modal mounts, but prompt handover can
-  // replace its content while the modal stays mounted.
-  const focusRef = usePromptFocus<HTMLElement>(
-    shown?.id,
-    Boolean(shown) && !waiting && (shown?.kind !== "select" || searchable),
-  );
+  const focusRef = usePromptFocus<HTMLElement>(shown?.id, visible && !waiting && (shown?.kind !== "select" || searchable));
 
   useEffect(() => {
-    if (prompt) {
-      setShown(prompt);
-      setClosing(false);
-      return;
-    }
-    const timer = setTimeout(() => setClosing(true), HANDOVER_MS);
+    if (prompt) { setShown(prompt); setClosing(false); return; }
+    if (minimized || wasMinimized.current) { setShown(undefined); return; }
+    const timer = setTimeout(() => setClosing(true), shown?.submission === "explicit" || shown?.body ? 0 : HANDOVER_MS);
     return () => clearTimeout(timer);
-  }, [prompt]);
+  }, [prompt, minimized]);
+  useEffect(() => { wasMinimized.current = minimized; }, [minimized]);
 
   useEffect(() => {
     if (!prompt) return;
-    // Each prompt starts from its own defaults, including one restored from a
-    // snapshot after a reload — unless it is the same menu drawn again.
     const carry = previous.current !== undefined && isSameMenu(previous.current, prompt);
     previous.current = prompt;
-    setValue(prompt.prefill ?? "");
-    if (carry) return;
-    setQuery("");
-    setActiveOption(0);
-  }, [prompt]);
+    if (onDraftChange) return;
+    setLocalDraft(current => ({ ...createPromptDraft(prompt), ...(carry ? { query: current.query, activeOption: current.activeOption } : {}) }));
+  }, [prompt?.id]);
+  useEffect(() => { if (prompt) lastDraft.current = draft; });
 
   useEffect(() => {
-    // The modal's focus trap runs after mount and would otherwise leave focus
-    // on the close button, where arrow keys do nothing. With a filter box the
-    // trap's own autofocus already lands in the right place.
-    if (shown?.kind !== "select" || searchable) return;
-    const frame = requestAnimationFrame(() => listRef.current?.focus());
+    if (!visible || shown?.kind !== "select" || searchable) return;
+    const frame = requestAnimationFrame(() => {
+      if (explicit) dialogRef.current?.querySelector<HTMLElement>('[role="radio"], input[type="radio"]')?.focus();
+      else listRef.current?.focus();
+    });
     return () => cancelAnimationFrame(frame);
-  }, [shown?.id, shown?.kind, searchable]);
+  }, [shown?.id, shown?.kind, searchable, visible, explicit]);
 
   useEffect(() => {
-    if (!shown) return;
-    // Mantine traps Tab navigation, not arbitrary .focus() calls. Keep the
-    // boundary active during handover too, when there is no live prompt.
+    if (!visible) return;
     const containFocus = (event: FocusEvent) => {
       const dialog = dialogRef.current;
       const target = event.target;
       if (!dialog || !(target instanceof HTMLElement) || dialog.contains(target)) return;
-      // A nested/secondary modal may legitimately own focus.
       if (target.closest('[role="dialog"]')) return;
-      const control = dialog.querySelector<HTMLElement>("[data-autofocus]:not(:disabled)")
-        ?? dialog.querySelector<HTMLElement>("button:not(:disabled)");
+      const control = dialog.querySelector<HTMLElement>("[data-autofocus]:not(:disabled)") ?? dialog.querySelector<HTMLElement>("button:not(:disabled)");
       control?.focus({ preventScroll: true });
     };
     document.addEventListener("focusin", containFocus);
     return () => document.removeEventListener("focusin", containFocus);
-  }, [Boolean(shown)]);
+  }, [visible]);
 
   useEffect(() => {
-    if (mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
+    if (visible && mouseActive.current !== active) activeRef.current?.scrollIntoView({ block: "nearest" });
     mouseActive.current = null;
-  }, [active]);
+  }, [active, visible]);
 
   if (!shown) return null;
-
-  const cancel = (): void => {
-    if (!waiting) onRespond(shown.id, { cancelled: true });
-  };
-  const submit = (result: string | boolean): void => {
-    if (!waiting) onRespond(shown.id, { cancelled: false, value: result });
-  };
+  const cancel = (): void => { if (!waiting) onRespond(shown.id, { cancelled: true }); };
+  const submit = (result: string | boolean): void => { if (!waiting) onRespond(shown.id, { cancelled: false, value: result }); };
 
   function optionKeyDown(event: KeyboardEvent<HTMLElement>): void {
-    if (options.length === 0 || waiting) return;
+    if (!options.length || waiting) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
-      setActiveOption((index) => (Math.min(index, options.length - 1) + step + options.length) % options.length);
-      return;
-    }
-    if (event.key === "Enter" && options[active]) {
+      patch({ activeOption: (active + step + options.length) % options.length });
+    } else if (event.key === "Enter" && options[active]) {
       event.preventDefault();
       submit(options[active]);
     }
   }
-
-  /**
-   * Activate an option only when the pointer genuinely moved over it. A plain
-   * mouseenter also fires when the list scrolls under a resting cursor, which
-   * made arrow-key navigation snap back.
-   */
   function optionMouseMove(event: MouseEvent<HTMLElement>, index: number): void {
     const last = pointer.current;
     if (last && last.x === event.clientX && last.y === event.clientY) return;
     pointer.current = { x: event.clientX, y: event.clientY };
-    if (index !== active) {
-      mouseActive.current = index;
-      setActiveOption(index);
-    }
+    if (index !== active) { mouseActive.current = index; patch({ activeOption: index }); }
   }
-
   function textKeyDown(event: KeyboardEvent<HTMLElement>): void {
-    if (event.key !== "Enter") return;
-    // The editor is multi-line, so plain Enter must insert a newline there.
+    if (event.nativeEvent.isComposing || event.key !== "Enter") return;
     if (shown!.kind === "editor" && !(event.metaKey || event.ctrlKey)) return;
     event.preventDefault();
     submit(value);
   }
 
-  const { heading, body } = splitHeading(shown.title);
-  const confirmLabel = shown.kind === "confirm" ? "Confirm" : "OK";
+  const { heading, body } = shown.body ? { heading: shown.title, body: undefined } : splitHeading(shown.title);
+  const confirmLabel = shown.submitLabel ?? (shown.kind === "confirm" ? "Confirm" : "OK");
   const canSubmit = !waiting && (shown.kind !== "input" || value.trim().length > 0);
 
-  return (
-    <Modal
-      {...focusReturn}
-      ref={dialogRef}
-      opened={!closing}
-      onExitTransitionEnd={() => {
-        if (!closing) return;
-        setShown(undefined);
-        focusReturn.onExitTransitionEnd();
-      }}
-      onClose={cancel}
-      // An accidental outside click must not answer a permission gate.
-      closeOnClickOutside={false}
-      centered
-      size="lg"
-      radius="md"
-      title={<Text fw={600} size="sm">{heading}</Text>}
-      styles={{ title: { lineHeight: 1.4, paddingRight: "var(--mantine-spacing-md)" } }}
-    >
-      <Stack gap="md">
-        {[body, shown.message].filter(Boolean).map((text, index) => (
-          <Text
-            key={index}
-            size={PREFORMATTED.test(text!) ? "xs" : "sm"}
-            c="dimmed"
-            ff={PREFORMATTED.test(text!) ? "monospace" : undefined}
-            style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}
-          >
-            {text}
-          </Text>
-        ))}
+  return <Modal.Root
+    {...focusReturn}
+    opened={visible}
+    onExitTransitionEnd={() => {
+      if (!closing && !minimized) return;
+      if (!minimized) setShown(undefined);
+      focusReturn.onExitTransitionEnd();
+    }}
+    onClose={cancel}
+    closeOnClickOutside={false}
+    centered size={shown.body ? 720 : "lg"} radius="md"
+    styles={{ title: { lineHeight: 1.4, flex: 1 } }}
+  >
+    <Modal.Overlay />
+    <Modal.Content ref={dialogRef}>
+      <Modal.Header>
+        <Modal.Title><Text fw={600} size="sm">{heading}</Text></Modal.Title>
+        {onMinimize ? <ActionIcon variant="subtle" color="gray" aria-label="Minimize question" onClick={onMinimize}><IconMinus size={18} /></ActionIcon> : <Modal.CloseButton />}
+      </Modal.Header>
+      <Modal.Body>
+    <Stack gap="md">
+      {shown.body ? shown.body.format === "markdown" ? <div className="markdown overflow-x-auto text-sm"><Markdown disableImages>{shown.body.text}</Markdown></div> : <Text size="sm" className="whitespace-pre-wrap">{shown.body.text}</Text> : null}
+      {[body, shown.message].filter(Boolean).map((text, index) => <Text key={index} size={PREFORMATTED.test(text!) ? "xs" : "sm"} c="dimmed" ff={PREFORMATTED.test(text!) ? "monospace" : undefined} style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>{text}</Text>)}
 
-        {shown.kind === "select" && searchable ? (
-          <TextInput
-            ref={focusRef}
-            aria-label="Filter options"
-            data-autofocus
-            placeholder="Type to filter…"
-            value={query}
-            onChange={(event) => { setQuery(event.currentTarget.value); setActiveOption(0); }}
-            onKeyDown={optionKeyDown}
-          />
-        ) : null}
+      {searchable ? <TextInput ref={focusRef} aria-label="Filter options" data-autofocus placeholder="Type to filter…" value={query} disabled={waiting} onChange={event => patch({ query: event.currentTarget.value, activeOption: 0 })} onKeyDown={optionKeyDown} /> : null}
 
-        {shown.kind === "select" ? (
-          <ScrollArea.Autosize mah="50vh">
-            <Stack
-              gap={2}
-              ref={listRef}
-              tabIndex={0}
-              data-autofocus
-              role="listbox"
-              aria-label={heading}
-              onKeyDown={optionKeyDown}
-              style={{ outline: "none" }}
-            >
-              {options.length === 0 ? (
-                <Text size="sm" c="dimmed" p="8px 12px">No option matches “{query.trim()}”.</Text>
-              ) : null}
-              {options.map((option, index) => (
-                <UnstyledButton
-                  key={option}
-                  ref={index === active ? activeRef : undefined}
-                  role="option"
-                  aria-selected={index === active}
-                  onMouseMove={(event) => optionMouseMove(event, index)}
-                  onClick={() => submit(option)}
-                  p="8px 12px"
-                  style={{
-                    borderRadius: "var(--mantine-radius-sm)",
-                    background: index === active ? THEME.surface.panelHover : undefined,
-                    borderLeft: `2px solid ${index === active ? THEME.accent.primary : "transparent"}`,
-                  }}
-                >
-                  <Text size="sm">{option}</Text>
-                </UnstyledButton>
-              ))}
-            </Stack>
-          </ScrollArea.Autosize>
-        ) : null}
+      {shown.kind === "select" && explicit ? <Radio.Group value={selectedOption ?? ""} onChange={selectedOption => patch({ selectedOption })} aria-label={heading}>
+        <Stack gap="xs">{allOptions.map(option => <Radio.Card key={option} value={option} aria-label={option} p="sm" withBorder disabled={waiting}>
+          <Group wrap="nowrap" gap="sm"><Radio.Indicator /><Text size="sm">{option}</Text></Group>
+        </Radio.Card>)}</Stack>
+      </Radio.Group> : null}
 
-        {shown.kind === "input" ? (
-          <TextInput
-            ref={focusRef}
-            aria-label={heading}
-            data-autofocus
-            placeholder={shown.placeholder}
-            value={value}
-            onChange={(event) => setValue(event.currentTarget.value)}
-            onKeyDown={textKeyDown}
-          />
-        ) : null}
+      {shown.kind === "select" && !explicit ? <ScrollArea.Autosize mah="50vh"><Stack gap={2} ref={listRef} tabIndex={0} data-autofocus role="listbox" aria-label={heading} onKeyDown={optionKeyDown} className="outline-none">
+        {options.length === 0 ? <Text size="sm" c="dimmed" p="8px 12px">No option matches “{query.trim()}”.</Text> : null}
+        {options.map((option, index) => <UnstyledButton key={option} ref={index === active ? activeRef : undefined} role="option" aria-selected={index === active} disabled={waiting} onMouseMove={event => optionMouseMove(event, index)} onClick={() => submit(option)} p="8px 12px" style={{ borderRadius: "var(--mantine-radius-sm)", background: index === active ? THEME.surface.panelHover : undefined, borderLeft: `2px solid ${index === active ? THEME.accent.primary : "transparent"}` }}><Text size="sm">{option}</Text></UnstyledButton>)}
+      </Stack></ScrollArea.Autosize> : null}
 
-        {shown.kind === "editor" ? (
-          <Textarea
-            ref={focusRef}
-            aria-label={heading}
-            data-autofocus
-            rows={8}
-            value={value}
-            onChange={(event) => setValue(event.currentTarget.value)}
-            onKeyDown={textKeyDown}
-          />
-        ) : null}
+      {shown.kind === "input" ? <TextInput ref={focusRef} aria-label={heading} data-autofocus placeholder={shown.placeholder} value={value} disabled={waiting} onChange={event => patch({ value: event.currentTarget.value })} onKeyDown={textKeyDown} /> : null}
+      {shown.kind === "editor" ? <Textarea ref={focusRef} aria-label={heading} data-autofocus rows={8} value={value} disabled={waiting} onChange={event => patch({ value: event.currentTarget.value })} onKeyDown={textKeyDown} /> : null}
 
-        <Group justify="space-between" align="center">
-          <Text size="xs" c="dimmed">
-            {shown.kind === "select"
-              ? "↑↓ to move · Enter to choose · Esc to cancel"
-              : shown.kind === "editor"
-                ? "⌘↵ to submit · Esc to cancel"
-                : "Enter to submit · Esc to cancel"}
-          </Text>
-          <Group gap="xs">
-            <Button variant="default" onClick={cancel} disabled={waiting}>Cancel</Button>
-            {shown.kind === "select" ? (
-              <Button disabled={waiting || !options[active]} onClick={() => submit(options[active]!)}>
-                {confirmLabel}
-              </Button>
-            ) : (
-              <Button ref={shown.kind === "confirm" ? focusRef : undefined} data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>
-                {confirmLabel}
-              </Button>
-            )}
-          </Group>
+      <Group justify="space-between" align="center" pt="sm">
+        {onMinimize ? <Button variant="subtle" color="gray" onClick={onMinimize} leftSection={<IconMinus size={15} />}>Minimize</Button> : <Text size="xs" c="dimmed">{shown.kind === "select" ? "↑↓ to move · Enter to choose · Esc to cancel" : shown.kind === "editor" ? "⌘↵ to submit · Esc to cancel" : "Enter to submit · Esc to cancel"}</Text>}
+        <Group gap="xs">
+          <Button variant="default" onClick={cancel} disabled={waiting}>{shown.cancelLabel ?? "Cancel"}</Button>
+          {shown.kind === "select" ? <Button disabled={waiting || (explicit ? selectedOption === undefined : !options[active])} onClick={() => submit(explicit ? selectedOption! : options[active]!)}>{confirmLabel}</Button>
+            : <Button ref={shown.kind === "confirm" ? focusRef : undefined} data-autofocus={shown.kind === "confirm" ? true : undefined} disabled={!canSubmit} onClick={() => submit(shown.kind === "confirm" ? true : value)}>{confirmLabel}</Button>}
         </Group>
-      </Stack>
-    </Modal>
-  );
+      </Group>
+    </Stack>
+      </Modal.Body>
+    </Modal.Content>
+  </Modal.Root>;
 }

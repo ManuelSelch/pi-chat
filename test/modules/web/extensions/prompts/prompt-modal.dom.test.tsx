@@ -126,6 +126,30 @@ describe("PromptModal", () => {
   });
 });
 
+describe("presented prompts", () => {
+  it("selects without submitting until Continue is pressed", async () => {
+    const respond = show({ id: "explicit", kind: "select", title: "Check", options: ["A", "B"], submission: "explicit", submitLabel: "Continue to reasoning", body: { format: "markdown", text: "**Which** answer?" } });
+
+    expect((await screen.findByText("Which")).tagName).toBe("STRONG");
+    fireEvent.click(screen.getByRole("radio", { name: "B" }));
+    expect(respond).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Continue to reasoning" }));
+
+    expect(respond).toHaveBeenCalledWith("explicit", { cancelled: false, value: "B" });
+  });
+
+  it("minimizes without answering or cancelling", () => {
+    const minimize = vi.fn();
+    const respond = vi.fn();
+    render(<MantineProvider><PromptModal prompt={{ id: "m", kind: "editor", title: "Explain" }} onRespond={respond} onMinimize={minimize} /></MantineProvider>);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Minimize$/ }));
+
+    expect(minimize).toHaveBeenCalledOnce();
+    expect(respond).not.toHaveBeenCalled();
+  });
+});
+
 describe("PromptModal option filter", () => {
   const many = Array.from({ length: 12 }, (_, index) => `provider/model-${index}`);
 

@@ -14,7 +14,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({
   useAppController: () => ({
+    app: { serverInstanceId: "server", activeSessionId: "session" },
     state: { prompts: [{ id: "older" }, { id: "latest" }] },
+    promptPresentation: { prompt: { id: "latest" }, respond: mocks.respondToPrompt },
     respondToPrompt: mocks.respondToPrompt,
     closeTab: mocks.closeTab,
   }),

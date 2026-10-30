@@ -13,7 +13,10 @@ export function AppOverlays() {
   const overlays = useOverlays();
   return (
     <>
-      <PromptModal prompt={chat.state.prompts.at(-1)} onRespond={chat.respondToPrompt} />
+      <PromptModal key={JSON.stringify([chat.app.serverInstanceId, chat.app.activeSessionId])} prompt={chat.promptPresentation.prompt} draft={chat.promptPresentation.draft}
+        onDraftChange={chat.promptPresentation.update} minimized={chat.promptPresentation.minimized}
+        onMinimize={chat.promptPresentation.minimize} disabled={chat.promptPresentation.disabled}
+        onRespond={chat.promptPresentation.respond} />
       <CloseSessionDialog
         tab={overlays.state.closingTab}
         onClose={() => overlays.close("closingTab")}
