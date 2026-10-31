@@ -122,7 +122,9 @@ saved paths before status filtering. Later uses the same live inventory.
 Rows expose the full title on hover and use suffix-free recency locally; shared
 Home/Quick Switcher time formatting is unchanged. Project context uses the
 catalogue repository name, falling back to the runtime project name before
-discovery. Row actions continue using original identities. The panel has no search field; empty status groups and an empty Later shelf are omitted entirely.
+discovery. The inbox header uses the catalogue's `quickChats` marker to label
+home-folder sessions “Quick Chat”; other header project names retain their runtime
+labels. This presentation does not modify runtime inventory. Row actions continue using original identities. The panel has no search field; empty status groups and an empty Later shelf are omitted entirely.
 
 ### Focus and overlays
 
