@@ -13,3 +13,4 @@ dist/
 .projects-sidebar-runtime.json
 .session-inbox-runtime.json
 .widget-grid-runtime.json
+.learning-mermaid-runtime.json

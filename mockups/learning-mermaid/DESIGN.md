@@ -1,0 +1,14 @@
+# Learning-plan widget comparison
+- Revision: 2. Status: milestone-list direction approved. Extension implementation is owned by the personal extensions repository; no Pi Chat production changes.
+- Goal: compare a Mermaid graph with the original simple milestone list in a persistent collapsible widget above the composer.
+- User request: move the inline-message mockup into a realistic widget and compare to the first list version.
+- Both versions show the same five milestones and shared progress; graph shows prerequisite splits/joins, list shows a linear presentation without dependency detail.
+- Graph/List/Compare preview controls switch versions. Compare displays both simultaneously; these controls are design-review tools, not proposed product controls.
+- Collapsible widget headers approximate current Pi Chat widget chrome. Existing widgets support ANSI text only; Mermaid-in-widget is a proposed rendering enhancement, not existing capability.
+- Desktop above-composer placement; phone comparison stacks with bounded scrolling. Actual wide-screen widget docking omitted to keep the comparison focused.
+- Fake update marks narrowing demonstrated and makes combined practice current. No automatic grading, quiz, persistence, server or protocol integration.
+- Direct states: ?view=graph, ?view=list, ?view=compare; add &state=after for updated progress.
+- Real local Mermaid with strict security and no HTML labels/callbacks. Production security/streaming contracts remain out of scope.
+- Prior revision inline message replaced for this requested exploration. Production unchanged.
+- User selection: “I choose the milestone list. This is simpler and cleaner.” Graph variant rejected. User subsequently approved the extension/teach proposal and concrete acceptance scenarios, then requested implementation. Preserve this comparison as the visual baseline; the Mermaid variant is not an approved production feature.
+- Review preview stopped and owned listener exit verified before extension implementation. No automated browser review or screenshots were performed.
