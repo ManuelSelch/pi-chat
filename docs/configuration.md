@@ -27,6 +27,20 @@ longer offer Restart server.
 runs the compiled backend with Node. Generated `dist/` artifacts are local and
 are not committed. See [Development](development.md) for the watch-mode workflow.
 
+## Versions in Settings
+
+The read-only **Versions** section shows Pi Chat’s exact Git tag for a clean tagged
+frontend build, otherwise **dev** (no commit hash). Pi SDK is the installed SDK
+version captured when that frontend was built, not the server’s separate SDK copy.
+Pi Server is captured once when the connected Chat host starts, so changing
+`node_modules` does not change the displayed running version until restart.
+
+The browser requests `/api/pi-chat/version` from the configured backend over
+HTTP(S) when Settings opens while connected. Failed/missing metadata or a disconnected
+backend displays **Unavailable**; it never substitutes the local package version.
+The endpoint returns uncached, non-sensitive version metadata. Standalone Pi Server
+hosts without Chat’s metadata route do not report a version here.
+
 ## npm-backed operations
 
 Browser-triggered rebuilds, README capture and SDK package verification use the

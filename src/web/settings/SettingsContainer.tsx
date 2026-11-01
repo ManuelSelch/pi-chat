@@ -8,6 +8,7 @@ import { useHideArchivedSessions } from "./preferences/use-hide-archived-session
 import { useTranscriptDensity } from "./preferences/use-transcript-density.js";
 import { SettingsDrawer } from "./SettingsDrawer.js";
 import { ServerSettingsContainer } from "./server/index.js";
+import { VersionsContainer } from "./versions/ui/VersionsContainer.js";
 
 export function SettingsContainer() {
   const chat = useAppController();
@@ -23,7 +24,7 @@ export function SettingsContainer() {
   const restartServer = useCallback(async () => {
     if (await confirm({
       title: "Restart server?",
-      body: "The client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
+      body: "Locked dependencies are installed, the client is rebuilt and the server restarts. Open sessions close and the page reconnects on its own.",
       confirmLabel: "Restart",
     })) await chat.restartServer();
   }, [chat, confirm]);
@@ -37,6 +38,7 @@ export function SettingsContainer() {
       state={state}
       busy={busy}
       serverSettings={<ServerSettingsContainer preference={chat.serverEndpoint} connected={app.connection === "open"} failed={app.connection !== "open" && !!app.error} />}
+      versions={<VersionsContainer endpoint={chat.serverEndpoint.endpoint} connected={app.connection === "open"} opened={overlays.state.settings} />}
       setThinkingLevel={chat.setThinkingLevel}
       setModel={chat.setModel}
       compactSession={chat.compactSession}

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { listen } = vi.hoisted(() => ({ listen: vi.fn() }));
+vi.mock("../../../src/host/version-route.js", () => ({ installVersionRoute: vi.fn() }));
+vi.mock("../../../src/shared/node/package-version.js", () => ({ packageVersion: () => "0.2.0" }));
 vi.mock("@manuelselch/pi-server", () => ({
   createPiServer: () => ({ httpServer: { listen, on: vi.fn() } }),
   createFileLogger: () => ({ info: vi.fn(), error: vi.fn() }),

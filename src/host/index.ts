@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { homedir } from "node:os";
 import { createRestartService } from "./restart-service.js";
 import { createPiServer, createFileLogger } from "@manuelselch/pi-server";
+import { installVersionRoute } from "./version-route.js";
+import { packageVersion } from "../shared/node/package-version.js";
 
 const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
@@ -14,6 +16,7 @@ const isDevelopment = process.env.PI_CHAT_DEV === "1";
 const logger = createFileLogger();
 const restart = isDevelopment ? undefined : createRestartService({ shutdown: () => void shutdown() });
 const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), restart, logger });
+installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 
 // Signals do not acquire WebSocket control, so existing browsers can reconnect.
 // Install a rejection handler even in development rather than taking SIGUSR2's

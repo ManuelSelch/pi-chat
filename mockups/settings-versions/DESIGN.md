@@ -1,8 +1,8 @@
 # Settings versions
 
-- Revision: 2. Status: in review; no approval yet.
+- Revision: 3. Status: approved. User approved revision 2, then explicitly requested removing the commit hash and keeping dev (revision 3). Preview stopped; approved files preserved.
 - Add a read-only Versions panel below Backend server; preserve all existing controls and journeys.
-- Pi Chat: exact release tag when available, otherwise dev + short build commit. Do not use placeholder package version; tagged but modified builds must not appear as clean releases.
+- Pi Chat: exact release tag when available, otherwise dev (no commit hash). Do not use placeholder package version; tagged but modified builds must not appear as clean releases.
 - Pi Server: version of the connected running backend, not files currently installed on disk. Unavailable while disconnected or not reported.
 - Pi SDK: version used to build this browser frontend (not the server's potentially separate SDK dependency).
 - Responsive: existing medium right drawer; simple two-column rows. No explanatory paragraph below the versions (removed at user request).

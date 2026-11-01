@@ -115,6 +115,8 @@ maintaining a second Markdown requirements catalogue.
 
 `src/host/index.ts` translates `PI_CHAT_*` settings, supplies explicit web assets and owns PID/log/signal lifecycle over `@manuelselch/pi-server`. `src/host/restart-service.ts` injects Chat’s trusted install-before-build-before-restart policy (`npm ci`, then `npm run build`); failed installs/builds leave the listener running, but installation replaces shared dependencies in place without rollback. The server owns generic restart and all application/runtime/transport/catalogue implementations.
 
+Chat’s host adds `/api/pi-chat/version` with a startup-captured server version and no-store responses. Vite captures the installed frontend SDK version plus clean exact Git tag (otherwise `dev`) into the browser build. Settings fetches runtime metadata only while open and connected; failures display Unavailable without affecting the transport. No SDK/server protocol changes are needed.
+
 Consumers use only public root, `/extensions`, `/testing` and `/testing/loopback` APIs. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
 
 Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests

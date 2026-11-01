@@ -17,7 +17,7 @@ export function SettingsMockup() {
   const busy = state === "running";
   const invalid = !!endpoint && !/^wss?:\/\//.test(endpoint);
   return <div className="shell">
-    <Group justify="space-between" p="md"><Text c="dimmed">Settings versions · revision 2</Text><Button variant="subtle" onClick={() => setOpened(true)}>Settings</Button></Group>
+    <Group justify="space-between" p="md"><Text c="dimmed">Settings versions · revision 3</Text><Button variant="subtle" onClick={() => setOpened(true)}>Settings</Button></Group>
     <div className="preview-note"><Text size="sm">Mockup only: local state, no connections or persistence.</Text>{notice && <Alert mt="sm">{notice}</Alert>}</div>
     <Drawer opened={opened} onClose={() => setOpened(false)} title="Settings" size="md" position="right">
       <Stack gap="md">
@@ -43,7 +43,7 @@ export function SettingsMockup() {
           <Button variant="light" color="red" onClick={() => setNotice("Restart simulated.")}>Restart server</Button>
         </Section>
         <Section title="Versions" icon={<IconInfoCircle size={16}/>}>
-          <Group justify="space-between"><Text size="sm">Pi Chat</Text><Text size="sm" ff="monospace">{state === "release" ? "v0.3.0" : "dev · 64bbf14"}</Text></Group>
+          <Group justify="space-between"><Text size="sm">Pi Chat</Text><Text size="sm" ff="monospace">{state === "release" ? "v0.3.0" : "dev"}</Text></Group>
           <Group justify="space-between"><Text size="sm">Pi Server</Text><Text size="sm" ff="monospace">{disconnected ? "Unavailable" : "0.2.0"}</Text></Group>
           <Group justify="space-between"><Text size="sm">Pi SDK</Text><Text size="sm" ff="monospace">0.2.0</Text></Group>
         </Section>

@@ -19,6 +19,7 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         state={{ ...initialChatState, sessionName: "Pi-generated title", extensions }}
         busy={false}
         serverSettings={null}
+        versions={<div role="group" aria-label="Versions">Versions</div>}
         setThinkingLevel={noop}
         setModel={noop}
         compactSession={noop}
@@ -108,6 +109,7 @@ describe("SettingsDrawer groups", () => {
     expect(session.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(features.compareDocumentPosition(screen.getByText("Extensions")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("Extensions").compareDocumentPosition(backend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(backend.compareDocumentPosition(screen.getByRole("group", { name: "Versions" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(compactSession).toHaveBeenCalledOnce();
     expect(restartServer).toHaveBeenCalledOnce();
     expect(screen.queryByText("Summarize older context to free up space.")).toBeNull();

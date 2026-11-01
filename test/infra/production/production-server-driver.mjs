@@ -39,7 +39,9 @@ export class ProductionServerDriver {
     try {
       await mkdir(join(directory, 'tmp')); await mkdir(join(directory, 'project'));
       await symlink(resolve('dist'), join(directory, 'dist'), 'dir');
-      await writeFile(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module', scripts: { build: 'node build.mjs' } }));
+      await writeFile(join(directory, 'package.json'), JSON.stringify({ name: 'isolated-chat-host', private: true, type: 'module', scripts: { build: 'node build.mjs' } }));
+      // Restart runs real npm ci in this isolated, dependency-free host directory.
+      await writeFile(join(directory, 'package-lock.json'), JSON.stringify({ name: 'isolated-chat-host', lockfileVersion: 3, requires: true, packages: { '': { name: 'isolated-chat-host' } } }));
       // Only the failure switch is synthetic. Successful builds execute Chat's real build command.
       await writeFile(join(directory, 'build.mjs'), `import { existsSync, appendFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -68,6 +70,10 @@ execFileSync(process.execPath, [${JSON.stringify(resolveNpmCli())}, 'run', 'buil
     await until('isolated production health', () => this.healthy());
     const response = await fetch(`http://127.0.0.1:${this.port}/`);
     assert.equal(response.status, 200); assert.match(await response.text(), /<div id="root"><\/div>/);
+    const versionResponse = await fetch(`http://127.0.0.1:${this.port}/api/pi-chat/version`);
+    const installed = JSON.parse(await readFile(new URL('../../../node_modules/@manuelselch/pi-server/package.json', import.meta.url), 'utf8'));
+    assert.equal(versionResponse.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await versionResponse.json(), { server: installed.version });
     const record = await this.pid();
     assert.equal(record.port, this.port); assert.equal(record.cwd, join(this.directory, 'project'));
     assert.equal(record.restartSignal, 'SIGUSR2');

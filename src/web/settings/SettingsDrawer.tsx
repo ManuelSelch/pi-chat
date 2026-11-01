@@ -15,6 +15,7 @@ interface SettingsDrawerProps {
   state: ChatState;
   busy: boolean;
   serverSettings: ReactNode;
+  versions: ReactNode;
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
@@ -34,7 +35,7 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -142,6 +143,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, s
             </Stack>
           </div>
         </Panel>
+        {versions}
       </Stack>
     </Drawer>
   );

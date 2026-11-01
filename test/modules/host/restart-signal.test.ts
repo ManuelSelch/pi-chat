@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("node:fs", () => ({ writeFileSync: mocks.write, renameSync: mocks.rename }));
 vi.mock("../../../src/host/restart-service.js", () => ({ createRestartService: mocks.createRestart }));
+vi.mock("../../../src/host/version-route.js", () => ({ installVersionRoute: vi.fn() }));
+vi.mock("../../../src/shared/node/package-version.js", () => ({ packageVersion: () => "0.2.0" }));
 vi.mock("@manuelselch/pi-server", () => ({
   createFileLogger: () => mocks.logger,
   createPiServer: () => ({
