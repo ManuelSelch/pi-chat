@@ -56,7 +56,8 @@ creating a session keeps navigation open. Real dialogs still take focus.
 tabs with the Inbox and is on by default. Explicit browser preferences are preserved.
 The same group contains chimes, folder paths, archived-session visibility and
 **Compact transcript**, which is on by default; explicitly stored choices are
-preserved. **Needs you** contains blocked
+preserved. In compact mode, transcript notices use minimal severity-colored lines
+while preserving their full text. **Needs you** contains blocked
 questions/approvals. **Ready** includes all unarchived idle conversations except
 those in Later, including saved history after a server restart. Selecting an
 unloaded conversation opens it; history is never reopened automatically.

@@ -26,7 +26,14 @@ html::-webkit-scrollbar {
   overflow-wrap: anywhere;
   color: var(--mantine-color-text);
 }
-/* Notices sit inside a compact alert, so their blocks stay tight. */
+/* Compact transcript notices keep severity visible without an alert panel. */
+.compact-notice { display: flex; align-items: flex-start; gap: 7px; }
+.compact-notice svg { flex: none; margin-top: 2px; }
+.compact-notice[data-level="info"] { color: var(--mantine-color-teal-6); }
+.compact-notice[data-level="warning"] { color: var(--mantine-color-yellow-6); }
+.compact-notice[data-level="error"] { color: var(--mantine-color-red-6); }
+.compact-notice .markdown-notice { color: inherit; min-width: 0; }
+/* Notice text preserves command output whitespace in both densities. */
 .markdown-notice { font-size: 14px; line-height: 1.5; }
 .markdown.markdown-notice pre {
   margin: 0;

@@ -21,6 +21,13 @@ const MessageRow = memo(function MessageRow({ message, onLocalLink, compact }: {
   if (message.role === "bash") return <BashCard bash={message.bash} />;
 
   if (message.role === "notice") {
+    if (compact) return (
+      <div className="compact-notice" data-level={message.level}>
+        {message.level === "info" ? <IconInfoCircle size={15} /> : <IconAlertTriangle size={15} />}
+        <div className="markdown markdown-notice"><pre>{message.text}</pre></div>
+      </div>
+    );
+
     return (
       <Notice
         tone={message.level === "error" ? "danger" : message.level === "warning" ? "warning" : "info"}
