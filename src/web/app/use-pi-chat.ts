@@ -84,7 +84,7 @@ export function usePiChat() {
   return {
     app, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox,
     closeView: () => {
-      if (session.status === "idle" && !session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice")) closeTab(app.activeSessionId);
+      if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });
     }, browseDirectories, startFolderSession, completeCommandArguments,
     openFile, archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,

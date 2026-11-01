@@ -91,28 +91,12 @@ test("keeps consecutive extension prompts focused before restoring the composer"
   await app.Focus.ShouldHaveDraft("After both questions");
 });
 
-for (const cancel of ["Escape", "Keep open"] as const) {
-  test(`restores steering focus after cancelling close with ${cancel}`, async () => {
-    const tab = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
-    await app.Chat.SendPrompt("Start working");
-    await app.Chat.ShouldBeSteering();
-    await app.Tabs.RequestClose(tab);
-    await app.Focus.ShouldBeInsideDialog("Close running session?");
-    await app.Focus.DismissDialog("Close running session?", cancel);
-    await app.Chat.ShouldBeSteering();
-    await app.Focus.TypeWithoutRefocusing("Keep this run open");
-    await app.Focus.ShouldHaveDraft("Keep this run open");
-  });
-}
-
 test("returns Home after closing a running session and focuses the remaining conversation on explicit selection", async () => {
   const remaining = await app.Tabs.Create({ responses: [] });
   const running = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.Chat.SendPrompt("Start working");
   await app.Chat.ShouldBeSteering();
   await app.Tabs.RequestClose(running);
-  await app.Focus.ShouldBeInsideDialog("Close running session?");
-  await app.Focus.AcceptCloseRunningSession();
 
   await app.Home.ShouldBeVisible();
   await app.Tabs.ShouldHaveCount(1);
@@ -122,13 +106,11 @@ test("returns Home after closing a running session and focuses the remaining con
   await app.Focus.ShouldHaveDraft("Remaining conversation draft");
 });
 
-test("returns Home after accepting close of the last running session", async () => {
+test("closes the last running session immediately from its tab button", async () => {
   const tab = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.Chat.SendPrompt("Start working");
   await app.Chat.ShouldBeSteering();
   await app.Tabs.RequestClose(tab);
-  await app.Focus.ShouldBeInsideDialog("Close running session?");
-  await app.Focus.AcceptCloseRunningSession();
   await app.Home.ShouldBeVisible();
 });
 

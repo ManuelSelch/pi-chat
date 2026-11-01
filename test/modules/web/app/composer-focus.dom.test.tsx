@@ -397,26 +397,21 @@ describe("composer focus across real app overlays", () => {
     expect([composer().selectionStart, composer().selectionEnd]).toEqual([5, 9]);
   });
 
-  it("restores steering focus after cancelling a running-session close", async () => {
+  it("closes a running session immediately from its tab button", async () => {
     controller.app.tabs = [tab("s1", "running")];
     controller.state = { ...controller.state, status: "running" };
     mount();
     click(screen.getByRole("button", { name: "Close s1" }));
-    await finishTransitions();
-    expectDialogFocus("Close running session?");
-    click(within(dialog("Close running session?")).getByRole("button", { name: "Keep open" }));
-    await finishTransitions();
-    expect(controller.closeTab).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(composer());
+    expect(controller.closeTab).toHaveBeenCalledWith("s1");
+    expect(screen.queryByRole("dialog", { name: "Close running session?" })).toBeNull();
   });
 
-  it("restores the remaining session after confirming a running-session close", async () => {
+  it("restores the remaining session after closing a running session", async () => {
     controller.app.tabs = [tab("s2"), tab("s1", "running")];
     controller.state = { ...controller.state, status: "running" };
     mount();
     click(screen.getByRole("button", { name: "Close s1" }));
     await finishTransitions();
-    click(within(dialog("Close running session?")).getByRole("button", { name: "Stop and close" }));
     expect(controller.closeTab).toHaveBeenCalledWith("s1");
     // The authoritative tab reply arrives while the dialog is exiting.
     controller.app.activeSessionId = "s2";

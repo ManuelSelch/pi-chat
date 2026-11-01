@@ -129,7 +129,7 @@ test("archiving a parked conversation removes it from Later without an archive n
   await app.Inbox.shouldHaveNoArchiveNotice();
 });
 
-test("does not park an unsaved session and discards its empty runtime on close", async () => {
+test("does not park an unsaved session and removes an empty runtime from the session panel on close", async () => {
   await app.Tabs.Create({ responses: [] });
   await app.Inbox.setEnabled(true);
   await app.Focus.TypeWithoutRefocusing("Unsaved conversation draft");

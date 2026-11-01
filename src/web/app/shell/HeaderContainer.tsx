@@ -45,7 +45,7 @@ export function HeaderContainer() {
       onOpenSettings={() => overlays.open("settings")}
       onAction={chat.runExtensionAction}
       onFocusTab={chat.focusTab}
-      onCloseTab={(tab) => (tab.status === "idle" ? chat.closeTab(tab.sessionId) : overlays.requestCloseTab(tab))}
+      onCloseTab={(tab) => chat.closeTab(tab.sessionId)}
       onNewSession={() => chat.newSession(state.projectPath || undefined)}
     />
   );

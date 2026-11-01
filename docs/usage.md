@@ -19,7 +19,8 @@ Session actions are available from the ⌘K menu, the Quick Switcher `/` scope, 
 typed exactly as `/close`, `/later`, or `/archive`:
 
 - **Close Session** closes the current session's runtime; it is always available
-  and closes immediately, including while the session is running.
+  and closes immediately, including while the session is running. The tab close
+  button uses the same immediate close behavior.
 - **Later** parks a saved, idle conversation into Later (Inbox mode only).
 - **Archive Session** archives the current idle session without deleting its
   transcript. Archived sessions remain available under **Archived** in Projects,
@@ -28,6 +29,10 @@ typed exactly as `/close`, `/later`, or `/archive`:
 Later and Archive Session stay listed while a session is running, blocked or
 unsaved but are disabled until it becomes an idle saved conversation. There is no
 delete-session command or custom rename action; titles come from Pi.
+
+In Inbox mode, the header close button returns to Home and automatically closes
+an empty session runtime; non-empty sessions remain available in the session
+panel.
 
 Projects keeps Quick Chats separate from repository groups. Pinned projects
 come before recent projects, whose order uses latest unarchived conversation
