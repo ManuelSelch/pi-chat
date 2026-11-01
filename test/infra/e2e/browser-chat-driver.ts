@@ -14,16 +14,16 @@ export class BrowserChatDriver {
     await expect(this.composer).toHaveValue(text);
   }
 
-  async SendPrompt(text: string): Promise<void> {
+  async sendPrompt(text: string): Promise<void> {
     await this.composer.fill(text);
     await this.composer.press("Enter");
   }
 
-  async ShouldBeSteering(): Promise<void> {
+  async shouldBeSteering(): Promise<void> {
     await expect(this.composer).toHaveAttribute("placeholder", "Steer Pi…");
   }
 
-  async ShouldHaveQueuedSteering(messages: readonly string[]): Promise<void> {
+  async shouldHaveQueuedSteering(messages: readonly string[]): Promise<void> {
     const panel = this.page.getByRole("region", { name: "Queued steering" });
     await expect(panel.getByRole("listitem")).toHaveText([...messages]);
     // The approved panel has no internal scroll area or keyboard helper text.
@@ -33,19 +33,19 @@ export class BrowserChatDriver {
     await expect(this.composer).toHaveValue("");
   }
 
-  async ShouldShowAssistantReply(text: string): Promise<void> {
+  async shouldShowAssistantReply(text: string): Promise<void> {
     await expect(this.page.getByRole("main").getByText(text, { exact: true })).toBeVisible();
   }
 
-  async ShouldShowUserMessage(text: string): Promise<void> {
+  async shouldShowUserMessage(text: string): Promise<void> {
     await expect(this.page.getByRole("main").getByText(text, { exact: true })).toBeVisible();
   }
 
-  async ShouldNotShowMessage(text: string): Promise<void> {
+  async shouldNotShowMessage(text: string): Promise<void> {
     await expect(this.page.getByRole("main").getByText(text, { exact: true })).not.toBeVisible();
   }
 
-  async ShouldBeIdle(): Promise<void> {
+  async shouldBeIdle(): Promise<void> {
     await expect(this.page.locator("form").filter({ has: this.composer })).not.toHaveAttribute("aria-busy", "true");
   }
 }

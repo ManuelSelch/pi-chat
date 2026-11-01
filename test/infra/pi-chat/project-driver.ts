@@ -6,12 +6,12 @@ import { check, type DriverContext } from "./driver-context.js";
 export class ProjectDriver {
   constructor(private readonly context: DriverContext) {}
 
-  async Browse(path = this.context.projectPath): Promise<DirectoryListing> {
+  async browse(path = this.context.projectPath): Promise<DirectoryListing> {
     const { client } = this.context;
     return client.sdk.browseDirectories({ path });
   }
 
-  async Open(path = this.context.projectPath): Promise<void> {
+  async open(path = this.context.projectPath): Promise<void> {
     const { client } = this.context;
     let release!: () => void;
     check(this.context, "Projects.Open", () => { release = this.context.reserveSession([]); });
@@ -23,14 +23,14 @@ export class ProjectDriver {
     }
   }
 
-  ShouldRemainAtHome(): void {
+  shouldRemainAtHome(): void {
     check(this.context, "Projects.ShouldRemainAtHome", () => {
       assert.equal(this.context.client.appState.activeSessionId, "");
       assert.equal(this.context.client.appState.tabs.length, 0);
     });
   }
 
-  ShouldBeOpen(path = this.context.projectPath): void {
+  shouldBeOpen(path = this.context.projectPath): void {
     check(this.context, "Projects.ShouldBeOpen", () => {
       const active = this.context.client.appState.activeSessionId;
       assert(active, "Expected an open project session");

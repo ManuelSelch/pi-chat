@@ -16,21 +16,21 @@ describe("Pi Chat active-turn reconnect workflows", () => {
     });
     apps.push(app);
 
-    await app.Chat.SendPrompt("Continue working");
-    await app.Chat.WaitUntilStreaming();
+    await app.chat.sendPrompt("Continue working");
+    await app.chat.waitUntilStreaming();
 
-    await app.Browser.Reconnect();
+    await app.browser.reconnect();
 
-    app.Browser.ShouldBeUsable();
-    app.Chat.ShouldContainMessages([
+    app.browser.shouldBeUsable();
+    app.chat.shouldContainMessages([
       { role: "user", text: "Continue working" },
     ]);
 
-    app.Chat.ReleaseControlledResponse();
-    await app.Chat.WaitUntilIdle();
+    app.chat.releaseControlledResponse();
+    await app.chat.waitUntilIdle();
 
-    app.Chat.ShouldHaveAssistantReply("Finished after reconnect.");
-    app.Chat.ShouldHaveMessageCount(2);
-    app.Chat.ShouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveAssistantReply("Finished after reconnect.");
+    app.chat.shouldHaveMessageCount(2);
+    app.chat.shouldHaveNoDuplicateMessages();
   }, 15000);
 });

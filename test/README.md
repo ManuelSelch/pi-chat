@@ -14,7 +14,7 @@ behavior changes; changed/removed assertions or weakened driver semantics requir
 renewed approval. Missing scaffolded methods must throw, not silently pass.
 Scenarios use real Pi sessions and WebSocket transport, not a rendered browser. They embed the installed server through its public API; server-internal suites now live in the independent `pi-server` repository. Chat retains `modules/host` build/environment/extension identity tests. Swift SDK unit and real-server integration tests belong to [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift/tree/main/integration), not this repository. `infra-tests/loopback-fixture.test.ts` retains plain-Node package safety checks for the public fixture (private workspace, rejected caller paths, and cleanup-file/symlink overwrite protection), without Swift sources or toolchain requirements. `npm run test:production-smoke` exercises the real extension launcher and successful/failed build-before-restart lifecycle in isolated storage/ports.
 
-`e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and skill steering during streaming (including reconnect). `e2e/chat.spec.ts` also verifies that `!` / `!!` remain blocked during steering. `app.Tabs.Create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.Skills`.
+`e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and skill steering during streaming (including reconnect). `e2e/chat.spec.ts` also verifies that `!` / `!!` remain blocked during steering. `app.tabs.create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.skills`.
 
 ## E2E coverage
 
@@ -72,6 +72,8 @@ change in question; historical counts/logs are not current verification.
 ## Run
 
 ```sh
+npm run lint                     # TypeScript naming conventions
+npm run test:tooling             # Linter rule regression tests
 npm test                         # All tests
 npm test -- test/modules         # Module tests
 npm test -- test/scenarios       # User workflows

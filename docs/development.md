@@ -36,11 +36,21 @@ use that entry. See [Configuration](configuration.md) for environment variables.
 ## Verification
 
 ```sh
+npm run lint
+npm run test:tooling
 npm test
 npx tsc --noEmit
 npm run test:e2e
 npm run test:production-smoke
 ```
+
+ESLint checks TypeScript naming in `src/`, `test/`, `extension/` and Vite config:
+methods and properties use camelCase, with exceptions for external wire keys,
+quoted non-identifiers, static constants and React component identifiers. Variables
+also allow PascalCase for React and UPPER_CASE constants. Tooling tests verify the
+rules. TypeScript 7 (`@typescript/native`) remains the compiler; the `typescript`
+package aliases TypeScript 6 for typescript-eslint's compiler API compatibility.
+The local pipeline and GitHub Actions run lint and its regression tests.
 
 Browser tests require Chromium (`npx playwright install chromium`). Tests are
 grouped under `test/modules/` (production modules), `test/scenarios/` (user
@@ -86,7 +96,7 @@ can rebuild and replace assets while another browser run is serving them.
 
 ### CI and static analysis
 
-[Tests workflow](../.github/workflows/tests.yml) builds on Node 24, runs isolated
+[Tests workflow](../.github/workflows/tests.yml) runs lint on Node 24, builds, runs isolated
 production lifecycle smoke and uploads assets. Unit tests produce Vitest LCOV;
 E2E depends on the build, downloads those assets and produces browser/worker
 LCOV. Only E2E runs in the official Playwright container; keep its image version

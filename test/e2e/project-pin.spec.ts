@@ -12,30 +12,30 @@ test.afterEach(async () => {
 });
 
 test("pins and unpins a project through the visible panel and persists both after reload", async () => {
-  await app.Tabs.Create({ responses: [{ prompt: "A project to pin", reply: "Ready to pin" }] });
-  await app.Chat.SendPrompt("A project to pin");
-  await app.Chat.ShouldShowAssistantReply("Ready to pin");
-  await app.Chat.ShouldBeIdle();
+  await app.tabs.create({ responses: [{ prompt: "A project to pin", reply: "Ready to pin" }] });
+  await app.chat.sendPrompt("A project to pin");
+  await app.chat.shouldShowAssistantReply("Ready to pin");
+  await app.chat.shouldBeIdle();
 
-  await app.Projects.Open();
-  await app.Projects.ShouldBeUnpinned();
-  await app.Projects.Pin();
-  await app.Projects.ShouldBePinned();
-  await app.Projects.ShouldShowActiveSession("A project to pin");
-  await app.Projects.Close();
+  await app.projects.open();
+  await app.projects.shouldBeUnpinned();
+  await app.projects.pin();
+  await app.projects.shouldBePinned();
+  await app.projects.shouldShowActiveSession("A project to pin");
+  await app.projects.close();
 
-  await app.Browser.Reload();
+  await app.browser.reload();
 
-  await app.Projects.Open();
-  await app.Projects.ShouldBePinned();
-  await app.Projects.Unpin();
-  await app.Projects.ShouldBeUnpinned();
-  await app.Projects.ShouldShowActiveSession("A project to pin");
-  await app.Projects.Close();
+  await app.projects.open();
+  await app.projects.shouldBePinned();
+  await app.projects.unpin();
+  await app.projects.shouldBeUnpinned();
+  await app.projects.shouldShowActiveSession("A project to pin");
+  await app.projects.close();
 
-  await app.Browser.Reload();
+  await app.browser.reload();
 
-  await app.Projects.Open();
-  await app.Projects.ShouldBeUnpinned();
-  await app.Projects.ShouldShowActiveSession("A project to pin");
+  await app.projects.open();
+  await app.projects.shouldBeUnpinned();
+  await app.projects.shouldShowActiveSession("A project to pin");
 });

@@ -12,13 +12,13 @@ test.afterEach(async () => {
 });
 
 test("restores the visible conversation after a browser reload", async () => {
-  await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Welcome back" }] });
-  await app.Chat.SendPrompt("Hello");
-  await app.Chat.ShouldShowAssistantReply("Welcome back");
+  await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Welcome back" }] });
+  await app.chat.sendPrompt("Hello");
+  await app.chat.shouldShowAssistantReply("Welcome back");
 
-  await app.Browser.Reload();
+  await app.browser.reload();
 
-  await app.Chat.ShouldShowUserMessage("Hello");
-  await app.Chat.ShouldShowAssistantReply("Welcome back");
-  await app.Chat.ShouldBeIdle();
+  await app.chat.shouldShowUserMessage("Hello");
+  await app.chat.shouldShowAssistantReply("Welcome back");
+  await app.chat.shouldBeIdle();
 });

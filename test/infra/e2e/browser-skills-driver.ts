@@ -14,57 +14,57 @@ export class BrowserSkillsDriver {
     return this.page.getByRole("option").filter({ hasText: `/skill:${name}` });
   }
 
-  async Type(text: string): Promise<void> { await this.composer.fill(text); }
-  async ShouldHaveDraft(text: string): Promise<void> { await expect(this.composer).toHaveValue(text); }
-  async ShouldOffer(name: string): Promise<void> {
+  async type(text: string): Promise<void> { await this.composer.fill(text); }
+  async shouldHaveDraft(text: string): Promise<void> { await expect(this.composer).toHaveValue(text); }
+  async shouldOffer(name: string): Promise<void> {
     const option = this.option(name);
     await expect(option).toBeVisible();
     await expect(option).toContainText(`${name} browser fixture`);
     await expect(option.locator(".mantine-Badge-root")).toHaveText("skill");
   }
-  async ShouldNotOffer(name: string): Promise<void> { await expect(this.option(name)).toHaveCount(0); }
+  async shouldNotOffer(name: string): Promise<void> { await expect(this.option(name)).toHaveCount(0); }
 
-  async Select(name: string, via: "Enter" | "Tab" | "mouse" = "Enter"): Promise<void> {
-    await this.Type(`/skill:${name}`);
-    await this.ShouldOffer(name);
+  async select(name: string, via: "Enter" | "Tab" | "mouse" = "Enter"): Promise<void> {
+    await this.type(`/skill:${name}`);
+    await this.shouldOffer(name);
     if (via === "mouse") await this.option(name).click();
     else await this.composer.press(via);
-    await this.ShouldHaveDraft(`/skill:${name} `);
+    await this.shouldHaveDraft(`/skill:${name} `);
   }
-  async SubmitTask(task = ""): Promise<void> {
+  async submitTask(task = ""): Promise<void> {
     await this.composer.fill(await this.composer.inputValue() + task);
     await this.composer.press("Enter");
   }
-  async DismissMenu(): Promise<void> {
+  async dismissMenu(): Promise<void> {
     await this.composer.press("Escape");
     await expect(this.page.getByRole("listbox", { name: "Commands" })).toHaveCount(0);
   }
-  async ShouldHaveQueuedInvocation(name: string, instructions: string, task: string): Promise<void> {
+  async shouldHaveQueuedInvocation(name: string, instructions: string, task: string): Promise<void> {
     const panel = this.page.getByRole("region", { name: "Queued steering" });
     await expect(panel.getByRole("listitem")).toHaveCount(1);
     await expect(panel).toContainText(`<skill name="${name}"`);
     await expect(panel).toContainText(instructions);
     await expect(panel).toContainText(task);
-    await this.ShouldHaveDraft("");
+    await this.shouldHaveDraft("");
   }
-  async ShouldHaveNoInvocations(): Promise<void> {
+  async shouldHaveNoInvocations(): Promise<void> {
     await expect(this.page.getByTestId("skill-invocation")).toHaveCount(0);
   }
-  async ShouldHaveInvocation(name: string): Promise<void> {
+  async shouldHaveInvocation(name: string): Promise<void> {
     const card = this.page.getByTestId("skill-invocation");
     await expect(card).toHaveCount(1);
     await expect(card.locator("summary")).toHaveText(`[skill] ${name}`);
     await expect(card).not.toHaveAttribute("open");
     await expect(card.getByRole("heading")).toHaveCount(0);
   }
-  async ExpandInvocation(name: string, instructions: string): Promise<void> {
+  async expandInvocation(name: string, instructions: string): Promise<void> {
     const card = this.page.getByTestId("skill-invocation");
     await card.locator("summary").click();
     await expect(card).toHaveAttribute("open");
     await expect(card).toContainText(instructions);
     await expect(card).toContainText(`/skills/${name}/SKILL.md`);
   }
-  async ShouldHaveRead(name: string, instructions: string): Promise<void> {
+  async shouldHaveRead(name: string, instructions: string): Promise<void> {
     // Compact transcript is the default, so tool cards render inside a collapsed
     // "Used …" group; expand it before interacting with the inner card.
     const group = this.page.getByTestId("tool-group");
@@ -79,11 +79,11 @@ export class BrowserSkillsDriver {
     await expect(card).toContainText(`/skills/${name}/SKILL.md`);
     await expect(card).toContainText(instructions);
   }
-  async ShouldNotRequestArguments(): Promise<void> { expect(this.argumentRequests).toBe(0); }
-  async ReloadResources(): Promise<void> {
-    await this.Type("/reload ");
+  async shouldNotRequestArguments(): Promise<void> { expect(this.argumentRequests).toBe(0); }
+  async reloadResources(): Promise<void> {
+    await this.type("/reload ");
     await this.composer.press("Enter");
     await expect(this.page.getByText("Session reloaded: extensions, commands, and settings were read again.", { exact: true })).toBeVisible();
   }
-  async AttemptSubmit(): Promise<void> { await this.composer.press("Enter"); }
+  async attemptSubmit(): Promise<void> { await this.composer.press("Enter"); }
 }

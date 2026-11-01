@@ -5,34 +5,34 @@ export class BrowserPromptsDriver {
   constructor(private readonly page: Page) {}
   private dialog(title: string) { return this.page.getByRole("dialog", { name: title, exact: true }); }
 
-  async FilterModels(query: string): Promise<void> {
+  async filterModels(query: string): Promise<void> {
     await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).fill(query);
   }
-  async ToggleModelScope(): Promise<void> {
+  async toggleModelScope(): Promise<void> {
     await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Tab");
   }
-  async ShouldHaveModelScope(scope: "Scoped" | "All models", query = ""): Promise<void> {
+  async shouldHaveModelScope(scope: "Scoped" | "All models", query = ""): Promise<void> {
     const dialog = this.dialog("Select a model");
     await expect(dialog.getByRole("radio", { name: scope, exact: true })).toBeChecked();
     await expect(dialog.getByRole("textbox", { name: "Filter options" })).toHaveValue(query);
     await expect(dialog.getByRole("textbox", { name: "Filter options" })).toBeFocused();
   }
-  async ShouldOfferModels(ids: string[]): Promise<void> {
+  async shouldOfferModels(ids: string[]): Promise<void> {
     await expect(this.dialog("Select a model").getByRole("option")).toHaveText(ids.map(id => new RegExp(`/${id}$`)));
   }
-  async ChooseFilteredModel(): Promise<void> {
+  async chooseFilteredModel(): Promise<void> {
     await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Enter");
     await expect(this.dialog("Select a model")).not.toBeVisible();
   }
-  async CancelModels(): Promise<void> {
+  async cancelModels(): Promise<void> {
     await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Escape");
     await expect(this.dialog("Select a model")).not.toBeVisible();
   }
-  async ShouldUseModel(id: string): Promise<void> {
+  async shouldUseModel(id: string): Promise<void> {
     await expect(this.page.getByRole("contentinfo").getByText(new RegExp(`/${id}$`))).toBeVisible();
   }
 
-  async ShouldShowRichQuestion(title: string): Promise<void> {
+  async shouldShowRichQuestion(title: string): Promise<void> {
     const dialog = this.dialog(title);
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("strong")).toHaveText("Powers");
@@ -41,53 +41,53 @@ export class BrowserPromptsDriver {
     await expect(dialog.locator("img, script")).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: "Continue to reasoning" })).toBeDisabled();
   }
-  async Choose(title: string, choice: string): Promise<void> {
+  async choose(title: string, choice: string): Promise<void> {
     await this.dialog(title).getByRole("radio", { name: choice, exact: true }).click();
     await expect(this.dialog(title)).toBeVisible();
   }
-  async ShouldHaveChoice(title: string, choice: string): Promise<void> {
+  async shouldHaveChoice(title: string, choice: string): Promise<void> {
     await expect(this.dialog(title).getByRole("radio", { name: choice, exact: true })).toBeChecked();
   }
-  async Continue(title: string): Promise<void> {
+  async continue(title: string): Promise<void> {
     await this.dialog(title).getByRole("button", { name: "Continue to reasoning" }).click();
   }
-  async Minimize(title: string): Promise<void> {
+  async minimize(title: string): Promise<void> {
     await this.dialog(title).getByRole("button", { name: "Minimize", exact: true }).click();
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
     await expect(this.page.getByRole("region", { name: "Pending question" })).toBeVisible();
     await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeDisabled();
     await expect(this.page.getByRole("button", { name: "Reopen", exact: true })).toBeFocused();
   }
-  async Stop(): Promise<void> {
+  async stop(): Promise<void> {
     await this.page.getByRole("button", { name: "Stop", exact: true }).click();
     await expect(this.page.getByRole("region", { name: "Pending question" })).not.toBeVisible();
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
   }
-  async Reopen(title: string): Promise<void> {
+  async reopen(title: string): Promise<void> {
     await this.page.getByRole("button", { name: "Reopen", exact: true }).click();
     await expect(this.dialog(title)).toBeVisible();
   }
-  async Explain(title: string, reasoning: string): Promise<void> {
+  async explain(title: string, reasoning: string): Promise<void> {
     await this.dialog(title).getByRole("textbox").fill(reasoning);
   }
-  async ShouldHaveReasoning(title: string, reasoning: string): Promise<void> {
+  async shouldHaveReasoning(title: string, reasoning: string): Promise<void> {
     await expect(this.dialog(title).getByRole("textbox")).toHaveValue(reasoning);
     await expect(this.dialog(title).getByRole("textbox")).toBeFocused();
   }
-  async SubmitReasoning(title: string): Promise<void> {
+  async submitReasoning(title: string): Promise<void> {
     await this.dialog(title).getByRole("button", { name: "Submit answer" }).click();
   }
-  async ReadFeedback(check: number): Promise<void> {
+  async readFeedback(check: number): Promise<void> {
     const feedback = this.page.getByText(`Feedback ${check}: vary the next example and explain why.`, { exact: true });
     await feedback.scrollIntoViewIfNeeded();
     await expect(feedback).toBeVisible();
     await this.page.keyboard.press("Escape");
     await expect(this.page.getByRole("region", { name: "Pending question" })).toBeVisible();
   }
-  async ShouldFitViewport(): Promise<void> {
+  async shouldFitViewport(): Promise<void> {
     expect(await this.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
-  async ShouldShowLiteralMenu(): Promise<void> {
+  async shouldShowLiteralMenu(): Promise<void> {
     const dialog = this.dialog("**Literal menu**");
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("strong")).toHaveCount(0);

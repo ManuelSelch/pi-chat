@@ -12,22 +12,22 @@ describe("Pi Chat project workflows", () => {
     const app = await PiChatDriver.start({ startAtHome: true });
     apps.push(app);
 
-    const listing = await app.Projects.Browse();
+    const listing = await app.projects.browse();
 
     expect(listing.path).toMatch(/pi-chat-driver-/);
     expect(listing.entries).toEqual([]);
-    app.Projects.ShouldRemainAtHome();
+    app.projects.shouldRemainAtHome();
   });
 
   it("opens a valid folder from home through the Projects driver", async () => {
     const app = await PiChatDriver.start({ startAtHome: true });
     apps.push(app);
 
-    await app.Projects.Open();
+    await app.projects.open();
 
-    app.Projects.ShouldBeOpen();
-    app.Tabs.ShouldHaveCount(1);
-    app.Browser.ShouldBeUsable();
+    app.projects.shouldBeOpen();
+    app.tabs.shouldHaveCount(1);
+    app.browser.shouldBeUsable();
   });
 
   it("reports an invalid folder without leaving home", async () => {
@@ -35,14 +35,14 @@ describe("Pi Chat project workflows", () => {
     apps.push(app);
 
     await expect(
-      app.Projects.Browse("/definitely/missing/pi-chat-project"),
+      app.projects.browse("/definitely/missing/pi-chat-project"),
     ).rejects.toThrow(/not found|no such file/i);
 
     await expect(
-      app.Projects.Open("/definitely/missing/pi-chat-project"),
+      app.projects.open("/definitely/missing/pi-chat-project"),
     ).rejects.toThrow(/not found|no such file/i);
 
-    app.Projects.ShouldRemainAtHome();
+    app.projects.shouldRemainAtHome();
   });
 
   it("does not change the active project when a second folder cannot be opened", async () => {
@@ -50,10 +50,10 @@ describe("Pi Chat project workflows", () => {
     apps.push(app);
 
     await expect(
-      app.Projects.Open("/definitely/missing/pi-chat-project"),
+      app.projects.open("/definitely/missing/pi-chat-project"),
     ).rejects.toThrow();
 
-    app.Projects.ShouldBeOpen();
-    app.Tabs.ShouldHaveCount(1);
+    app.projects.shouldBeOpen();
+    app.tabs.shouldHaveCount(1);
   });
 });

@@ -26,7 +26,9 @@
     "coverage:e2e:report": "node scripts/report-playwright-coverage.mjs",
     "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
     "capture:readme": "tsx scripts/capture-readme.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint src test extension vite.config.ts --max-warnings 0",
+    "test:tooling": "node --test test/tooling/*.check.mjs"
   },
   "engines": {
     "node": ">=22.19"
@@ -43,6 +45,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
     "fancy-ansi": "0.2.2",
@@ -60,7 +63,6 @@
     "remark-math": "^6.0.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.0",
     "ws": "^8.21.3"
@@ -72,7 +74,10 @@
     "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc",
     "@playwright/test": "^1.63.0",
     "@vitest/coverage-v8": "5.0.0",
-    "monocart-coverage-reports": "^3.0.0"
+    "eslint": "^9.39.5",
+    "monocart-coverage-reports": "^3.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.1"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"

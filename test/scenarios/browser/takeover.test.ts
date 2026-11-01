@@ -14,17 +14,17 @@ describe("Pi Chat controller workflows", () => {
     });
     apps.push(app);
 
-    await app.Chat.SendPrompt("Remember this");
-    await app.Chat.WaitUntilIdle();
+    await app.chat.sendPrompt("Remember this");
+    await app.chat.waitUntilIdle();
 
-    await app.Browser.TakeControl();
+    await app.browser.takeControl();
 
-    app.Browser.ShouldBeUsable();
-    app.Chat.ShouldContainMessages([
+    app.browser.shouldBeUsable();
+    app.chat.shouldContainMessages([
       { role: "user", text: "Remember this" },
       { role: "assistant", text: "Still here." },
     ]);
-    app.Chat.ShouldHaveMessageCount(2);
-    app.Chat.ShouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveMessageCount(2);
+    app.chat.shouldHaveNoDuplicateMessages();
   });
 });

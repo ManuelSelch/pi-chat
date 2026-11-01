@@ -26,18 +26,18 @@ it("retains the conversation after reconnect", async () => {
     responses: [{ prompt: "Hello", reply: "Hello from Pi Chat." }],
   });
 
-  await app.Chat.SendPrompt("Hello");
-  await app.Chat.WaitUntilIdle();
-  await app.Browser.Reconnect();
+  await app.chat.sendPrompt("Hello");
+  await app.chat.waitUntilIdle();
+  await app.browser.reconnect();
 
-  app.Browser.ShouldBeUsable();
-  app.Chat.ShouldContainMessages([
+  app.browser.shouldBeUsable();
+  app.chat.shouldContainMessages([
     { role: "user", text: "Hello" },
     { role: "assistant", text: "Hello from Pi Chat." },
   ]);
-  app.Chat.ShouldHaveMessageCount(2);
-  app.Chat.ShouldHaveNoDuplicateMessages();
-  app.Chat.ShouldHaveConsumedResponses();
+  app.chat.shouldHaveMessageCount(2);
+  app.chat.shouldHaveNoDuplicateMessages();
+  app.chat.shouldHaveConsumedResponses();
 });
 ```
 
@@ -59,19 +59,19 @@ readable. Consuming a scripted response alone does not prove it reached a client
 
 - `start({ startAtHome: true })` starts with no conversation. Otherwise one
   conversation is created. Supply each new session's response script through
-  `Tabs.Create({ responses })`, not shared global state.
-- `SendPrompt` validates the next script and waits for a fresh consumed user
-  message, not just admission. `WaitUntilIdle` checks fresh settlement on the
+  `tabs.create({ responses })`, not shared global state.
+- `sendPrompt` validates the next script and waits for a fresh consumed user
+  message, not just admission. `waitUntilIdle` checks fresh settlement on the
   same connection, or authoritative current state after reconnect.
-- `ShouldContainMessages` is ordered containment, not equality. Pair with exact
+- `shouldContainMessages` is ordered containment, not equality. Pair with exact
   count and duplicate checks where the contract requires an exact transcript.
 - `{ hold: true }` provides deterministic control of a model response. Use
-  `WaitUntilStreaming` and `ReleaseControlledResponse`, not timing-only sleeps.
+  `waitUntilStreaming` and `releaseControlledResponse`, not timing-only sleeps.
 - Tab operations must be awaited serially. Opaque handles reject foreign/closed
   identities; saved-history reopening restores a new runtime identity.
 - Reconnect creates a fresh client/projection rather than trusting cached
   transcript data. Take-control tests verify the previous controller closes.
-- `Extensions.RunCommand` waits for first fresh visible UI output, not completion
+- `extensions.runCommand` waits for first fresh visible UI output, not completion
   of a blocked command. Answer prompts explicitly; prompt handles enforce
   conversation ownership and cannot be reused after settlement.
 - Feature drivers share a narrow private context. Bounded event-driven waits
@@ -101,7 +101,7 @@ assertions, viewport and reload mechanics stay in these drivers.
 Browser scenarios import [coverage fixtures](../../test/infra/e2e/coverage/fixtures.ts)
 so optional coverage attaches before navigation and flushes before teardown.
 Browser-only resources such as fixture skills are installed per session through
-`Tabs.Create` options; response `readSkill` uses the actual read tool. New page
+`tabs.create` options; response `readSkill` uses the actual read tool. New page
 navigation must checkpoint coverage; extra pages/popups are not collected by the
 current coverage collector. Do not infer popup coverage from a successful link
 opening assertion.

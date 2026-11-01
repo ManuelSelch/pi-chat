@@ -14,19 +14,19 @@ describe("Pi Chat streaming workflows", () => {
     });
     apps.push(app);
 
-    await app.Chat.SendPrompt("Keep working");
-    await app.Chat.Abort();
+    await app.chat.sendPrompt("Keep working");
+    await app.chat.abort();
 
-    app.Chat.ShouldHaveMessageCount(1);
-    app.Chat.ShouldContainMessages([
+    app.chat.shouldHaveMessageCount(1);
+    app.chat.shouldContainMessages([
       { role: "user", text: "Keep working" },
     ]);
-    app.Chat.ShouldNotHaveAssistantReply("Late response");
+    app.chat.shouldNotHaveAssistantReply("Late response");
 
-    app.Chat.ReleaseControlledResponse();
-    await app.Browser.Reconnect();
+    app.chat.releaseControlledResponse();
+    await app.browser.reconnect();
 
-    app.Chat.ShouldHaveMessageCount(1);
-    app.Chat.ShouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveMessageCount(1);
+    app.chat.shouldHaveNoDuplicateMessages();
   });
 });

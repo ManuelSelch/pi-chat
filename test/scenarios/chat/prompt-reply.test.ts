@@ -21,18 +21,18 @@ describe("Pi Chat prompt/reply workflows", () => {
       { prompt: "Hello", reply: "Hello from Pi Chat." },
     ]);
 
-    app.Browser.ShouldBeUsable();
+    app.browser.shouldBeUsable();
 
-    await app.Chat.SendPrompt("Hello");
-    await app.Chat.WaitUntilIdle();
+    await app.chat.sendPrompt("Hello");
+    await app.chat.waitUntilIdle();
 
-    app.Chat.ShouldHaveAssistantReply("Hello from Pi Chat.");
-    app.Chat.ShouldContainMessages([
+    app.chat.shouldHaveAssistantReply("Hello from Pi Chat.");
+    app.chat.shouldContainMessages([
       { role: "user", text: "Hello" },
       { role: "assistant", text: "Hello from Pi Chat." },
     ]);
-    app.Chat.ShouldHaveMessageCount(2);
-    app.Chat.ShouldHaveConsumedResponses();
+    app.chat.shouldHaveMessageCount(2);
+    app.chat.shouldHaveConsumedResponses();
   });
 
 });

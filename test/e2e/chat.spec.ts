@@ -12,35 +12,35 @@ test.afterEach(async () => {
 });
 
 test("steers a running Pi session and restores the queue after browser reload", async () => {
-  await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
-  await app.Chat.SendPrompt("Start working");
-  await app.Chat.ShouldBeSteering();
-  await app.Chat.SendPrompt("Keep the existing shortcuts");
-  await app.Chat.ShouldHaveQueuedSteering(["Keep the existing shortcuts"]);
-  await app.Chat.SendPrompt("Use the native Pi queue");
-  await app.Chat.ShouldHaveQueuedSteering(["Keep the existing shortcuts", "Use the native Pi queue"]);
-  await app.Browser.Reload();
-  await app.Chat.ShouldBeSteering();
-  await app.Chat.ShouldHaveQueuedSteering(["Keep the existing shortcuts", "Use the native Pi queue"]);
+  await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
+  await app.chat.sendPrompt("Start working");
+  await app.chat.shouldBeSteering();
+  await app.chat.sendPrompt("Keep the existing shortcuts");
+  await app.chat.shouldHaveQueuedSteering(["Keep the existing shortcuts"]);
+  await app.chat.sendPrompt("Use the native Pi queue");
+  await app.chat.shouldHaveQueuedSteering(["Keep the existing shortcuts", "Use the native Pi queue"]);
+  await app.browser.reload();
+  await app.chat.shouldBeSteering();
+  await app.chat.shouldHaveQueuedSteering(["Keep the existing shortcuts", "Use the native Pi queue"]);
 });
 
 for (const command of ["!pwd", "!!pwd"]) {
   test(`keeps ${command} blocked while steering`, async () => {
-    await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
-    await app.Chat.SendPrompt("Start working");
-    await app.Chat.ShouldBeSteering();
-    await app.Chat.SendPrompt(command);
-    await app.Skills.ShouldHaveDraft(command);
-    await app.Chat.ShouldBeSteering();
+    await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
+    await app.chat.sendPrompt("Start working");
+    await app.chat.shouldBeSteering();
+    await app.chat.sendPrompt(command);
+    await app.skills.shouldHaveDraft(command);
+    await app.chat.shouldBeSteering();
   });
 }
 
 test("creates a session from home and sends a prompt through the visible app", async () => {
-  await app.Home.ShouldBeVisible();
-  await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Hello from the visible Pi Chat app." }] });
+  await app.home.shouldBeVisible();
+  await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Hello from the visible Pi Chat app." }] });
 
-  await app.Chat.SendPrompt("Hello");
-  await app.Chat.ShouldShowUserMessage("Hello");
-  await app.Chat.ShouldShowAssistantReply("Hello from the visible Pi Chat app.");
-  await app.Chat.ShouldBeIdle();
+  await app.chat.sendPrompt("Hello");
+  await app.chat.shouldShowUserMessage("Hello");
+  await app.chat.shouldShowAssistantReply("Hello from the visible Pi Chat app.");
+  await app.chat.shouldBeIdle();
 });

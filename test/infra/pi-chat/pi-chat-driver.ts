@@ -30,11 +30,11 @@ export interface PiChatDriverOptions {
 
 /** Owns isolated real Pi sessions, a server, and a browser-facing client. */
 export class PiChatDriver {
-  readonly Browser: BrowserDriver;
-  readonly Chat: ChatDriver;
-  readonly Tabs: TabDriver;
-  readonly Projects: ProjectDriver;
-  readonly Extensions: ExtensionDriver;
+  readonly browser: BrowserDriver;
+  readonly chat: ChatDriver;
+  readonly tabs: TabDriver;
+  readonly projects: ProjectDriver;
+  readonly extensions: ExtensionDriver;
   private disposal?: Promise<void>;
 
   private constructor(
@@ -42,11 +42,11 @@ export class PiChatDriver {
     private readonly server: PiServer,
     private readonly world: TestWorld,
   ) {
-    this.Browser = new BrowserDriver(context);
-    this.Chat = new ChatDriver(context);
-    this.Tabs = new TabDriver(context);
-    this.Projects = new ProjectDriver(context);
-    this.Extensions = new ExtensionDriver(context);
+    this.browser = new BrowserDriver(context);
+    this.chat = new ChatDriver(context);
+    this.tabs = new TabDriver(context);
+    this.projects = new ProjectDriver(context);
+    this.extensions = new ExtensionDriver(context);
   }
 
   static async start(options: PiChatDriverOptions = {}): Promise<PiChatDriver> {

@@ -42,7 +42,7 @@ export class TabDriver {
     finally { this.changing = false; }
   }
 
-  async Create(options: CreateTabOptions = {}): Promise<TabHandle> {
+  async create(options: CreateTabOptions = {}): Promise<TabHandle> {
     return this.change("Tabs.Create", async () => {
       const { client } = this.context;
       let release!: () => void;
@@ -55,18 +55,18 @@ export class TabDriver {
     });
   }
 
-  Active(): TabHandle {
+  active(): TabHandle {
     return this.handle(requireSession(this.context, "Tabs.Active"));
   }
 
-  SessionPath(tab: TabHandle = this.Active()): string {
+  sessionPath(tab: TabHandle = this.active()): string {
     const id = this.id(tab, "Tabs.SessionPath");
     const path = this.context.client.appState.sessions[id]?.sessionPath;
     check(this.context, "Tabs.SessionPath", () => assert(path, "Session has not been persisted yet"));
     return path!;
   }
 
-  async Open(sessionPath: string, options: OpenTabOptions = {}): Promise<TabHandle> {
+  async open(sessionPath: string, options: OpenTabOptions = {}): Promise<TabHandle> {
     return this.change("Tabs.Open", async () => {
       const { client } = this.context;
       let release!: () => void;
@@ -82,7 +82,7 @@ export class TabDriver {
     });
   }
 
-  async SwitchTo(tab: TabHandle): Promise<void> {
+  async switchTo(tab: TabHandle): Promise<void> {
     return this.change("Tabs.SwitchTo", async () => {
       const id = this.id(tab, "Tabs.SwitchTo");
       const { client } = this.context;
@@ -91,7 +91,7 @@ export class TabDriver {
     });
   }
 
-  async Close(tab: TabHandle): Promise<void> {
+  async close(tab: TabHandle): Promise<void> {
     return this.change("Tabs.Close", async () => {
       const id = this.id(tab, "Tabs.Close");
       const { client } = this.context;
@@ -100,16 +100,16 @@ export class TabDriver {
     });
   }
 
-  ShouldBeActive(tab: TabHandle): void {
+  shouldBeActive(tab: TabHandle): void {
     const id = this.id(tab, "Tabs.ShouldBeActive");
     check(this.context, "Tabs.ShouldBeActive", () => assert.equal(this.context.client.appState.activeSessionId, id));
   }
 
-  ShouldContain(tabs: readonly TabHandle[]): void {
+  shouldContain(tabs: readonly TabHandle[]): void {
     for (const tab of tabs) this.id(tab, "Tabs.ShouldContain");
   }
 
-  ShouldHaveCount(count: number): void {
+  shouldHaveCount(count: number): void {
     check(this.context, "Tabs.ShouldHaveCount", () => assert.equal(this.context.client.appState.tabs.length, count));
   }
 }

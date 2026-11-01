@@ -10,101 +10,101 @@ const fixture = { name: "browser-briefing", instructions };
 
 for (const via of ["Enter", "Tab", "mouse"] as const) {
   test(`selects a skill with ${via} without executing, then submits a separate task`, async () => {
-    await app.Tabs.Create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing Today's report", reply: "Briefing complete" }] });
+    await app.tabs.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing Today's report", reply: "Briefing complete" }] });
 
-    await app.Skills.Type("/skill:browser-br");
-    await app.Skills.ShouldOffer(fixture.name);
-    await app.Skills.Select(fixture.name, via);
-    await app.Skills.ShouldHaveNoInvocations();
-    await app.Chat.ShouldNotShowMessage("Briefing complete");
-    await app.Skills.ShouldNotRequestArguments();
+    await app.skills.type("/skill:browser-br");
+    await app.skills.shouldOffer(fixture.name);
+    await app.skills.select(fixture.name, via);
+    await app.skills.shouldHaveNoInvocations();
+    await app.chat.shouldNotShowMessage("Briefing complete");
+    await app.skills.shouldNotRequestArguments();
 
-    await app.Skills.SubmitTask("Today's report");
-    await app.Chat.ShouldShowAssistantReply("Briefing complete");
-    await app.Chat.ShouldShowUserMessage("Today's report");
-    await app.Skills.ShouldHaveInvocation(fixture.name);
-    await app.Skills.ExpandInvocation(fixture.name, instructions);
-    await app.Chat.ShouldBeIdle();
-    await app.Skills.ShouldNotRequestArguments();
+    await app.skills.submitTask("Today's report");
+    await app.chat.shouldShowAssistantReply("Briefing complete");
+    await app.chat.shouldShowUserMessage("Today's report");
+    await app.skills.shouldHaveInvocation(fixture.name);
+    await app.skills.expandInvocation(fixture.name, instructions);
+    await app.chat.shouldBeIdle();
+    await app.skills.shouldNotRequestArguments();
   });
 }
 
 test("dismisses skill discovery, invokes without task text, and restores invocation/read cards after reload", async ({ page }) => {
-  await app.Tabs.Create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing", readSkill: fixture.name, reply: "Fixture skill read" }] });
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer(fixture.name);
-  await app.Skills.DismissMenu();
-  await app.Skills.ShouldHaveDraft("/skill:");
-  await app.Skills.ShouldHaveNoInvocations();
+  await app.tabs.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing", readSkill: fixture.name, reply: "Fixture skill read" }] });
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer(fixture.name);
+  await app.skills.dismissMenu();
+  await app.skills.shouldHaveDraft("/skill:");
+  await app.skills.shouldHaveNoInvocations();
 
-  await app.Skills.Select(fixture.name);
-  await app.Skills.SubmitTask();
-  await app.Chat.ShouldShowAssistantReply("Fixture skill read");
-  await app.Skills.ShouldHaveInvocation(fixture.name);
-  await app.Skills.ShouldHaveRead(fixture.name, instructions);
-  await app.Chat.ShouldBeIdle();
-  await app.Skills.ReloadResources();
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer(fixture.name);
-  await app.Skills.DismissMenu();
+  await app.skills.select(fixture.name);
+  await app.skills.submitTask();
+  await app.chat.shouldShowAssistantReply("Fixture skill read");
+  await app.skills.shouldHaveInvocation(fixture.name);
+  await app.skills.shouldHaveRead(fixture.name, instructions);
+  await app.chat.shouldBeIdle();
+  await app.skills.reloadResources();
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer(fixture.name);
+  await app.skills.dismissMenu();
 
-  await app.Browser.Reload();
-  await app.Skills.ShouldHaveInvocation(fixture.name);
+  await app.browser.reload();
+  await app.skills.shouldHaveInvocation(fixture.name);
   await page.screenshot({ path: test.info().outputPath("skill-cards-collapsed.png"), fullPage: true });
-  await app.Skills.ShouldHaveRead(fixture.name, instructions);
-  await app.Skills.ExpandInvocation(fixture.name, instructions);
-  await app.Chat.ShouldShowAssistantReply("Fixture skill read");
-  await app.Skills.ShouldNotRequestArguments();
+  await app.skills.shouldHaveRead(fixture.name, instructions);
+  await app.skills.expandInvocation(fixture.name, instructions);
+  await app.chat.shouldShowAssistantReply("Fixture skill read");
+  await app.skills.shouldNotRequestArguments();
   await page.screenshot({ path: test.info().outputPath("skill-cards.png"), fullPage: true });
 });
 
 test("keeps discovery tab-specific, including after browser reload", async () => {
-  const first = await app.Tabs.Create({ skills: [{ name: "first-skill", instructions: "First session" }], responses: [] });
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer("first-skill");
-  await app.Skills.ShouldNotOffer("second-skill");
+  const first = await app.tabs.create({ skills: [{ name: "first-skill", instructions: "First session" }], responses: [] });
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer("first-skill");
+  await app.skills.shouldNotOffer("second-skill");
 
-  const second = await app.Tabs.Create({ skills: [{ name: "second-skill", instructions: "Second session" }], responses: [] });
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer("second-skill");
-  await app.Skills.ShouldNotOffer("first-skill");
+  const second = await app.tabs.create({ skills: [{ name: "second-skill", instructions: "Second session" }], responses: [] });
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer("second-skill");
+  await app.skills.shouldNotOffer("first-skill");
 
-  await app.Tabs.SwitchTo(first);
-  await app.Skills.ShouldOffer("first-skill");
-  await app.Skills.ShouldNotOffer("second-skill");
-  await app.Browser.Reload();
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer("first-skill");
-  await app.Skills.ShouldNotOffer("second-skill");
-  await app.Tabs.SwitchTo(second);
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldOffer("second-skill");
-  await app.Skills.ShouldNotOffer("first-skill");
+  await app.tabs.switchTo(first);
+  await app.skills.shouldOffer("first-skill");
+  await app.skills.shouldNotOffer("second-skill");
+  await app.browser.reload();
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer("first-skill");
+  await app.skills.shouldNotOffer("second-skill");
+  await app.tabs.switchTo(second);
+  await app.skills.type("/skill:");
+  await app.skills.shouldOffer("second-skill");
+  await app.skills.shouldNotOffer("first-skill");
 });
 
 test("allows manual invocation when skill discovery is disabled", async () => {
-  await app.Tabs.Create({ skills: [fixture], enableSkillCommands: false, responses: [{ prompt: "/skill:browser-briefing Manual report", reply: "Manual invocation complete" }] });
-  await app.Skills.Type("/skill:");
-  await app.Skills.ShouldNotOffer(fixture.name);
+  await app.tabs.create({ skills: [fixture], enableSkillCommands: false, responses: [{ prompt: "/skill:browser-briefing Manual report", reply: "Manual invocation complete" }] });
+  await app.skills.type("/skill:");
+  await app.skills.shouldNotOffer(fixture.name);
 
-  await app.Chat.SendPrompt("/skill:browser-briefing Manual report");
-  await app.Chat.ShouldShowAssistantReply("Manual invocation complete");
-  await app.Chat.ShouldShowUserMessage("Manual report");
-  await app.Skills.ShouldHaveInvocation(fixture.name);
-  await app.Skills.ShouldNotRequestArguments();
+  await app.chat.sendPrompt("/skill:browser-briefing Manual report");
+  await app.chat.shouldShowAssistantReply("Manual invocation complete");
+  await app.chat.shouldShowUserMessage("Manual report");
+  await app.skills.shouldHaveInvocation(fixture.name);
+  await app.skills.shouldNotRequestArguments();
 });
 
 test("selects and queues a skill command while streaming and restores it after reload", async () => {
-  await app.Tabs.Create({ skills: [fixture], responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
-  await app.Chat.SendPrompt("Start working");
-  await app.Chat.ShouldBeSteering();
+  await app.tabs.create({ skills: [fixture], responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+  await app.chat.sendPrompt("Start working");
+  await app.chat.shouldBeSteering();
 
-  await app.Skills.Select(fixture.name);
-  await app.Skills.SubmitTask("steering task");
-  await app.Skills.ShouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
-  await app.Skills.ShouldHaveNoInvocations();
-  await app.Chat.ShouldBeSteering();
-  await app.Browser.Reload();
-  await app.Skills.ShouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
-  await app.Chat.ShouldBeSteering();
+  await app.skills.select(fixture.name);
+  await app.skills.submitTask("steering task");
+  await app.skills.shouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
+  await app.skills.shouldHaveNoInvocations();
+  await app.chat.shouldBeSteering();
+  await app.browser.reload();
+  await app.skills.shouldHaveQueuedInvocation(fixture.name, instructions, "steering task");
+  await app.chat.shouldBeSteering();
 });

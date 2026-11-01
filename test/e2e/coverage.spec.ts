@@ -10,12 +10,12 @@ test("coverage retains executed scripts across a real browser reload", async ({ 
   const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
     await page.evaluate("(() => { function coverageBeforeReload() { return 41; } coverageBeforeReload(); })();\n//# sourceURL=coverage-probe-before.js");
-    await app.Tabs.Create({ responses: [{ prompt: "Before reload", reply: "Saved" }] });
-    await app.Chat.SendPrompt("Before reload");
-    await app.Chat.ShouldShowAssistantReply("Saved");
-    await app.Browser.Reload();
+    await app.tabs.create({ responses: [{ prompt: "Before reload", reply: "Saved" }] });
+    await app.chat.sendPrompt("Before reload");
+    await app.chat.shouldShowAssistantReply("Saved");
+    await app.browser.reload();
     await page.evaluate("(() => { function coverageAfterReload() { return 42; } coverageAfterReload(); })();\n//# sourceURL=coverage-probe-after.js");
-    await app.Chat.ShouldShowAssistantReply("Saved");
+    await app.chat.shouldShowAssistantReply("Saved");
     await pageCoverage.get(page)!.checkpoint();
     const dir = "coverage-e2e/raw/browser";
     const files = (await readdir(dir)).filter((name) => name.includes(testInfo.testId));

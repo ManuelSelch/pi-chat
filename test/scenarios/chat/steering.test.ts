@@ -15,18 +15,18 @@ describe("Pi Chat native steering workflows", () => {
       }],
     });
     apps.push(app);
-    await app.Chat.SendPrompt("Start working");
-    await app.Chat.WaitUntilStreaming();
-    await app.Extensions.RunCommand("stream-status");
-    app.Extensions.ShouldShowNotification("Command ran during streaming");
-    app.Chat.ShouldHaveQueuedSteering([]);
-    await app.Chat.WaitUntilStreaming();
-    await app.Browser.Reconnect();
-    await app.Chat.WaitUntilStreaming();
-    app.Chat.ReleaseControlledResponse();
-    await app.Chat.WaitUntilIdle();
-    app.Chat.ShouldHaveAssistantReply("Completed normally.");
-    app.Chat.ShouldHaveConsumedResponses();
+    await app.chat.sendPrompt("Start working");
+    await app.chat.waitUntilStreaming();
+    await app.extensions.runCommand("stream-status");
+    app.extensions.shouldShowNotification("Command ran during streaming");
+    app.chat.shouldHaveQueuedSteering([]);
+    await app.chat.waitUntilStreaming();
+    await app.browser.reconnect();
+    await app.chat.waitUntilStreaming();
+    app.chat.releaseControlledResponse();
+    await app.chat.waitUntilIdle();
+    app.chat.shouldHaveAssistantReply("Completed normally.");
+    app.chat.shouldHaveConsumedResponses();
   }, 15000);
 
   it("queues during a real Pi run, restores on reconnect, and consumes without a duplicate turn", async () => {
@@ -35,31 +35,31 @@ describe("Pi Chat native steering workflows", () => {
       { prompt: "Use the native queue", reply: "Adjusted direction." },
     ] });
     apps.push(app);
-    await app.Chat.SendPrompt("Start working");
-    await app.Chat.WaitUntilStreaming();
-    await app.Chat.Steer("Use the native queue");
-    app.Chat.ShouldHaveQueuedSteering(["Use the native queue"]);
-    app.Chat.ShouldHaveMessageCount(1);
-    await app.Browser.Reconnect();
-    app.Chat.ShouldHaveQueuedSteering(["Use the native queue"]);
-    app.Chat.ShouldHaveMessageCount(1);
-    await app.Chat.WaitUntilStreaming();
-    app.Chat.ReleaseControlledResponse();
-    await app.Chat.WaitUntilIdle();
-    app.Chat.ShouldHaveQueuedSteering([]);
-    app.Chat.ShouldContainMessages([
+    await app.chat.sendPrompt("Start working");
+    await app.chat.waitUntilStreaming();
+    await app.chat.steer("Use the native queue");
+    app.chat.shouldHaveQueuedSteering(["Use the native queue"]);
+    app.chat.shouldHaveMessageCount(1);
+    await app.browser.reconnect();
+    app.chat.shouldHaveQueuedSteering(["Use the native queue"]);
+    app.chat.shouldHaveMessageCount(1);
+    await app.chat.waitUntilStreaming();
+    app.chat.releaseControlledResponse();
+    await app.chat.waitUntilIdle();
+    app.chat.shouldHaveQueuedSteering([]);
+    app.chat.shouldContainMessages([
       { role: "user", text: "Start working" },
       { role: "assistant", text: "First response." },
       { role: "user", text: "Use the native queue" },
       { role: "assistant", text: "Adjusted direction." },
     ]);
-    app.Chat.ShouldHaveMessageCount(4);
-    app.Chat.ShouldHaveNoDuplicateMessages();
-    app.Chat.ShouldHaveConsumedResponses();
-    await app.Browser.Reconnect();
-    app.Chat.ShouldHaveQueuedSteering([]);
-    app.Chat.ShouldHaveMessageCount(4);
-    app.Chat.ShouldContainMessages([
+    app.chat.shouldHaveMessageCount(4);
+    app.chat.shouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveConsumedResponses();
+    await app.browser.reconnect();
+    app.chat.shouldHaveQueuedSteering([]);
+    app.chat.shouldHaveMessageCount(4);
+    app.chat.shouldContainMessages([
       { role: "user", text: "Start working" },
       { role: "assistant", text: "First response." },
       { role: "user", text: "Use the native queue" },
@@ -74,19 +74,19 @@ describe("Pi Chat native steering workflows", () => {
       { prompt: "Same direction", reply: "Second adjustment." },
     ] });
     apps.push(app);
-    await app.Chat.SendPrompt("Start working");
-    await app.Chat.WaitUntilStreaming();
-    await app.Chat.Steer("Same direction");
-    await app.Chat.Steer("Same direction");
-    app.Chat.ShouldHaveQueuedSteering(["Same direction", "Same direction"]);
-    app.Chat.ShouldHaveMessageCount(1);
-    await app.Browser.Reconnect();
-    app.Chat.ShouldHaveQueuedSteering(["Same direction", "Same direction"]);
-    app.Chat.ShouldHaveMessageCount(1);
-    app.Chat.ReleaseControlledResponse();
-    await app.Chat.WaitUntilIdle();
-    app.Chat.ShouldHaveQueuedSteering([]);
-    app.Chat.ShouldContainMessages([
+    await app.chat.sendPrompt("Start working");
+    await app.chat.waitUntilStreaming();
+    await app.chat.steer("Same direction");
+    await app.chat.steer("Same direction");
+    app.chat.shouldHaveQueuedSteering(["Same direction", "Same direction"]);
+    app.chat.shouldHaveMessageCount(1);
+    await app.browser.reconnect();
+    app.chat.shouldHaveQueuedSteering(["Same direction", "Same direction"]);
+    app.chat.shouldHaveMessageCount(1);
+    app.chat.releaseControlledResponse();
+    await app.chat.waitUntilIdle();
+    app.chat.shouldHaveQueuedSteering([]);
+    app.chat.shouldContainMessages([
       { role: "user", text: "Start working" },
       { role: "assistant", text: "First response." },
       { role: "user", text: "Same direction" },
@@ -94,12 +94,12 @@ describe("Pi Chat native steering workflows", () => {
       { role: "user", text: "Same direction" },
       { role: "assistant", text: "Second adjustment." },
     ]);
-    app.Chat.ShouldHaveMessageCount(6);
-    app.Chat.ShouldHaveNoDuplicateMessages();
-    app.Chat.ShouldHaveConsumedResponses();
-    await app.Browser.Reconnect();
-    app.Chat.ShouldHaveQueuedSteering([]);
-    app.Chat.ShouldHaveMessageCount(6);
-    app.Chat.ShouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveMessageCount(6);
+    app.chat.shouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveConsumedResponses();
+    await app.browser.reconnect();
+    app.chat.shouldHaveQueuedSteering([]);
+    app.chat.shouldHaveMessageCount(6);
+    app.chat.shouldHaveNoDuplicateMessages();
   }, 15000);
 });

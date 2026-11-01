@@ -4,11 +4,11 @@ import { pageCoverage } from "./coverage/browser-coverage.js";
 export class BrowserBrowserDriver {
   constructor(private readonly page: Page) {}
 
-  async SetViewport(width: number, height = 900): Promise<void> {
+  async setViewport(width: number, height = 900): Promise<void> {
     await this.page.setViewportSize({ width, height });
   }
 
-  async Reload(): Promise<void> {
+  async reload(): Promise<void> {
     await pageCoverage.get(this.page)?.checkpoint();
     await this.page.reload({ waitUntil: "networkidle" });
     const composer = this.page.getByRole("textbox", { name: "Message Pi" });

@@ -6,55 +6,55 @@ test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page
 test.afterEach(async () => { await app?.dispose(); });
 
 test("saves the explicit endpoint, restores after reload, and resets to the page server", async () => {
-  await app.Settings.Open();
-  await app.Settings.shouldUseDefaultEndpoint();
-  await app.Settings.editEndpoint("page");
-  await app.Settings.requestSaveEndpoint();
-  await app.Settings.cancelEndpointChange();
-  await app.Settings.shouldKeepUnsavedEndpoint();
-  await app.Settings.requestSaveEndpoint();
-  await app.Settings.confirmEndpointChange();
-  await app.Settings.Open();
-  await app.Settings.shouldUseRememberedEndpoint();
-  await app.Settings.resetEndpoint();
-  await app.Settings.Open();
-  await app.Settings.shouldUseDefaultEndpoint();
+  await app.settings.open();
+  await app.settings.shouldUseDefaultEndpoint();
+  await app.settings.editEndpoint("page");
+  await app.settings.requestSaveEndpoint();
+  await app.settings.cancelEndpointChange();
+  await app.settings.shouldKeepUnsavedEndpoint();
+  await app.settings.requestSaveEndpoint();
+  await app.settings.confirmEndpointChange();
+  await app.settings.open();
+  await app.settings.shouldUseRememberedEndpoint();
+  await app.settings.resetEndpoint();
+  await app.settings.open();
+  await app.settings.shouldUseDefaultEndpoint();
 });
 
 test("storage failure leaves the current connection and preference unchanged", async () => {
-  await app.Settings.Open();
-  await app.Settings.denyEndpointStorage();
-  await app.Settings.editEndpoint("page");
-  await app.Settings.requestSaveEndpoint();
-  await app.Settings.confirmFailedEndpointSave();
+  await app.settings.open();
+  await app.settings.denyEndpointStorage();
+  await app.settings.editEndpoint("page");
+  await app.settings.requestSaveEndpoint();
+  await app.settings.confirmFailedEndpointSave();
 });
 
 test("a failed endpoint clears stale UI but leaves server runtimes alive and reset accessible", async () => {
-  await app.Tabs.Create({ responses: [] });
-  await app.Chat.editDraft("Unsent text must not be replayed");
-  await app.Settings.Open();
-  await app.Settings.editEndpoint("unreachable");
-  await app.Settings.requestSaveEndpoint();
-  await app.Settings.confirmEndpointChange();
-  await app.Settings.Open();
-  await app.Settings.shouldShowEndpointFailure();
-  await app.Tabs.ShouldHaveCount(0);
-  await app.Settings.resetEndpoint();
-  await app.Tabs.ShouldHaveCount(1);
-  await app.Chat.shouldHaveDraft("");
-  await app.Chat.ShouldNotShowMessage("Unsent text must not be replayed");
-  await app.Settings.Open();
-  await app.Settings.shouldUseDefaultEndpoint();
+  await app.tabs.create({ responses: [] });
+  await app.chat.editDraft("Unsent text must not be replayed");
+  await app.settings.open();
+  await app.settings.editEndpoint("unreachable");
+  await app.settings.requestSaveEndpoint();
+  await app.settings.confirmEndpointChange();
+  await app.settings.open();
+  await app.settings.shouldShowEndpointFailure();
+  await app.tabs.shouldHaveCount(0);
+  await app.settings.resetEndpoint();
+  await app.tabs.shouldHaveCount(1);
+  await app.chat.shouldHaveDraft("");
+  await app.chat.shouldNotShowMessage("Unsent text must not be replayed");
+  await app.settings.open();
+  await app.settings.shouldUseDefaultEndpoint();
 });
 
 test("another host remains rejected by the existing server origin policy and can be reset", async () => {
-  await app.Settings.Open();
-  await app.Settings.editEndpoint("other-host");
-  await app.Settings.requestSaveEndpoint();
-  await app.Settings.confirmEndpointChange();
-  await app.Settings.Open();
-  await app.Settings.shouldRejectOtherHost();
-  await app.Settings.resetEndpoint();
-  await app.Settings.Open();
-  await app.Settings.shouldUseDefaultEndpoint();
+  await app.settings.open();
+  await app.settings.editEndpoint("other-host");
+  await app.settings.requestSaveEndpoint();
+  await app.settings.confirmEndpointChange();
+  await app.settings.open();
+  await app.settings.shouldRejectOtherHost();
+  await app.settings.resetEndpoint();
+  await app.settings.open();
+  await app.settings.shouldUseDefaultEndpoint();
 });

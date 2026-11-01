@@ -5,30 +5,30 @@ import { check, type DriverContext } from "./driver-context.js";
 export class BrowserDriver {
   constructor(private readonly context: DriverContext) {}
 
-  async Reconnect(): Promise<void> {
+  async reconnect(): Promise<void> {
     const previousSession = this.context.client.appState.activeSessionId;
     await this.context.reconnect();
     check(this.context, "Browser.Reconnect", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Reconnect changed the active conversation"));
   }
 
-  async TakeControl(): Promise<void> {
+  async takeControl(): Promise<void> {
     const previousSession = this.context.client.appState.activeSessionId;
     await this.context.takeControl();
     check(this.context, "Browser.TakeControl", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Taking control changed the active conversation"));
   }
 
-  ShouldShowError(message: string): void {
+  shouldShowError(message: string): void {
     check(this.context, "Browser.ShouldShowError", () => assert(this.context.client.appState.error?.includes(message)));
   }
 
-  DismissError(): void { this.context.client.dismissError(); }
+  dismissError(): void { this.context.client.dismissError(); }
 
-  ShouldBeAtHome(): void {
-    this.ShouldBeUsable();
+  shouldBeAtHome(): void {
+    this.shouldBeUsable();
     check(this.context, "Browser.ShouldBeAtHome", () => assert(atHome(this.context.client.appState), "Expected the home screen"));
   }
 
-  ShouldBeUsable(): void {
+  shouldBeUsable(): void {
     check(this.context, "Browser.ShouldBeUsable", () => {
       const { appState, chat } = this.context.client;
       assert.equal(appState.connection, "open");

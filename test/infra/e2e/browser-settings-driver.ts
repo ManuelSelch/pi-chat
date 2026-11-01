@@ -10,20 +10,20 @@ export class BrowserSettingsDriver {
     this.panel = page.getByRole("dialog", { name: "Settings", exact: true });
   }
 
-  async Open(): Promise<void> {
+  async open(): Promise<void> {
     await this.page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
-  async SetFolderPathsVisible(visible: boolean): Promise<void> {
+  async setFolderPathsVisible(visible: boolean): Promise<void> {
     await this.panel.getByRole("switch", { name: "Show folder path in projects panel", exact: true }).setChecked(visible);
   }
 
-  async SetHideArchivedSessions(hide: boolean): Promise<void> {
+  async setHideArchivedSessions(hide: boolean): Promise<void> {
     await this.panel.getByRole("switch", { name: "Hide archived sessions", exact: true }).setChecked(hide);
   }
 
-  async ShouldHideArchivedSessions(hide: boolean): Promise<void> {
+  async shouldHideArchivedSessions(hide: boolean): Promise<void> {
     await expect(this.panel.getByRole("switch", { name: "Hide archived sessions", exact: true })).toBeChecked({ checked: hide });
   }
 
@@ -120,7 +120,7 @@ export class BrowserSettingsDriver {
     expect(await this.page.evaluate(() => localStorage.getItem("pi-chat:serverEndpoint"))).toBeNull();
   }
 
-  async Close(): Promise<void> {
+  async close(): Promise<void> {
     await this.page.keyboard.press("Escape");
     await expect(this.panel).not.toBeVisible();
   }

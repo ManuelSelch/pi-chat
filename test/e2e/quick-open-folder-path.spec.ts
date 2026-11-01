@@ -7,9 +7,9 @@ test.beforeEach(async ({ page }) => {
   app = await PiChatBrowserDriver.start(page, {
     projectName: "palette-checkout", repositoryName: "palette-repo", projectBranch: "feature/palette", linkedWorktree: true, inboxEnabled: false,
   });
-  await app.Tabs.Create({ responses: [{ prompt: "Find this session", reply: "Ready" }] });
-  await app.Chat.SendPrompt("Find this session");
-  await app.Chat.ShouldShowAssistantReply("Ready");
+  await app.tabs.create({ responses: [{ prompt: "Find this session", reply: "Ready" }] });
+  await app.chat.sendPrompt("Find this session");
+  await app.chat.shouldShowAssistantReply("Ready");
 });
 
 test.afterEach(async () => {
@@ -17,25 +17,25 @@ test.afterEach(async () => {
 });
 
 test("folder and worktree paths follow the folder-path setting", async () => {
-  await app.Settings.Open();
-  await app.Settings.SetFolderPathsVisible(false);
-  await app.Settings.Close();
-  await app.QuickOpen.open();
-  await app.QuickOpen.shouldHideFolderAndWorktreePaths();
+  await app.settings.open();
+  await app.settings.setFolderPathsVisible(false);
+  await app.settings.close();
+  await app.quickOpen.open();
+  await app.quickOpen.shouldHideFolderAndWorktreePaths();
 
-  await app.QuickOpen.close();
-  await app.Settings.Open();
-  await app.Settings.SetFolderPathsVisible(true);
-  await app.Settings.Close();
-  await app.QuickOpen.open();
-  await app.QuickOpen.shouldShowFolderAndWorktreePaths();
+  await app.quickOpen.close();
+  await app.settings.open();
+  await app.settings.setFolderPathsVisible(true);
+  await app.settings.close();
+  await app.quickOpen.open();
+  await app.quickOpen.shouldShowFolderAndWorktreePaths();
 });
 
 test("hidden folder paths remain searchable in Quick Switcher", async () => {
-  await app.Settings.Open();
-  await app.Settings.SetFolderPathsVisible(false);
-  await app.Settings.Close();
-  await app.QuickOpen.open();
-  await app.QuickOpen.searchByFolderPath();
-  await app.QuickOpen.shouldFindMatchingFolderWithoutShowingItsPath();
+  await app.settings.open();
+  await app.settings.setFolderPathsVisible(false);
+  await app.settings.close();
+  await app.quickOpen.open();
+  await app.quickOpen.searchByFolderPath();
+  await app.quickOpen.shouldFindMatchingFolderWithoutShowingItsPath();
 });

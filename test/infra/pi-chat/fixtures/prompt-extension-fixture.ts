@@ -27,7 +27,7 @@ export class PromptExtensionFixture {
       if (selected) ctx.ui.notify(`Literal selection: ${selected}`, "info");
     } });
   };
-  ShouldHaveAnswers(expected: { selected: string; reasoning: string }[]): void {
+  shouldHaveAnswers(expected: { selected: string; reasoning: string }[]): void {
     assert.deepEqual(this.answers, expected);
   }
 }

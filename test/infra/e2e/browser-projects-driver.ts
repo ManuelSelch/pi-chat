@@ -12,23 +12,23 @@ export class BrowserProjectsDriver {
     this.panel = page.getByRole("dialog", { name: "Projects", exact: true }).or(page.getByRole("navigation", { name: "Projects", exact: true }));
   }
 
-  async Open(): Promise<void> {
+  async open(): Promise<void> {
     if (!await this.panel.isVisible()) await this.page.getByRole("button", { name: "Projects and sessions", exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
-  async Close(): Promise<void> {
+  async close(): Promise<void> {
     await this.panel.getByRole("button", { name: "Close projects", exact: true }).click();
     await expect(this.panel).not.toBeVisible();
   }
 
-  async ShouldBeSidebar(): Promise<void> {
+  async shouldBeSidebar(): Promise<void> {
     await expect(this.page.getByRole("navigation", { name: "Projects", exact: true })).toBeVisible();
     await expect(this.page.getByRole("dialog", { name: "Projects", exact: true })).toHaveCount(0);
     await expect(this.page.locator("body")).not.toHaveAttribute("data-scroll-locked");
   }
 
-  async ShouldBeDrawer(): Promise<void> {
+  async shouldBeDrawer(): Promise<void> {
     const drawer = this.page.getByRole("dialog", { name: "Projects", exact: true });
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute("aria-modal", "true");
@@ -36,18 +36,18 @@ export class BrowserProjectsDriver {
     await expect.poll(() => drawer.evaluate(node => node.contains(document.activeElement))).toBe(true);
   }
 
-  async ShouldKeepFocusInSidebar(): Promise<void> {
+  async shouldKeepFocusInSidebar(): Promise<void> {
     await expect.poll(() => this.panel.evaluate(node => node.contains(document.activeElement))).toBe(true);
   }
 
-  async RememberChatBounds(): Promise<void> {
+  async rememberChatBounds(): Promise<void> {
     const form = this.page.locator("form").filter({ has: this.page.getByRole("textbox", { name: "Message Pi" }) });
     const bounds = await form.boundingBox();
     expect(bounds).not.toBeNull();
     this.chatBounds = bounds!;
   }
 
-  async ShouldKeepChatBounds(): Promise<void> {
+  async shouldKeepChatBounds(): Promise<void> {
     expect(this.chatBounds).toBeDefined();
     const expected = this.chatBounds!;
     const form = this.page.locator("form").filter({ has: this.page.getByRole("textbox", { name: "Message Pi" }) });
@@ -57,7 +57,7 @@ export class BrowserProjectsDriver {
     }).toBe(true);
   }
 
-  async ShouldNotOverlapWorkspace(): Promise<void> {
+  async shouldNotOverlapWorkspace(): Promise<void> {
     await expect.poll(async () => {
       const panel = await this.panel.boundingBox();
       const composer = await this.page.getByRole("textbox", { name: "Message Pi" }).boundingBox();
@@ -70,12 +70,12 @@ export class BrowserProjectsDriver {
     }).toBe(true);
   }
 
-  async SelectSession(title: string): Promise<void> {
+  async selectSession(title: string): Promise<void> {
     await this.panel.getByRole("button", { name: title, exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
-  async CreateSession(): Promise<void> {
+  async createSession(): Promise<void> {
     const release = this.world.reserveSession([]);
     try {
       await this.panel.getByRole("button", { name: `New session in ${basename(this.world.projectPath)}`, exact: true }).click();
@@ -84,7 +84,7 @@ export class BrowserProjectsDriver {
     } finally { release(); }
   }
 
-  async ShouldAllowTranscriptScroll(): Promise<void> {
+  async shouldAllowTranscriptScroll(): Promise<void> {
     const start = await this.page.evaluate(() => window.scrollY);
     const composer = await this.page.getByRole("textbox", { name: "Message Pi" }).boundingBox();
     expect(composer).not.toBeNull();
@@ -94,52 +94,52 @@ export class BrowserProjectsDriver {
     await expect(this.panel).toBeVisible();
   }
 
-  async Pin(): Promise<void> {
+  async pin(): Promise<void> {
     await this.panel.getByRole("button", { name: /^Pin / }).click();
   }
 
-  async Unpin(): Promise<void> {
+  async unpin(): Promise<void> {
     await this.panel.getByRole("button", { name: /^Unpin / }).click();
   }
 
-  async ShouldBePinned(): Promise<void> {
+  async shouldBePinned(): Promise<void> {
     await expect(this.panel.getByRole("button", { name: /^Unpin / })).toBeEnabled();
     await expect(this.panel.getByRole("button", { name: /^Pin / })).toHaveCount(0);
   }
 
-  async ShouldBeUnpinned(): Promise<void> {
+  async shouldBeUnpinned(): Promise<void> {
     await expect(this.panel.getByRole("button", { name: /^Pin / })).toBeEnabled();
     await expect(this.panel.getByRole("button", { name: /^Unpin / })).toHaveCount(0);
   }
 
-  async Archive(title: string): Promise<void> {
+  async archive(title: string): Promise<void> {
     await this.panel.getByRole("button", { name: title, exact: true }).hover();
     await this.panel.getByRole("button", { name: `Archive ${title}`, exact: true }).click();
   }
 
-  async ShouldShowActiveSession(title: string): Promise<void> {
+  async shouldShowActiveSession(title: string): Promise<void> {
     await expect(this.panel.getByRole("button", { name: title, exact: true })).toBeVisible();
     await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toBeEnabled();
     await expect(this.panel.getByRole("button", { name: `Restore ${title}`, exact: true })).toHaveCount(0);
   }
 
-  async ShouldNotShowSession(title: string): Promise<void> {
+  async shouldNotShowSession(title: string): Promise<void> {
     await expect(this.panel.getByRole("button", { name: title, exact: true })).toHaveCount(0);
     await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
   }
 
-  async ShouldHideArchivedSection(): Promise<void> {
+  async shouldHideArchivedSection(): Promise<void> {
     await expect(this.panel.getByRole("button", { name: /^Archived/ })).toHaveCount(0);
   }
 
-  async ShowArchivedSessions(): Promise<void> {
+  async showArchivedSessions(): Promise<void> {
     const toggle = this.panel.getByRole("button", { name: /^Archived/ });
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
   }
 
-  async ShouldShowArchivedSession(title: string): Promise<void> {
+  async shouldShowArchivedSession(title: string): Promise<void> {
     await expect(this.panel.getByRole("button", { name: title, exact: true })).toBeVisible();
     await expect(this.panel.getByRole("button", { name: `Restore ${title}`, exact: true })).toBeEnabled();
     await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);

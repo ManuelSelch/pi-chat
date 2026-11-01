@@ -12,24 +12,24 @@ afterEach(async () => {
 
 it("reports semantic assertions with current browser state and recent messages", async () => {
   app = await PiChatDriver.start({ responses: [{ prompt: "Hello", reply: "Hi." }] });
-  expect(() => app!.Chat.ShouldHaveAssistantReply("Missing")).toThrow(/Chat.ShouldHaveAssistantReply:.*activeSessionId.*recentMessages/);
-  expect(() => app!.Chat.ShouldHaveConsumedResponses()).toThrow(/Unused scripted responses/);
+  expect(() => app!.chat.shouldHaveAssistantReply("Missing")).toThrow(/Chat.ShouldHaveAssistantReply:.*activeSessionId.*recentMessages/);
+  expect(() => app!.chat.shouldHaveConsumedResponses()).toThrow(/Unused scripted responses/);
 });
 
 it("fails an unscripted model turn without falling back to a real provider", async () => {
   app = await PiChatDriver.start();
-  await expect(app.Chat.SendPrompt("An unexpected prompt")).rejects.toThrow(/Chat.SendPrompt:.*No scripted response/);
-  app.Chat.ShouldHaveMessageCount(0);
+  await expect(app.chat.sendPrompt("An unexpected prompt")).rejects.toThrow(/Chat.SendPrompt:.*No scripted response/);
+  app.chat.shouldHaveMessageCount(0);
 });
 
 it("rejects a mismatched prompt without consuming the response", async () => {
   app = await PiChatDriver.start({ responses: [{ prompt: "Expected", reply: "Correct reply." }] });
-  await expect(app.Chat.SendPrompt("Different")).rejects.toThrow(/Prompt does not match/);
-  app.Chat.ShouldHaveMessageCount(0);
-  await app.Chat.SendPrompt("Expected");
-  await app.Chat.WaitUntilIdle();
-  app.Chat.ShouldHaveAssistantReply("Correct reply.");
-  app.Chat.ShouldHaveConsumedResponses();
+  await expect(app.chat.sendPrompt("Different")).rejects.toThrow(/Prompt does not match/);
+  app.chat.shouldHaveMessageCount(0);
+  await app.chat.sendPrompt("Expected");
+  await app.chat.waitUntilIdle();
+  app.chat.shouldHaveAssistantReply("Correct reply.");
+  app.chat.shouldHaveConsumedResponses();
 });
 
 it("can dispose twice and start a fresh isolated world", async () => {
@@ -37,8 +37,8 @@ it("can dispose twice and start a fresh isolated world", async () => {
   await app.dispose();
   await app.dispose();
   app = await PiChatDriver.start();
-  app.Browser.ShouldBeUsable();
-  app.Chat.ShouldHaveMessageCount(0);
+  app.browser.shouldBeUsable();
+  app.chat.shouldHaveMessageCount(0);
 });
 
 it("cleans up the runtime and client if startup cannot obtain a snapshot", async () => {
@@ -49,30 +49,30 @@ it("cleans up the runtime and client if startup cannot obtain a snapshot", async
   expect(close).toHaveBeenCalledTimes(1);
   expect(dispose).toHaveBeenCalledTimes(1);
   app = await PiChatDriver.start();
-  app.Browser.ShouldBeUsable();
+  app.browser.shouldBeUsable();
 });
 
 it("reports failed tab creation and releases its script reservation for retry", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
   vi.spyOn(TestWorld.prototype, "create").mockRejectedValueOnce(new Error("Injected session creation failure"));
-  await expect(app.Tabs.Create()).rejects.toThrow(/Tabs.Create:.*The server operation failed.*recentMessages/);
-  app.Browser.ShouldShowError("The server operation failed."); app.Browser.DismissError();
-  app.Browser.ShouldBeAtHome();
-  const tab = await app.Tabs.Create({ responses: [{ prompt: "Retry", reply: "Recovered." }] });
-  app.Tabs.ShouldBeActive(tab);
-  await app.Chat.SendPrompt("Retry");
-  await app.Chat.WaitUntilIdle();
-  app.Chat.ShouldHaveAssistantReply("Recovered.");
-  app.Chat.ShouldHaveConsumedResponses();
+  await expect(app.tabs.create()).rejects.toThrow(/Tabs.Create:.*The server operation failed.*recentMessages/);
+  app.browser.shouldShowError("The server operation failed."); app.browser.dismissError();
+  app.browser.shouldBeAtHome();
+  const tab = await app.tabs.create({ responses: [{ prompt: "Retry", reply: "Recovered." }] });
+  app.tabs.shouldBeActive(tab);
+  await app.chat.sendPrompt("Retry");
+  await app.chat.waitUntilIdle();
+  app.chat.shouldHaveAssistantReply("Recovered.");
+  app.chat.shouldHaveConsumedResponses();
 });
 
 it("rejects closed handles instead of silently focusing or closing another tab", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
-  const tab = await app.Tabs.Create();
-  await app.Tabs.Close(tab);
-  await expect(app.Tabs.SwitchTo(tab)).rejects.toThrow(/Tabs.SwitchTo:.*already closed/);
-  await expect(app.Tabs.Close(tab)).rejects.toThrow(/Tabs.Close:.*already closed/);
-  app.Browser.ShouldBeAtHome();
+  const tab = await app.tabs.create();
+  await app.tabs.close(tab);
+  await expect(app.tabs.switchTo(tab)).rejects.toThrow(/Tabs.SwitchTo:.*already closed/);
+  await expect(app.tabs.close(tab)).rejects.toThrow(/Tabs.Close:.*already closed/);
+  app.browser.shouldBeAtHome();
 });
 
 it("rejects home-start scripts that would otherwise be silently discarded", async () => {

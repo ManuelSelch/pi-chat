@@ -5,23 +5,23 @@ test.describe("widget grid above the composer", () => {
   let app: PiChatBrowserDriver;
   test.beforeEach(async ({ page }) => {
     app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
-    await app.Widgets.useLayout("composer");
-    await app.Tabs.Create({ responses: [] });
+    await app.widgets.useLayout("composer");
+    await app.tabs.create({ responses: [] });
   });
   test.afterEach(async () => { await app?.dispose(); });
 
   test("packs three panels as two cards and a full-width last card", async () => {
-    await app.Widgets.named("git").show("pi-chat · main ⇡2\nmain ↑5\n✓ 2 branches");
-    await app.Widgets.named("pipeline").show("● Local 0/4 · stale\n⚠ build stale\n› e2e running\n✕ e2e failed\n○ sonar skipped");
-    await app.Widgets.named("cleanup").show("Cleanup 3/4 · Removing feat/settings-features · 19s");
-    await app.Widgets.shouldShowCards(["git", "pipeline", "cleanup"]);
+    await app.widgets.named("git").show("pi-chat · main ⇡2\nmain ↑5\n✓ 2 branches");
+    await app.widgets.named("pipeline").show("● Local 0/4 · stale\n⚠ build stale\n› e2e running\n✕ e2e failed\n○ sonar skipped");
+    await app.widgets.named("cleanup").show("Cleanup 3/4 · Removing feat/settings-features · 19s");
+    await app.widgets.shouldShowCards(["git", "pipeline", "cleanup"]);
 
     // Two cards share the first row and stay bottom-aligned; the odd card
     // starts a new row and spans it instead of leaving half the row empty.
-    await app.Widgets.shouldAlignCardBottoms(["git", "pipeline"]);
-    await app.Widgets.shouldBeginBelow("cleanup", "git");
-    await app.Widgets.shouldSpanFullRow("cleanup");
-    await app.Widgets.shouldPackAtMostTwoPerRow();
+    await app.widgets.shouldAlignCardBottoms(["git", "pipeline"]);
+    await app.widgets.shouldBeginBelow("cleanup", "git");
+    await app.widgets.shouldSpanFullRow("cleanup");
+    await app.widgets.shouldPackAtMostTwoPerRow();
   });
 });
 
@@ -30,22 +30,22 @@ for (const layout of ["docked", "composer"] as const) {
     let app: PiChatBrowserDriver;
     test.beforeEach(async ({ page }) => {
       app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
-      await app.Widgets.useLayout(layout);
-      await app.Tabs.Create({ responses: [] });
+      await app.widgets.useLayout(layout);
+      await app.tabs.create({ responses: [] });
     });
     test.afterEach(async () => { await app?.dispose(); });
 
     test("retains text and decorations through color-only updates, reload and clearing", async () => {
-      const widget = app.Widgets.named("status");
+      const widget = app.widgets.named("status");
       const styles = ["bold", "italic", "underline", "strikethrough"] as const;
 
       await widget.show("Status", { color: "success", styles });
       await widget.shouldHaveText("Status");
       await widget.shouldHaveColor("success");
       await widget.shouldHaveStyles(styles);
-      await app.Widgets.shouldUseLayout(layout);
+      await app.widgets.shouldUseLayout(layout);
 
-      await app.Browser.Reload();
+      await app.browser.reload();
       await widget.shouldHaveText("Status");
       await widget.shouldHaveColor("success");
       await widget.shouldHaveStyles(styles);
@@ -63,17 +63,17 @@ for (const layout of ["docked", "composer"] as const) {
     });
 
     test("opens an OSC 8 hyperlink destination in a new tab", async () => {
-      const widget = app.Widgets.named("preview");
+      const widget = app.widgets.named("preview");
       const url = "https://widget-link.test/frontend";
 
       await widget.showHyperlink("Frontend", url);
       await widget.shouldHaveText("Frontend");
-      await app.Widgets.shouldUseLayout(layout);
+      await app.widgets.shouldUseLayout(layout);
       await widget.shouldOpenLinkInNewTab("Frontend", url);
     });
 
     test("preserves multiline text and wraps without interpreting Markdown or HTML", async () => {
-      const widget = app.Widgets.named("details");
+      const widget = app.widgets.named("details");
       const text = 'first\n  second 😀\n\n[Frontend](https://example.com)\n<img src=x onerror="alert(1)">\n' + "longword".repeat(30);
 
       await widget.show(text, { color: [12, 34, 56] });
@@ -81,7 +81,7 @@ for (const layout of ["docked", "composer"] as const) {
       await widget.shouldHaveColor([12, 34, 56]);
       await widget.shouldWrapText();
       await widget.shouldContainNoMarkupOrLinks();
-      await app.Widgets.shouldUseLayout(layout);
+      await app.widgets.shouldUseLayout(layout);
     });
   });
 }

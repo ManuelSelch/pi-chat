@@ -12,29 +12,29 @@ test.afterEach(async () => {
 });
 
 test("keeps visible conversations independent across tabs", async () => {
-  const first = await app.Tabs.Create({ responses: [{ prompt: "First", reply: "First reply" }] });
-  await app.Chat.SendPrompt("First");
-  await app.Chat.ShouldShowAssistantReply("First reply");
+  const first = await app.tabs.create({ responses: [{ prompt: "First", reply: "First reply" }] });
+  await app.chat.sendPrompt("First");
+  await app.chat.shouldShowAssistantReply("First reply");
 
-  const second = await app.Tabs.Create({ responses: [{ prompt: "Second", reply: "Second reply" }] });
-  await app.Chat.SendPrompt("Second");
-  await app.Chat.ShouldShowAssistantReply("Second reply");
+  const second = await app.tabs.create({ responses: [{ prompt: "Second", reply: "Second reply" }] });
+  await app.chat.sendPrompt("Second");
+  await app.chat.shouldShowAssistantReply("Second reply");
 
-  await app.Tabs.SwitchTo(first);
+  await app.tabs.switchTo(first);
 
-  await app.Chat.ShouldShowAssistantReply("First reply");
-  await app.Chat.ShouldNotShowMessage("Second reply");
+  await app.chat.shouldShowAssistantReply("First reply");
+  await app.chat.shouldNotShowMessage("Second reply");
 
-  await app.Tabs.SwitchTo(second);
+  await app.tabs.switchTo(second);
 
-  await app.Chat.ShouldShowAssistantReply("Second reply");
-  await app.Chat.ShouldNotShowMessage("First reply");
+  await app.chat.shouldShowAssistantReply("Second reply");
+  await app.chat.shouldNotShowMessage("First reply");
 });
 
 test("returns home after closing the last tab", async () => {
-  const tab = await app.Tabs.Create({ responses: [] });
+  const tab = await app.tabs.create({ responses: [] });
 
-  await app.Tabs.Close(tab);
+  await app.tabs.close(tab);
 
-  await app.Home.ShouldBeVisible();
+  await app.home.shouldBeVisible();
 });

@@ -16,7 +16,7 @@ export class ExtensionDriver {
   constructor(private readonly context: DriverContext) {}
 
   /** Dispatch a registered extension command and await its first visible output. */
-  async RunCommand(name: string): Promise<void> {
+  async runCommand(name: string): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.RunCommand");
     check(this.context, "Extensions.RunCommand", () => {
@@ -33,7 +33,7 @@ export class ExtensionDriver {
         (message.event === "prompt.list.changed" && message.data.prompts.length > 0)));
   }
 
-  async WaitForPrompt(title: string): Promise<PromptHandle> {
+  async waitForPrompt(title: string): Promise<PromptHandle> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.WaitForPrompt");
     let prompt: ReadonlyDeep<UiPrompt> | undefined;
@@ -46,7 +46,7 @@ export class ExtensionDriver {
     return handle;
   }
 
-  async RespondToPrompt(handle: PromptHandle, result: UiPromptResult): Promise<void> {
+  async respondToPrompt(handle: PromptHandle, result: UiPromptResult): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.RespondToPrompt");
     const prompt = this.prompts.get(handle);
@@ -61,7 +61,7 @@ export class ExtensionDriver {
       message.type === "event" && message.event === "prompt.list.changed" && message.sessionId === sessionId && !message.data.prompts.some(item => item.id === prompt!.id));
   }
 
-  async WaitForNotification(text: string, level: NotificationLevel = "info"): Promise<void> {
+  async waitForNotification(text: string, level: NotificationLevel = "info"): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Extensions.WaitForNotification");
     const mark = this.commandMarks.get(sessionId);
@@ -70,7 +70,7 @@ export class ExtensionDriver {
       message.type === "event" && message.event === "notification.created" && message.sessionId === sessionId && message.data.message === text && message.data.level === level);
   }
 
-  ShouldShowPrompt(title: string, kind: UiPrompt["kind"], message?: string): void {
+  shouldShowPrompt(title: string, kind: UiPrompt["kind"], message?: string): void {
     check(this.context, "Extensions.ShouldShowPrompt", () => {
       const prompt = this.context.client.chat.prompts.find(item => item.title === title && item.kind === kind);
       assert(prompt, `Missing ${kind} prompt ${JSON.stringify(title)}`);
@@ -78,16 +78,16 @@ export class ExtensionDriver {
     });
   }
 
-  ShouldHaveNoPrompts(): void {
+  shouldHaveNoPrompts(): void {
     check(this.context, "Extensions.ShouldHaveNoPrompts", () => assert.equal(this.context.client.chat.prompts.length, 0));
   }
 
-  ShouldShowNotification(text: string, level: NotificationLevel = "info"): void {
+  shouldShowNotification(text: string, level: NotificationLevel = "info"): void {
     check(this.context, "Extensions.ShouldShowNotification", () =>
       assert(this.context.client.chat.messages.some(message => message.role === "notice" && message.text === text && message.level === level), `Missing notification ${JSON.stringify(text)}`));
   }
 
-  ShouldShowWidget(key: string, lines: readonly string[], placement: WidgetPlacement = "aboveEditor"): void {
+  shouldShowWidget(key: string, lines: readonly string[], placement: WidgetPlacement = "aboveEditor"): void {
     check(this.context, "Extensions.ShouldShowWidget", () => {
       const widget = this.context.client.chat.widgets.find(item => item.key === key);
       assert(widget, `Missing widget ${key}`);
@@ -96,7 +96,7 @@ export class ExtensionDriver {
     });
   }
 
-  ShouldNotShowWidget(key: string): void {
+  shouldNotShowWidget(key: string): void {
     check(this.context, "Extensions.ShouldNotShowWidget", () => assert(!this.context.client.chat.widgets.some(item => item.key === key), `Unexpected widget ${key}`));
   }
 }

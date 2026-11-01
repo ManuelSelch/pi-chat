@@ -24,20 +24,20 @@ import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fix
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
-  readonly Browser: BrowserBrowserDriver;
-  readonly Theme: BrowserThemeDriver;
-  readonly Chat: BrowserChatDriver;
-  readonly Home: BrowserHomeDriver;
-  readonly Tabs: BrowserTabsDriver;
-  readonly Skills: BrowserSkillsDriver;
-  readonly Projects: BrowserProjectsDriver;
-  readonly Inbox: BrowserInboxDriver;
-  readonly Settings: BrowserSettingsDriver;
-  readonly QuickOpen: QuickOpenFolderPathDriver;
-  readonly Focus: BrowserFocusDriver;
-  readonly Prompts: BrowserPromptsDriver;
-  readonly Widgets: BrowserWidgetsDriver;
-  readonly Extensions: BrowserExtensionsDriver;
+  readonly browser: BrowserBrowserDriver;
+  readonly theme: BrowserThemeDriver;
+  readonly chat: BrowserChatDriver;
+  readonly home: BrowserHomeDriver;
+  readonly tabs: BrowserTabsDriver;
+  readonly skills: BrowserSkillsDriver;
+  readonly projects: BrowserProjectsDriver;
+  readonly inbox: BrowserInboxDriver;
+  readonly settings: BrowserSettingsDriver;
+  readonly quickOpen: QuickOpenFolderPathDriver;
+  readonly focus: BrowserFocusDriver;
+  readonly prompts: BrowserPromptsDriver;
+  readonly widgets: BrowserWidgetsDriver;
+  readonly extensions: BrowserExtensionsDriver;
   private readonly composer: Locator;
   private disposed?: Promise<void>;
 
@@ -46,23 +46,23 @@ export class PiChatBrowserDriver {
     private readonly world: TestWorld,
     widgetFixture: WidgetExtensionFixture,
     private readonly cleanup: () => Promise<void>,
-    private readonly restartBackend: () => Promise<void>,
+    private readonly restartBackendService: () => Promise<void>,
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
-    this.Browser = new BrowserBrowserDriver(page);
-    this.Theme = new BrowserThemeDriver(page);
-    this.Chat = new BrowserChatDriver(page, this.composer);
-    this.Home = new BrowserHomeDriver(page);
-    this.Tabs = new BrowserTabsDriver(page, world);
-    this.Skills = new BrowserSkillsDriver(page, this.composer);
-    this.Projects = new BrowserProjectsDriver(page, world);
-    this.Inbox = new BrowserInboxDriver(page, world);
-    this.Settings = new BrowserSettingsDriver(page);
-    this.QuickOpen = new QuickOpenFolderPathDriver(page);
-    this.Focus = new BrowserFocusDriver(page, this.composer, world);
-    this.Prompts = new BrowserPromptsDriver(page);
-    this.Extensions = new BrowserExtensionsDriver(widgetFixture);
-    this.Widgets = new BrowserWidgetsDriver(page, this.Extensions);
+    this.browser = new BrowserBrowserDriver(page);
+    this.theme = new BrowserThemeDriver(page);
+    this.chat = new BrowserChatDriver(page, this.composer);
+    this.home = new BrowserHomeDriver(page);
+    this.tabs = new BrowserTabsDriver(page, world);
+    this.skills = new BrowserSkillsDriver(page, this.composer);
+    this.projects = new BrowserProjectsDriver(page, world);
+    this.inbox = new BrowserInboxDriver(page, world);
+    this.settings = new BrowserSettingsDriver(page);
+    this.quickOpen = new QuickOpenFolderPathDriver(page);
+    this.focus = new BrowserFocusDriver(page, this.composer, world);
+    this.prompts = new BrowserPromptsDriver(page);
+    this.extensions = new BrowserExtensionsDriver(widgetFixture);
+    this.widgets = new BrowserWidgetsDriver(page, this.extensions);
   }
 
   static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; repositoryName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean } = {}): Promise<PiChatBrowserDriver> {
@@ -112,9 +112,9 @@ export class PiChatBrowserDriver {
           if (localStorage.getItem("pi-chat:session-inbox") === null) localStorage.setItem("pi-chat:session-inbox", JSON.stringify(enabled));
         }, options.inboxEnabled);
       }
-      if (options.probeThemeReconnect) await driver.Theme.prepareReconnectProbe();
+      if (options.probeThemeReconnect) await driver.theme.prepareReconnectProbe();
       await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
-      await driver.Home.ShouldBeVisible();
+      await driver.home.shouldBeVisible();
       return driver;
     } catch (error) {
       await server?.close().catch(() => undefined);
@@ -123,13 +123,13 @@ export class PiChatBrowserDriver {
     }
   }
 
-  async RestartBackend(): Promise<void> {
-    await this.restartBackend();
-    await this.Inbox.reload();
-    await this.Inbox.shouldShowHome();
+  async restartBackend(): Promise<void> {
+    await this.restartBackendService();
+    await this.inbox.reload();
+    await this.inbox.shouldShowHome();
   }
 
-  async WaitUntilReady(): Promise<void> {
+  async waitUntilReady(): Promise<void> {
     await expect(this.composer).toBeVisible();
     await expect(this.composer).toBeEnabled();
   }

@@ -21,19 +21,19 @@ describe("Pi Chat browser reconnect workflows", () => {
       { prompt: "Remember this", reply: "Remembered." },
     ]);
 
-    await app.Chat.SendPrompt("Remember this");
-    await app.Chat.WaitUntilIdle();
+    await app.chat.sendPrompt("Remember this");
+    await app.chat.waitUntilIdle();
 
-    await app.Browser.Reconnect();
+    await app.browser.reconnect();
 
-    app.Browser.ShouldBeUsable();
-    app.Chat.ShouldContainMessages([
+    app.browser.shouldBeUsable();
+    app.chat.shouldContainMessages([
       { role: "user", text: "Remember this" },
       { role: "assistant", text: "Remembered." },
     ]);
-    app.Chat.ShouldHaveMessageCount(2);
-    app.Chat.ShouldHaveNoDuplicateMessages();
-    app.Chat.ShouldHaveConsumedResponses();
+    app.chat.shouldHaveMessageCount(2);
+    app.chat.shouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveConsumedResponses();
   });
 
   it("waits for a fresh reply on repeated prompts, including after reconnect", async () => {
@@ -43,19 +43,19 @@ describe("Pi Chat browser reconnect workflows", () => {
       { prompt: "Again", reply: "Third reply." },
     ]);
 
-    await app.Chat.SendPrompt("Again");
-    await app.Chat.WaitUntilIdle();
+    await app.chat.sendPrompt("Again");
+    await app.chat.waitUntilIdle();
 
-    await app.Chat.SendPrompt("Again");
-    await app.Chat.WaitUntilIdle();
-    app.Chat.ShouldHaveAssistantReply("Second reply.");
+    await app.chat.sendPrompt("Again");
+    await app.chat.waitUntilIdle();
+    app.chat.shouldHaveAssistantReply("Second reply.");
 
-    await app.Browser.Reconnect();
+    await app.browser.reconnect();
 
-    await app.Chat.SendPrompt("Again");
-    await app.Chat.WaitUntilIdle();
+    await app.chat.sendPrompt("Again");
+    await app.chat.waitUntilIdle();
 
-    app.Chat.ShouldContainMessages([
+    app.chat.shouldContainMessages([
       { role: "user", text: "Again" },
       { role: "assistant", text: "First reply." },
       { role: "user", text: "Again" },
@@ -63,8 +63,8 @@ describe("Pi Chat browser reconnect workflows", () => {
       { role: "user", text: "Again" },
       { role: "assistant", text: "Third reply." },
     ]);
-    app.Chat.ShouldHaveMessageCount(6);
-    app.Chat.ShouldHaveNoDuplicateMessages();
-    app.Chat.ShouldHaveConsumedResponses();
+    app.chat.shouldHaveMessageCount(6);
+    app.chat.shouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveConsumedResponses();
   });
 });

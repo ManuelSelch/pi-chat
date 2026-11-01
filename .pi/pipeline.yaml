@@ -3,6 +3,16 @@ prepare:
   cwd: .
   timeoutSeconds: 300
 suites:
+  lint:
+    command: [npm, run, lint]
+    cwd: .
+    timeoutSeconds: 300
+    auto: after-agent
+  tooling:
+    command: [npm, run, test:tooling]
+    cwd: .
+    timeoutSeconds: 300
+    auto: after-agent
   build:
     command: [npm, run, build]
     cwd: .

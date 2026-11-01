@@ -5,65 +5,65 @@ import type { TestWorld } from "../pi-chat/test-world.js";
 export class BrowserFocusDriver {
   constructor(private readonly page: Page, private readonly composer: Locator, private readonly world: TestWorld) {}
 
-  async ShouldBeOnComposer(): Promise<void> {
+  async shouldBeOnComposer(): Promise<void> {
     await expect(this.composer).toBeEnabled();
     await expect(this.composer).toBeFocused();
   }
 
-  async TypeWithoutRefocusing(text: string): Promise<void> {
-    await this.ShouldBeOnComposer();
+  async typeWithoutRefocusing(text: string): Promise<void> {
+    await this.shouldBeOnComposer();
     await this.page.keyboard.type(text);
   }
 
-  async SubmitDraft(): Promise<void> {
-    await this.ShouldBeOnComposer();
+  async submitDraft(): Promise<void> {
+    await this.shouldBeOnComposer();
     await this.composer.press("Enter");
   }
 
-  async ShouldHaveDraft(text: string): Promise<void> { await expect(this.composer).toHaveValue(text); }
+  async shouldHaveDraft(text: string): Promise<void> { await expect(this.composer).toHaveValue(text); }
 
-  async ShouldBeLoading(): Promise<void> {
+  async shouldBeLoading(): Promise<void> {
     await expect(this.composer).toBeDisabled();
     await expect(this.composer).toHaveAttribute("placeholder", "Loading session…");
     await expect(this.composer).not.toBeFocused();
   }
 
-  async TryTypingWhileLoading(text: string): Promise<void> {
-    await this.ShouldBeLoading();
+  async tryTypingWhileLoading(text: string): Promise<void> {
+    await this.shouldBeLoading();
     await this.page.keyboard.type(text);
-    await this.ShouldHaveDraft("");
+    await this.shouldHaveDraft("");
   }
 
-  async ShouldBeInsideDialog(name: string): Promise<void> {
+  async shouldBeInsideDialog(name: string): Promise<void> {
     const dialog = this.page.getByRole("dialog", { name, exact: true });
     await expect(dialog).toBeVisible();
     await expect.poll(() => dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
     await expect(this.composer).not.toBeFocused();
   }
 
-  async OpenSettingsFromHeader(): Promise<void> {
+  async openSettingsFromHeader(): Promise<void> {
     await this.page.getByRole("button", { name: "Settings", exact: true }).click();
-    await this.ShouldBeInsideDialog("Settings");
+    await this.shouldBeInsideDialog("Settings");
   }
 
-  async OpenFolderFromProjects(): Promise<void> {
+  async openFolderFromProjects(): Promise<void> {
     const panel = this.page.getByRole("dialog", { name: "Projects", exact: true }).or(this.page.getByRole("navigation", { name: "Projects", exact: true }));
     await panel.getByRole("button", { name: "Open folder", exact: true }).click();
     await expect(panel).toHaveCount(0);
-    await this.ShouldBeInsideDialog("Open server folder");
+    await this.shouldBeInsideDialog("Open server folder");
   }
 
-  async OpenQuickOpen(): Promise<void> {
+  async openQuickOpen(): Promise<void> {
     await this.page.keyboard.press("ControlOrMeta+o");
     await expect(this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" })).toBeFocused();
   }
 
-  async DismissQuickOpen(): Promise<void> {
+  async dismissQuickOpen(): Promise<void> {
     await this.page.keyboard.press("Escape");
     await expect(this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" })).toHaveCount(0);
   }
 
-  async DismissDialog(name: string, via: "Escape" | "Cancel" | "Keep open" = "Escape"): Promise<void> {
+  async dismissDialog(name: string, via: "Escape" | "Cancel" | "Keep open" = "Escape"): Promise<void> {
     const dialog = this.page.getByRole("dialog", { name, exact: true });
     if (via === "Escape") await this.page.keyboard.press("Escape");
     else await dialog.getByRole("button", { name: via, exact: true }).click();
@@ -71,38 +71,38 @@ export class BrowserFocusDriver {
     await expect(dialog).toHaveCount(0);
   }
 
-  async OpenNestedRestartConfirmation(): Promise<void> {
+  async openNestedRestartConfirmation(): Promise<void> {
     await this.page.getByRole("dialog", { name: "Settings", exact: true }).getByRole("button", { name: "Restart", exact: true }).click();
-    await this.ShouldBeInsideDialog("Restart server?");
+    await this.shouldBeInsideDialog("Restart server?");
   }
 
-  async AnswerPrompt(title: string, value: string): Promise<void> {
+  async answerPrompt(title: string, value: string): Promise<void> {
     const dialog = this.page.getByRole("dialog", { name: title, exact: true });
     await dialog.getByRole("textbox").fill(value);
     await dialog.getByRole("button", { name: "OK", exact: true }).click();
   }
 
-  async WaitForPromptToClose(title: string): Promise<void> {
+  async waitForPromptToClose(title: string): Promise<void> {
     await expect(this.page.getByRole("dialog", { name: title, exact: true })).toHaveCount(0);
   }
 
-  async AcceptCloseRunningSession(): Promise<void> {
+  async acceptCloseRunningSession(): Promise<void> {
     const dialog = this.page.getByRole("dialog", { name: "Close running session?", exact: true });
     await dialog.getByRole("button", { name: "Stop and close", exact: true }).click();
     await expect(dialog).toHaveCount(0);
   }
 
-  async OpenFolderAsSession(): Promise<void> {
+  async openFolderAsSession(): Promise<void> {
     const release = this.world.reserveSession([]);
     try {
       await this.page.getByRole("dialog", { name: "Open server folder", exact: true }).getByRole("button", { name: "Open", exact: true }).click();
-      await this.WaitForPromptToClose("Open server folder");
+      await this.waitForPromptToClose("Open server folder");
       await expect(this.composer).toBeEnabled();
     } finally { release(); }
   }
 
-  async ShouldAllowTabAwayFromComposer(): Promise<void> {
-    await this.ShouldBeOnComposer();
+  async shouldAllowTabAwayFromComposer(): Promise<void> {
+    await this.shouldBeOnComposer();
     await this.page.keyboard.press("Tab");
     await expect(this.composer).not.toBeFocused();
   }

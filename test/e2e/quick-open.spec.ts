@@ -4,9 +4,9 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 test("shares session actions between composer and quickswitcher", async ({ page }) => {
   const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
-    await app.Tabs.Create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
-    await app.Chat.SendPrompt("Hello");
-    await app.Chat.ShouldShowAssistantReply("Ready");
+    await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
+    await app.chat.sendPrompt("Hello");
+    await app.chat.shouldShowAssistantReply("Ready");
     const composer = page.getByRole("textbox", { name: "Message Pi" });
     await composer.fill("/");
     const commands = page.getByRole("listbox", { name: "Commands" });
@@ -21,7 +21,7 @@ test("shares session actions between composer and quickswitcher", async ({ page 
       await expect(page.getByRole("option", { name: new RegExp(`Action: ${name}`) })).toBeVisible();
     }
     await page.getByRole("option", { name: /Action: Close Session/ }).click();
-    await app.Home.ShouldBeVisible();
+    await app.home.shouldBeVisible();
     await page.locator("body").press("Meta+o");
     await page.getByRole("button", { name: "/ Actions", exact: true }).click();
     await expect(page.getByRole("option", { name: /Action: Close Session/ })).toHaveCount(0);
@@ -35,9 +35,9 @@ test("shares session actions between composer and quickswitcher", async ({ page 
 test("lists Close Session, Later and Archive Session in Inbox mode", async ({ page }) => {
   const app = await PiChatBrowserDriver.start(page, { inboxEnabled: true });
   try {
-    await app.Inbox.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
-    await app.Chat.SendPrompt("Hello");
-    await app.Chat.ShouldShowAssistantReply("Ready");
+    await app.inbox.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
+    await app.chat.sendPrompt("Hello");
+    await app.chat.shouldShowAssistantReply("Ready");
     const composer = page.getByRole("textbox", { name: "Message Pi" });
     await composer.fill("/");
     const commands = page.getByRole("listbox", { name: "Commands" });

@@ -27,7 +27,7 @@ export class BrowserTabsDriver {
     return this.tabs().nth(index);
   }
 
-  async Create(options: CreateBrowserTabOptions): Promise<BrowserTabHandle> {
+  async create(options: CreateBrowserTabOptions): Promise<BrowserTabHandle> {
     const index = await this.tabs().count();
     const release = this.world.reserveSession(options.responses, options);
     try {
@@ -47,24 +47,24 @@ export class BrowserTabsDriver {
     }
   }
 
-  async SwitchTo(handle: BrowserTabHandle): Promise<void> {
+  async switchTo(handle: BrowserTabHandle): Promise<void> {
     const tab = this.tab(handle);
     await tab.click();
     await expect.poll(async () => tab.evaluate(element => getComputedStyle(element).borderBottomColor))
       .not.toBe("rgba(0, 0, 0, 0)");
   }
 
-  async ShouldHaveCount(count: number): Promise<void> {
+  async shouldHaveCount(count: number): Promise<void> {
     await expect(this.tabs()).toHaveCount(count);
   }
 
-  async RequestClose(handle: BrowserTabHandle): Promise<void> {
+  async requestClose(handle: BrowserTabHandle): Promise<void> {
     await this.tab(handle).getByRole("button", { name: /^Close / }).click();
   }
 
-  async Close(handle: BrowserTabHandle): Promise<void> {
+  async close(handle: BrowserTabHandle): Promise<void> {
     const count = await this.tabs().count();
-    await this.RequestClose(handle);
+    await this.requestClose(handle);
     await expect(this.tabs()).toHaveCount(count - 1);
   }
 }

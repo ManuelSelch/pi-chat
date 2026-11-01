@@ -12,7 +12,7 @@ export class ChatDriver {
 
   constructor(private readonly context: DriverContext) {}
 
-  async SendPrompt(text: string): Promise<void> {
+  async sendPrompt(text: string): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.SendPrompt");
     check(this.context, "Chat.SendPrompt", () => {
@@ -29,7 +29,7 @@ export class ChatDriver {
       m.type === "event" && m.event === "message.finalized" && m.sessionId === sessionId && m.data.message.role === "user" && m.data.message.text === text.trim());
   }
 
-  async Steer(text: string): Promise<void> {
+  async steer(text: string): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.Steer");
     check(this.context, "Chat.Steer", () => assert.equal(client.chat.status, "running", "Conversation must be running to steer"));
@@ -39,17 +39,17 @@ export class ChatDriver {
       message.type === "event" && message.event === "steering.queue.changed" && message.sessionId === sessionId && message.data.messages.includes(text));
   }
 
-  ShouldHaveQueuedSteering(messages: readonly string[]): void {
+  shouldHaveQueuedSteering(messages: readonly string[]): void {
     check(this.context, "Chat.ShouldHaveQueuedSteering", () => assert.deepEqual(this.context.client.chat.steeringMessages, messages));
   }
 
-  async WaitUntilStreaming(): Promise<void> {
+  async waitUntilStreaming(): Promise<void> {
     const { client } = this.context;
     requireSession(this.context, "Chat.WaitUntilStreaming");
     await client.wait("Chat.WaitUntilStreaming", "conversation streaming", () => client.chat.status === "running" || client.chat.status === "aborting");
   }
 
-  async Abort(): Promise<void> {
+  async abort(): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.Abort");
     const after = client.mark();
@@ -61,12 +61,12 @@ export class ChatDriver {
     this.pendingTurns.delete(sessionId);
   }
 
-  ReleaseControlledResponse(): void {
+  releaseControlledResponse(): void {
     requireSession(this.context, "Chat.ReleaseControlledResponse");
     this.context.releaseControlledResponse();
   }
 
-  async WaitUntilIdle(): Promise<void> {
+  async waitUntilIdle(): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.WaitUntilIdle");
     const pending = this.pendingTurns.get(sessionId);
@@ -82,7 +82,7 @@ export class ChatDriver {
     this.pendingTurns.delete(sessionId);
   }
 
-  ShouldContainMessages(expected: readonly ExpectedMessage[]): void {
+  shouldContainMessages(expected: readonly ExpectedMessage[]): void {
     check(this.context, "Chat.ShouldContainMessages", () => {
       const actual = this.context.client.chat.messages.map(m => ({ role: m.role, text: "text" in m ? m.text : undefined }));
       // Ordered containment; pair with ShouldHaveMessageCount for an exact transcript.
@@ -94,26 +94,26 @@ export class ChatDriver {
     });
   }
 
-  ShouldHaveMessageCount(count: number): void {
+  shouldHaveMessageCount(count: number): void {
     check(this.context, "Chat.ShouldHaveMessageCount", () => assert.equal(this.context.client.chat.messages.length, count));
   }
 
-  ShouldHaveAssistantReply(text: string): void {
+  shouldHaveAssistantReply(text: string): void {
     check(this.context, "Chat.ShouldHaveAssistantReply", () => assert(this.context.client.chat.messages.some(m => m.role === "assistant" && m.text === text), `Missing assistant reply ${JSON.stringify(text)}`));
   }
 
-  ShouldNotHaveAssistantReply(text: string): void {
+  shouldNotHaveAssistantReply(text: string): void {
     check(this.context, "Chat.ShouldNotHaveAssistantReply", () => assert(!this.context.client.chat.messages.some(m => m.role === "assistant" && m.text === text), `Unexpected assistant reply ${JSON.stringify(text)}`));
   }
 
-  ShouldHaveNoDuplicateMessages(): void {
+  shouldHaveNoDuplicateMessages(): void {
     check(this.context, "Chat.ShouldHaveNoDuplicateMessages", () => {
       const ids = this.context.client.chat.messages.map(m => m.id);
       assert.equal(new Set(ids).size, ids.length);
     });
   }
 
-  ShouldHaveConsumedResponses(): void {
+  shouldHaveConsumedResponses(): void {
     check(this.context, "Chat.ShouldHaveConsumedResponses", () => assert.equal(this.context.remainingResponses(), 0, "Unused scripted responses"));
   }
 }

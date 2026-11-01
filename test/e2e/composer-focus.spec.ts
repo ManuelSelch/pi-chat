@@ -27,118 +27,118 @@ test.afterEach(async () => { await app?.dispose(); });
 
 for (const overlay of ["settings", "projects", "folder picker", "quick open"] as const) {
   test(`returns focus after closing ${overlay}, then accepts typing without a click`, async () => {
-    await app.Tabs.Create({ responses: [] });
+    await app.tabs.create({ responses: [] });
     if (overlay === "settings") {
-      await app.Focus.OpenSettingsFromHeader();
-      await app.Focus.DismissDialog("Settings");
+      await app.focus.openSettingsFromHeader();
+      await app.focus.dismissDialog("Settings");
     } else if (overlay === "projects" || overlay === "folder picker") {
-      await app.Projects.Open();
+      await app.projects.open();
       if (overlay === "folder picker") {
         // This also exercises handover: the older drawer exits while a new modal opens.
-        await app.Focus.OpenFolderFromProjects();
-        await app.Focus.DismissDialog("Open server folder", "Cancel");
-      } else await app.Projects.Close();
+        await app.focus.openFolderFromProjects();
+        await app.focus.dismissDialog("Open server folder", "Cancel");
+      } else await app.projects.close();
     } else {
-      await app.Focus.OpenQuickOpen();
-      await app.Focus.DismissQuickOpen();
+      await app.focus.openQuickOpen();
+      await app.focus.dismissQuickOpen();
     }
 
-    await app.Focus.TypeWithoutRefocusing("Focus survived the exit animation");
-    await app.Focus.ShouldHaveDraft("Focus survived the exit animation");
+    await app.focus.typeWithoutRefocusing("Focus survived the exit animation");
+    await app.focus.shouldHaveDraft("Focus survived the exit animation");
   });
 }
 
 test("returns focus after accepting the folder picker and creating a session", async () => {
-  await app.Tabs.Create({ responses: [] });
-  await app.Projects.Open();
-  await app.Focus.OpenFolderFromProjects();
-  await app.Focus.OpenFolderAsSession();
-  await app.Tabs.ShouldHaveCount(2);
-  await app.Focus.TypeWithoutRefocusing("New folder session draft");
-  await app.Focus.ShouldHaveDraft("New folder session draft");
+  await app.tabs.create({ responses: [] });
+  await app.projects.open();
+  await app.focus.openFolderFromProjects();
+  await app.focus.openFolderAsSession();
+  await app.tabs.shouldHaveCount(2);
+  await app.focus.typeWithoutRefocusing("New folder session draft");
+  await app.focus.shouldHaveDraft("New folder session draft");
 });
 
 test("keeps focus in a nested confirmation, then restores only after Settings closes", async () => {
-  await app.Tabs.Create({ responses: [] });
-  await app.Focus.OpenSettingsFromHeader();
-  await app.Focus.OpenNestedRestartConfirmation();
-  await app.Focus.DismissDialog("Restart server?", "Cancel");
-  await app.Focus.ShouldBeInsideDialog("Settings");
-  await app.Focus.DismissDialog("Settings");
-  await app.Focus.TypeWithoutRefocusing("After nested confirmation");
-  await app.Focus.ShouldHaveDraft("After nested confirmation");
+  await app.tabs.create({ responses: [] });
+  await app.focus.openSettingsFromHeader();
+  await app.focus.openNestedRestartConfirmation();
+  await app.focus.dismissDialog("Restart server?", "Cancel");
+  await app.focus.shouldBeInsideDialog("Settings");
+  await app.focus.dismissDialog("Settings");
+  await app.focus.typeWithoutRefocusing("After nested confirmation");
+  await app.focus.shouldHaveDraft("After nested confirmation");
 });
 
 test("restores focus after the final extension prompt closes", async () => {
-  await app.Tabs.Create({ responses: [] });
-  await app.Chat.SendPrompt("/focus-question ");
-  await app.Focus.ShouldBeInsideDialog("Focus question");
-  await app.Focus.AnswerPrompt("Focus question", "Answer");
-  await app.Focus.WaitForPromptToClose("Focus question");
-  await app.Focus.TypeWithoutRefocusing("After the final question");
-  await app.Focus.ShouldHaveDraft("After the final question");
+  await app.tabs.create({ responses: [] });
+  await app.chat.sendPrompt("/focus-question ");
+  await app.focus.shouldBeInsideDialog("Focus question");
+  await app.focus.answerPrompt("Focus question", "Answer");
+  await app.focus.waitForPromptToClose("Focus question");
+  await app.focus.typeWithoutRefocusing("After the final question");
+  await app.focus.shouldHaveDraft("After the final question");
 });
 
 test("keeps consecutive extension prompts focused before restoring the composer", async () => {
-  await app.Tabs.Create({ responses: [] });
-  await app.Chat.SendPrompt("/focus-handover ");
-  await app.Focus.ShouldBeInsideDialog("First focus question");
-  await app.Focus.AnswerPrompt("First focus question", "First answer");
-  await app.Focus.ShouldBeInsideDialog("Second focus question");
-  await app.Focus.AnswerPrompt("Second focus question", "Second answer");
-  await app.Focus.WaitForPromptToClose("Second focus question");
-  await app.Focus.TypeWithoutRefocusing("After both questions");
-  await app.Focus.ShouldHaveDraft("After both questions");
+  await app.tabs.create({ responses: [] });
+  await app.chat.sendPrompt("/focus-handover ");
+  await app.focus.shouldBeInsideDialog("First focus question");
+  await app.focus.answerPrompt("First focus question", "First answer");
+  await app.focus.shouldBeInsideDialog("Second focus question");
+  await app.focus.answerPrompt("Second focus question", "Second answer");
+  await app.focus.waitForPromptToClose("Second focus question");
+  await app.focus.typeWithoutRefocusing("After both questions");
+  await app.focus.shouldHaveDraft("After both questions");
 });
 
 test("returns Home after closing a running session and focuses the remaining conversation on explicit selection", async () => {
-  const remaining = await app.Tabs.Create({ responses: [] });
-  const running = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
-  await app.Chat.SendPrompt("Start working");
-  await app.Chat.ShouldBeSteering();
-  await app.Tabs.RequestClose(running);
+  const remaining = await app.tabs.create({ responses: [] });
+  const running = await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+  await app.chat.sendPrompt("Start working");
+  await app.chat.shouldBeSteering();
+  await app.tabs.requestClose(running);
 
-  await app.Home.ShouldBeVisible();
-  await app.Tabs.ShouldHaveCount(1);
+  await app.home.shouldBeVisible();
+  await app.tabs.shouldHaveCount(1);
 
-  await app.Tabs.SwitchTo(remaining);
-  await app.Focus.TypeWithoutRefocusing("Remaining conversation draft");
-  await app.Focus.ShouldHaveDraft("Remaining conversation draft");
+  await app.tabs.switchTo(remaining);
+  await app.focus.typeWithoutRefocusing("Remaining conversation draft");
+  await app.focus.shouldHaveDraft("Remaining conversation draft");
 });
 
 test("closes the last running session immediately from its tab button", async () => {
-  const tab = await app.Tabs.Create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
-  await app.Chat.SendPrompt("Start working");
-  await app.Chat.ShouldBeSteering();
-  await app.Tabs.RequestClose(tab);
-  await app.Home.ShouldBeVisible();
+  const tab = await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+  await app.chat.sendPrompt("Start working");
+  await app.chat.shouldBeSteering();
+  await app.tabs.requestClose(tab);
+  await app.home.shouldBeVisible();
 });
 
 test("disables input during controlled slow startup, then focuses the ready composer", async () => {
   let release!: () => void;
   startupGate = new Promise<void>(resolve => { release = resolve; });
-  const creating = app.Tabs.Create({ responses: [] });
+  const creating = app.tabs.create({ responses: [] });
   try {
-    await app.Focus.ShouldBeLoading();
-    await app.Focus.TryTypingWhileLoading("Too early");
+    await app.focus.shouldBeLoading();
+    await app.focus.tryTypingWhileLoading("Too early");
   } finally {
     release();
     await creating;
   }
-  await app.Focus.TypeWithoutRefocusing("Ready after slow startup");
-  await app.Focus.ShouldHaveDraft("Ready after slow startup");
+  await app.focus.typeWithoutRefocusing("Ready after slow startup");
+  await app.focus.shouldHaveDraft("Ready after slow startup");
 });
 
 test("focuses ready sessions and preserves drafts while switching tabs", async () => {
-  const first = await app.Tabs.Create({ responses: [] });
-  await app.Focus.TypeWithoutRefocusing("First draft");
-  const second = await app.Tabs.Create({ responses: [] });
-  await app.Focus.TypeWithoutRefocusing("Second draft");
-  await app.Tabs.SwitchTo(first);
-  await app.Focus.ShouldBeOnComposer();
-  await app.Focus.ShouldHaveDraft("First draft");
-  await app.Tabs.SwitchTo(second);
-  await app.Focus.ShouldBeOnComposer();
-  await app.Focus.ShouldHaveDraft("Second draft");
-  await app.Focus.ShouldAllowTabAwayFromComposer();
+  const first = await app.tabs.create({ responses: [] });
+  await app.focus.typeWithoutRefocusing("First draft");
+  const second = await app.tabs.create({ responses: [] });
+  await app.focus.typeWithoutRefocusing("Second draft");
+  await app.tabs.switchTo(first);
+  await app.focus.shouldBeOnComposer();
+  await app.focus.shouldHaveDraft("First draft");
+  await app.tabs.switchTo(second);
+  await app.focus.shouldBeOnComposer();
+  await app.focus.shouldHaveDraft("Second draft");
+  await app.focus.shouldAllowTabAwayFromComposer();
 });

@@ -19,69 +19,69 @@ async function start(): Promise<PiChatDriver> {
 it("rejects unknown commands without calling a model", async () => {
   const app = await start();
 
-  await expect(app.Extensions.RunCommand("not-registered")).rejects.toThrow("Unknown extension command");
+  await expect(app.extensions.runCommand("not-registered")).rejects.toThrow("Unknown extension command");
 
-  app.Chat.ShouldHaveMessageCount(0);
-  app.Chat.ShouldHaveConsumedResponses();
+  app.chat.shouldHaveMessageCount(0);
+  app.chat.shouldHaveConsumedResponses();
 }, 15000);
 
 it("rejects extension commands without an active conversation", async () => {
   const app = await PiChatDriver.start({ startAtHome: true, extensions: [confirmationExtension] });
   apps.push(app);
 
-  await expect(app.Extensions.RunCommand("test-confirm")).rejects.toThrow("No active conversation");
+  await expect(app.extensions.runCommand("test-confirm")).rejects.toThrow("No active conversation");
 
-  app.Browser.ShouldBeAtHome();
+  app.browser.shouldBeAtHome();
 }, 15000);
 
 it("rejects a second command while a prompt is pending", async () => {
   const app = await start();
 
-  await app.Extensions.RunCommand("test-confirm");
-  const prompt = await app.Extensions.WaitForPrompt("Apply change?");
+  await app.extensions.runCommand("test-confirm");
+  const prompt = await app.extensions.waitForPrompt("Apply change?");
 
-  await expect(app.Extensions.RunCommand("test-confirm")).rejects.toThrow("Answer the pending prompt");
+  await expect(app.extensions.runCommand("test-confirm")).rejects.toThrow("Answer the pending prompt");
 
-  await app.Extensions.RespondToPrompt(prompt, { cancelled: true });
-  await app.Extensions.WaitForNotification("Change cancelled", "warning");
+  await app.extensions.respondToPrompt(prompt, { cancelled: true });
+  await app.extensions.waitForNotification("Change cancelled", "warning");
 }, 15000);
 
 it("rejects foreign, wrong-conversation, and already-answered prompt handles", async () => {
   const app = await start();
   const other = await start();
-  const original = app.Tabs.Active();
+  const original = app.tabs.active();
 
-  await app.Extensions.RunCommand("test-confirm");
-  const prompt = await app.Extensions.WaitForPrompt("Apply change?");
+  await app.extensions.runCommand("test-confirm");
+  const prompt = await app.extensions.waitForPrompt("Apply change?");
 
-  await expect(other.Extensions.RespondToPrompt(prompt, { cancelled: true })).rejects.toThrow("another application");
+  await expect(other.extensions.respondToPrompt(prompt, { cancelled: true })).rejects.toThrow("another application");
 
-  await app.Tabs.Create();
-  await expect(app.Extensions.RespondToPrompt(prompt, { cancelled: true })).rejects.toThrow("Switch to the prompt's conversation");
+  await app.tabs.create();
+  await expect(app.extensions.respondToPrompt(prompt, { cancelled: true })).rejects.toThrow("Switch to the prompt's conversation");
 
-  await app.Tabs.SwitchTo(original);
-  await app.Extensions.RespondToPrompt(prompt, { cancelled: true });
-  await app.Extensions.WaitForNotification("Change cancelled", "warning");
+  await app.tabs.switchTo(original);
+  await app.extensions.respondToPrompt(prompt, { cancelled: true });
+  await app.extensions.waitForNotification("Change cancelled", "warning");
 
-  await expect(app.Extensions.RespondToPrompt(prompt, { cancelled: true })).rejects.toThrow("no longer pending");
+  await expect(app.extensions.respondToPrompt(prompt, { cancelled: true })).rejects.toThrow("no longer pending");
 }, 15000);
 
 it("waits for a fresh notification when repeating the same command", async () => {
   const app = await start();
 
-  await app.Extensions.RunCommand("test-confirm");
-  const first = await app.Extensions.WaitForPrompt("Apply change?");
-  await app.Extensions.RespondToPrompt(first, { cancelled: true });
-  await app.Extensions.WaitForNotification("Change cancelled", "warning");
+  await app.extensions.runCommand("test-confirm");
+  const first = await app.extensions.waitForPrompt("Apply change?");
+  await app.extensions.respondToPrompt(first, { cancelled: true });
+  await app.extensions.waitForNotification("Change cancelled", "warning");
 
-  await app.Extensions.RunCommand("test-confirm");
+  await app.extensions.runCommand("test-confirm");
   let received = false;
-  const notification = app.Extensions.WaitForNotification("Change cancelled", "warning").then(() => { received = true; });
-  const second = await app.Extensions.WaitForPrompt("Apply change?");
+  const notification = app.extensions.waitForNotification("Change cancelled", "warning").then(() => { received = true; });
+  const second = await app.extensions.waitForPrompt("Apply change?");
 
   expect(received).toBe(false);
 
-  await app.Extensions.RespondToPrompt(second, { cancelled: true });
+  await app.extensions.respondToPrompt(second, { cancelled: true });
   await notification;
   expect(received).toBe(true);
 }, 15000);
@@ -91,10 +91,10 @@ it("does not load fixtures into an application that did not request them", async
   const other = await PiChatDriver.start();
   apps.push(other);
 
-  await expect(other.Extensions.RunCommand("test-confirm")).rejects.toThrow("Unknown extension command");
+  await expect(other.extensions.runCommand("test-confirm")).rejects.toThrow("Unknown extension command");
 
-  await app.Extensions.RunCommand("test-confirm");
-  const prompt = await app.Extensions.WaitForPrompt("Apply change?");
-  await app.Extensions.RespondToPrompt(prompt, { cancelled: true });
-  await app.Extensions.WaitForNotification("Change cancelled", "warning");
+  await app.extensions.runCommand("test-confirm");
+  const prompt = await app.extensions.waitForPrompt("Apply change?");
+  await app.extensions.respondToPrompt(prompt, { cancelled: true });
+  await app.extensions.waitForNotification("Change cancelled", "warning");
 }, 15000);

@@ -16,23 +16,23 @@ describe("Pi Chat persisted tab workflows", () => {
     });
     apps.push(app);
 
-    const tab = app.Tabs.Active();
-    await app.Chat.SendPrompt("Remember this");
-    await app.Chat.WaitUntilIdle();
+    const tab = app.tabs.active();
+    await app.chat.sendPrompt("Remember this");
+    await app.chat.waitUntilIdle();
 
-    const sessionPath = app.Tabs.SessionPath(tab);
-    await app.Tabs.Close(tab);
-    app.Browser.ShouldBeAtHome();
+    const sessionPath = app.tabs.sessionPath(tab);
+    await app.tabs.close(tab);
+    app.browser.shouldBeAtHome();
 
-    const reopened = await app.Tabs.Open(sessionPath);
+    const reopened = await app.tabs.open(sessionPath);
 
-    app.Tabs.ShouldBeActive(reopened);
-    app.Chat.ShouldContainMessages([
+    app.tabs.shouldBeActive(reopened);
+    app.chat.shouldContainMessages([
       { role: "user", text: "Remember this" },
       { role: "assistant", text: "Saved conversation." },
     ]);
-    app.Chat.ShouldHaveMessageCount(2);
-    app.Chat.ShouldHaveNoDuplicateMessages();
+    app.chat.shouldHaveMessageCount(2);
+    app.chat.shouldHaveNoDuplicateMessages();
   }, 15000);
 
   it("rejects a missing persisted session without opening a tab", async () => {
@@ -40,12 +40,12 @@ describe("Pi Chat persisted tab workflows", () => {
     apps.push(app);
 
     await expect(
-      app.Tabs.Open("/definitely/missing/pi-chat-session.jsonl"),
+      app.tabs.open("/definitely/missing/pi-chat-session.jsonl"),
     ).rejects.toThrow();
 
-    app.Browser.ShouldShowError("The server operation failed.");
-    app.Browser.DismissError();
-    app.Browser.ShouldBeAtHome();
-    app.Tabs.ShouldHaveCount(0);
+    app.browser.shouldShowError("The server operation failed.");
+    app.browser.dismissError();
+    app.browser.shouldBeAtHome();
+    app.tabs.shouldHaveCount(0);
   }, 15000);
 });
