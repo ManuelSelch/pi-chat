@@ -7,12 +7,14 @@ into `~/.pi/agent/git/pi-chat` and registers these Pi commands:
 
 - `/pi-chat start [--port N] [--cwd PATH] [--no-open]`: start the server.
 - `/pi-chat stop`: stop the managed server.
-- `/pi-chat restart`: rebuild and restart the managed server without taking browser control.
+- `/pi-chat restart`: install locked dependencies (`npm ci`), rebuild and restart the managed server without taking browser control.
 - `/pi-chat`: show status.
 
 The old `/pi-chat-start` and `/pi-chat-stop` commands are removed. Subcommands
 support argument completion. Restart keeps the server's port, project and environment;
-it does not open a new browser tab. Build failure keeps the old server running.
+it does not open a new browser tab. Dependency installation or build failure keeps the old server running.
+Restart installs the exact versions in `package-lock.json`, not newer registry releases.
+`npm ci` replaces the shared `node_modules` in place; failure does not roll dependencies back.
 The command waits up to 120 seconds for a healthy successor; if not confirmed,
 check the server logs and status before retrying. Restart does not automatically
 retry or terminate a slow build. Manually launched/development servers cannot be

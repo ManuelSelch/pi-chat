@@ -9,8 +9,9 @@ vi.mock("../../../src/shared/node/npm-command.js", () => ({ resolveNpmCli: mocks
 
 beforeEach(() => { vi.resetAllMocks(); mocks.resolveNpmCli.mockReturnValue("/installation/npm/bin/npm-cli.js"); });
 
-function fixture(outcome: number | Error = 0) {
+function fixture(...outcomes: (number | Error)[]) {
   mocks.spawn.mockImplementation(() => {
+    const outcome = outcomes.shift() ?? 0;
     const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
     queueMicrotask(() => {
       if (outcome instanceof Error) child.emit("error", outcome);
@@ -59,18 +60,19 @@ describe("restart's default build invocation", () => {
     await expect(restart.restart()).resolves.toBeUndefined();
   });
 
-  it("uses the running Node executable and resolved npm CLI with unchanged build arguments", async () => {
+  it("installs locked dependencies before building with the running Node executable", async () => {
     const { restart, shutdown, spawnDetached } = fixture();
     await expect(restart.restart()).resolves.toBeUndefined();
-    expect(mocks.resolveNpmCli).toHaveBeenCalledOnce();
-    expect(mocks.spawn).toHaveBeenCalledExactlyOnceWith(process.execPath, ["/installation/npm/bin/npm-cli.js", "run", "build"], { cwd: "/project", stdio: ["ignore", "pipe", "pipe"] });
+    expect(mocks.spawn).toHaveBeenCalledTimes(2);
+    expect(mocks.spawn).toHaveBeenNthCalledWith(1, process.execPath, ["/installation/npm/bin/npm-cli.js", "ci"], { cwd: "/project", stdio: ["ignore", "pipe", "pipe"] });
+    expect(mocks.spawn).toHaveBeenNthCalledWith(2, process.execPath, ["/installation/npm/bin/npm-cli.js", "run", "build"], { cwd: "/project", stdio: ["ignore", "pipe", "pipe"] });
     expect(spawnDetached).toHaveBeenCalledOnce(); expect(shutdown).toHaveBeenCalledOnce();
   });
 
   it("keeps the server alive and does not spawn anything when npm resolution fails", async () => {
     const { restart, shutdown, spawnDetached } = fixture();
     mocks.resolveNpmCli.mockImplementation(() => { throw new Error("Unsupported npm installation"); });
-    await expect(restart.restart()).resolves.toMatch(/could not run npm run build: Unsupported npm installation/);
+    await expect(restart.restart()).resolves.toMatch(/could not run npm ci: Unsupported npm installation/);
     expect(mocks.spawn).not.toHaveBeenCalled(); expect(spawnDetached).not.toHaveBeenCalled(); expect(shutdown).not.toHaveBeenCalled();
   });
 
@@ -80,8 +82,18 @@ describe("restart's default build invocation", () => {
     expect(spawnDetached).not.toHaveBeenCalled(); expect(shutdown).not.toHaveBeenCalled();
   });
 
-  it("keeps the server alive and retains build diagnostics on a nonzero exit", async () => {
+  it("skips build and shutdown when dependency installation fails", async () => {
     const { restart, shutdown, spawnDetached } = fixture(1);
+
+    await expect(restart.restart()).resolves.toBe("build detail");
+
+    expect(mocks.spawn).toHaveBeenCalledOnce();
+    expect(mocks.spawn.mock.calls[0]![1]).toEqual(["/installation/npm/bin/npm-cli.js", "ci"]);
+    expect(spawnDetached).not.toHaveBeenCalled(); expect(shutdown).not.toHaveBeenCalled();
+  });
+
+  it("keeps the server alive and retains build diagnostics on a nonzero exit", async () => {
+    const { restart, shutdown, spawnDetached } = fixture(0, 1);
     await expect(restart.restart()).resolves.toBe("build detail");
     expect(spawnDetached).not.toHaveBeenCalled(); expect(shutdown).not.toHaveBeenCalled();
   });
