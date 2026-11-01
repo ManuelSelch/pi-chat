@@ -162,6 +162,18 @@ caret. Pi owns filtering and ordering. No Pi Chat-specific extension API is
 needed. Native command dialogs, filesystem completion, and general
 `addAutocompleteProvider()` hooks are not part of this support.
 
+## Model selection
+
+`/model` opens the existing model popup with an always-visible search field.
+**Scoped** shows the models resolved from Pi's `enabledModels` setting; **All
+models** shows every model available to this runtime's providers/credentials.
+Press **Tab** to toggle scope without losing the search query or search focus.
+**Shift+Tab** retains normal focus navigation. Arrow keys and Enter still select;
+Cancel/Escape dismiss without changing the model. The scope switch does not edit
+Pi's configured shortlist. Scope/query survive minimization, tab switches and
+reconnection within this browser page. Settings and the read-only footer are
+unchanged; there is no added footer model selector.
+
 ## Extension prompts and widgets
 
 Extension questions are server-owned interactions, not chat messages. Rich

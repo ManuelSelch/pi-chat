@@ -2,12 +2,13 @@ export interface PromptDraft {
   value: string;
   query: string;
   activeOption: number;
+  modelScope: "scoped" | "all";
   selectedOption?: string;
   minimized: boolean;
   submitting: boolean;
 }
 export function createPromptDraft(prompt: { prefill?: string }): PromptDraft {
-  return { value: prompt.prefill ?? "", query: "", activeOption: 0, selectedOption: undefined, minimized: false, submitting: false };
+  return { value: prompt.prefill ?? "", query: "", activeOption: 0, modelScope: "scoped", selectedOption: undefined, minimized: false, submitting: false };
 }
 export function promptDraftKey(server: string, session: string, prompt: string): string {
   return JSON.stringify([server, session, prompt]);

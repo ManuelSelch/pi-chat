@@ -5,6 +5,33 @@ export class BrowserPromptsDriver {
   constructor(private readonly page: Page) {}
   private dialog(title: string) { return this.page.getByRole("dialog", { name: title, exact: true }); }
 
+  async FilterModels(query: string): Promise<void> {
+    await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).fill(query);
+  }
+  async ToggleModelScope(): Promise<void> {
+    await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Tab");
+  }
+  async ShouldHaveModelScope(scope: "Scoped" | "All models", query = ""): Promise<void> {
+    const dialog = this.dialog("Select a model");
+    await expect(dialog.getByRole("radio", { name: scope, exact: true })).toBeChecked();
+    await expect(dialog.getByRole("textbox", { name: "Filter options" })).toHaveValue(query);
+    await expect(dialog.getByRole("textbox", { name: "Filter options" })).toBeFocused();
+  }
+  async ShouldOfferModels(ids: string[]): Promise<void> {
+    await expect(this.dialog("Select a model").getByRole("option")).toHaveText(ids.map(id => new RegExp(`/${id}$`)));
+  }
+  async ChooseFilteredModel(): Promise<void> {
+    await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Enter");
+    await expect(this.dialog("Select a model")).not.toBeVisible();
+  }
+  async CancelModels(): Promise<void> {
+    await this.dialog("Select a model").getByRole("textbox", { name: "Filter options" }).press("Escape");
+    await expect(this.dialog("Select a model")).not.toBeVisible();
+  }
+  async ShouldUseModel(id: string): Promise<void> {
+    await expect(this.page.getByRole("contentinfo").getByText(new RegExp(`/${id}$`))).toBeVisible();
+  }
+
   async ShouldShowRichQuestion(title: string): Promise<void> {
     const dialog = this.dialog(title);
     await expect(dialog).toBeVisible();

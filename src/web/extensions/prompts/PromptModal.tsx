@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { ActionIcon, Button, Group, Modal, Radio, ScrollArea, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Button, Group, Modal, Radio, ScrollArea, SegmentedControl, Stack, Text, Textarea, TextInput, UnstyledButton } from "@mantine/core";
 import { IconMinus } from "@tabler/icons-react";
 import { Markdown } from "../../chat/markdown/MarkdownLazy.js";
 import { THEME } from "../../ui/theme.js";
@@ -29,7 +29,7 @@ function splitHeading(title: string): { heading: string; body?: string } {
   return { heading: first.trim(), ...(body ? { body } : {}) };
 }
 function isSameMenu(previous: UiPrompt, next: UiPrompt): boolean {
-  if (previous.kind !== "select" || next.kind !== "select" || previous.submission === "explicit" || next.submission === "explicit") return false;
+  if (previous.kind !== "select" || next.kind !== "select" || previous.modelScope || next.modelScope || previous.submission === "explicit" || next.submission === "explicit") return false;
   if ((previous.options?.length ?? 0) !== (next.options?.length ?? 0)) return false;
   const shape = (title: string) => splitHeading(title).heading.replace(/[\d/]+/g, "");
   return shape(previous.title) === shape(next.title);
@@ -56,13 +56,15 @@ export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraft
   const previous = useRef<UiPrompt | undefined>(undefined);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const pointer = useRef<{ x: number; y: number } | null>(null);
   const mouseActive = useRef<number | null>(null);
   const waiting = prompt === undefined || disabled || minimized;
   const explicit = shown?.kind === "select" && shown.submission === "explicit";
-  const allOptions = shown?.options ?? [];
-  const searchable = allOptions.length > SEARCH_THRESHOLD && !explicit;
+  const modelScope = shown?.kind === "select" ? shown.modelScope : undefined;
+  const allOptions = modelScope && draft.modelScope === "scoped" ? modelScope.scoped : shown?.options ?? [];
+  const searchable = (Boolean(modelScope) || allOptions.length > SEARCH_THRESHOLD) && !explicit;
   const needle = query.trim().toLowerCase();
   const options = needle ? allOptions.filter(option => option.toLowerCase().includes(needle)) : allOptions;
   const active = Math.min(activeOption, Math.max(options.length - 1, 0));
@@ -117,8 +119,19 @@ export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraft
   const cancel = (): void => { if (!waiting) onRespond(shown.id, { cancelled: true }); };
   const submit = (result: string | boolean): void => { if (!waiting) onRespond(shown.id, { cancelled: false, value: result }); };
 
+  function changeModelScope(scope: "scoped" | "all"): void {
+    if (waiting) return;
+    patch({ modelScope: scope, activeOption: 0 });
+    searchRef.current?.focus();
+  }
+  function scopeKeyDown(event: KeyboardEvent<HTMLElement>): void {
+    if (!modelScope || waiting || event.nativeEvent.isComposing || event.key !== "Tab" || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    changeModelScope(draft.modelScope === "scoped" ? "all" : "scoped");
+  }
   function optionKeyDown(event: KeyboardEvent<HTMLElement>): void {
-    if (!options.length || waiting) return;
+    if (!options.length || waiting || event.nativeEvent.isComposing) return;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       const step = event.key === "ArrowDown" ? 1 : -1;
@@ -159,7 +172,7 @@ export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraft
     styles={{ title: { lineHeight: 1.4, flex: 1 } }}
   >
     <Modal.Overlay />
-    <Modal.Content ref={dialogRef}>
+    <Modal.Content ref={dialogRef} onKeyDownCapture={scopeKeyDown}>
       <Modal.Header>
         <Modal.Title><Text fw={600} size="sm">{heading}</Text></Modal.Title>
         {onMinimize ? <ActionIcon variant="subtle" color="gray" aria-label="Minimize question" onClick={onMinimize}><IconMinus size={18} /></ActionIcon> : <Modal.CloseButton />}
@@ -169,7 +182,9 @@ export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraft
       {shown.body ? shown.body.format === "markdown" ? <div className="markdown overflow-x-auto text-sm"><Markdown disableImages>{shown.body.text}</Markdown></div> : <Text size="sm" className="whitespace-pre-wrap">{shown.body.text}</Text> : null}
       {[body, shown.message].filter(Boolean).map((text, index) => <Text key={index} size={PREFORMATTED.test(text!) ? "xs" : "sm"} c="dimmed" ff={PREFORMATTED.test(text!) ? "monospace" : undefined} style={{ whiteSpace: "pre-wrap", overflowX: "auto" }}>{text}</Text>)}
 
-      {searchable ? <TextInput ref={focusRef} aria-label="Filter options" data-autofocus placeholder="Type to filter…" value={query} disabled={waiting} onChange={event => patch({ query: event.currentTarget.value, activeOption: 0 })} onKeyDown={optionKeyDown} /> : null}
+      {searchable ? <TextInput ref={node => { searchRef.current = node; focusRef(node); }} aria-label="Filter options" data-autofocus placeholder="Type to filter…" value={query} disabled={waiting} onChange={event => patch({ query: event.currentTarget.value, activeOption: 0 })} onKeyDown={optionKeyDown} /> : null}
+
+      {modelScope ? <SegmentedControl fullWidth aria-label="Model scope" value={draft.modelScope} disabled={waiting} onChange={scope => changeModelScope(scope as "scoped" | "all")} data={[{ label: "Scoped", value: "scoped" }, { label: "All models", value: "all" }]} /> : null}
 
       {shown.kind === "select" && explicit ? <Radio.Group value={selectedOption ?? ""} onChange={selectedOption => patch({ selectedOption })} aria-label={heading}>
         <Stack gap="xs">{allOptions.map(option => <Radio.Card key={option} value={option} aria-label={option} p="sm" withBorder disabled={waiting}>
@@ -185,8 +200,8 @@ export function PromptModal({ prompt, onRespond, draft: controlledDraft, onDraft
       {shown.kind === "input" ? <TextInput ref={focusRef} aria-label={heading} data-autofocus placeholder={shown.placeholder} value={value} disabled={waiting} onChange={event => patch({ value: event.currentTarget.value })} onKeyDown={textKeyDown} /> : null}
       {shown.kind === "editor" ? <Textarea ref={focusRef} aria-label={heading} data-autofocus rows={8} value={value} disabled={waiting} onChange={event => patch({ value: event.currentTarget.value })} onKeyDown={textKeyDown} /> : null}
 
-      <Group justify="space-between" align="center" pt="sm">
-        {onMinimize ? <Button variant="subtle" color="gray" onClick={onMinimize} leftSection={<IconMinus size={15} />}>Minimize</Button> : <Text size="xs" c="dimmed">{shown.kind === "select" ? "↑↓ to move · Enter to choose · Esc to cancel" : shown.kind === "editor" ? "⌘↵ to submit · Esc to cancel" : "Enter to submit · Esc to cancel"}</Text>}
+      <Group justify={modelScope && !onMinimize ? "flex-end" : "space-between"} align="center" pt="sm">
+        {onMinimize ? <Button variant="subtle" color="gray" onClick={onMinimize} leftSection={<IconMinus size={15} />}>Minimize</Button> : modelScope ? null : <Text size="xs" c="dimmed">{shown.kind === "select" ? "↑↓ to move · Enter to choose · Esc to cancel" : shown.kind === "editor" ? "⌘↵ to submit · Esc to cancel" : "Enter to submit · Esc to cancel"}</Text>}
         <Group gap="xs">
           <Button variant="default" onClick={cancel} disabled={waiting}>{shown.cancelLabel ?? "Cancel"}</Button>
           {shown.kind === "select" ? <Button disabled={waiting || (explicit ? selectedOption === undefined : !options[active])} onClick={() => submit(explicit ? selectedOption! : options[active]!)}>{confirmLabel}</Button>

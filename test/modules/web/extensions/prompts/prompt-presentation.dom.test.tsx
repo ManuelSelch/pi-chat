@@ -27,6 +27,33 @@ describe("browser prompt presentation", () => {
     expect(app.result.current.draft).toMatchObject({ value: "My π reasoning", minimized: true });
   });
 
+  it("retains model scope and search through minimization, tabs and reconnect", () => {
+    const prompt: UiPrompt = { ...select("models", "immediate"), modelScope: { scoped: ["A"] } };
+    const sessions = { one: { prompts: [prompt] }, two: { prompts: [editor()] } };
+    const app = setup({ sessions });
+    act(() => { app.result.current.update({ query: "B", modelScope: "all" }); app.result.current.minimize(); });
+
+    app.update({ activeSessionId: "two" });
+    app.update({ activeSessionId: "one" });
+    app.update({ connection: "connecting", sessions: {} });
+    app.update({ connection: "open", sessions });
+    act(() => app.result.current.reopen());
+
+    expect(app.result.current.draft).toMatchObject({ query: "B", modelScope: "all", minimized: false });
+    expect(app.respond).not.toHaveBeenCalled();
+  });
+
+  it("starts a newly invoked model popup with fresh scope and search rather than treating it as a menu redraw", () => {
+    const prompt: UiPrompt = { ...select("models", "immediate"), modelScope: { scoped: ["A"] } };
+    const app = setup({ sessions: { one: { prompts: [prompt] } } });
+    act(() => app.result.current.update({ query: "B", modelScope: "all" }));
+    app.update({ sessions: { one: { prompts: [] } } });
+
+    app.update({ sessions: { one: { prompts: [{ ...prompt, id: "new-models" }] } } });
+
+    expect(app.result.current.draft).toMatchObject({ query: "", modelScope: "scoped" });
+  });
+
   it("keeps underlying selection but opens a new stacked prompt normally", () => {
     const first = select("first");
     const app = setup({ sessions: { one: { prompts: [first] } } });

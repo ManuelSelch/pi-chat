@@ -1,0 +1,19 @@
+{
+  "purpose": "Unpublished coordinated /model scope enhancement; replace with registry pins after separately approved publication.",
+  "packages": {
+    "@manuelselch/pi-sdk": {
+      "repository": "https://github.com/ManuelSelch/pi-sdk-typescript",
+      "revision": "31d31769768efc229e92d2cef250b5df6f9a6df7",
+      "version": "0.2.0",
+      "archive": "pi-sdk-0.2.0-31d3176.tgz",
+      "sha256": "a37a333a2144ac58d502ed033eaaf088a336959e839e0f577b9237b58e47fbcd"
+    },
+    "@manuelselch/pi-server": {
+      "repository": "https://github.com/ManuelSelch/pi-server",
+      "revision": "f09358e791c92dfb70457d42e265270d1af2432b",
+      "version": "0.2.0",
+      "archive": "pi-server-0.2.0-f09358e.tgz",
+      "sha256": "eb84ca995e165f64b04455ace3db525796229c14151c8501fcafb1905b669526"
+    }
+  }
+}
