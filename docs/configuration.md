@@ -30,7 +30,9 @@ are not committed. See [Development](development.md) for the watch-mode workflow
 ## Versions in Settings
 
 The read-only **Versions** section shows Pi Chat’s exact Git tag for a clean tagged
-frontend build, otherwise **dev** (no commit hash). Pi SDK is the installed SDK
+frontend build, otherwise **dev** (no commit hash). Tag detection uses system Git
+at `/usr/bin/git` on macOS/Linux, never `PATH`; unavailable Git also yields **dev**.
+Pi SDK is the installed SDK
 version captured when that frontend was built, not the server’s separate SDK copy.
 Pi Server is captured once when the connected Chat host starts, so changing
 `node_modules` does not change the displayed running version until restart.
