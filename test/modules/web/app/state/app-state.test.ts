@@ -96,15 +96,15 @@ it("surfaces fatal protocol rejection app-wide rather than hiding it behind Home
   state = harness.reduce(state, { version: 2, type: "protocolError", serverInstanceId: "process", error: { code: "unsupportedVersion", message: "Only v2 is supported" } });
   expect(visibleError(state, activeSession(state))).toContain("Only v2 is supported");
 });
-it("dismisses a session error locally without changing SDK or other sessions", () => {
+it("keeps runtime failure metadata out of session composer errors", () => {
   state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "a failed" }, "a", 1));
-  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "b failed" }, "b", 1)); state = harness.reduce(state, { type: "clearError", sessionId: "a" });
-  expect(state.sessions.a?.error).toBeUndefined(); expect(harness.client.getSession("a")?.error).toBe("a failed"); expect(state.sessions.b?.error).toBe("b failed");
+  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "b failed" }, "b", 1));
+  expect(state.sessions.a?.error).toBeUndefined(); expect(harness.client.getSession("a")?.error).toBe("a failed"); expect(state.sessions.b?.error).toBeUndefined();
 });
-it("keeps dismissed errors hidden until a new authoritative failure arrives", () => {
-  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "failed" }, "a", 1)); state = harness.reduce(state, { type: "clearError", sessionId: "a" });
+it("does not restore runtime failure metadata into the composer from snapshots", () => {
+  state = harness.reduce(state, coreEvent("runtime.status", { status: "idle", lastError: "failed" }, "a", 1));
   state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "text" }, "a", 2)); expect(state.sessions.a?.error).toBeUndefined();
-  state = harness.reduce(state, snapshotEvent({ sessionId: "a", throughSequence: 3, runtime: { status: "idle", lastError: "failed" } })); expect(state.sessions.a?.error).toBe("failed");
+  state = harness.reduce(state, snapshotEvent({ sessionId: "a", throughSequence: 3, runtime: { status: "idle", lastError: "failed" } })); expect(state.sessions.a?.error).toBeUndefined();
 });
 it("hides a closing tab optimistically and restores it with original focus on failure", () => {
   state = harness.reduce(state, { type: "closePending", sessionId: "a" }); expect(visibleTabs(state).map(tab => tab.sessionId)).toEqual(["b"]); expect(state.tabs).toHaveLength(2);

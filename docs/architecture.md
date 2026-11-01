@@ -44,9 +44,14 @@ session reducer or request tracker.
 
 - SDK state owns runtime inventory, authoritative session projections, catalogue,
   prompt lists, operation outcomes and runtime theme caches.
-- `app/state` owns selection, optimistic opening/closing, dismissed-error masks
-  and transient anchored notices. A failed local operation rolls back its local
-  placeholder; notices are not persisted transcript messages.
+- `app/state` owns selection, optimistic opening/closing and transient anchored
+  notices. Pi model errors arrive as live error notifications and appear as
+  transcript lines; the notification lines are transient and are not written to
+  saved session history or restored as composer popups from runtime error
+  metadata. Pi's own underlying assistant-message persistence remains unchanged.
+  Notices are retained across same-page snapshots but are not persisted transcript
+  messages. A failed local
+  operation rolls back its local placeholder.
 - Navigation and focus are local. Disconnecting or hiding a nonempty conversation
   does not close its runtime. A close operation explicitly tears down a runtime;
   an archive operation changes saved-history metadata.

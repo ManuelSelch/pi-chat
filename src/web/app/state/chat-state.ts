@@ -29,8 +29,8 @@ export function mergeNotices(next: readonly Message[], previous: readonly Messag
   return merged;
 }
 
-/** Compose browser-only notices/error dismissal over an already-reduced SDK projection. */
-export function projectChatState(next: ReadonlyDeep<SessionState>, previous = initialChatState, message?: ReadonlyDeep<ServerMessage>, hiddenError?: string, source?: ReadonlyDeep<SessionState>): ChatState {
+/** Compose browser-only notices over an already-reduced SDK projection. */
+export function projectChatState(next: ReadonlyDeep<SessionState>, previous = initialChatState, message?: ReadonlyDeep<ServerMessage>, source?: ReadonlyDeep<SessionState>): ChatState {
   const event = message?.type === "event" ? message : undefined;
   const authoritativeSnapshot = event?.event === "session.snapshot" || (message?.type === "response" && source?.sequence !== undefined && source.sequence !== next.sequence);
   let messages = source?.messages === next.messages ? previous.messages : mergeNotices(next.messages, previous.messages, authoritativeSnapshot);
@@ -40,7 +40,9 @@ export function projectChatState(next: ReadonlyDeep<SessionState>, previous = in
       ...(previous.sequence < 0 ? {} : { anchor: messages.filter((item) => item.role !== "notice").length }),
     }];
   }
-  const error = hiddenError !== undefined && next.error === hiddenError ? undefined : next.error;
+  // Runtime model failures arrive as transient notification events and render
+  // in the transcript; do not mirror SDK lastError into a dismissible composer popup.
+  const error = undefined;
   const widgets = source?.widgets === next.widgets ? previous.widgets : next.widgets.flatMap(value => { const parsed = widgetSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
   const footer = source?.footer === next.footer ? previous.footer : next.footer.flatMap(value => { const parsed = footerItemSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
   // Unknown optional slots/styles are ignored by web views, not by core decoding.

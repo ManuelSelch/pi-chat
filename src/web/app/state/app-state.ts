@@ -17,12 +17,11 @@ export interface AppState {
   tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
   viewClosed?: boolean;
-  /** Views share SDK projections, adding only browser notices/error dismissal. */
+  /** Views share SDK projections, adding browser-owned transient transcript notices. */
   sessions: Record<string, ChatState>;
   sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
   sdkInventory: ReadonlyDeep<ClientState["inventory"]>;
   themes: ReadonlyDeep<ClientState["themes"]>;
-  hiddenErrors: Record<string, string | undefined>;
   catalogue: ReadonlyDeep<ProjectCatalogue>;
   appFeatures: ReadonlyDeep<WebFeature[]>;
   openingTabs: number;
@@ -35,7 +34,7 @@ export interface AppState {
 }
 
 export const initialAppState: AppState = {
-  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {}, hiddenErrors: {},
+  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {},
   catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
   tabsKnown: false, catalogueKnown: false, connection: "connecting",
 };
@@ -69,24 +68,15 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
     openingTabs: action.opening ? Math.max(0, state.openingTabs - 1) : state.openingTabs,
     closingSessionIds: state.closingSessionIds.filter((id) => id !== action.closingSessionId),
   };
-  if (action.type === "clearError") {
-    const id = action.sessionId ?? state.activeSessionId;
-    const session = Object.hasOwn(state.sessions, id) ? state.sessions[id] : undefined;
-    if (state.error === undefined && session?.error === undefined) return state;
-    return { ...state, error: undefined,
-      hiddenErrors: { ...state.hiddenErrors, [id]: session?.error },
-      sessions: session ? { ...state.sessions, [id]: { ...session, error: undefined } } : state.sessions };
-  }
+  if (action.type === "clearError") return state.error === undefined ? state : { ...state, error: undefined };
 
   const { state: sdk, message } = action;
-  const hiddenErrors = Object.fromEntries(Object.entries(state.hiddenErrors).filter(([id]) => Object.hasOwn(sdk.sessions, id)));
   const sessions = Object.fromEntries(Object.entries(sdk.sessions).map(([id, next]) => {
     const source = Object.hasOwn(state.sdkSessions, id) ? state.sdkSessions[id] : undefined;
     const previous = Object.hasOwn(state.sessions, id) ? state.sessions[id] : undefined;
     const event = message && "sessionId" in message && message.sessionId === id ? message : undefined;
     if (source === next && previous) return [id, previous];
-    if ((event?.type === "event" && (event.event === "session.snapshot" || (event.event === "runtime.status" && event.sequence > (source?.sequence ?? -1) && event.data.lastError !== undefined))) || (message?.type === "response" && source?.sequence !== undefined && source.sequence < next.sequence)) delete hiddenErrors[id];
-    return [id, projectChatState(next, previous, event, hiddenErrors[id], source)];
+    return [id, projectChatState(next, previous, event, source)];
   }));
   const tabs = sdk.inventory === state.sdkInventory ? state.tabs : sdk.inventory.map(tab => ({ ...tab, status: tab.status === "closing" ? "blocked" as const : tab.status }));
   // A runtime switch replaces the selected identity; transfer focus before
@@ -97,7 +87,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
     && state.tabs.some(tab => tab.sessionId === state.activeSessionId)
     && !tabs.some(tab => tab.sessionId === selectedId);
   const viewClosed = state.viewClosed || selectedRemoved;
-  let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes, hiddenErrors,
+  let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes,
     tabs, viewClosed, activeSessionId: viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, catalogueKnown: sdk.projectsRevision > 0, appFeatures: sdk.features };

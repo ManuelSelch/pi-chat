@@ -82,11 +82,11 @@ describe("chat state", () => {
     expect(next.status).toBe("running");
   });
 
-  it("keeps a failed turn's reason visible once the run settles", () => {
+  it("does not project runtime failure metadata into a composer error", () => {
     const running = { ...initialChatState, status: "running" as const, sequence: 1 };
     const settled = reduceServerMessage(running, coreEvent("runtime.status", { status: "idle", lastError: "Codex error: The usage limit has been reached" }, "session", 2));
     expect(settled.status).toBe("idle");
-    expect(settled.error).toBe("Codex error: The usage limit has been reached");
+    expect(settled.error).toBeUndefined();
   });
 
   it("transitions a tool card from running to success exactly once", () => {
@@ -146,6 +146,17 @@ describe("extension notifications", () => {
     ]);
     expect(next.sequence).toBe(1);
   });
+
+  it("keeps multiple real-time error events as separate transcript entries", () => {
+    let state = reduceServerMessage(initialChatState, coreEvent("notification.created", { level: "error", message: "Quota reached" }, "session", 1));
+    state = reduceServerMessage(state, coreEvent("notification.created", { level: "error", message: "Second provider error" }, "session", 2));
+
+    expect(state.messages.map(message => message.role === "notice" ? [message.level, message.text] : undefined)).toEqual([
+      ["error", "Quota reached"],
+      ["error", "Second provider error"],
+    ]);
+    expect(state.error).toBeUndefined();
+  });
 });
 
 describe("ui prompts", () => {
@@ -172,37 +183,19 @@ describe("notices across snapshots", () => {
   });
 });
 
-describe("failed turns stay on screen", () => {
-  const failed = reduceServerMessage(
-    { ...initialChatState, sessionId: "s1", sequence: 0 },
-    coreEvent("runtime.status", { status: "idle", lastError: "context limit reached" }, "s1", 1),
-  );
+describe("runtime failures are not composer alerts", () => {
+  it("keeps runtime error metadata out of the composer across status and snapshot updates", () => {
+    let state = reduceServerMessage(
+      { ...initialChatState, sessionId: "s1", sequence: 0 },
+      coreEvent("runtime.status", { status: "idle", lastError: "context limit reached" }, "s1", 1),
+    );
+    expect(state.error).toBeUndefined();
 
-  it("reports the failure when the turn settles", () => {
-    expect(failed.error).toBe("context limit reached");
-  });
+    state = reduceServerMessage(state, coreEvent("runtime.status", { status: "aborting" }, "s1", 2));
+    expect(state.error).toBeUndefined();
 
-  // The regression: `prompt` triggers a snapshot refresh, and a snapshot that
-  // could not carry the failure replaced it with a clean state milliseconds
-  // after the error appeared.
-  it("survives the snapshot refresh that follows the run", () => {
-    const refreshed = reduceServerMessage(failed, snapshotEvent({ throughSequence: 2, sessionId: "s1", projectPath: "/tmp", messages: [{ id: "m1", role: "user", text: "hi" }], runtime: { status: "idle", lastError: "context limit reached" } }));
-    expect(refreshed.error).toBe("context limit reached");
-  });
-
-  it("survives an unrelated status change", () => {
-    const aborting = reduceServerMessage(failed, coreEvent("runtime.status", { status: "aborting" }, "s1", 2));
-    expect(aborting.error).toBe("context limit reached");
-  });
-
-  it("clears once a new run starts", () => {
-    const running = reduceServerMessage(failed, coreEvent("runtime.status", { status: "running" }, "s1", 2));
-    expect(running.error).toBeUndefined();
-  });
-
-  it("clears when the server reports a clean settle", () => {
-    const recovered = reduceServerMessage(failed, snapshotEvent({ throughSequence: 2, sessionId: "s1", projectPath: "/tmp", messages: [], runtime: { status: "idle" } }));
-    expect(recovered.error).toBeUndefined();
+    state = reduceServerMessage(state, snapshotEvent({ throughSequence: 3, sessionId: "s1", projectPath: "/tmp", messages: [], runtime: { status: "idle", lastError: "context limit reached" } }));
+    expect(state.error).toBeUndefined();
   });
 });
 

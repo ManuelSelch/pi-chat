@@ -10,11 +10,11 @@ it("shares SDK transcript/draft objects rather than reducing incoming events twi
   const next = reduceAppMessage(state, { type: "sdkState", state: { ...sdk, sessions: { s: streamed } }, message: coreEvent("message.delta", { runId: "r", delta: "must not append again" }, "s", 1) });
   expect(next.sessions.s?.draft).toBe(streamed.draft); expect(next.sessions.s?.draft?.text).toBe("already reduced");
 });
-it("keeps dismissed errors local until an authoritative failure snapshot", () => {
+it("keeps runtime error metadata out of composer state through presentation and snapshots", () => {
   const failed = { ...session, error: "run failed" }; let state = reduceAppMessage(initialAppState, { type: "sdkState", state: { ...sdk, sessions: { s: failed } }, message: snapshotEvent({ sessionId: "s" }) });
-  state = reduceAppMessage(state, { type: "clearError", sessionId: "s" }); state = reduceAppMessage(state, { type: "sdkState", state: { ...sdk, sessions: { s: { ...failed, sequence: 1 } } }, message: presentationEvent({}, "s", 1) });
+  state = reduceAppMessage(state, { type: "sdkState", state: { ...sdk, sessions: { s: { ...failed, sequence: 1 } } }, message: presentationEvent({}, "s", 1) });
   expect(state.sessions.s?.error).toBeUndefined(); expect(failed.error).toBe("run failed");
-  state = reduceAppMessage(state, { type: "sdkState", state: { ...sdk, sessions: { s: { ...failed, sequence: 2 } } }, message: snapshotEvent({ sessionId: "s", throughSequence: 2, runtime: { status: "idle", lastError: "run failed" } }) }); expect(state.sessions.s?.error).toBe("run failed");
+  state = reduceAppMessage(state, { type: "sdkState", state: { ...sdk, sessions: { s: { ...failed, sequence: 2 } } }, message: snapshotEvent({ sessionId: "s", throughSequence: 2, runtime: { status: "idle", lastError: "run failed" } }) }); expect(state.sessions.s?.error).toBeUndefined();
 });
 it("ignores unsupported optional presentation hints in views while preserving core SDK data", () => {
   const extended = { ...session, widgets: [{ key: "future", lines: ["text"], placement: "unknown-slot" }], footer: [{ key: "x", text: "text", align: "future", variant: "new-style" }] };

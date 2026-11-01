@@ -72,7 +72,7 @@ it("keeps file requests stable, coalesced and independent of runtime errors", as
   const { result } = renderHook(() => usePiChat()); const socket = connect([snapshotData({ sessionId: "s", runtime: { status: "running", lastError: "Model failed" } })]);
   const open = result.current.openFile; const pending = open("s", "report.pdf"); expect(open("s", "report.pdf")).toBe(pending);
   act(() => socket.deliver(coreEvent("message.delta", { runId: "r", delta: "token" }, "s", 1))); expect(result.current.openFile).toBe(open);
-  const rejected = expect(pending).rejects.toMatchObject({ code: "notFound" }); await act(async () => socket.reject("notFound", "File not found")); await rejected; expect(result.current.app.sessions.s?.error).toBe("Model failed");
+  const rejected = expect(pending).rejects.toMatchObject({ code: "notFound" }); await act(async () => socket.reject("notFound", "File not found")); await rejected; expect(result.current.app.sessions.s?.error).toBeUndefined();
 });
 it("cancels file waits on confirmed close and never replays them after reconnect", async () => {
   const { result, unmount } = renderHook(() => usePiChat()); const socket = connect(); const first = result.current.openFile("s", "report.pdf"); const cancelled = expect(first).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" });
@@ -81,10 +81,11 @@ it("cancels file waits on confirmed close and never replays them after reconnect
   act(() => void vi.advanceTimersByTime(250)); const next = Socket.current; act(() => { next.acceptConnection(); next.initialize([]); }); expect(next.requests.map(request => request.method)).toEqual(["server.initialize"]);
   const third = result.current.openFile("other", "report.pdf"); const disposed = expect(third).rejects.toMatchObject({ code: "disposed", outcome: "unknown" }); await act(async () => unmount()); await disposed;
 });
-it("dismisses a failed turn from the composer without mutating SDK state", () => {
+it("does not show runtime failure metadata as a dismissible composer popup", () => {
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   render(<MantineProvider><AppControllerProvider><SessionActionsProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></SessionActionsProvider></AppControllerProvider></MantineProvider>);
-  connect([snapshotData({ sessionId: "s", runtime: { status: "idle", lastError: "Model request failed" } })]); expect(screen.getByRole("alert").textContent).toContain("Model request failed"); fireEvent.click(screen.getByRole("button", { name: "Dismiss error" })); expect(screen.queryByRole("alert")).toBeNull();
+  connect([snapshotData({ sessionId: "s", runtime: { status: "idle", lastError: "Model request failed" } })]);
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 it("correlates completion and folder requests and rejects them on disconnect", async () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect(); const completion = result.current.completeCommandArguments("s", "deploy", "st"); const completionId = socket.requests.at(-1)!.requestId;
