@@ -35,6 +35,7 @@ export function usePromptPresentation(input: Input) {
     const previous = lastTop.current;
     if (previous && previous.key !== key && previous.server === server && previous.session === input.activeSessionId && !drafts[key]
       && previous.prompt.kind === "select" && prompt.kind === "select" && previous.prompt.submission === "immediate" && prompt.submission === "immediate"
+      && !previous.prompt.modelScope && !prompt.modelScope
       && previous.prompt.options?.length === prompt.options?.length
       && previous.prompt.title.split("\n")[0]!.replace(/[\d/]+/g, "") === prompt.title.split("\n")[0]!.replace(/[\d/]+/g, "")) {
       setDrafts(current => current[key] ? current : { ...current, [key]: { ...draft, query: previous.draft.query, activeOption: previous.draft.activeOption } });

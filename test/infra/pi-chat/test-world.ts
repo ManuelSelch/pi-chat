@@ -23,6 +23,8 @@ export interface TestSessionResources {
   theme?: SessionTheme;
   skills?: readonly { name: string; instructions: string }[];
   enableSkillCommands?: boolean;
+  /** Deterministic two-model catalogue with only alpha scoped; no discovery/network credentials. */
+  modelPicker?: boolean;
   /** Optional readable fixture folder name, still isolated inside a temporary directory. */
   projectName?: string;
 }
@@ -33,7 +35,7 @@ interface OwnedSession {
   adapter: RuntimeAdapter;
 }
 
-/** Only model responses are mocked; every created adapter hosts a real Pi session. */
+/** Model responses and opt-in catalogue fixtures are scripted; adapters host real Pi sessions. */
 export class TestWorld {
   private readonly ownedRoot: string;
   readonly projectPath: string;
@@ -100,7 +102,7 @@ export class TestWorld {
 
   private async build(responses: readonly AssistantResponse[], sessionPath: string | undefined, resources: TestSessionResources): Promise<RuntimeAdapter> {
     assert(!resources.projectName || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resources.projectName), "Fixture project name must be a safe directory name");
-    const sessionRoot = resources.skills || resources.projectName || resources.theme ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
+    const sessionRoot = resources.skills || resources.projectName || resources.theme || resources.modelPicker ? mkdtempSync(join(this.projectPath, "skills-session-")) : this.projectPath;
     const cwd = resources.projectName ? join(sessionRoot, resources.projectName) : sessionRoot;
     mkdirSync(cwd, { recursive: true });
     for (const skill of resources.skills ?? []) {
@@ -114,6 +116,13 @@ export class TestWorld {
     try {
       assert(!this.disposed, "Test world was disposed during session creation");
       const session = harness.session;
+      if (resources.modelPicker) {
+        assert(session.model, "Model picker fixture needs the harness model");
+        const catalogue = ["scope-test-alpha", "scope-test-beta"].map(id => ({ ...session.model!, id, name: id }));
+        session.modelRuntime.getAvailable = async () => catalogue;
+        session.modelRuntime.getAvailableSnapshot = () => catalogue;
+        session.settingsManager.setEnabledModels([`${catalogue[0]!.provider}/${catalogue[0]!.id}`]);
+      }
       if (resources.theme) {
         const theme = await themeFixture(join(cwd, ".pi", "themes"), resources.theme);
         const original = session.resourceLoader.getThemes.bind(session.resourceLoader);

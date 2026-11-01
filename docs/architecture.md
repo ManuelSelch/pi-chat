@@ -151,7 +151,10 @@ refresh. Authoritative removal/replacement clears them. Submission guards preven
 duplicate answers; failures retain drafts for retry. Minimize is local and does
 not answer, cancel, extend expiry or pause the server's disconnect grace.
 [Prompt presentation](../src/web/extensions/prompts/app/use-prompt-presentation.ts)
-keeps these drafts out of SDK snapshots.
+keeps these drafts out of SDK snapshots. Native `/model` is an immediate select
+with all available references in `options` and a server-resolved
+`modelScope.scoped` subset. Search and scoped/all selection are browser-owned
+prompt drafts, not model configuration; Tab changes only that local scope.
 
 Widgets carry server-produced ANSI-styled string lines. Chat joins each widget's
 lines and renders styled plain text through Fancy-ANSI, not Markdown. HTTP(S)

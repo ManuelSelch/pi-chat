@@ -183,6 +183,72 @@ describe("PromptModal option filter", () => {
   });
 });
 
+describe("/model popup", () => {
+  const prompt: UiPrompt = { id: "models", kind: "select", title: "Select a model", submission: "immediate", options: ["p/alpha", "p/beta", "q/alpha"], modelScope: { scoped: ["p/alpha"] } };
+
+  it("always offers search for models, even with a short scoped list", () => {
+    show(prompt);
+
+    expect(screen.getByLabelText("Filter options")).toBeTruthy();
+    expect(screen.getAllByRole("option").map(option => option.textContent)).toEqual(["p/alpha"]);
+    expect(screen.queryByText(/↑↓ to move/)).toBeNull();
+  });
+
+  it("toggles scope with Tab without losing search, focus, or selecting a model", async () => {
+    const respond = show(prompt);
+    const search = screen.getByLabelText("Filter options");
+    await waitFor(() => expect(document.activeElement).toBe(search));
+    fireEvent.change(search, { target: { value: "alpha" } });
+
+    fireEvent.keyDown(search, { key: "Tab" });
+
+    expect(document.activeElement).toBe(search);
+    expect((search as HTMLInputElement).value).toBe("alpha");
+    expect(screen.getAllByRole("option").map(option => option.textContent)).toEqual(["p/alpha", "q/alpha"]);
+    expect(respond).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(search, { key: "Tab" });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    fireEvent.keyDown(search, { key: "Tab" });
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(search, { key: "Enter" });
+
+    expect(respond).toHaveBeenCalledWith("models", { cancelled: false, value: "q/alpha" });
+  });
+
+  it("supports pointer scope switching and preserves a query with no scoped matches", () => {
+    show(prompt);
+    fireEvent.change(screen.getByLabelText("Filter options"), { target: { value: "beta" } });
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "OK" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByLabelText("All models"));
+
+    expect(screen.getByRole("option", { name: "p/beta" })).toBeTruthy();
+  });
+
+  it("leaves modified Tab and IME alone", () => {
+    show(prompt);
+    const search = screen.getByLabelText("Filter options");
+
+    for (const modifiers of [{ shiftKey: true }, { ctrlKey: true }, { metaKey: true }, { altKey: true }, { isComposing: true }]) {
+      fireEvent.keyDown(search, { key: "Tab", ...modifiers });
+      expect(screen.getAllByRole("option")).toHaveLength(1);
+    }
+  });
+
+  it("does not change scope or submit while disconnected", () => {
+    const respond = vi.fn();
+    render(<MantineProvider><PromptModal prompt={prompt} onRespond={respond} disabled /></MantineProvider>);
+
+    fireEvent.keyDown(screen.getByLabelText("Filter options"), { key: "Tab" });
+    fireEvent.keyDown(screen.getByLabelText("Filter options"), { key: "Enter" });
+
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(respond).not.toHaveBeenCalled();
+  });
+});
+
 describe("PromptModal multi-line titles", () => {
   const usageTitle = [
     "Provider usage OpenAI Codex Usage · Current",

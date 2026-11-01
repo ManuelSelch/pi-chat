@@ -1,19 +1,29 @@
 # Dependency provenance
 
-Chat pins `@manuelselch/pi-sdk@0.2.0` and `@manuelselch/pi-server@0.2.0`
-from npm. The manifest and lockfile select exact registry releases with SHA-512
-integrity; no npm archives are committed in Chat. These releases replace the
-temporary prompt-capable snapshots.
+Chat currently pins coordinated unpublished `/model` scope snapshots of
+`@manuelselch/pi-sdk` and `@manuelselch/pi-server` via file archives in
+[model-search](model-search/). [SOURCE.json](model-search/SOURCE.json) records
+independent source revisions and SHA-256 checksums; the lockfile records SHA-512
+integrity. Package labels remain 0.2.0, but these are **not** registry 0.2.0 bytes.
 
-Server 0.2.0 still bundles an SDK labeled 0.1.1; Chat consumes SDK 0.2.0 directly.
-The published server is consumed unchanged, without dependency overrides or
-local archive references in Chat's direct dependencies. Do not patch installed
-`node_modules` sources.
+The server candidate removes the published server's nested SDK bundle and shares
+Chat's coordinated SDK archive. No dependency overrides or installed-source
+patches are used in Chat. A clean Chat install needs no sibling checkouts.
+These snapshots are for local feature verification, not publication: publish a
+new SDK release first, update the server's SDK dependency and verify/release the
+server, then replace both Chat archive pins with registry releases. Publication
+and pushing require separate authorization.
+
+To reproduce server source verification before that release, install the SDK
+candidate without saving over its registry manifest, then build/test:
+`npm install --no-save --package-lock=false --ignore-scripts <SDK archive path>`.
+The server source's registry SDK 0.2.0 alone does not contain model-scope metadata.
 
 `npm run verify:dependencies` checks the installed public server API and wire
 version; it is not a source-revision/checksum verifier or proof of publication.
 [Dependency fixture tests](../test/infra-tests/npm-dependencies.test.ts) inspect
-exact release pins, registry resolution, lock integrity and the public API.
+archive pins, source receipts, checksums, lock integrity, SDK deduplication and
+the public API.
 Use the [development workflow](../docs/development.md) after an authorized update.
 Clean installation needs no sibling server/SDK checkout or Swift toolchain.
 
