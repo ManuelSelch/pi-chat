@@ -10,5 +10,9 @@ it("shows literal diff lines inside the collapsed edit card", () => {
   expect(screen.getByText("<script>bad()</script>")).toBeTruthy();
   expect(container.querySelector("script")).toBeNull();
   expect((screen.getByTestId("tool-card") as HTMLDetailsElement).open).toBe(false);
-  expect(container.querySelector('[data-kind="addition"]')).toBeTruthy();
+  const addition = container.querySelector('[data-kind="addition"]') as HTMLElement;
+  const removal = container.querySelector('[data-kind="removal"]') as HTMLElement;
+  expect(addition.style.background).toBe("color-mix(in srgb, var(--pi-diff-added, var(--mantine-color-green-light)) 12%, var(--mantine-color-default))");
+  expect(removal.style.background).toBe("color-mix(in srgb, var(--pi-diff-removed, var(--mantine-color-red-light)) 12%, var(--mantine-color-default))");
+  expect(addition.style.opacity).toBe("");
 });

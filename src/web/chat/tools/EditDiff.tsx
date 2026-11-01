@@ -43,7 +43,7 @@ export function EditDiff({ diff, path, highlight = false }: { diff: NonNullable<
     <Text size="xs" fw={650} c="dimmed" mt="sm" mb={4}>Changes</Text>
     <Box role="region" aria-label="Edit changes" tabIndex={0} style={{ overflow: "auto", maxHeight: 360, maxWidth: "100%", border: `1px solid ${THEME.border.default}`, borderRadius: 4 }}>
       <Box ff="monospace" fz={12} lh={1.5} style={{ minWidth: "100%", width: "max-content" }}>
-        {rows.map((row, index) => <div key={index} data-kind={row.kind} style={{ display: "flex", whiteSpace: "pre", background: row.kind === "addition" ? THEME.diff.addition : row.kind === "removal" ? THEME.diff.removal : undefined }}>
+        {rows.map((row, index) => <div key={index} data-kind={row.kind} style={{ display: "flex", whiteSpace: "pre", background: row.kind === "addition" ? `color-mix(in srgb, ${THEME.diff.addition} 12%, ${THEME.surface.panel})` : row.kind === "removal" ? `color-mix(in srgb, ${THEME.diff.removal} 12%, ${THEME.surface.panel})` : undefined }}>
           <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.old ?? ""}</span>
           <span style={{ width: "5ch", flexShrink: 0, textAlign: "right", color: THEME.text.muted, userSelect: "none" }}>{row.next ?? ""}</span>
           <span style={{ width: "3ch", flexShrink: 0, textAlign: "center" }}>{row.marker ?? " "}</span>
