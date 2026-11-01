@@ -15,6 +15,10 @@ export class BrowserSettingsDriver {
     await expect(this.panel).toBeVisible();
   }
 
+  async SetFolderPathsVisible(visible: boolean): Promise<void> {
+    await this.panel.getByRole("switch", { name: "Show folder path in projects panel", exact: true }).setChecked(visible);
+  }
+
   async SetHideArchivedSessions(hide: boolean): Promise<void> {
     await this.panel.getByRole("switch", { name: "Hide archived sessions", exact: true }).setChecked(hide);
   }

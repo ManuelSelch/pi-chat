@@ -99,7 +99,9 @@ empty, are hidden rather than shown as an empty heading.
 
 Open Quick Switcher from Home or a conversation. Search names, paths, project
 context and branches; results distinguish folders, worktrees, sessions and
-available local actions. Empty unscoped search shows recent sessions.
+available local actions. Empty unscoped search shows recent sessions. The
+**Show folder path in projects panel** setting also controls folder and worktree
+paths in Quick Switcher; hidden paths remain searchable.
 
 | Prefix | Restricts results to |
 | --- | --- |

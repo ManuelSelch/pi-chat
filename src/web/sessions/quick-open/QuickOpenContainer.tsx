@@ -2,12 +2,14 @@ import { useMemo } from "react";
 import { useHotkeys } from "@mantine/hooks";
 import { useAppController } from "../../app/AppControllerContext.js";
 import { useOverlays } from "../../app/overlays/OverlayController.js";
+import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
 import { useSessionActions } from "../actions/SessionActionsProvider.js";
 import { QuickOpen } from "./QuickOpen.js";
 
 export function QuickOpenContainer() {
   const { app, openSession, openProject, newSession, inbox } = useAppController();
   const { actions } = useSessionActions();
+  const displayPath = useDisplayPath();
   const overlays = useOverlays();
   const opened = overlays.state.quickOpen;
   const laterPaths = useMemo(() => new Set(inbox.later.map(row => row.path)), [inbox.later]);
@@ -32,6 +34,7 @@ export function QuickOpenContainer() {
         onNewSession={(path) => { void newSession(path); }}
         actions={actions}
         laterPaths={laterPaths}
+        showDisplayPath={displayPath.show}
       />
     </>
   );
