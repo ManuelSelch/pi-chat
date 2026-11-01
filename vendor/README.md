@@ -6,13 +6,13 @@ Chat currently pins coordinated unpublished `/model` scope snapshots of
 independent source revisions and SHA-256 checksums; the lockfile records SHA-512
 integrity. Package labels remain 0.2.0, but these are **not** registry 0.2.0 bytes.
 
-The server candidate removes the published server's nested SDK bundle and shares
-Chat's coordinated SDK archive. No dependency overrides or installed-source
-patches are used in Chat. A clean Chat install needs no sibling checkouts.
-These snapshots are for local feature verification, not publication: publish a
-new SDK release first, update the server's SDK dependency and verify/release the
-server, then replace both Chat archive pins with registry releases. Publication
-and pushing require separate authorization.
+The server archive is built from local Pi Server main revision
+`f25b667e6cdca3b260c171d8020f1f1e171cf289` for local error-event verification;
+the SDK archive remains the coordinated model-scope candidate. No dependency
+overrides or installed-source patches are used in Chat. A clean Chat install
+needs no sibling checkouts. These snapshots are for local feature verification,
+not publication. Replace them with registry releases only after separately
+authorized publication and dependency updates.
 
 To reproduce server source verification before that release, install the SDK
 candidate without saving over its registry manifest, then build/test:
