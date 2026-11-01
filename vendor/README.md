@@ -1,21 +1,18 @@
 # Dependency provenance
 
-Chat currently pins coordinated unpublished `/model` scope snapshots of
-`@manuelselch/pi-sdk` and `@manuelselch/pi-server` via file archives in
-[model-search](model-search/). [SOURCE.json](model-search/SOURCE.json) records
-independent source revisions and SHA-256 checksums; the lockfile records SHA-512
-integrity. Package labels remain 0.2.0, but these are **not** registry 0.2.0 bytes.
+Chat pins the coordinated unpublished `/model` scope candidate of
+`@manuelselch/pi-sdk` via a file archive in [model-search](model-search/).
+[SOURCE.json](model-search/SOURCE.json) records its source revision and SHA-256
+checksum; the lockfile records SHA-512 integrity. Pi Server is consumed from the
+npm registry at 0.2.1, including the real-time error-event change.
 
-The server archive is built from local Pi Server main revision
-`f25b667e6cdca3b260c171d8020f1f1e171cf289` for local error-event verification;
-the SDK archive remains the coordinated model-scope candidate. No dependency
-overrides or installed-source patches are used in Chat. A clean Chat install
-needs no sibling checkouts. These snapshots are for local feature verification,
-not publication. Replace them with registry releases only after separately
-authorized publication and dependency updates.
+No dependency overrides or installed-source patches are used in Chat. A clean
+Chat install needs no sibling checkouts. The SDK archive remains a local feature
+verification snapshot, not a registry release.
 
-To reproduce server source verification before that release, install the SDK
-candidate without saving over its registry manifest, then build/test:
+To reproduce Pi Server source verification against the coordinated SDK
+candidate, install the SDK archive without saving over its registry manifest,
+then build/test:
 `npm install --no-save --package-lock=false --ignore-scripts <SDK archive path>`.
 The server source's registry SDK 0.2.0 alone does not contain model-scope metadata.
 

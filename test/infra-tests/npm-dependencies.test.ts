@@ -6,7 +6,7 @@ it("pins coordinated model-search snapshots with source receipts and lockfile in
   const manifest = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
   const lock = JSON.parse(await readFile(new URL("../../package-lock.json", import.meta.url), "utf8"));
   const receipt = JSON.parse(await readFile(new URL("../../vendor/model-search/SOURCE.json", import.meta.url), "utf8"));
-  for (const name of ["@manuelselch/pi-sdk", "@manuelselch/pi-server"] as const) {
+  for (const name of ["@manuelselch/pi-sdk"] as const) {
     const source = receipt.packages[name];
     const spec = `file:vendor/model-search/${source.archive}`;
     const bytes = await readFile(new URL(`../../vendor/model-search/${source.archive}`, import.meta.url));
@@ -20,6 +20,10 @@ it("pins coordinated model-search snapshots with source receipts and lockfile in
     expect(installed.resolved).toBe(spec);
     expect(installed.integrity).toBe(`sha512-${createHash("sha512").update(bytes).digest("base64")}`);
   }
+  expect(manifest.dependencies["@manuelselch/pi-server"]).toBe("0.2.1");
+  expect(lock.packages["node_modules/@manuelselch/pi-server"]).toMatchObject({ version: "0.2.1" });
+  expect(lock.packages["node_modules/@manuelselch/pi-server"].resolved).toMatch(/^https:\/\/registry\.npmjs\.org\//);
+  expect(lock.packages["node_modules/@manuelselch/pi-server"].integrity).toMatch(/^sha512-/);
   expect(lock.packages["node_modules/@manuelselch/pi-server/node_modules/@manuelselch/pi-sdk"]).toBeUndefined();
 });
 

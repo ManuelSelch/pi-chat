@@ -7,13 +7,6 @@
       "version": "0.2.0",
       "archive": "pi-sdk-0.2.0-31d3176.tgz",
       "sha256": "a37a333a2144ac58d502ed033eaaf088a336959e839e0f577b9237b58e47fbcd"
-    },
-    "@manuelselch/pi-server": {
-      "repository": "https://github.com/ManuelSelch/pi-server",
-      "revision": "f25b667e6cdca3b260c171d8020f1f1e171cf289",
-      "version": "0.2.0",
-      "archive": "pi-server-0.2.0-f25b667.tgz",
-      "sha256": "0f0490d36b5a12f4cc566fedbdf518038df8ae84983ebd3f38294d492b52cd16"
     }
   }
 }

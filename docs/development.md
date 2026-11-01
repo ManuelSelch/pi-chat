@@ -21,12 +21,12 @@ npm start
 
 Generated application `dist/` artifacts are local and are not committed. The
 server and TypeScript SDK are independent, precompiled packages; no sibling
-checkout, server source tree or package workspace is required. The SDK and server
-currently use coordinated unpublished `/model` scope snapshots under
-`vendor/model-search/`, pinned by file archive and lockfile integrity. Their
-source revisions/checksums are recorded there; replace them with registry
-releases only after separately approved SDK/server publication. No Swift SDK
-is vendored, and Chat does not run Swift tests. See
+checkout, server source tree or package workspace is required. The SDK currently
+uses a coordinated unpublished `/model` scope snapshot under
+`vendor/model-search/`, pinned by file archive and lockfile integrity. Pi Server
+uses the published 0.2.1 registry release. The SDK source revision/checksum is
+recorded under `vendor/model-search/`; no Swift SDK is vendored, and Chat does not
+run Swift tests. See
 [dependency provenance](../vendor/README.md) for installed-package ownership.
 `npm run verify:dependencies` checks the installed public server API and protocol
 version, not every package byte or behavior. `build:host` compiles only Chat's
