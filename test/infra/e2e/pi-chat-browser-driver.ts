@@ -14,6 +14,7 @@ import { BrowserSkillsDriver } from "./browser-skills-driver.js";
 import { BrowserInboxDriver } from "./browser-inbox-driver.js";
 import { BrowserProjectsDriver } from "./browser-projects-driver.js";
 import { BrowserSettingsDriver } from "./browser-settings-driver.js";
+import { QuickOpenFolderPathDriver } from "./quick-open-folder-path-driver.js";
 import { BrowserPromptsDriver } from "./browser-prompts-driver.js";
 import { BrowserFocusDriver } from "./browser-focus-driver.js";
 import { BrowserThemeDriver } from "./browser-theme-driver.js";
@@ -32,6 +33,7 @@ export class PiChatBrowserDriver {
   readonly Projects: BrowserProjectsDriver;
   readonly Inbox: BrowserInboxDriver;
   readonly Settings: BrowserSettingsDriver;
+  readonly QuickOpen: QuickOpenFolderPathDriver;
   readonly Focus: BrowserFocusDriver;
   readonly Prompts: BrowserPromptsDriver;
   readonly Widgets: BrowserWidgetsDriver;
@@ -56,6 +58,7 @@ export class PiChatBrowserDriver {
     this.Projects = new BrowserProjectsDriver(page, world);
     this.Inbox = new BrowserInboxDriver(page, world);
     this.Settings = new BrowserSettingsDriver(page);
+    this.QuickOpen = new QuickOpenFolderPathDriver(page);
     this.Focus = new BrowserFocusDriver(page, this.composer, world);
     this.Prompts = new BrowserPromptsDriver(page);
     this.Extensions = new BrowserExtensionsDriver(widgetFixture);
