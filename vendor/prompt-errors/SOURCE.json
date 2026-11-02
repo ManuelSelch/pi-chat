@@ -1,0 +1,9 @@
+{
+  "package": "@manuelselch/pi-server",
+  "version": "0.2.1",
+  "archive": "manuelselch-pi-server-0.2.1.tgz",
+  "sha256": "924ab17deef29d00a8110b15fa21bd003cada4b910a8296c6786ab10ae7cb2a1",
+  "base": "npm @manuelselch/pi-server@0.2.1 (source b518227)",
+  "patchRevision": "8757f653a95a987fe5a4d92bf4d0f9bce61378f4",
+  "construction": "Published 0.2.1 archive with dist/runtime/pi/pi-runtime-adapter.js compiled from patchRevision and docs/PROTOCOL.md replaced from the same revision. Dependencies and remaining files are unchanged."
+}

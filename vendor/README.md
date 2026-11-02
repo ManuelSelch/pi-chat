@@ -3,12 +3,15 @@
 Chat pins the coordinated unpublished `/model` scope candidate of
 `@manuelselch/pi-sdk` via a file archive in [model-search](model-search/).
 [SOURCE.json](model-search/SOURCE.json) records its source revision and SHA-256
-checksum; the lockfile records SHA-512 integrity. Pi Server is consumed from the
-npm registry at 0.2.1, including the real-time error-event change.
+checksum; the lockfile records SHA-512 integrity. Pi Server temporarily uses
+[prompt-errors](prompt-errors/SOURCE.json): the published 0.2.1 package with the
+prompt-error adapter fix and protocol documentation substituted from the recorded
+server revision. Its original Pi 1.0.2 dependencies are retained for Chat's test
+harness; this is a local test artifact, not a published server release.
 
 No dependency overrides or installed-source patches are used in Chat. A clean
-Chat install needs no sibling checkouts. The SDK archive remains a local feature
-verification snapshot, not a registry release.
+Chat install needs no sibling checkouts. Both archives are local verification
+snapshots, not registry releases.
 
 To reproduce Pi Server source verification against the coordinated SDK
 candidate, install the SDK archive without saving over its registry manifest,

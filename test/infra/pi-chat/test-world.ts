@@ -13,6 +13,7 @@ import { themeFixture } from "./fixtures/theme-fixture.js";
 export interface AssistantResponse {
   prompt: string;
   reply: string;
+  error?: string;
   /** Keep the model result pending until the test explicitly releases it. */
   hold?: boolean;
   /** Run a real read tool against one of this session's skill fixtures. */
@@ -156,7 +157,12 @@ export class TestWorld {
       agent.streamFunction = (...args) => {
         const stream = playbookStream(...args);
         const response = responses[harness.playbook.consumed - 1];
-        if (!response?.hold) return stream;
+        if (!response?.hold && !response?.error) return stream;
+        if (response.error) {
+          const failed = createAssistantMessageEventStream();
+          void stream.result().then(message => failed.push({ type: "error", reason: "error", error: { ...message, content: [], stopReason: "error", errorMessage: response.error } }));
+          return failed;
+        }
 
         const controlled = createAssistantMessageEventStream();
         let result: AssistantMessage | undefined;

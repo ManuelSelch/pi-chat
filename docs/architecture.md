@@ -45,8 +45,8 @@ session reducer or request tracker.
 - SDK state owns runtime inventory, authoritative session projections, catalogue,
   prompt lists, operation outcomes and runtime theme caches.
 - `app/state` owns selection, optimistic opening/closing and transient anchored
-  notices. Pi model errors arrive as live error notifications and appear as
-  transcript lines; the notification lines are transient and are not written to
+  notices. Pi model errors and prompt-execution exceptions arrive as live error
+  notifications and appear as transcript lines; the notification lines are transient and are not written to
   saved session history or restored as composer popups from runtime error
   metadata. Pi's own underlying assistant-message persistence remains unchanged.
   Notices are retained across same-page snapshots but are not persisted transcript

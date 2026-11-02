@@ -20,10 +20,16 @@ it("pins coordinated model-search snapshots with source receipts and lockfile in
     expect(installed.resolved).toBe(spec);
     expect(installed.integrity).toBe(`sha512-${createHash("sha512").update(bytes).digest("base64")}`);
   }
-  expect(manifest.dependencies["@manuelselch/pi-server"]).toBe("0.2.1");
-  expect(lock.packages["node_modules/@manuelselch/pi-server"]).toMatchObject({ version: "0.2.1" });
-  expect(lock.packages["node_modules/@manuelselch/pi-server"].resolved).toMatch(/^https:\/\/registry\.npmjs\.org\//);
-  expect(lock.packages["node_modules/@manuelselch/pi-server"].integrity).toMatch(/^sha512-/);
+  const server = JSON.parse(await readFile(new URL("../../vendor/prompt-errors/SOURCE.json", import.meta.url), "utf8"));
+  const serverBytes = await readFile(new URL(`../../vendor/prompt-errors/${server.archive}`, import.meta.url));
+  const serverSpec = `file:vendor/prompt-errors/${server.archive}`;
+  expect(createHash("sha256").update(serverBytes).digest("hex")).toBe(server.sha256);
+  expect(manifest.dependencies["@manuelselch/pi-server"]).toBe(serverSpec);
+  expect(lock.packages[""].dependencies["@manuelselch/pi-server"]).toBe(serverSpec);
+  expect(lock.packages["node_modules/@manuelselch/pi-server"]).toMatchObject({
+    version: server.version, resolved: serverSpec,
+    integrity: `sha512-${createHash("sha512").update(serverBytes).digest("base64")}`,
+  });
   expect(lock.packages["node_modules/@manuelselch/pi-server/node_modules/@manuelselch/pi-sdk"]).toBeUndefined();
 });
 

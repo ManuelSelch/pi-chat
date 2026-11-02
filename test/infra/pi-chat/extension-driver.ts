@@ -87,6 +87,11 @@ export class ExtensionDriver {
       assert(this.context.client.chat.messages.some(message => message.role === "notice" && message.text === text && message.level === level), `Missing notification ${JSON.stringify(text)}`));
   }
 
+  shouldShowNotificationCount(text: string, level: NotificationLevel, count: number): void {
+    check(this.context, "Extensions.ShouldShowNotificationCount", () =>
+      assert.equal(this.context.client.chat.messages.filter(message => message.role === "notice" && message.text === text && message.level === level).length, count));
+  }
+
   shouldShowWidget(key: string, lines: readonly string[], placement: WidgetPlacement = "aboveEditor"): void {
     check(this.context, "Extensions.ShouldShowWidget", () => {
       const widget = this.context.client.chat.widgets.find(item => item.key === key);

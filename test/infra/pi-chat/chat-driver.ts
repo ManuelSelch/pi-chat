@@ -29,6 +29,15 @@ export class ChatDriver {
       m.type === "event" && m.event === "message.finalized" && m.sessionId === sessionId && m.data.message.role === "user" && m.data.message.text === text.trim());
   }
 
+  async sendPromptExpectingFailure(text: string): Promise<void> {
+    const { client } = this.context;
+    const sessionId = requireSession(this.context, "Chat.SendPromptExpectingFailure");
+    const after = client.mark();
+    await client.sdk.prompt(sessionId, text);
+    await client.waitForMessage("Chat.SendPromptExpectingFailure", "prompt operation finished", after, message =>
+      message.type === "event" && message.event === "operation.finished" && message.sessionId === sessionId);
+  }
+
   async steer(text: string): Promise<void> {
     const { client } = this.context;
     const sessionId = requireSession(this.context, "Chat.Steer");
