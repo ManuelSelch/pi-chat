@@ -1,6 +1,7 @@
 import type { ProjectCatalogue, Tab, TabStatus } from "../../app/state/view-types.js";
 
 import type { SessionAction } from "../actions/session-actions.js";
+import { projectSessions } from "../session-projection.js";
 
 export interface QuickOpenItem {
   kind: "session" | "project" | "worktree" | "projectAction" | "action";
@@ -8,6 +9,8 @@ export interface QuickOpenItem {
   /** Session or project path; also the React key. */
   path: string;
   title: string;
+  sessionId?: string;
+  sessionPath?: string;
   project: string;
   modified: number;
   /** Checkout context, never the session JSONL storage path. */
@@ -30,8 +33,6 @@ export interface QuickOpenItem {
 
 /** Sessions and checkouts share catalogue metadata; primary checkouts remain projects. */
 export function buildQuickOpenItems(catalogue: ProjectCatalogue, tabs: readonly Tab[], actions: readonly SessionAction[] = [], laterPaths: ReadonlySet<string> = new Set()): QuickOpenItem[] {
-  const openSessionPaths = new Set(tabs.flatMap(tab => tab.sessionPath ? [tab.sessionPath] : []));
-  const statusByPath = new Map(tabs.flatMap(tab => tab.sessionPath ? [[tab.sessionPath, tab.status] as const] : []));
   const sessions: QuickOpenItem[] = [];
   const projects: QuickOpenItem[] = [];
 
@@ -54,20 +55,21 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, tabs: readonly 
       modified: project.modified,
       latestSessionPath: project.sessions.filter(session => session.archivedAt === undefined).sort((a, b) => b.modified - a.modified)[0]?.path,
     });
-    for (const session of project.sessions) {
-      if (session.archivedAt !== undefined) continue;
-      sessions.push({
-        ...context,
-        kind: "session",
-        path: session.path,
-        title: session.title,
-        project: project.name,
-        modified: session.modified,
-        messageCount: session.messageCount,
-        status: laterPaths.has(session.path) ? "later" : statusByPath.get(session.path) ?? "idle",
-        isOpen: openSessionPaths.has(session.path),
-      });
-    }
+  }
+  for (const { tab, session, project } of projectSessions(catalogue, tabs)) {
+    const path = session?.path ?? `runtime:${tab!.sessionId}`;
+    sessions.push({
+      kind: "session", path, sessionId: tab?.sessionId, sessionPath: session?.path,
+      title: tab?.title ?? session!.title,
+      project: project?.name ?? tab!.projectName,
+      projectPath: project?.path ?? tab?.projectPath,
+      displayPath: project?.displayPath, repositoryPath: project?.repositoryPath,
+      repositoryName: project?.repositoryName, branch: project?.worktree?.branch,
+      detached: project?.worktree?.detached, commit: project?.worktree?.commit,
+      modified: session?.modified ?? Number.MAX_SAFE_INTEGER, messageCount: session?.messageCount,
+      status: session && laterPaths.has(session.path) ? "later" : tab?.status ?? "idle",
+      isOpen: tab !== undefined,
+    });
   }
 
   return [...sessions, ...projects, ...actions.map((action): QuickOpenItem => ({

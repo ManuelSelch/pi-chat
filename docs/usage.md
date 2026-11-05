@@ -111,7 +111,8 @@ paths in Quick Switcher; hidden paths remain searchable.
 | `/` | Local actions |
 
 Click a scope or cycle with Tab/Shift+Tab, use arrows to select and Enter to
-activate; Escape dismisses. Activating a session resumes it, and a folder or
+activate; Escape dismisses. Live sessions appear immediately with their current
+titles; selecting one focuses it. Saved-only sessions are reopened. A folder or
 worktree follows the existing project-opening behavior. A no-match query can be
 edited without closing the switcher.
 

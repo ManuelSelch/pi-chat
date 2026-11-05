@@ -1,7 +1,7 @@
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { rmdirSync } from "node:fs";
-import { SessionManager, type ExtensionFactory } from "@earendil-works/pi-coding-agent";
+import { type ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { AddressInfo } from "node:net";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createPiServer, type PiServer, type RestartService } from "@manuelselch/pi-server";
@@ -58,7 +58,7 @@ export class PiChatBrowserDriver {
     this.projects = new BrowserProjectsDriver(page, world);
     this.inbox = new BrowserInboxDriver(page, world);
     this.settings = new BrowserSettingsDriver(page);
-    this.quickOpen = new QuickOpenFolderPathDriver(page);
+    this.quickOpen = new QuickOpenFolderPathDriver(page, world);
     this.focus = new BrowserFocusDriver(page, this.composer, world);
     this.prompts = new BrowserPromptsDriver(page);
     this.extensions = new BrowserExtensionsDriver(widgetFixture);
@@ -84,7 +84,7 @@ export class PiChatBrowserDriver {
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
         catalogue: {
-          lister: { listAll: () => SessionManager.list(world.projectPath, world.sessionDir) },
+          lister: { listAll: () => world.listSessions() },
           sessionsDirectory: world.sessionDir,
           metadataFile: join(world.projectPath, ".pi-chat", "projects.json"),
         },
@@ -100,6 +100,7 @@ export class PiChatBrowserDriver {
       await listen(0);
       const port = (server.httpServer.address() as AddressInfo).port;
       const driver = new PiChatBrowserDriver(page, world, widgetFixture, async () => {
+        world.resumeCatalogueScans();
         await server!.close();
         await world.dispose();
       }, async () => {

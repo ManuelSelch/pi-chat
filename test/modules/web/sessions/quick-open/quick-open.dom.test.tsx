@@ -17,7 +17,7 @@ const catalogue: ProjectCatalogue = { projects: [
     repositoryName: "pi-chat", worktree: { detached: true, primary: false, commit: "abcdef123456" } },
 ] };
 function setup(data = catalogue, tabs: Tab[] = [], laterPaths?: ReadonlySet<string>) {
-  const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
+  const handlers = { onClose: vi.fn(), onFocusSession: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
   const actions = buildSessionActions({ sessionId: "", connected: true, busy: false, navigation: "tabs" }, {
     newSession: handlers.onNewSession, closeSession: vi.fn(), parkSession: vi.fn(), archiveSession: vi.fn(),
     openFolder: handlers.onOpenFolder, openSettings: handlers.onOpenSettings,
@@ -34,10 +34,18 @@ it("shows the reused status indicator per session, including the Later snooze ic
     { path: "/sessions/block", id: "block", title: "Blocked", nameSource: "manual", modified: 2, created: 0, messageCount: 1 },
     { path: "/sessions/later", id: "later", title: "Parked", nameSource: "manual", modified: 1, created: 0, messageCount: 1 },
   ] }] };
-  setup(data, [tab("/sessions/run", "running"), tab("/sessions/block", "blocked")], new Set(["/sessions/later"]));
+  setup(data, [{ ...tab("/sessions/run", "running"), title: "Running" }, { ...tab("/sessions/block", "blocked"), title: "Blocked" }], new Set(["/sessions/later"]));
   expect(within(screen.getByRole("option", { name: /Session: Running/ })).getByRole("img", { name: "Working" })).toBeTruthy();
   expect(within(screen.getByRole("option", { name: /Session: Blocked/ })).getByRole("img", { name: "Needs you" })).toBeTruthy();
   expect(screen.getByRole("option", { name: /Session: Parked/ }).querySelector(".tabler-icon-clock-pause")).not.toBeNull();
+});
+it("focuses a live session by runtime ID instead of reopening it by path", () => {
+  const handlers = setup(catalogue, [{ ...tab("/sessions/one", "idle"), sessionId: "runtime", title: "Live title" }]);
+
+  fireEvent.click(screen.getByRole("option", { name: /Session: Live title/ }));
+
+  expect(handlers.onFocusSession).toHaveBeenCalledWith("runtime");
+  expect(handlers.onOpenSession).not.toHaveBeenCalled();
 });
 it("identifies each type by icon and accessible name without visible right-hand labels", () => {
   setup();
@@ -154,7 +162,7 @@ it("does nothing on Enter with no results or during IME composition", () => {
   expect(handlers.onClose).not.toHaveBeenCalled();
 });
 it("clamps selection when the catalogue changes without a query edit", () => {
-  const handlers = { onClose: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn() };
+  const handlers = { onClose: vi.fn(), onFocusSession: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn() };
   const view = render(<MantineProvider><QuickOpen opened catalogue={catalogue} tabs={[]} {...handlers} /></MantineProvider>);
   const input = screen.getByRole("textbox");
   fireEvent.change(input, { target: { value: "%" } });

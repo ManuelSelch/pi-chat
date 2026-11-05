@@ -1,7 +1,8 @@
 import { expect, type Page } from "@playwright/test";
+import type { TestWorld } from "../pi-chat/test-world.js";
 
 export class QuickOpenFolderPathDriver {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly page: Page, private readonly world: TestWorld) {}
 
   async close(): Promise<void> {
     await this.page.keyboard.press("Escape");
@@ -11,6 +12,19 @@ export class QuickOpenFolderPathDriver {
   async open(): Promise<void> {
     await this.page.keyboard.press("Meta+o");
     await expect(this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" })).toBeVisible();
+  }
+
+  private session(title: string) {
+    return this.page.getByRole("option").filter({ has: this.page.getByText(title, { exact: true }) });
+  }
+  async shouldShowSessionOnce(title: string): Promise<void> { await expect(this.session(title)).toHaveCount(1); }
+  async shouldNotShowSession(title: string): Promise<void> { await expect(this.session(title)).toHaveCount(0); }
+  async selectSession(title: string): Promise<void> {
+    const release = this.world.reserveSession([]);
+    try {
+      await this.session(title).click();
+      await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeEnabled();
+    } finally { release(); }
   }
 
   private async scopes(): Promise<{ folder: string; worktree: string }> {

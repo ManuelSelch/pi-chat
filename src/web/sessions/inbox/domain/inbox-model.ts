@@ -1,4 +1,5 @@
 import type { ProjectCatalogue, Tab, TabStatus } from "../../../app/state/view-types.js";
+import { projectSessions } from "../../session-projection.js";
 
 export interface LaterEntry { path: string; phase: "parking" | "parked" }
 export interface InboxRow {
@@ -46,10 +47,9 @@ export function hasSavedSession(catalogue: ProjectCatalogue, path: string | unde
 export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, laterPaths: ReadonlySet<string>): InboxRow[] {
   const counts = checkoutConversationCounts(catalogue, tabs);
   const history = new Map(historyRows(catalogue, tabs).map(row => [row.path, row]));
-  const loaded = new Set(tabs.map(tab => tab.sessionPath));
-  const archived = new Set(catalogue.projects.flatMap(project => project.sessions.filter(session => session.archivedAt !== undefined).map(session => session.path)));
-  const live: InboxRow[] = tabs.filter(tab => !tab.sessionPath || !archived.has(tab.sessionPath)).map(tab => {
-    const project = catalogue.projects.find(project => project.path === tab.projectPath);
+  const projected = projectSessions(catalogue, tabs);
+  const live: InboxRow[] = projected.filter(entry => entry.tab !== undefined).map(({ tab: runtime, project }) => {
+    const tab = runtime!;
     return {
       ...(tab.sessionPath ? history.get(tab.sessionPath) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath && history.has(tab.sessionPath) ? tab.sessionPath : undefined,
       title: tab.title, project: project?.repositoryName ?? project?.name ?? tab.projectName,
@@ -58,7 +58,8 @@ export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, lat
       status: tab.status,
     };
   });
-  return [...live, ...[...history.values()].filter(row => !loaded.has(row.path) && !laterPaths.has(row.path))]
+  const saved = projected.flatMap(({ tab, session }) => !tab && session && !laterPaths.has(session.path) ? [history.get(session.path)!] : []);
+  return [...live, ...saved]
     .toSorted((a, b) => (b.modified ?? Number.MAX_SAFE_INTEGER) - (a.modified ?? Number.MAX_SAFE_INTEGER));
 }
 

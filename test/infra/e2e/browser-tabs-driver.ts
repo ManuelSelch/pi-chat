@@ -54,6 +54,16 @@ export class BrowserTabsDriver {
       .not.toBe("rgba(0, 0, 0, 0)");
   }
 
+  async changeLiveTitleWhileCatalogueIsStale(title: string): Promise<void> {
+    this.world.pauseCatalogueScans();
+    this.world.sessionTitle.setTitle(title);
+    await expect.poll(() => this.world.catalogueScanBlocked).toBe(true);
+    await expect(this.tabs().filter({ hasText: title })).toBeVisible();
+  }
+  async shouldBeSelected(handle: BrowserTabHandle): Promise<void> {
+    await expect.poll(async () => this.tab(handle).evaluate(element => getComputedStyle(element).borderBottomColor)).not.toBe("rgba(0, 0, 0, 0)");
+  }
+
   async shouldHaveCount(count: number): Promise<void> {
     await expect(this.tabs()).toHaveCount(count);
   }

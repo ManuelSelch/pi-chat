@@ -9,6 +9,7 @@ import type { RuntimeAdapter, RuntimeAdapterFactory } from "@manuelselch/pi-serv
 import * as serverPackage from "@manuelselch/pi-server";
 import type { SessionTheme } from "@manuelselch/pi-sdk";
 import { themeFixture } from "./fixtures/theme-fixture.js";
+import { SessionTitleFixture } from "./fixtures/session-title-fixture.js";
 
 export interface AssistantResponse {
   prompt: string;
@@ -48,6 +49,10 @@ export class TestWorld {
   private disposed = false;
   private disposal?: Promise<void>;
   private readonly extensions: readonly ExtensionFactory[];
+  readonly sessionTitle = new SessionTitleFixture();
+  private scanGate?: Promise<void>;
+  private releaseScan?: () => void;
+  catalogueScanBlocked = false;
   private readonly allowHomeSession: boolean;
 
   constructor(extensions: readonly ExtensionFactory[] = [], allowHomeSession = false, projectName?: string) {
@@ -56,7 +61,7 @@ export class TestWorld {
     this.projectPath = projectName ? join(this.ownedRoot, projectName) : this.ownedRoot;
     mkdirSync(this.projectPath, { recursive: true });
     this.sessionDir = join(this.projectPath, ".pi-sessions");
-    this.extensions = [...extensions];
+    this.extensions = [...extensions, this.sessionTitle.extension];
     this.allowHomeSession = allowHomeSession;
   }
 
@@ -83,6 +88,26 @@ export class TestWorld {
       return this.create(reservation.responses, path, reservation.resources);
     },
   };
+
+  pauseCatalogueScans(): void {
+    assert(!this.scanGate, "Catalogue scans already paused");
+    this.scanGate = new Promise(resolve => { this.releaseScan = resolve; });
+  }
+
+  resumeCatalogueScans(): void {
+    this.releaseScan?.();
+    this.releaseScan = undefined;
+    this.scanGate = undefined;
+    this.catalogueScanBlocked = false;
+  }
+
+  async listSessions() {
+    if (this.scanGate) {
+      this.catalogueScanBlocked = true;
+      await this.scanGate;
+    }
+    return SessionManager.list(this.projectPath, this.sessionDir);
+  }
 
   reserveSession(responses: readonly AssistantResponse[], resources: TestSessionResources = {}): () => void {
     assert(!this.disposed, "Test world is disposed");

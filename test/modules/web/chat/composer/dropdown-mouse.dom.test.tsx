@@ -18,7 +18,7 @@ function Commands() {
 for (const kind of ["commands", "quick open"] as const) {
   it(`${kind}: ignores enter and stationary movement; hover does not scroll`, () => {
     render(<MantineProvider>{kind === "commands" ? <Commands /> : <QuickOpen
-      opened onClose={vi.fn()} tabs={[]} onOpenSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()}
+      opened onClose={vi.fn()} tabs={[]} onOpenSession={vi.fn()} onFocusSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()}
       catalogue={{ projects: ["first", "second"].map((name) => ({
         path: `/${name}`, displayPath: `/${name}`, name, exists: true,
         modified: 0, sessionCount: 1, sessions: [{

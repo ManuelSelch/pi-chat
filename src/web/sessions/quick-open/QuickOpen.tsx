@@ -17,6 +17,7 @@ interface QuickOpenProps {
   catalogue: ProjectCatalogue;
   tabs: readonly Tab[];
   onOpenSession: (path: string) => void;
+  onFocusSession: (sessionId: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: (path: string) => void;
   actions?: readonly SessionAction[];
@@ -56,7 +57,7 @@ function SessionIndicator({ status }: { status: QuickOpenItem["status"] }) {
 }
 
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
+export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -98,7 +99,10 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onO
 
   function choose(item: QuickOpenItem): void {
     if (item.disabled) return;
-    if (item.kind === "session") onOpenSession(item.path);
+    if (item.kind === "session") {
+      if (item.sessionId) onFocusSession(item.sessionId);
+      else if (item.sessionPath) onOpenSession(item.sessionPath);
+    }
     else if (item.kind === "action") item.action?.run();
     else if (item.kind === "projectAction") {
       if (item.targetPath) onNewSession(item.targetPath);

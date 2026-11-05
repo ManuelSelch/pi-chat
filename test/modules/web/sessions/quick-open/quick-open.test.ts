@@ -37,9 +37,20 @@ const catalogue: ProjectCatalogue = {
   ],
 };
 
-const items = buildQuickOpenItems(catalogue, [tab("/s/plugin.jsonl")]);
+const items = buildQuickOpenItems(catalogue, [{ ...tab("/s/plugin.jsonl"), title: "Ping" }]);
 
 describe("quick open", () => {
+  it("includes unsaved live sessions and prefers live titles for saved sessions", () => {
+    const live = { ...tab("/s/plugin.jsonl"), title: "Live title" };
+    const unsaved = { ...live, sessionId: "new-runtime", sessionPath: undefined, title: "New session" };
+
+    const sessions = buildQuickOpenItems(catalogue, [live, unsaved]).filter(item => item.kind === "session");
+
+    expect(sessions.filter(item => item.title === "Live title")).toHaveLength(1);
+    expect(sessions.find(item => item.title === "New session")).toMatchObject({ sessionId: "new-runtime" });
+    expect(sessions.some(item => item.title === "Ping")).toBe(false);
+  });
+
   it("flattens sessions and projects, marking the ones already in a tab", () => {
     expect(items.filter((item) => item.kind === "session")).toHaveLength(3);
     expect(items.filter((item) => item.kind === "project")).toHaveLength(2);

@@ -86,11 +86,13 @@ Inbox is enabled by default via browser-local `pi-chat:session-inbox`; an explic
 opt-out retains tabs/Projects navigation. Both modes reuse the same SDK runtimes
 and catalogue rather than introducing another server-side session store.
 
-Inbox combines saved, unarchived history with runtime inventory, deduplicated by
-session path. Needs you/Working derive from blocked/running status. Ready contains
-other idle conversations except browser-local Later membership; it is not an
-unread-response list. Loaded rows select a runtime; unloaded rows open saved
-history explicitly. History is not reopened automatically.
+Inbox and Quick Switcher share a projection of saved, unarchived history and
+runtime inventory, deduplicated by session path. Live rows use runtime titles
+and status, including sessions not yet in the catalogue; selecting one focuses
+its runtime ID. Saved-only rows are opened by path. Inbox Needs you/Working
+derive from blocked/running status. Ready contains other idle conversations
+except browser-local Later membership; it is not an unread-response list.
+History is not reopened automatically.
 
 `sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
 storage, lifecycle coordination and component/container UI. Parking loaded saved
