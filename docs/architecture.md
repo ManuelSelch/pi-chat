@@ -120,12 +120,18 @@ reload does not persist these drafts.
 Projects navigation groups repository checkouts without mixing their session
 identities. Quick Chats stays separate; pins and recent unarchived activity drive
 ordering. Worktree labels and catalogue discovery belong to the server/model,
-not filesystem probing in views. Inbox uses repository context and promotes a
+not filesystem probing in views. Every open runtime directory seeds server checkout
+discovery even without a saved transcript; creation and runtime replacement refresh
+the catalogue without inventing saved-session entries. Inbox uses repository context and promotes a
 linked worktree branch above its conversation title; main checkouts retain the
 title as primary. Single-conversation linked checkouts omit the subtitle;
 multiple conversations retain titles for disambiguation. Counts include unarchived
 catalogue history (including Later) and unsaved live siblings, deduplicated against
 saved paths before status filtering. Later uses the same live inventory.
+Quick Switcher also uses the linked branch as its primary session label and repository
+as context, including before the first message. Conversation titles remain searchable
+and appear as context when meaningful; the untitled “New session” placeholder is not
+displayed for linked branches. Primary checkouts keep their conversation titles.
 Rows expose the full title on hover and use suffix-free recency locally; shared
 Home/Quick Switcher time formatting is unchanged. Project context uses the
 catalogue repository name, falling back to the runtime project name before

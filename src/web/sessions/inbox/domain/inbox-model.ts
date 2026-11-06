@@ -28,7 +28,7 @@ function checkoutConversationCounts(catalogue: ProjectCatalogue, tabs: readonly 
 
 function rowLabels(title: string, worktree: { primary: boolean; branch?: string } | undefined, conversationCount: number) {
   const branch = worktree?.primary === false ? worktree.branch?.trim() || undefined : undefined;
-  return { primaryLabel: branch ?? title, secondaryLabel: branch && conversationCount > 1 && branch !== title.trim() ? title : undefined };
+  return { primaryLabel: branch ?? title, secondaryLabel: branch && conversationCount > 1 && branch !== title.trim() && title !== "New session" ? title : undefined };
 }
 
 export function historyRows(catalogue: ProjectCatalogue, tabs: readonly Tab[] = []): (InboxRow & { path: string })[] {

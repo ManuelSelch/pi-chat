@@ -17,6 +17,18 @@ export class QuickOpenFolderPathDriver {
   private session(title: string) {
     return this.page.getByRole("option").filter({ has: this.page.getByText(title, { exact: true }) });
   }
+  async shouldShowWorktreeSession(repositoryName: string, branch: string): Promise<void> {
+    const result = this.page.getByRole("option").filter({ has: this.page.getByText(branch, { exact: true }) });
+    await expect(result).toHaveCount(1);
+    await expect(result).toBeVisible();
+    await expect(result).toHaveAttribute("aria-label", /^Session:/);
+    await expect(result).toContainText(repositoryName);
+    await expect(result).not.toContainText("New session");
+  }
+  async shouldFindWorktreeSessionByTitle(title: string, repositoryName: string, branch: string): Promise<void> {
+    await this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" }).fill(`@${title}`);
+    await this.shouldShowWorktreeSession(repositoryName, branch);
+  }
   async shouldShowSessionOnce(title: string): Promise<void> { await expect(this.session(title)).toHaveCount(1); }
   async shouldNotShowSession(title: string): Promise<void> { await expect(this.session(title)).toHaveCount(0); }
   async selectSession(title: string): Promise<void> {

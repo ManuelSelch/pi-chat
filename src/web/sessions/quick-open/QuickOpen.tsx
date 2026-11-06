@@ -37,7 +37,7 @@ const scopes = [
 ] as const;
 
 function resultTitle(item: QuickOpenItem): string {
-  return item.kind === "worktree" ? item.branch ?? item.title : item.title;
+  return item.kind === "worktree" ? item.branch ?? item.title : item.primaryLabel ?? item.title;
 }
 
 function resultContext(item: QuickOpenItem, showDisplayPath: boolean): string {
@@ -45,7 +45,10 @@ function resultContext(item: QuickOpenItem, showDisplayPath: boolean): string {
   if (item.kind === "projectAction") return showDisplayPath ? item.project : "New session";
   const checkout = item.branch ?? (item.detached ? `detached at ${item.commit?.slice(0, 7) ?? "unknown commit"}` : undefined);
   const project = item.repositoryName ?? item.project;
-  if (item.kind === "session") return [project, checkout, relativeTime(item.modified)].filter(Boolean).join(" · ");
+  if (item.kind === "session") {
+    const conversation = item.primaryLabel && item.title !== "New session" && item.title !== item.primaryLabel ? item.title : undefined;
+    return [project, item.primaryLabel ? conversation : checkout, relativeTime(item.modified)].filter(Boolean).join(" · ");
+  }
   if (item.kind === "worktree") return [item.repositoryName ?? (showDisplayPath ? item.repositoryPath : undefined), item.detached ? checkout : undefined, showDisplayPath ? item.displayPath ?? item.path : undefined].filter(Boolean).join(" · ");
   return showDisplayPath ? item.displayPath ?? item.path : "";
 }

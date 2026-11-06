@@ -104,6 +104,17 @@ it("counts unsaved live siblings for Ready and Later labels, without counting ar
   expect(inboxRows([tab, unsaved], linked, new Set()).map(row => row.secondaryLabel)).toEqual(expect.arrayContaining(["Open A", "Unsaved"]));
 });
 
+it("never exposes the untitled placeholder as a subtitle when live worktree sessions share a checkout", () => {
+  const project = { ...catalogue.projects[0]!, repositoryName: "my-project", sessions: [], worktree: { primary: false, detached: false, branch: "feat/worktree" } };
+  const unsaved = { ...tab, sessionPath: undefined, title: "New session" };
+
+  const rows = inboxRows([unsaved, { ...unsaved, sessionId: "second" }], { projects: [project] }, new Set());
+
+  expect(rows).toHaveLength(2);
+  expect(rows.every(row => row.primaryLabel === "feat/worktree" && row.project === "my-project")).toBe(true);
+  expect(rows.every(row => row.secondaryLabel === undefined)).toBe(true);
+});
+
 it("distinguishes multiple unsaved sessions and does not mix different worktree checkouts", () => {
   const project = { ...catalogue.projects[0]!, sessions: [], worktree: { primary: false, detached: false, branch: "feat/worktree" } };
   const linked = { projects: [project, { ...project, path: "/other" }] };

@@ -37,7 +37,7 @@
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
     "@manuelselch/pi-sdk": "file:vendor/model-search/pi-sdk-0.2.0-31d3176.tgz",
-    "@manuelselch/pi-server": "file:vendor/prompt-errors/manuelselch-pi-server-0.2.1.tgz",
+    "@manuelselch/pi-server": "file:vendor/live-checkouts/manuelselch-pi-server-0.2.1.tgz",
     "@tabler/icons-react": "^3.46.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",

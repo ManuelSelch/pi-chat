@@ -20,9 +20,9 @@ it("pins coordinated model-search snapshots with source receipts and lockfile in
     expect(installed.resolved).toBe(spec);
     expect(installed.integrity).toBe(`sha512-${createHash("sha512").update(bytes).digest("base64")}`);
   }
-  const server = JSON.parse(await readFile(new URL("../../vendor/prompt-errors/SOURCE.json", import.meta.url), "utf8"));
-  const serverBytes = await readFile(new URL(`../../vendor/prompt-errors/${server.archive}`, import.meta.url));
-  const serverSpec = `file:vendor/prompt-errors/${server.archive}`;
+  const server = JSON.parse(await readFile(new URL("../../vendor/live-checkouts/SOURCE.json", import.meta.url), "utf8"));
+  const serverBytes = await readFile(new URL(`../../vendor/live-checkouts/${server.archive}`, import.meta.url));
+  const serverSpec = `file:vendor/live-checkouts/${server.archive}`;
   expect(createHash("sha256").update(serverBytes).digest("hex")).toBe(server.sha256);
   expect(manifest.dependencies["@manuelselch/pi-server"]).toBe(serverSpec);
   expect(lock.packages[""].dependencies["@manuelselch/pi-server"]).toBe(serverSpec);

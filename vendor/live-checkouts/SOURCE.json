@@ -1,0 +1,9 @@
+{
+  "package": "@manuelselch/pi-server",
+  "version": "0.2.1",
+  "archive": "manuelselch-pi-server-0.2.1.tgz",
+  "sha256": "1204cd14a6ca59fe2ad78f7a938291466994a0d1a79f747f529d0292fd7079ba",
+  "base": "vendor/prompt-errors/manuelselch-pi-server-0.2.1.tgz (sha256 924ab17deef29d00a8110b15fa21bd003cada4b910a8296c6786ab10ae7cb2a1)",
+  "patchRevision": "55320fa3666dea4bc4e997d80bacb4efe15ada06",
+  "construction": "Prompt-error archive with dist/application/chat-application-service.{js,d.ts}, dist/projects/project-session-service.{js,d.ts}, dist/transport/server-publisher.{js,d.ts}, and docs/PROTOCOL.md compiled/copied from patchRevision. Dependencies and remaining files are unchanged."
+}

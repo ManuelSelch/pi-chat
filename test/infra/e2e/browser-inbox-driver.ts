@@ -150,6 +150,13 @@ export class BrowserInboxDriver {
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
     }
   }
+  async shouldShowWorktreeSession(repositoryName: string, branch: string): Promise<void> {
+    const button = this.panel().getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) });
+    await expect(button).toHaveCount(1);
+    await expect(button).toBeVisible();
+    await expect(button.locator(":scope > div").first().locator(":scope > span").nth(1)).toHaveText(repositoryName);
+    await expect(button.getByText("New session", { exact: true })).toHaveCount(0);
+  }
   async shouldShowProjectName(title: string, projectName: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
     const metadata = button.locator(":scope > div").first();

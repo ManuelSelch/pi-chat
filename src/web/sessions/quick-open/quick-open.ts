@@ -9,6 +9,8 @@ export interface QuickOpenItem {
   /** Session or project path; also the React key. */
   path: string;
   title: string;
+  /** Linked-checkout display label; the conversation title remains searchable. */
+  primaryLabel?: string;
   sessionId?: string;
   sessionPath?: string;
   project: string;
@@ -61,6 +63,7 @@ export function buildQuickOpenItems(catalogue: ProjectCatalogue, tabs: readonly 
     sessions.push({
       kind: "session", path, sessionId: tab?.sessionId, sessionPath: session?.path,
       title: tab?.title ?? session!.title,
+      primaryLabel: project?.worktree?.primary === false ? project.worktree.branch?.trim() || undefined : undefined,
       project: project?.name ?? tab!.projectName,
       projectPath: project?.path ?? tab?.projectPath,
       displayPath: project?.displayPath, repositoryPath: project?.repositoryPath,

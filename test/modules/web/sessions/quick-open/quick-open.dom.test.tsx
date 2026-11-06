@@ -28,6 +28,27 @@ function setup(data = catalogue, tabs: Tab[] = [], laterPaths?: ReadonlySet<stri
 function tab(sessionPath: string, status: Tab["status"]): Tab {
   return { sessionId: sessionPath, sessionPath, title: sessionPath, projectPath: "/repo", projectName: "repo", status };
 }
+it("labels an unsaved linked-worktree session by branch and repository, never New session", () => {
+  const project = { ...catalogue.projects[1]!, sessionCount: 0, sessions: [] };
+  const handlers = setup({ projects: [project] }, [{
+    sessionId: "fresh", title: "New session", projectPath: project.path, projectName: project.name, status: "idle",
+  }]);
+
+  const row = screen.getByRole("option", { name: /Session: feat\/palette.*pi-chat/ });
+  expect(within(row).getByText("feat/palette")).toBeTruthy();
+  expect(within(row).queryByText(/New session/)).toBeNull();
+  fireEvent.click(row);
+  expect(handlers.onFocusSession).toHaveBeenCalledWith("fresh");
+});
+it("finds a worktree session by conversation title while displaying its branch", () => {
+  setup();
+
+  fireEvent.change(screen.getByRole("textbox"), { target: { value: "@Improve search" } });
+
+  expect(screen.getAllByRole("option")).toHaveLength(1);
+  const row = screen.getByRole("option", { name: /Session: feat\/palette.*pi-chat.*Improve search/ });
+  expect(within(row).getByText("feat/palette")).toBeTruthy();
+});
 it("shows the reused status indicator per session, including the Later snooze icon", () => {
   const data: ProjectCatalogue = { projects: [{ path: "/repo", displayPath: "~/repo", name: "repo", exists: true, modified: 1, sessionCount: 3, sessions: [
     { path: "/sessions/run", id: "run", title: "Running", nameSource: "manual", modified: 3, created: 0, messageCount: 1 },
@@ -42,14 +63,14 @@ it("shows the reused status indicator per session, including the Later snooze ic
 it("focuses a live session by runtime ID instead of reopening it by path", () => {
   const handlers = setup(catalogue, [{ ...tab("/sessions/one", "idle"), sessionId: "runtime", title: "Live title" }]);
 
-  fireEvent.click(screen.getByRole("option", { name: /Session: Live title/ }));
+  fireEvent.click(screen.getByRole("option", { name: /Session: feat\/palette.*Live title/ }));
 
   expect(handlers.onFocusSession).toHaveBeenCalledWith("runtime");
   expect(handlers.onOpenSession).not.toHaveBeenCalled();
 });
 it("identifies each type by icon and accessible name without visible right-hand labels", () => {
   setup();
-  expect(within(screen.getByRole("option", { name: /Session: Improve search.*pi-chat.*feat\/palette/ })).getByRole("img", { name: "Ready" })).toBeTruthy();
+  expect(within(screen.getByRole("option", { name: /Session: feat\/palette.*pi-chat.*Improve search/ })).getByRole("img", { name: "Ready" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "# Folders" }));
   expect(screen.getByRole("option", { name: /Folder action: pi-chat.*New session.*~\/repo/ }).querySelector(".tabler-icon-folder-plus")).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "% Worktrees" }));
@@ -110,7 +131,7 @@ it("keeps mouse hover inactive until pointer movement, and keyboard input clears
 });
 it("keeps existing project/session activation with new worktree identity", () => {
   const handlers = setup();
-  fireEvent.click(screen.getByRole("option", { name: /Session: Improve search/ }));
+  fireEvent.click(screen.getByRole("option", { name: /Session: feat\/palette.*Improve search/ }));
   expect(handlers.onOpenSession).toHaveBeenCalledWith("/sessions/one");
   fireEvent.click(screen.getByRole("button", { name: "% Worktrees" }));
   fireEvent.click(screen.getByRole("option", { name: /Worktree: feat\/palette/ }));
