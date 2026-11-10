@@ -36,6 +36,9 @@ initialized connection. Opaque `sessionId` identifies a runtime incarnation;
 `sessionPath` identifies saved server-local history. Closing/reopening or runtime
 replacement can change the runtime ID. Same-runtime reconnect and in-place
 resource reload retain it. Stale IDs must not be retargeted to another runtime.
+Chat compares session paths case-insensitively when joining history and runtimes;
+this assumes a case-insensitive server filesystem. Original paths remain intact
+for server operations.
 
 Common typed operations used by Chat:
 

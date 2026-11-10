@@ -6,6 +6,7 @@ import { StatusBadge } from "../../ui/StatusBadge.js";
 import type { ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "./project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
+import { sameSessionPath } from "../session-projection.js";
 import styles from "./ProjectSessionDrawer.module.css";
 import { focusComposer, useComposerFocusReturn } from "../../ui/focus/composer-focus.js";
 
@@ -95,8 +96,8 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
     const archived = group.sessions.filter(entry => entry.session.archivedAt !== undefined);
     const row = (entry: PanelSession) => (
       <SessionRow key={entry.session.path} session={entry.session} label={entry.worktreeLabel ? entry.branch : undefined}
-        active={entry.session.path === currentSessionPath} disabled={!group.exists}
-        archiveDisabled={pending || running.includes(entry.session.path)}
+        active={sameSessionPath(entry.session.path, currentSessionPath)} disabled={!group.exists}
+        archiveDisabled={pending || running.some(path => sameSessionPath(path, entry.session.path))}
         onOpen={() => openSession(entry.session.path)}
         onArchive={archiveSession ? () => archive(entry) : undefined} />
     );

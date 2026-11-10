@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppState } from "../../../app/state/app-state.js";
 import { hasSavedSession, historyRows, reconcileLater, type LaterEntry } from "../domain/inbox-model.js";
 import { loadLater, saveLater } from "../infra/later-storage.js";
+import { sameSessionPath, sessionPathKey } from "../../session-projection.js";
 
 interface InboxOperations {
   close(id: string): Promise<void>;
@@ -59,7 +60,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   }
 
   const select = (path: string) => run(async () => {
-    const tab = latest.current.app.tabs.find(tab => tab.sessionPath === path);
+    const tab = latest.current.app.tabs.find(tab => sameSessionPath(tab.sessionPath, path));
     if (tab) { latest.current.operations.focus(tab.sessionId); return; }
     if (!hasSavedSession(latest.current.app.catalogue, path)) return;
     const id = await latest.current.operations.open(path);
@@ -67,15 +68,15 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   });
 
   const park = (target: string) => run(async () => {
-    const tab = latest.current.app.tabs.find(tab => tab.sessionId === target || tab.sessionPath === target);
+    const tab = latest.current.app.tabs.find(tab => tab.sessionId === target || sameSessionPath(tab.sessionPath, target));
     const path = tab?.sessionPath ?? target;
     if ((tab && tab.status !== "idle") || !hasSavedSession(latest.current.app.catalogue, path)) return;
     if (!tab) {
-      persist([...entriesRef.current.filter(entry => entry.path !== path), { path, phase: "parked" }]);
+      persist([...entriesRef.current.filter(entry => !sameSessionPath(entry.path, path)), { path, phase: "parked" }]);
       return;
     }
     const previous = entriesRef.current;
-    persist([...previous.filter(entry => entry.path !== path), { path, phase: "parking" }]);
+    persist([...previous.filter(entry => !sameSessionPath(entry.path, path)), { path, phase: "parking" }]);
     waitForTabs.current = latest.current.app.tabs;
     try { await latest.current.operations.close(tab.sessionId); }
     catch (cause) {
@@ -84,31 +85,31 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
       throw cause;
     }
     // If this write fails, the persisted pending intent is still recoverable.
-    persist(entriesRef.current.map(entry => entry.path === path ? { path, phase: "parked" } : entry));
+    persist(entriesRef.current.map(entry => sameSessionPath(entry.path, path) ? { path, phase: "parked" } : entry));
   });
 
   const resume = (path: string) => run(async () => {
-    if (!entriesRef.current.some(entry => entry.path === path)) return;
+    if (!entriesRef.current.some(entry => sameSessionPath(entry.path, path))) return;
     const id = await latest.current.operations.open(path);
-    persist(entriesRef.current.filter(entry => entry.path !== path));
+    persist(entriesRef.current.filter(entry => !sameSessionPath(entry.path, path)));
     latest.current.operations.focus(id);
   });
 
   const archive = (path: string) => run(async () => {
-    const tab = latest.current.app.tabs.find(tab => tab.sessionPath === path);
+    const tab = latest.current.app.tabs.find(tab => sameSessionPath(tab.sessionPath, path));
     if (tab && tab.status !== "idle") return;
     await latest.current.operations.archive(path, true);
-    persist(entriesRef.current.filter(entry => entry.path !== path));
+    persist(entriesRef.current.filter(entry => !sameSessionPath(entry.path, path)));
   });
 
   const later = useMemo(() => {
-    const open = new Set(app.tabs.map(tab => tab.sessionPath));
-    const saved = new Set(entries.filter(entry => !open.has(entry.path)).map(entry => entry.path));
-    return historyRows(app.catalogue, app.tabs).filter(row => saved.has(row.path));
+    const open = new Set(app.tabs.flatMap(tab => tab.sessionPath ? [sessionPathKey(tab.sessionPath)] : []));
+    const saved = new Set(entries.filter(entry => !open.has(sessionPathKey(entry.path))).map(entry => sessionPathKey(entry.path)));
+    return historyRows(app.catalogue, app.tabs).filter(row => saved.has(sessionPathKey(row.path)));
   }, [entries, app.catalogue, app.tabs]);
   return {
     later,
-    pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => tab.sessionPath === entry.path && tab.status === "closing")), error,
+    pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => sameSessionPath(tab.sessionPath, entry.path) && tab.status === "closing")), error,
     select, park, resume, archive, dismissError: () => setError(undefined),
   };
 }

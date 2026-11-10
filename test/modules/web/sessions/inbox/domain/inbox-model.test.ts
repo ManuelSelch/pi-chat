@@ -9,6 +9,13 @@ const catalogue: ProjectCatalogue = { projects: [{ path: "/p", displayPath: "/p"
 ] }] };
 const tab: Tab = { sessionId: "runtime", sessionPath: "/a", projectPath: "/p", projectName: "Project", title: "Open A", status: "idle" };
 
+it("joins a live session to saved history when path casing differs", () => {
+  const rows = inboxRows([{ ...tab, sessionPath: "/A" }], catalogue, new Set());
+
+  expect(rows).toHaveLength(2);
+  expect(rows.find(row => row.sessionId === "runtime")).toMatchObject({ path: "/a", status: "idle", modified: 10 });
+});
+
 it("uses real runtime status and catalogue context, without marking completed responses unread", () => {
   expect(inboxRows([tab], catalogue, new Set())[0]).toMatchObject({ title: "Open A", status: "idle", project: "Project", branch: "main", modified: 10 });
 });

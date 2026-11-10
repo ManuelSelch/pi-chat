@@ -73,6 +73,27 @@ it("selects unloaded Ready history by path and focuses a loaded runtime without 
   expect(operations.focus).toHaveBeenLastCalledWith("new");
 });
 
+it("focuses and archives the loaded idle session when path casing differs", async () => {
+  app = { ...app, tabs: [{ ...app.tabs[0]!, sessionPath: "/A" }] };
+  const { result } = mount();
+
+  await act(async () => result.current.select("/a"));
+  await act(async () => result.current.archive("/a"));
+
+  expect(operations.focus).toHaveBeenCalledWith("a");
+  expect(operations.open).not.toHaveBeenCalled();
+  expect(operations.archive).toHaveBeenCalledExactlyOnceWith("/a", true);
+});
+
+it("does not archive a running session when path casing differs", async () => {
+  app = { ...app, tabs: [{ ...app.tabs[0]!, sessionPath: "/A", status: "running" }] };
+  const { result } = mount();
+
+  await act(async () => result.current.archive("/a"));
+
+  expect(operations.archive).not.toHaveBeenCalled();
+});
+
 it("archives an unloaded Ready conversation without creating a runtime", async () => {
   app = { ...app, tabs: [] };
   const { result } = mount();
