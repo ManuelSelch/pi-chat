@@ -92,6 +92,18 @@ export class BrowserInboxDriver {
   async shouldBeInSection(title: string, section: "Working" | "Ready" | "Needs you"): Promise<void> {
     await expect(this.panel().getByRole("region", { name: section, exact: true }).getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();
   }
+  async shouldHaveWorking(count: number, expanded = false): Promise<void> {
+    const section = this.panel().getByRole("region", { name: "Working", exact: true });
+    const toggle = section.getByRole("button", { name: /^Working/ });
+    await expect(toggle).toHaveText(`Working${count}`);
+    await expect(toggle).toHaveAttribute("aria-expanded", String(expanded));
+    await expect(section.getByRole("button", { name: /^Open / })).toHaveCount(expanded ? count : 0);
+  }
+  async expandWorking(): Promise<void> {
+    const toggle = this.panel().getByRole("button", { name: /^Working/ });
+    await expect(toggle).toBeVisible();
+    if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
+  }
   async finishResponse(title: string): Promise<void> {
     const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true }).locator("..");
     const id = await row.getAttribute("data-session-inbox-row");

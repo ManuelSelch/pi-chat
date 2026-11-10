@@ -102,6 +102,8 @@ test("linked worktrees keep branch-first labels across running, Ready and Later 
   await app.inbox.shouldHaveTightSectionHeadings({ working: false, later: false });
 
   await app.chat.sendPrompt("Continue working");
+  await app.inbox.shouldHaveWorking(1);
+  await app.inbox.expandWorking();
   await app.inbox.shouldBeInSection(title, "Working");
 
   await app.inbox.shouldShowCompactWorktreeLabels(title, branch);

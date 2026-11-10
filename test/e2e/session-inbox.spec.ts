@@ -91,6 +91,8 @@ test("closing the view preserves background work and completion becomes Ready wi
   await app.chat.shouldShowAssistantReply("Ready to work");
   await app.chat.sendPrompt("Background work");
   await app.inbox.setEnabled(true);
+  await app.inbox.shouldHaveWorking(1);
+  await app.inbox.expandWorking();
   await app.inbox.shouldBeInSection("Background conversation", "Working");
 
   await app.inbox.closeView();
@@ -102,6 +104,43 @@ test("closing the view preserves background work and completion becomes Ready wi
   await app.inbox.shouldShowHome();
   await app.inbox.select("Background conversation");
   await app.chat.shouldShowAssistantReply("Finished in background");
+});
+
+test("Working starts folded, resets after emptying, and folds again on reload", async () => {
+  await app.tabs.create({ responses: [
+    { prompt: "Folding conversation", reply: "Ready to work" },
+    { prompt: "First run", reply: "First finished", hold: true },
+    { prompt: "Second run", reply: "Second finished", hold: true },
+  ] });
+  await app.chat.sendPrompt("Folding conversation");
+  await app.chat.shouldShowAssistantReply("Ready to work");
+  await app.inbox.setEnabled(true);
+
+  await app.chat.sendPrompt("First run");
+
+  await app.inbox.shouldHaveWorking(1);
+  await app.inbox.expandWorking();
+  await app.inbox.shouldHaveWorking(1, true);
+  await app.inbox.shouldBeInSection("Folding conversation", "Working");
+
+  await app.inbox.finishResponse("Folding conversation");
+
+  await app.inbox.shouldHideStatusGroup("Working");
+  await app.chat.shouldShowAssistantReply("First finished");
+
+  await app.chat.sendPrompt("Second run");
+
+  await app.inbox.shouldHaveWorking(1);
+  await app.inbox.expandWorking();
+  await app.inbox.shouldHaveWorking(1, true);
+
+  await app.inbox.reload();
+
+  await app.inbox.shouldHaveWorking(1);
+  await app.inbox.expandWorking();
+  await app.inbox.shouldBeInSection("Folding conversation", "Working");
+  await app.inbox.finishResponse("Folding conversation");
+  await app.chat.shouldShowAssistantReply("Second finished");
 });
 
 test("archiving the current conversation returns Home without an archive notice or Undo action", async () => {

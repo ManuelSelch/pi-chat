@@ -61,7 +61,9 @@ while preserving their full text. **Needs you** contains blocked
 questions/approvals. **Ready** includes all unarchived idle conversations except
 those in Later, including saved history after a server restart. Selecting an
 unloaded conversation opens it; history is never reopened automatically.
-**Working** can be collapsed independently. Selecting a session does not answer
+**Working** starts collapsed and can be expanded independently. It stays expanded
+while any sessions are working, but resets to collapsed when emptied or the page
+is reloaded. Selecting a session does not answer
 or dismiss a prompt. The Inbox has no search field; use Home search or Quick
 Switcher instead. A status group with no sessions, and the entire Later shelf when
 empty, are hidden rather than shown as an empty heading.

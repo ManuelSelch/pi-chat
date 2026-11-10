@@ -8,9 +8,11 @@ import { InboxView } from "../components/InboxView.js";
 export function InboxContainer() {
   const chat = useAppController();
   const overlays = useOverlays();
-  const [workingOpen, setWorkingOpen] = useState(true);
+  const [workingOpen, setWorkingOpen] = useState(false);
   const [laterOpen, setLaterOpen] = useState(false);
   const rows = useMemo(() => inboxRows(visibleTabs(chat.app), chat.app.catalogue, new Set(chat.inbox.later.map(row => row.path))), [chat.app.tabs, chat.app.closingSessionIds, chat.app.catalogue, chat.inbox.later]);
+  // A newly populated Working section starts folded, even if the previous one was expanded.
+  if (workingOpen && !rows.some(row => row.status === "running")) setWorkingOpen(false);
   // Mounting happens only on enabling Inbox, including a remembered preference.
   const open = useRef(overlays.open);
   useEffect(() => { open.current("projects"); }, []);
