@@ -73,7 +73,7 @@ shares local action definitions and session-scoped errors between composer and
 Quick Switcher. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
 Extension commands keep their native Pi path. Restart is available through
-Settings and the host command, not session-action menus.
+the `/pi-chat restart` host command, not Settings or session-action menus.
 
 Argument-completion state is composer-local. Requests capture session, draft and
 caret context; changing that context aborts/invalidates the local wait. Late
@@ -206,11 +206,12 @@ access endpoints; raw HTML and remote preview images remain disabled.
 
 [The host](../src/host/index.ts) embeds the server with explicit built web assets,
 log ownership and idempotent shutdown. Managed PID records are published
-atomically. SIGUSR2 invokes the guarded Chat restart policy without acquiring a
-WebSocket controller. [Restart service](../src/host/restart-service.ts) resolves
-npm from the running Node installation, builds before shutdown and preserves the
-current listener on build failure. The extension observes a healthy successor
-with a deadline; a disconnect or timeout alone is not proof of restart success.
+atomically. The `/pi-chat restart` extension resolves npm beside its running Node,
+runs `npm ci` and `npm run build`, and reports failures before signaling the host.
+SIGUSR2 invokes guarded process replacement without acquiring a WebSocket
+controller. The extension observes a healthy successor with a deadline; a
+disconnect or timeout alone is not proof of restart success. The successor uses
+the host's original Node executable; if it is unavailable, stop and start again.
 
 The server owns Pi runtime construction, including upstream codemode, tool-search
 and MCP extension registration. Credentials, subprocesses, discovery/trust and

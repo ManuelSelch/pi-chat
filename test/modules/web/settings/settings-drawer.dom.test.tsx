@@ -23,8 +23,6 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         setThinkingLevel={noop}
         setModel={noop}
         compactSession={noop}
-        restartServer={noop}
-        appFeatures={[]}
         inboxEnabled={false}
         setInboxEnabled={noop}
         chimesEnabled={false}
@@ -49,7 +47,6 @@ const sessionFeatures: typeof initialChatState.actions.features = [
   { id: "model.select", group: "model", kind: "select", title: "Model", state: { value: "p/one", options: ["p/one", "p/two"] } },
   { id: "session.compact", group: "session", kind: "action", title: "Compact session", description: "Summarize older context to free up space.", state: { label: "Compact" } },
 ];
-const restartFeature = { id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } } as const;
 
 describe("SettingsDrawer groups", () => {
   it("has no custom name editor and retains other settings", () => {
@@ -92,10 +89,9 @@ describe("SettingsDrawer groups", () => {
 
   it("orders Session, Feature Toggles, extension controls, then Backend server and retains actions", () => {
     const compactSession = vi.fn();
-    const restartServer = vi.fn();
     renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
       state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures }, extensions: { ...initialChatState.extensions, buttons: [{ id: "demo", slot: "settings.section", label: "Demo", actionId: "demo" }] } },
-      appFeatures: [restartFeature], serverSettings: <span>Endpoint settings</span>, compactSession, restartServer,
+      serverSettings: <span>Endpoint settings</span>, compactSession,
     });
     const session = screen.getByRole("group", { name: "Session" });
     const features = screen.getByRole("group", { name: "Feature Toggles" });
@@ -105,22 +101,21 @@ describe("SettingsDrawer groups", () => {
     expect(within(session).getByLabelText("Model")).toBeTruthy();
     fireEvent.click(within(session).getByRole("button", { name: "Compact" }));
     expect(within(backend).getByText("Endpoint settings")).toBeTruthy();
-    fireEvent.click(within(backend).getByRole("button", { name: "Restart" }));
+    expect(within(backend).queryByRole("button", { name: "Restart" })).toBeNull();
     expect(session.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(features.compareDocumentPosition(screen.getByText("Extensions")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("Extensions").compareDocumentPosition(backend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(backend.compareDocumentPosition(screen.getByRole("group", { name: "Versions" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(compactSession).toHaveBeenCalledOnce();
-    expect(restartServer).toHaveBeenCalledOnce();
     expect(screen.queryByText("Summarize older context to free up space.")).toBeNull();
     expect(screen.queryByText(/Hide archived conversations and their Archived sections/)).toBeNull();
   });
 
-  it("omits Session without advertised session features but retains app restart at Home", () => {
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), { appFeatures: [restartFeature], serverSettings: <span>Endpoint settings</span> });
+  it("omits Session without advertised session features and does not offer restart", () => {
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), { serverSettings: <span>Endpoint settings</span> });
 
     expect(screen.queryByRole("group", { name: "Session" })).toBeNull();
-    expect(within(screen.getByRole("group", { name: "Backend server" })).getByRole("button", { name: "Restart" })).toBeTruthy();
+    expect(within(screen.getByRole("group", { name: "Backend server" })).queryByRole("button", { name: "Restart" })).toBeNull();
   });
 
   it("keeps session controls disabled while busy and chimes disabled when unavailable", () => {

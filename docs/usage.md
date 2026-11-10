@@ -120,7 +120,7 @@ Composer and Quick Switcher share New session, Close Session, Later (Inbox mode)
 Archive Session, Open folder and Settings actions. Availability follows the current
 session, connection and navigation mode; Later and Archive Session are listed but
 disabled while the session cannot be parked or archived. Restart is not a
-session-menu action; use Settings or `/pi-chat restart`. Quick Switcher activates
+session-menu action; use `/pi-chat restart`. Quick Switcher activates
 local actions directly, not arbitrary extension commands or argument completion.
 
 ## Skills

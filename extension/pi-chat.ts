@@ -9,11 +9,12 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { resolveNpmCli } from "../src/shared/node/npm-command.js";
 
 const DEFAULT_PORT = 8788;
 const PID_FILE = join(tmpdir(), "pi-chat-server.pid");
@@ -43,6 +44,7 @@ interface Running {
   port: number;
   cwd: string;
   restartSignal: "SIGUSR2";
+  nodePath: string;
 }
 
 function readPidFile(): Running | undefined {
@@ -305,6 +307,19 @@ export default function piChatExtension(pi: ExtensionAPI): void {
   }
 
   async function restart(ctx: ExtensionCommandContext): Promise<void> {
+    const lock = `${PID_FILE}.restart-lock`;
+    try { mkdirSync(lock); }
+    catch (error) {
+      ctx.ui.notify(`Could not acquire restart lock ${lock}: ${String(error)}. Check for another restart or a stale lock.`, "error");
+      return;
+    }
+    const release = () => { try { rmSync(lock, { recursive: true, force: true }); } catch { /* Reported by a later attempt. */ } };
+    process.once("exit", release);
+    try { await restartLocked(ctx); }
+    finally { process.removeListener("exit", release); release(); }
+  }
+
+  async function restartLocked(ctx: ExtensionCommandContext): Promise<void> {
     const running = readPidFile();
     if (!running) {
       ctx.ui.notify("No managed Pi Chat server is running. Start one with /pi-chat start.", "warning");
@@ -318,8 +333,33 @@ export default function piChatExtension(pi: ExtensionAPI): void {
       ctx.ui.notify("The managed Pi Chat server is not healthy; restart was not requested.", "error");
       return;
     }
+    if (typeof running.nodePath !== "string" || !isAbsolute(running.nodePath) || !existsSync(running.nodePath)) {
+      ctx.ui.notify("Pi Chat cannot restart with its original Node executable. Stop and start Pi Chat once with a valid Node installation.", "error");
+      return;
+    }
 
-    ctx.ui.notify("Restarting Pi Chat: rebuilding before replacing the server…", "info");
+    let npmCli: string;
+    try { npmCli = resolveNpmCli(); }
+    catch (error) {
+      ctx.ui.notify(`Pi Chat restart failed before npm ci: ${String(error)}. Stop and start Pi with a valid Node installation.`, "error");
+      return;
+    }
+    for (const args of [["ci"], ["run", "build"]]) {
+      const stage = `npm ${args.join(" ")}`;
+      ctx.ui.notify(`Restarting Pi Chat: ${stage}…`, "info");
+      try {
+        const result = await pi.exec(process.execPath, [npmCli, ...args], { cwd: projectHome() });
+        if (result.code !== 0) {
+          const detail = (result.stderr.trim() || result.stdout.trim() || `exit code ${result.code}`).slice(-2000);
+          ctx.ui.notify(`Pi Chat restart failed during ${stage}: ${detail}. The current server is still running.`, "error");
+          return;
+        }
+      } catch (error) {
+        ctx.ui.notify(`Pi Chat restart failed during ${stage}: ${String(error)}. The current server is still running.`, "error");
+        return;
+      }
+    }
+    ctx.ui.notify("Restarting Pi Chat: replacing the server…", "info");
     try {
       process.kill(running.pid, "SIGUSR2");
     } catch (error) {

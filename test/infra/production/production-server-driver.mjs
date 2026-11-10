@@ -88,7 +88,8 @@ execFileSync(process.execPath, [${JSON.stringify(resolveNpmCli())}, 'run', 'buil
   async FailedBuildShouldKeepCurrentServer() {
     await writeFile(join(this.directory, 'fail-build'), '1');
     const client = await this.client();
-    process.kill((await this.pid()).pid, 'SIGUSR2');
+    const output = await this.launcher('restart');
+    assert.match(output, /restart failed during npm run build: simulated build failure/i);
     await until('failed build process exit', async () => {
       try { return await readFile(join(this.directory, 'failed-build-finished'), 'utf8') === '1'; } catch { return false; }
     });

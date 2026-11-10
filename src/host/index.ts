@@ -14,8 +14,8 @@ const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 // server the moment this one exits, so restarting is offered only without one.
 const isDevelopment = process.env.PI_CHAT_DEV === "1";
 const logger = createFileLogger();
-const restart = isDevelopment ? undefined : createRestartService({ shutdown: () => void shutdown() });
-const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), restart, logger });
+const restart = isDevelopment ? undefined : createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
+const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 
 // Signals do not acquire WebSocket control, so existing browsers can reconnect.
@@ -40,7 +40,7 @@ server.httpServer.listen(port, host, () => {
   if (pidFile) {
     // Publish atomically so restart observers never remove a partially written record.
     const temporary = `${pidFile}.${process.pid}.tmp`;
-    writeFileSync(temporary, JSON.stringify({ pid: process.pid, port, cwd, restartSignal: isDevelopment ? null : "SIGUSR2" }));
+    writeFileSync(temporary, JSON.stringify({ pid: process.pid, port, cwd, nodePath: process.execPath, restartSignal: isDevelopment ? null : "SIGUSR2" }));
     renameSync(temporary, pidFile);
   }
   console.log(`Pi Chat server: http://${host}:${port}`);

@@ -51,7 +51,7 @@ beforeEach(() => {
     openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(async () => {}), pinProject: vi.fn(async () => {}), removeProject: vi.fn(async () => {}),
-    setModel: vi.fn(), compactSession: vi.fn(), restartServer: vi.fn(), setThinkingLevel: vi.fn(),
+    setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),
     runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
   };
 });
@@ -299,16 +299,10 @@ describe("composer focus across real app overlays", () => {
     expect(document.activeElement).toBe(composer());
   });
 
-  it.each(["Cancel", "Restart"])("keeps nested confirmation ownership on %s and restores only after the drawer closes", async action => {
+  it("restores composer focus after closing Settings", async () => {
     mount();
     click(screen.getByRole("button", { name: "Settings" }));
     await finishTransitions();
-    click(within(dialog("Settings")).getByRole("button", { name: "Restart" }));
-    await finishTransitions();
-    expectDialogFocus("Restart server?");
-    click(within(dialog("Restart server?")).getByRole("button", { name: action }));
-    await finishTransitions();
-    expect(controller.restartServer).toHaveBeenCalledTimes(action === "Restart" ? 1 : 0);
     expectDialogFocus("Settings");
     escape();
     await finishTransitions();

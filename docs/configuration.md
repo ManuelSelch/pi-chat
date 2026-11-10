@@ -17,11 +17,12 @@ Restart installs the exact versions in `package-lock.json`, not newer registry r
 `npm ci` replaces the shared `node_modules` in place; failure does not roll dependencies back.
 The command waits up to 120 seconds for a healthy successor; if not confirmed,
 check the server logs and status before retrying. Restart does not automatically
-retry or terminate a slow build. Manually launched/development servers cannot be
-restarted by this command. A server predating restart-signal support must be
-stopped and started once with the new commands before command restart is available.
-The separate Settings restart control remains available; session action menus no
-longer offer Restart server.
+retry or terminate a slow build. A restart lock prevents overlapping commands;
+if its owner is forcibly killed, remove the reported stale lock only after
+confirming no restart is still running. Manually launched/development servers cannot be
+restarted by this command. A server that does not advertise its Node executable
+must be stopped and started once before command restart is available. Settings
+and session action menus do not offer restart.
 
 `/pi-chat start` builds the production web UI and backend on each new start, then
 runs the compiled backend with Node. Generated `dist/` artifacts are local and

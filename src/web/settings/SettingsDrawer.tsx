@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, Drawer, Select, Stack, Switch } from "@mantine/core";
-import { MANTINE_COLOR } from "../ui/theme.js";
 import { IconBrain, IconPuzzle, IconAdjustments } from "@tabler/icons-react";
-import type { ThinkingLevel, WebFeature } from "../app/state/view-types.js";
+import type { ThinkingLevel } from "../app/state/view-types.js";
 import type { ChatState } from "../app/state/chat-state.js";
 import { Slot } from "../extensions/Slot.js";
 import { SectionHeader } from "../ui/SectionHeader.js";
@@ -19,8 +18,6 @@ interface SettingsDrawerProps {
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
-  restartServer: () => void;
-  appFeatures: readonly WebFeature[];
   inboxEnabled: boolean;
   setInboxEnabled: (value: boolean) => void;
   chimesEnabled: boolean;
@@ -35,13 +32,11 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, restartServer, appFeatures, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
-  // At home there is no session snapshot, so app-level features arrive separately.
-  const restartFeature = [...state.actions.features, ...appFeatures].find((feature) => feature.id === "app.restart");
   const hasSessionControls = Boolean(thinkingFeature) || Boolean(modelFeature) || Boolean(compactFeature);
   // Extensions place their own controls here, so the section only exists once one registered something.
   const hasExtensionControls =
@@ -135,11 +130,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, v
           <div role="group" aria-label="Backend server">
             <Stack gap="sm">
               {serverSettings}
-              {restartFeature ? (
-                <Button variant="light" color={MANTINE_COLOR.danger} onClick={restartServer}>
-                  {restartFeature.state.label}
-                </Button>
-              ) : null}
             </Stack>
           </div>
         </Panel>

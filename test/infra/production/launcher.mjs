@@ -7,9 +7,9 @@ const commands = new Map();
 piChatExtension({
   registerCommand(name, command) { commands.set(name, command); },
   async exec(command, args, options) {
-    if (command !== 'npm') throw new Error('Unexpected launcher executable');
+    if (command !== 'npm' && command !== process.execPath) throw new Error('Unexpected launcher executable');
     try {
-      const result = await promisify(execFile)(process.execPath, [resolveNpmCli(), ...args], { ...options, maxBuffer: 4 * 1024 * 1024 });
+      const result = await promisify(execFile)(process.execPath, command === 'npm' ? [resolveNpmCli(), ...args] : args, { ...options, maxBuffer: 4 * 1024 * 1024 });
       return { ...result, code: 0 };
     } catch (error) { return { stdout: error.stdout ?? '', stderr: error.stderr ?? '', code: error.code ?? 1 }; }
   },

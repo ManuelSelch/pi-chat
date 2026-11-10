@@ -71,11 +71,6 @@ export class BrowserFocusDriver {
     await expect(dialog).toHaveCount(0);
   }
 
-  async openNestedRestartConfirmation(): Promise<void> {
-    await this.page.getByRole("dialog", { name: "Settings", exact: true }).getByRole("button", { name: "Restart", exact: true }).click();
-    await this.shouldBeInsideDialog("Restart server?");
-  }
-
   async answerPrompt(title: string, value: string): Promise<void> {
     const dialog = this.page.getByRole("dialog", { name: title, exact: true });
     await dialog.getByRole("textbox").fill(value);

@@ -58,15 +58,13 @@ test("returns focus after accepting the folder picker and creating a session", a
   await app.focus.shouldHaveDraft("New folder session draft");
 });
 
-test("keeps focus in a nested confirmation, then restores only after Settings closes", async () => {
+test("restores composer focus after Settings closes", async () => {
   await app.tabs.create({ responses: [] });
   await app.focus.openSettingsFromHeader();
-  await app.focus.openNestedRestartConfirmation();
-  await app.focus.dismissDialog("Restart server?", "Cancel");
   await app.focus.shouldBeInsideDialog("Settings");
   await app.focus.dismissDialog("Settings");
-  await app.focus.typeWithoutRefocusing("After nested confirmation");
-  await app.focus.shouldHaveDraft("After nested confirmation");
+  await app.focus.typeWithoutRefocusing("After Settings");
+  await app.focus.shouldHaveDraft("After Settings");
 });
 
 test("restores focus after the final extension prompt closes", async () => {
