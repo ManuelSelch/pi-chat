@@ -10,20 +10,16 @@ const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
 const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 
-// `npm run dev` already reloads itself, and its watcher would start a second
-// server the moment this one exits, so restarting is offered only without one.
 const isDevelopment = process.env.PI_CHAT_DEV === "1";
 const logger = createFileLogger();
-const restart = isDevelopment ? undefined : createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
+const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
 const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 
 // Signals do not acquire WebSocket control, so existing browsers can reconnect.
-// Install a rejection handler even in development rather than taking SIGUSR2's
-// default terminating action.
 process.on("SIGUSR2", () => {
-  if (!restart || !process.env.PI_CHAT_PID_FILE) {
-    logger.warn("server.restart_rejected", { message: "Signal restart requires a managed production server." });
+  if (!process.env.PI_CHAT_PID_FILE) {
+    logger.warn("server.restart_rejected", { message: "Signal restart requires a managed server." });
     return;
   }
   void restart.restart().then(failure => {
@@ -40,7 +36,7 @@ server.httpServer.listen(port, host, () => {
   if (pidFile) {
     // Publish atomically so restart observers never remove a partially written record.
     const temporary = `${pidFile}.${process.pid}.tmp`;
-    writeFileSync(temporary, JSON.stringify({ pid: process.pid, port, cwd, nodePath: process.execPath, restartSignal: isDevelopment ? null : "SIGUSR2" }));
+    writeFileSync(temporary, JSON.stringify({ pid: process.pid, port, cwd, nodePath: process.execPath, restartSignal: "SIGUSR2" }));
     renameSync(temporary, pidFile);
   }
   console.log(`Pi Chat server: http://${host}:${port}`);

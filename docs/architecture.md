@@ -73,7 +73,7 @@ shares local action definitions and session-scoped errors between composer and
 Quick Switcher. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
 Extension commands keep their native Pi path. Restart is available through
-the `/pi-chat restart` host command, not Settings or session-action menus.
+the `/pi-chat restart` host command.
 
 Argument-completion state is composer-local. Requests capture session, draft and
 caret context; changing that context aborts/invalidates the local wait. Late

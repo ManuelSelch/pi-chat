@@ -53,14 +53,14 @@ it("handles unexpected restart errors", async () => {
 
   expect(mocks.logger.error).toHaveBeenCalledWith("server.restart_failed", { message: "spawn failed" });
 });
-it("rejects signals in development and does not advertise support", async () => {
+it("allows managed replacement in development without a separate restart policy", async () => {
   vi.stubEnv("PI_CHAT_DEV", "1");
 
   await signal();
 
-  expect(mocks.restart).not.toHaveBeenCalled();
-  expect(mocks.logger.warn).toHaveBeenCalledWith("server.restart_rejected", expect.any(Object));
-  expect(JSON.parse(mocks.write.mock.calls[0]![1]).restartSignal).toBeNull();
+  expect(mocks.restart).toHaveBeenCalledOnce();
+  expect(mocks.logger.warn).not.toHaveBeenCalled();
+  expect(JSON.parse(mocks.write.mock.calls[0]![1]).restartSignal).toBe("SIGUSR2");
 });
 it("rejects signals on an unmanaged host without writing a PID record", async () => {
   vi.stubEnv("PI_CHAT_PID_FILE", "");

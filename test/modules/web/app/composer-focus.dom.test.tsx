@@ -7,6 +7,7 @@ import type { AppController } from "../../../../src/web/app/AppControllerContext
 import { initialAppState } from "../../../../src/web/app/state/app-state.js";
 import { initialChatState, type ChatState } from "../../../../src/web/app/state/chat-state.js";
 import { finishUiTransitions as finishTransitions } from "../../../infra/ui/finish-ui-transitions.js";
+import { ComposerFocusDriver } from "../../../infra/ui/composer-focus-driver.js";
 
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
@@ -300,13 +301,16 @@ describe("composer focus across real app overlays", () => {
   });
 
   it("restores composer focus after closing Settings", async () => {
-    mount();
-    click(screen.getByRole("button", { name: "Settings" }));
-    await finishTransitions();
-    expectDialogFocus("Settings");
-    escape();
-    await finishTransitions();
-    expect(document.activeElement).toBe(composer());
+    const app = new ComposerFocusDriver();
+    app.mount();
+
+    await app.openSettings();
+
+    app.shouldKeepFocusInSettings();
+
+    await app.dismissSettings();
+
+    app.shouldFocusComposer();
   });
 
   it("does not focus the composer during prompt handover, then restores after the final prompt", async () => {

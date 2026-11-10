@@ -19,8 +19,9 @@ The command waits up to 120 seconds for a healthy successor; if not confirmed,
 check the server logs and status before retrying. Restart does not automatically
 retry or terminate a slow build. A restart lock prevents overlapping commands;
 if its owner is forcibly killed, remove the reported stale lock only after
-confirming no restart is still running. Manually launched/development servers cannot be
-restarted by this command. A server that does not advertise its Node executable
+confirming no restart is still running. Manually launched servers without a managed
+PID record cannot be restarted by this command. Do not use it under the development
+watcher; let the watcher own process replacement. A server that does not advertise its Node executable
 must be stopped and started once before command restart is available. Settings
 and session action menus do not offer restart.
 
