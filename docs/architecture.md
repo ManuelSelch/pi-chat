@@ -122,10 +122,7 @@ identities. Quick Chats stays separate; pins and recent unarchived activity driv
 ordering. Worktree labels and catalogue discovery belong to the server/model,
 not filesystem probing in views. Every open runtime directory seeds server checkout
 discovery even without a saved transcript; creation and runtime replacement refresh
-the catalogue without inventing saved-session entries. The
-[command-switch scenario](../test/e2e/worktree-command-labels.spec.ts) covers a real
-Git checkout and `ctx.switchSession` before a first message, using an isolated inline
-extension rather than the installed `/worktree` package. Inbox uses repository context and promotes a
+the catalogue without inventing saved-session entries. Inbox uses repository context and promotes a
 linked worktree branch above its conversation title; main checkouts retain the
 title as primary. Single-conversation linked checkouts omit the subtitle;
 multiple conversations retain titles for disambiguation. Counts include unarchived
