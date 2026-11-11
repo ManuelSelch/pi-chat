@@ -139,6 +139,7 @@ export class TestWorld {
     }
     const harness = await createTestSession({ cwd, extensionFactories: [...this.extensions] });
     let runtime: AgentSessionRuntime | undefined;
+    const replacementHarnesses: TestSession[] = [];
     try {
       assert(!this.disposed, "Test world was disposed during session creation");
       const session = harness.session;
@@ -174,7 +175,26 @@ export class TestWorld {
         settingsManager: session.settingsManager,
         resourceLoader: session.resourceLoader,
         diagnostics: [],
-      }, async () => { throw new Error("Runtime replacement is not supported by this driver yet"); });
+      }, async ({ cwd: targetCwd, sessionManager: manager }) => {
+        assert(targetCwd.startsWith(`${this.projectPath}/`), "Only isolated child checkouts may replace a test runtime");
+        const next = await createTestSession({ cwd: targetCwd, extensionFactories: [...this.extensions] });
+        replacementHarnesses.push(next);
+        next.prepare(...responses.map(({ prompt, reply }) => when(prompt, [says(reply)])));
+        (next.session as unknown as { sessionManager: SessionManager }).sessionManager = manager;
+        next.session.agent.state.messages = manager.buildSessionContext().messages;
+        return {
+          session: next.session,
+          extensionsResult: next.session.resourceLoader.getExtensions(),
+          services: {
+            cwd: targetCwd, agentDir: targetCwd,
+            modelRuntime: next.session.modelRuntime,
+            settingsManager: next.session.settingsManager,
+            resourceLoader: next.session.resourceLoader,
+            diagnostics: [],
+          },
+          diagnostics: [],
+        };
+      });
       const agent = session.agent as {
         streamFunction: (...args: unknown[]) => { result: () => Promise<AssistantMessage> };
       };
@@ -230,13 +250,17 @@ export class TestWorld {
         finally {
           this.controlledResponses.delete(session.sessionId);
           harness.dispose();
+          for (const replacement of replacementHarnesses) replacement.dispose();
         }
       })();
       this.sessions.set(session.sessionId, { harness, responses, adapter });
       return adapter;
     } catch (error) {
       try { await runtime?.dispose(); }
-      finally { harness.dispose(); }
+      finally {
+        harness.dispose();
+        for (const replacement of replacementHarnesses) replacement.dispose();
+      }
       throw error;
     }
   }
