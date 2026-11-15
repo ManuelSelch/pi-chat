@@ -1,19 +1,43 @@
 import { useState } from 'react';
-import { ActionIcon, Button, TextInput } from '@mantine/core';
-import { IconArrowUpRight, IconCheck, IconClockPause, IconSearch, IconGitBranch, IconInbox } from '@tabler/icons-react';
-import { labels, type Session, type Status } from './data';
+import { ActionIcon, Button } from '@mantine/core';
+import { IconArrowUpRight, IconCheck, IconChevronRight, IconClockPause, IconGitBranch, IconInbox } from '@tabler/icons-react';
+import { type Session } from './data';
+
 export function SessionRow({ session: s, onOpen, onLater }: { session: Session; onOpen: () => void; onLater: () => void }) {
-  return <article className={`session-row ${s.status}`}><button className="row-open" onClick={onOpen}><span className={`status-symbol ${s.status}`}>{s.status === 'ready' ? <IconCheck size={16}/> : s.status === 'blocked' ? '?' : s.status === 'later' ? <IconClockPause size={16}/> : <span className="working-dot"/>}</span><span className="row-content"><span className="row-title">{s.title}</span><span className="row-summary">{s.summary}</span><span className="row-meta"><span>{s.project}</span><span className="branch"><IconGitBranch size={12}/>{s.branch}</span>{s.changes && <span className="changes">{s.changes}</span>}</span></span><span className="row-time">{s.time}<IconArrowUpRight size={16}/></span></button>{s.status !== 'working' && s.status !== 'later' && <ActionIcon className="later-action" variant="subtle" color="gray" aria-label={`Move ${s.title} to Later`} onClick={onLater}><IconClockPause size={16}/></ActionIcon>}</article>;
+  const [added, removed] = s.changes?.split(' ') ?? [];
+  return <article className={`session-row ${s.status}`}>
+    <button className="row-open" onClick={onOpen}>
+      <span className={`status-symbol ${s.status}`}>{s.status === 'ready' ? <IconCheck size={16}/> : s.status === 'blocked' ? '?' : <IconClockPause size={16}/>}</span>
+      <span className="row-content">
+        <span className="row-title">{s.title}</span>
+        <span className="row-summary">{s.summary}</span>
+        <span className="row-meta"><span>{s.project}</span><span className="branch"><IconGitBranch size={12}/>{s.branch}</span></span>
+      </span>
+      <span className="row-outcome">
+        <span className="row-time">{s.time}<IconArrowUpRight size={16}/></span>
+        {s.changes && <span className="loc-summary" aria-label={`${added?.slice(1)} lines added, ${removed?.slice(1)} lines removed`}><span className="loc-added">{added}</span><span className="loc-removed">{removed}</span><span className="loc-label">LOC</span></span>}
+      </span>
+    </button>
+    {s.status !== 'later' && <ActionIcon className="later-action" variant="subtle" color="gray" aria-label={`Move ${s.title} to Later`} onClick={onLater}><IconClockPause size={16}/></ActionIcon>}
+  </article>;
 }
+
 export function Inbox({ sessions, onOpen, onLater, onNew }: { sessions: Session[]; onOpen: (s: Session) => void; onLater: (s: Session) => void; onNew: () => void }) {
-  const [filter, setFilter] = useState('all');
-  const [query, setQuery] = useState('');
-  const [project, setProject] = useState('All projects');
-  const attention = sessions.filter(s => s.status === 'ready' || s.status === 'blocked').length;
-  const filtered = sessions.filter(s => (filter === 'all' || filter === s.status) && (project === 'All projects' || s.project === project) && `${s.title} ${s.project} ${s.summary}`.toLowerCase().includes(query.toLowerCase()));
-  return <div className="inbox-page"><div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE, AT A GLANCE</div><h1>Inbox<span className="heading-dot"/></h1><p>{attention ? `${attention} agents need your attention. Pick up where they left off.` : 'You’re all caught up. Your agents have it from here.'}</p></div><Button className="primary-button" onClick={onNew}>New session <span>＋</span></Button></div>
-    <div className="summary-strip">{(['blocked','ready','working','later'] as Status[]).map(status => <button key={status} className={filter === status ? 'selected' : ''} onClick={() => setFilter(filter === status ? 'all' : status)}><span className={`mini-dot ${status}`}/><strong>{sessions.filter(s => s.status === status).length}</strong><span>{labels[status]}</span></button>)}</div>
-    <div className="inbox-controls"><div className="filter-tabs">{['all','blocked','ready','working','later'].map(s => <button key={s} className={filter === s ? 'active' : ''} onClick={() => setFilter(s)}>{s === 'all' ? 'All sessions' : labels[s as Status]}</button>)}</div><TextInput aria-label="Filter inbox" placeholder="Find a session" leftSection={<IconSearch size={14}/>} value={query} onChange={e => setQuery(e.currentTarget.value)} w={190}/><select aria-label="Filter project" value={project} onChange={e => setProject(e.currentTarget.value)}><option>All projects</option><option>pi-chat</option><option>pi-server</option></select></div>
-    <div className="inbox-groups">{(['blocked','ready','working','later'] as Status[]).map(status => { const rows = filtered.filter(s => s.status === status); if (!rows.length) return null; return <section key={status}><div className="section-heading"><span>{status === 'blocked' ? 'Needs a decision' : status === 'ready' ? 'Ready to review' : labels[status]}</span><span>{rows.length}</span>{status === 'working' && <small>We’ll bring these up when they need you</small>}</div>{rows.map(s => <SessionRow key={s.id} session={s} onOpen={() => onOpen(s)} onLater={() => onLater(s)}/>)}</section>; })}{!filtered.length && <div className="empty"><IconInbox size={36}/><h2>{query ? 'No matching sessions' : 'Nothing waiting here'}</h2><p>{query ? 'Try another search or project.' : 'Start something new, or let your agents cook.'}</p><Button variant="default" onClick={onNew}>Start a session</Button></div>}</div>
-    <footer className="inbox-footer"><span>Local workspace</span><span>Agent updates appear here automatically</span></footer></div>;
+  const [laterOpen, setLaterOpen] = useState(false);
+  const attention = sessions.filter(s => s.status === 'ready' || s.status === 'blocked');
+  const later = sessions.filter(s => s.status === 'later');
+  const row = (s: Session) => <SessionRow key={s.id} session={s} onOpen={() => onOpen(s)} onLater={() => onLater(s)}/>;
+  return <div className="inbox-page relaxed-inbox">
+    <div className="page-heading"><div><div className="eyebrow">PICK UP WHERE YOUR AGENTS LEFT OFF</div><h1>Inbox<span className="heading-dot"/></h1><p>{attention.length ? 'A few things ready for your attention.' : 'You’re all caught up. Your agents have it from here.'}</p></div><Button className="primary-button" onClick={onNew}>New session <span>＋</span></Button></div>
+    <div className="inbox-groups">
+      {(['blocked', 'ready'] as const).map(status => {
+        const rows = attention.filter(s => s.status === status);
+        if (!rows.length) return null;
+        return <section key={status} aria-label={status === 'blocked' ? 'Needs a decision' : 'Ready to review'}><div className="section-heading"><span>{status === 'blocked' ? 'Needs a decision' : 'Ready to review'}</span></div>{rows.map(row)}</section>;
+      })}
+      {!attention.length && <div className="empty"><IconInbox size={36}/><h2>Nothing waiting here</h2><p>We’ll bring your agents here when they finish or need a decision.</p><Button variant="default" onClick={onNew}>Start a session</Button></div>}
+      {later.length > 0 && <section className="later-section" aria-label="Later"><button className="later-toggle" aria-expanded={laterOpen} aria-controls="later-sessions" onClick={() => setLaterOpen(open => !open)}><IconChevronRight size={15} className={laterOpen ? 'expanded' : ''}/><IconClockPause size={15}/><span>Later</span><small>{later.length}</small></button><div id="later-sessions" hidden={!laterOpen}>{later.map(row)}</div></section>}
+    </div>
+    <footer className="inbox-footer"><span>Local workspace</span><span>Only the things that need you</span></footer>
+  </div>;
 }
