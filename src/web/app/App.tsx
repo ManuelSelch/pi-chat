@@ -4,6 +4,7 @@ import { useViewportSize } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../ui/confirm/ConfirmDialogProvider.js";
 import { MessageListContainer } from "../chat/transcript/MessageListContainer.js";
 import { WidgetDock } from "../extensions/widgets/WidgetDock.js";
+import { WidgetDisclosureProvider } from "../extensions/widgets/app/WidgetDisclosureProvider.js";
 import { placeWidgets } from "../extensions/widgets/widget-placement.js";
 import { AppControllerProvider, useAppController } from "./AppControllerContext.js";
 import { atHome } from "./state/app-state.js";
@@ -29,7 +30,7 @@ export function App() {
         <OverlayController>
           <SessionActionsProvider>
             <GlobalKeyboardController />
-            <AppContent />
+            <WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider>
           </SessionActionsProvider>
         </OverlayController>
       </ConfirmDialogProvider>

@@ -211,7 +211,9 @@ answered. Failed submissions retain the draft for retry. Escape on a minimized
 prompt does not answer/cancel it; explicit Stop cancels pending work.
 
 Widgets show ANSI-styled plain text with independent collapse controls, not
-Markdown. HTTP(S) OSC 8 hyperlinks supplied by extensions open in a new tab;
+Markdown. Collapsing a widget is remembered by its key across sessions and layout
+changes in this tab; reopening it clears that preference. Page reload resets all
+widgets to expanded. HTTP(S) OSC 8 hyperlinks supplied by extensions open in a new tab;
 Markdown link syntax and bare URLs remain literal. Above-composer widgets form
 a bottom-aligned grid of at most two cards per row, with a lone last card
 spanning the row; docked and below-composer widgets stay stacked.

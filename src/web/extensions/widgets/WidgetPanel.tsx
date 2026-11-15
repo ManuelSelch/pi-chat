@@ -1,6 +1,6 @@
 import { Box, Group, Text, UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
-import { useState } from "react";
+import { useWidgetDisclosure } from "./app/WidgetDisclosureProvider.js";
 import { AnsiHtml } from "fancy-ansi/react";
 import type { Widget } from "../../app/state/view-types.js";
 import { Panel } from "../../ui/Panel.js";
@@ -11,7 +11,17 @@ import { Panel } from "../../ui/Panel.js";
  * sent them: Pi's widget protocol renders without per-extension support.
  */
 export function WidgetBlock({ widget, grid = false, span = false }: { widget: Widget; grid?: boolean; span?: boolean }) {
-  const [open, setOpen] = useState(true);
+  const { open, toggle } = useWidgetDisclosure(widget.key);
+  return <WidgetBlockView widget={widget} grid={grid} span={span} open={open} onToggle={toggle} />;
+}
+
+function WidgetBlockView({ widget, grid, span, open, onToggle }: {
+  widget: Widget;
+  grid: boolean;
+  span: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
   // The key is the extension's own identifier, and it is all the browser has to
   // label the panel with.
   const title = widget.key;
@@ -24,7 +34,7 @@ export function WidgetBlock({ widget, grid = false, span = false }: { widget: Wi
       miw={grid ? 0 : undefined}
       style={span ? { gridColumn: "1 / -1" } : undefined}
     >
-      <UnstyledButton onClick={() => setOpen((value) => !value)} w="100%" aria-expanded={open}>
+      <UnstyledButton onClick={onToggle} w="100%" aria-expanded={open}>
         <Group gap={6} wrap="nowrap">
           {open ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
           <Text size="11px" lh={1.3} c="dimmed" fw={500}>

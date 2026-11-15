@@ -184,8 +184,11 @@ Widgets carry server-produced ANSI-styled string lines. Chat joins each widget's
 lines and renders styled plain text through Fancy-ANSI, not Markdown. HTTP(S)
 OSC 8 links open with safe new-tab attributes; Markdown/bare URLs remain literal.
 This is not full terminal emulation or comprehensive control-code sanitization.
-Widget disclosure is local to each keyed block. Rendering, dock geometry and pure
-placement are separate modules. Only above-composer widgets use a grid sized by
+`WidgetDisclosureProvider` owns a page-lifetime set of collapsed widget keys,
+shared across sessions, widget removal/reappearance and inline/docked placement.
+Reopening removes the key; page reload resets preferences. These preferences
+are not stored in SDK snapshots or browser storage. Rendering, dock geometry and
+pure placement are separate modules. Only above-composer widgets use a grid sized by
 the composer column: at most two bottom-aligned cards per row, and a lone last
 card of an odd count spans the row. Below-composer and docked widgets remain
 stacked.
