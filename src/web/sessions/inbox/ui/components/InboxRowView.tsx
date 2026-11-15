@@ -1,6 +1,5 @@
 import { ActionIcon, Group, Text, UnstyledButton } from "@mantine/core";
 import { IconArchive, IconArrowUpRight, IconClockPause } from "@tabler/icons-react";
-import { relativeTime } from "../../../../ui/relative-time.js";
 import type { InboxRow } from "../../domain/inbox-model.js";
 import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
@@ -19,16 +18,13 @@ export function InboxRowView({ row, active, later = false, pending, onSelect, on
   return <div className={`${styles.row} rounded-md border border-transparent ${active ? styles.selected : ""}`} data-session-inbox-row={row.key} data-session-path={row.path}>
     <UnstyledButton display="block" w="100%" px={10} py={8} style={{ borderRadius: "var(--mantine-radius-md)", textAlign: "left" }} aria-label={`${later ? "Resume" : "Open"} ${row.title}`} title={row.title}
       aria-current={active ? "true" : undefined} disabled={pending && (later || !row.sessionId)} onClick={onSelect}>
-      <Group mb={4} wrap="nowrap" justify="space-between" gap={8}>
-        <InboxStatus status={row.status} later={later} />
-        {later && <Text component="span" size="xs" c="dimmed" truncate miw={0} flex={1}>{row.project}</Text>}
-        {!later && row.modified !== undefined && <Text component="span" size="xs" c="dimmed" style={{ flexShrink: 0 }}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
-      </Group>
+      {later && <Text component="span" size="xs" c="dimmed" truncate mb={4}>{row.project}</Text>}
       <Group wrap="nowrap" gap={8} pr={actionSpace}>
+        <InboxStatus status={row.status} later={later} />
         <Text component="span" size="sm" truncate miw={0} flex={1} title={row.primaryLabel}>{row.primaryLabel}</Text>
         {later && <IconArrowUpRight size={14} className="shrink-0" />}
       </Group>
-      {row.secondaryLabel && <Text size="xs" c="dimmed" truncate mt={4} pr={actionSpace} title={row.secondaryLabel}>{row.secondaryLabel}</Text>}
+      {row.secondaryLabel && <Text size="xs" c="dimmed" truncate mt={4} pl={14} pr={actionSpace} title={row.secondaryLabel}>{row.secondaryLabel}</Text>}
     </UnstyledButton>
     {row.status !== "running" && <div className={`${styles.actions} absolute right-1 top-7 flex items-center gap-0.5`}>
       {!later && <ActionIcon variant="subtle" color="gray" size="sm" aria-label={`Move ${row.title} to Later`} title="Move to Later"

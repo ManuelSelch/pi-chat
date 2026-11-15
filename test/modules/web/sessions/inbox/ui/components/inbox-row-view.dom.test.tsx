@@ -32,14 +32,11 @@ it.each([false, true])("keeps the hidden title on hover and accessible actions f
   expect(screen.getByTitle("feat/worktree")).toBeTruthy();
 });
 
-it.each([[60_000, "1m"], [120 * 60_000, "2h"], [3 * 24 * 60 * 60_000, "3d"], [0, "just now"]] as const)("renders compact recency for age %s", (age, label) => {
-  vi.spyOn(Date, "now").mockReturnValue(1_000_000_000);
-  try {
-    mount({ ...row(), modified: Date.now() - age });
+it("places the status indicator next to the worktree name and omits recency", () => {
+  mount({ ...row(), modified: Date.now() - 60_000 });
 
-    expect(screen.getByText(label)).toBeTruthy();
-    expect(screen.queryByText(/ago$/)).toBeNull();
-  } finally { vi.restoreAllMocks(); }
+  expect(screen.getByRole("img").parentElement?.parentElement).toBe(screen.getByTitle("feat/worktree").parentElement);
+  expect(screen.queryByText(/^(1m|1m ago)$/)).toBeNull();
 });
 
 it.each([

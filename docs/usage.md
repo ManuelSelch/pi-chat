@@ -54,15 +54,16 @@ creating a session keeps navigation open. Real dialogs still take focus.
 
 **Settings → Feature Toggles → Show open sessions in sidebar** replaces horizontal
 tabs with project-grouped sidebar sessions and is on by default. Explicit browser preferences are preserved.
-Home combines search and new-session access with compact **Blocked**, **Ready** and
-collapsed **Later** lists. Typing replaces activity with matching sessions/projects;
+Home combines search and new-session access with compact **Blocked**, **Ready**,
+collapsed **Working** and collapsed **Later** lists. Typing replaces activity with matching sessions/projects;
 clearing search restores it. Press Enter on an empty search to start a session.
 The sidebar contains project sessions and Settings, without Home/Inbox buttons.
 Use the header Home icon to return without closing sessions, answering prompts or
 discarding drafts. Selecting a card opens the existing session view.
 Project and worktree branch labels are prominent, with the smaller, gray
-conversation name underneath, including in Later. Working sessions remain in their
-sidebar project, not Home activity. Ready is not an unread-response list.
+conversation name underneath, including in Later. Working sessions also remain in their
+sidebar project. Sidebar dots sit beside the session or worktree name without timestamps;
+a worktree shows conversation names only when it has multiple sessions. Ready is not an unread-response list.
 Change totals are omitted because the current session data does not supply them.
 The same group contains chimes, folder paths, archived-session visibility and
 **Compact transcript**, which is on by default; explicitly stored choices are

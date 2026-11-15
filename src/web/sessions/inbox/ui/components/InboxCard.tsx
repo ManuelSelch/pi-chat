@@ -23,8 +23,8 @@ export function InboxCard({ row, later, pending, onOpen, onPark, onArchive }: In
     </UnstyledButton>
     <div className={styles.tools}>
       {row.modified !== undefined && <Text size="10px" c="dimmed" className={styles.time}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
-      {!later && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Move ${row.title} to Later`} title="Move to Later" disabled={!canMutate} onClick={onPark}><IconClockPause size={14} /></ActionIcon>}
-      <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Archive ${row.title}`} title="Archive session" disabled={!canMutate} onClick={onArchive}><IconArchive size={14} /></ActionIcon>
+      {!later && row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Move ${row.title} to Later`} title="Move to Later" disabled={!canMutate} onClick={onPark}><IconClockPause size={14} /></ActionIcon>}
+      {row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Archive ${row.title}`} title="Archive session" disabled={!canMutate} onClick={onArchive}><IconArchive size={14} /></ActionIcon>}
     </div>
   </div>;
 }

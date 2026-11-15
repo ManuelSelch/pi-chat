@@ -89,8 +89,8 @@ and catalogue rather than introducing another server-side session store.
 Inbox and Quick Switcher share a projection of saved, unarchived history and
 runtime inventory, deduplicated by session path. Live rows use runtime titles
 and status, including sessions not yet in the catalogue; selecting one focuses
-its runtime ID. Saved-only rows are opened by path. Inbox Blocked derives from blocked status; working sessions appear only in the
-project-grouped sidebar. Ready contains other idle conversations
+its runtime ID. Saved-only rows are opened by path. Inbox Blocked derives from blocked status; working sessions appear in the
+project-grouped sidebar and a collapsed Home section. Ready contains other idle conversations
 except browser-local Later membership; it is not an unread-response list.
 History is not reopened automatically.
 
@@ -143,7 +143,7 @@ Quick Switcher also uses the linked branch as its primary session label and repo
 as context, including before the first message. Conversation titles remain searchable
 and appear as context when meaningful; the untitled “New session” placeholder is not
 displayed for linked branches. Primary checkouts keep their conversation titles.
-Rows expose the full title on hover and use suffix-free recency locally; shared
+Sidebar rows expose the full title on hover, place status beside the primary label and omit recency; shared
 Home/Quick Switcher time formatting is unchanged. Project context uses the
 catalogue repository name, falling back to the runtime project name before
 discovery. The inbox header uses the catalogue's `quickChats` marker to label

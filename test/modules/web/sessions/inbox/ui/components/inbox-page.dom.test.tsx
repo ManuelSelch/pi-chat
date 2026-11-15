@@ -15,13 +15,18 @@ const props = (): InboxPageProps => ({
   pending: false, laterOpen: false, onLaterToggle: vi.fn(), onOpen: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(),
 });
 
-it("shows Blocked and Ready cards, excludes working sessions, and keeps Later collapsed", () => {
+it("shows Blocked and Ready cards and keeps Working and Later collapsed", () => {
   const p = props();
   render(<MantineProvider><InboxPage {...p} /></MantineProvider>);
 
   expect(screen.queryByRole("heading", { name: "Inbox" })).toBeNull();
   expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Blocked", "Ready"]);
   expect(screen.queryByText("Background")).toBeNull();
+  expect(screen.getByRole("button", { name: /^Working/ }).getAttribute("aria-expanded")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: /^Working/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Open Background" }));
+  expect(p.onOpen).toHaveBeenCalledWith(p.rows[2], false);
+  expect(screen.queryByRole("button", { name: "Archive Background" })).toBeNull();
   expect(screen.queryByText("Parked")).toBeNull();
   expect(screen.getByRole("button", { name: /^Later/ }).getAttribute("aria-expanded")).toBe("false");
   expect(screen.getByRole("button", { name: "Move Decision to Later" })).toHaveProperty("disabled", true);
@@ -68,7 +73,7 @@ it("shows no caught-up message or duplicate start actions when nothing is waitin
   render(<MantineProvider><InboxPage {...p} rows={p.rows.filter(row => row.status === "running")} later={[]} /></MantineProvider>);
 
   expect(screen.queryByText("Nothing waiting here. Start a session above.")).toBeNull();
-  expect(screen.queryAllByRole("region")).toHaveLength(0);
+  expect(screen.getByRole("button", { name: /^Working/ }).getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("button", { name: /Later/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Start a session" })).toBeNull();

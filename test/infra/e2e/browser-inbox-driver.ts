@@ -206,10 +206,10 @@ export class BrowserInboxDriver {
     await expect(button).toHaveAttribute("title", title);
     await expect(button.getByTitle(branch, { exact: true })).toBeVisible();
     await expect(button.getByText(title, { exact: true })).toHaveCount(0);
-    await expect(button.locator(":scope > *")).toHaveCount(2);
-    const metadata = button.locator(":scope > div").first();
-    await expect(metadata.getByRole("img")).toBeVisible();
-    if (!later) await expect(metadata.locator(":scope > span").last()).toHaveText(/^(just now|\d+[mhd])$/);
+    await expect(button.locator(":scope > div")).toHaveCount(1);
+    const primary = button.getByTitle(branch, { exact: true });
+    await expect(primary.locator("..").getByRole("img", { name: /^(Ready|Working|Needs you)$/ })).toBeVisible();
+    await expect(button.getByText(/^(just now|\d+[mhd])$/)).toHaveCount(0);
     const row = button.locator("..");
     const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
     if (await archive.count()) {
@@ -233,10 +233,9 @@ export class BrowserInboxDriver {
     }).toBeGreaterThan(0);
     const primaryBox = await primary.boundingBox();
     const secondaryBox = await secondary.boundingBox();
-    expect(primaryBox!.x).toBe(secondaryBox!.x);
-    const metadata = button.locator(":scope > div").first();
-    await expect(metadata.getByRole("img")).toBeVisible();
-    await expect(button.locator(":scope > div").nth(1).getByRole("img", { name: /^(Ready|Working|Needs you)$/ })).toHaveCount(0);
+    const secondaryPaddingLeft = await secondary.evaluate(element => parseFloat(getComputedStyle(element).paddingLeft));
+    expect(primaryBox!.x).toBe(secondaryBox!.x + secondaryPaddingLeft);
+    await expect(primary.locator("..").getByRole("img", { name: /^(Ready|Working|Needs you)$/ })).toBeVisible();
     const row = button.locator("..");
     const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
     if (await archive.count()) {
@@ -252,7 +251,7 @@ export class BrowserInboxDriver {
     await row.hover();
     await expect(row.getByRole("button", { name: `Move ${title} to Later`, exact: true })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
-    const padding = await button.locator(":scope > div").nth(1).evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
+    const padding = await button.locator(":scope > div").first().evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
     expect(padding).toBe(0);
   }
   async shouldHaveTightProjectHeadings(expectations: { working: boolean; later: boolean }): Promise<void> {
