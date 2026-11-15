@@ -39,6 +39,17 @@
 .headerActions { display: flex; align-items: center; flex-shrink: 0; gap: 4px; }
 .headerActions > * { flex-shrink: 0; }
 @media (max-width: 639px) { .headerBranch { display: none; } }
-.actions { opacity: 0; }
-.row:hover .actions, .row:focus-within .actions { opacity: 1; }
-@media (hover: none) { .actions { opacity: 1; } }
+.actions {
+  position: absolute;
+  right: 4px;
+  top: calc(8px + var(--mantine-font-size-sm) * var(--mantine-line-height-sm) / 2);
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+}
+.row[data-later] .actions {
+  top: calc(12px + var(--mantine-font-size-xs) * var(--mantine-line-height-xs) + var(--mantine-font-size-sm) * var(--mantine-line-height-sm) / 2);
+}
+.row:hover .actions, .row:focus-within .actions { opacity: 1; pointer-events: auto; }
+.row:has(.actions):hover .primary, .row:has(.actions):focus-within .primary { padding-right: 52px; }
+.row[data-later]:has(.actions):hover .primary, .row[data-later]:has(.actions):focus-within .primary { padding-right: 24px; }
