@@ -168,7 +168,7 @@ export class BrowserInboxDriver {
     expect(geometry.paddingX).toBe(10);
     expect(geometry.paddingY).toBe(8);
     const metadata = await button.locator(":scope > div").first().locator(":scope > *").evaluateAll(elements => elements.map(element => element.getBoundingClientRect()).map(box => ({ left: box.left, right: box.right })));
-    expect(metadata).toHaveLength(3);
+    expect(metadata).toHaveLength(2);
     for (let i = 1; i < metadata.length; i++) expect(metadata[i - 1]!.right).toBeLessThanOrEqual(metadata[i]!.left);
     const titleBox = await button.getByText(title, { exact: true }).boundingBox();
     const actionBox = await row.getByRole("button", { name: `Move ${title} to Later`, exact: true }).boundingBox();
@@ -189,13 +189,17 @@ export class BrowserInboxDriver {
     const button = this.panel().getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) });
     await expect(button).toHaveCount(1);
     await expect(button).toBeVisible();
-    await expect(button.locator(":scope > div").first().locator(":scope > span").nth(1)).toHaveText(repositoryName);
+    await expect(this.panel().getByRole("region", { name: repositoryName, exact: true }).getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) })).toBeVisible();
+    await expect(button.getByText(repositoryName, { exact: true })).toHaveCount(0);
     await expect(button.getByText("New session", { exact: true })).toHaveCount(0);
   }
   async shouldShowProjectName(title: string, projectName: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
-    const metadata = button.locator(":scope > div").first();
-    await expect(metadata.locator(":scope > span").nth(1)).toHaveText(projectName);
+    if (later) await expect(button.getByText(projectName, { exact: true })).toBeVisible();
+    else {
+      await expect(this.panel().getByRole("region", { name: projectName, exact: true }).getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();
+      await expect(button.getByText(projectName, { exact: true })).toHaveCount(0);
+    }
   }
   async shouldShowCompactWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });

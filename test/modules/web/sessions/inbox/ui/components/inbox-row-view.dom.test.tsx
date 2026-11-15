@@ -59,12 +59,17 @@ it("keeps Later untimed", () => {
   expect(screen.queryByText(/^(1m|1m ago)$/)).toBeNull();
 });
 
-it("places the status indicator beside the project rather than the primary label", () => {
+it("omits the project name from grouped session rows", () => {
   mount();
 
-  const metadata = screen.getByRole("img", { name: "Ready" }).closest("div")!;
-  expect(metadata.textContent).toContain("Project");
-  expect(metadata.textContent).not.toContain("feat/worktree");
+  expect(screen.queryByText("Project")).toBeNull();
+  expect(screen.getByRole("img", { name: "Ready" })).toBeTruthy();
+});
+
+it("retains the project name for ungrouped Later rows", () => {
+  mount(row(), true);
+
+  expect(screen.getByText("Project")).toBeTruthy();
 });
 
 it("omits running-row lifecycle controls instead of disabling them", () => {

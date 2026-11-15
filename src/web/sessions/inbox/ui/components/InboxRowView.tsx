@@ -21,7 +21,7 @@ export function InboxRowView({ row, active, later = false, pending, onSelect, on
       aria-current={active ? "true" : undefined} disabled={pending && (later || !row.sessionId)} onClick={onSelect}>
       <Group mb={4} wrap="nowrap" justify="space-between" gap={8}>
         <InboxStatus status={row.status} later={later} />
-        <Text component="span" size="xs" c="dimmed" truncate miw={0} flex={1}>{row.project}</Text>
+        {later && <Text component="span" size="xs" c="dimmed" truncate miw={0} flex={1}>{row.project}</Text>}
         {!later && row.modified !== undefined && <Text component="span" size="xs" c="dimmed" style={{ flexShrink: 0 }}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
       </Group>
       <Group wrap="nowrap" gap={8} pr={actionSpace}>

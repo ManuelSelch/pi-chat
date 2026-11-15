@@ -62,7 +62,7 @@ test("shared worktrees retain distinct conversation subtitles across Ready, Late
   await app.inbox.shouldShowWorktreeLabels(sibling, branch);
 });
 
-test("linked worktrees show the repository name for live, unloaded and Later rows", async () => {
+test("linked worktrees show the repository in group headings and ungrouped Later rows", async () => {
   await app.tabs.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
   await app.chat.sendPrompt(title);
   await app.chat.shouldShowAssistantReply("Setup complete");
