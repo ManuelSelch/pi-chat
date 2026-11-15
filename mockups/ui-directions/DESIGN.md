@@ -1,6 +1,6 @@
 # UI directions
 
-- Revision: 6. Status: in review. Approval: not yet requested or received.
+- Revision: 7. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -16,7 +16,7 @@
 
 - Current home: existing Home.tsx search-first structure, restyled with the chosen theme. Not a pixel-exact current-theme reproduction.
 - Inbox: spacious cards for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut.
-- Lets cook: only the requested title, project/model composer and inbox attention nudge. No decorative icon, eyebrow, subtitle, suggestion buttons or keyboard hint. Composer attachment control removed (annotation 4 interpreted as the plus button).
+- Lets cook: only the requested title, project/model composer and a single-line inbox attention nudge (no supporting description). No decorative icon, eyebrow, subtitle, suggestion buttons or keyboard hint. Composer attachment control removed (annotation 4 interpreted as the plus button).
 - Sidebar retained for navigation; toggle it for an edge-to-edge inbox.
 - Desktop uses persistent sidebar; below 800px it is hidden and all homes remain accessible through the explorer.
 
