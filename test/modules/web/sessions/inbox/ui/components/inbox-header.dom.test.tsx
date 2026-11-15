@@ -12,7 +12,7 @@ function renderHeader(status: Tab["status"], saved = true) {
   const props: ComponentProps<typeof InboxHeader> = {
     session: { sessionId: "runtime", sessionPath: "/saved", title: "Conversation", projectPath: "/project", projectName: "Project", status },
     title: "Conversation", branch: "main", opened: true, disabled: false, pending: false, saved,
-    buttons: [], badges: [], onToggle: vi.fn(), onNew: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onCloseView: vi.fn(), onAction: vi.fn(),
+    buttons: [], badges: [], onHome: vi.fn(), onToggle: vi.fn(), onNew: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onCloseView: vi.fn(), onAction: vi.fn(),
   };
   render(<MantineProvider><AppShell><InboxHeader {...props} /></AppShell></MantineProvider>);
 }
@@ -30,7 +30,7 @@ it("removes header branding without removing breadcrumbs or navigation", () => {
 it("omits the title placeholder when no session is selected", () => {
   const props: ComponentProps<typeof InboxHeader> = {
     session: undefined, title: undefined, branch: undefined, opened: false, disabled: false, pending: false, saved: false,
-    buttons: [], badges: [], onToggle: vi.fn(), onNew: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onCloseView: vi.fn(), onAction: vi.fn(),
+    buttons: [], badges: [], onHome: vi.fn(), onToggle: vi.fn(), onNew: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onCloseView: vi.fn(), onAction: vi.fn(),
   };
   render(<MantineProvider><AppShell><InboxHeader {...props} /></AppShell></MantineProvider>);
 

@@ -89,10 +89,21 @@ and catalogue rather than introducing another server-side session store.
 Inbox and Quick Switcher share a projection of saved, unarchived history and
 runtime inventory, deduplicated by session path. Live rows use runtime titles
 and status, including sessions not yet in the catalogue; selecting one focuses
-its runtime ID. Saved-only rows are opened by path. Inbox Needs you/Working
-derive from blocked/running status. Ready contains other idle conversations
+its runtime ID. Saved-only rows are opened by path. Inbox Blocked derives from blocked status; working sessions appear only in the
+project-grouped sidebar. Ready contains other idle conversations
 except browser-local Later membership; it is not an unread-response list.
 History is not reopened automatically.
+
+Home is the single landing page. Its search-first view composes activity from
+`InboxPageContainer` when sidebar mode is enabled. Search temporarily replaces
+activity; clearing it restores activity with Later initially collapsed. Header Home
+navigation clears selection without closing runtimes; SDK updates retain deliberate
+deselection. Opening a row restores the existing transcript/composer. Close view or
+removal of the selected runtime returns to Home. There is no separate page-routing
+state or Home/Inbox sidebar destination. `InboxContainer` and `InboxPageContainer`
+share the row projection and lifecycle actions; project and Later disclosure are
+local presentation state. The sidebar retains Later access and archive actions.
+Activity cards omit unavailable change totals rather than synthesizing metrics.
 
 `sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
 storage, lifecycle coordination and component/container UI. Parking loaded saved
@@ -137,7 +148,7 @@ Home/Quick Switcher time formatting is unchanged. Project context uses the
 catalogue repository name, falling back to the runtime project name before
 discovery. The inbox header uses the catalogue's `quickChats` marker to label
 home-folder sessions “Quick Chat”; other header project names retain their runtime
-labels. This presentation does not modify runtime inventory. Row actions continue using original identities. The panel has no search field; empty status groups and an empty Later shelf are omitted entirely.
+labels. This presentation does not modify runtime inventory. Row actions continue using original identities. The panel has no search field; empty project groups, Inbox status groups and an empty Later shelf are omitted entirely.
 
 ### Focus and overlays
 

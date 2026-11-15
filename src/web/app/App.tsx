@@ -9,6 +9,7 @@ import { AppControllerProvider, useAppController } from "./AppControllerContext.
 import { atHome } from "./state/app-state.js";
 import { AppOverlays } from "./overlays/AppOverlays.js";
 import { Home } from "../sessions/home/Home.js";
+import { InboxPageContainer } from "../sessions/inbox/ui/containers/InboxPageContainer.js";
 import { HeaderContainer } from "./shell/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
@@ -66,7 +67,9 @@ function AppContent() {
             onOpenSession={chat.openSession}
             onOpenProject={chat.openProject}
             onNewSession={() => chat.newSession()}
-          />
+          >
+            {chat.inboxEnabled && <InboxPageContainer />}
+          </Home>
         ) : (
           <MessageListContainer footerHeight={footerHeight + FOOTER_GAP} />
         )}

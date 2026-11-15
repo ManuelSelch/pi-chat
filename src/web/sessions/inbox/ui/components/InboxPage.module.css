@@ -1,0 +1,15 @@
+.section { margin-bottom: 24px; }
+.cards { border: 1px solid var(--mantine-color-default-border); border-radius: 8px; overflow: hidden; }
+.card { position: relative; background: var(--mantine-color-default); }
+.card + .card { border-top: 1px solid var(--mantine-color-default-border); }
+.card:hover { background: var(--mantine-color-default-hover); }
+.open { text-align: left; }
+.title { display: flex; align-items: center; gap: 12px; min-width: 0; padding-right: 130px; }
+.title > * { min-width: 0; }
+.sessionName { margin-top: 6px; padding-left: 18px; }
+.branch { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.branch svg { flex-shrink: 0; }
+.tools { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; height: 21px; }
+.time { white-space: nowrap; }
+.empty { text-align: center; padding: 36px 12px; color: var(--mantine-color-dimmed); }
+.later { align-items: center; gap: 8px; }

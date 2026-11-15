@@ -33,7 +33,7 @@ beforeEach(() => {
     app: { ...initialAppState, serverInstanceId: "server", connection: "open", tabsKnown: true, activeSessionId: "one", sessions: { one: state },
       tabs: [{ sessionId: "one", title: "One", projectPath: "/project", projectName: "project", status: "running" }] },
     state, serverEndpoint: { endpoint: "ws://localhost:3000/ws", override: "", hasStoredOverride: false },
-    inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(),
+    inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(), showHome: vi.fn(),
     inbox: { later: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(), startFolderSession: vi.fn(), completeCommandArguments: vi.fn(async () => []),
     openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn().mockResolvedValue(undefined),
