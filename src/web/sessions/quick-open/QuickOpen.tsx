@@ -179,7 +179,7 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
           onKeyDown={keyDown}
           variant={inline ? "default" : "unstyled"}
           size="md"
-          styles={inline ? (expanded ? { input: { borderColor: "transparent" } } : undefined) : { input: { paddingInline: "10px" } }}
+          styles={inline ? { input: { borderColor: "transparent" } } : { input: { paddingInline: "10px" } }}
         />
 
         {(!inline || expanded) && <>
@@ -241,6 +241,6 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
       </Stack>
   );
 
-  if (inline) return <div className={classes.inline}>{content}</div>;
+  if (inline) return <div data-home-quick-open-frame className={classes.inline}>{content}</div>;
   return <Modal {...focusReturn} opened={opened} onClose={onClose} withCloseButton={false} size="lg" padding="xs" title={null} styles={{ body: { overflowX: "hidden" } }}>{content}</Modal>;
 }

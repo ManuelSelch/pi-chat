@@ -16,15 +16,19 @@ it("filters the shared quickswitcher inline while keeping Home activity visible"
   expect(run).toHaveBeenCalledOnce();
 });
 
-it("hides the search border only while the inline switcher is expanded", () => {
+it("keeps only the outer border in both inline switcher states", () => {
   render(<MantineProvider><QuickOpen inline opened={false} onClose={vi.fn()} catalogue={{ projects: [] }} tabs={[]} onOpenSession={vi.fn()} onFocusSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()} /></MantineProvider>);
   const input = screen.getByPlaceholderText("Search") as HTMLInputElement;
 
-  expect(input.style.borderColor).not.toBe("transparent");
+  const frame = input.closest('[data-home-quick-open-frame]') as HTMLElement;
+  expect(frame.style.borderColor).not.toBe("transparent");
+  expect(input.style.borderColor).toBe("transparent");
   fireEvent.click(input);
+  expect(frame.style.borderColor).not.toBe("transparent");
   expect(input.style.borderColor).toBe("transparent");
   fireEvent.keyDown(input, { key: "Escape" });
-  expect(input.style.borderColor).not.toBe("transparent");
+  expect(frame.style.borderColor).not.toBe("transparent");
+  expect(input.style.borderColor).toBe("transparent");
 });
 
 it("opens a matching saved session with Enter", () => {
