@@ -24,9 +24,6 @@ export function InboxPage(p: InboxPageProps) {
         <div className={styles.cards}>{rows.map(row => card(row))}</div>
       </section>;
     })}
-    {!blocked.length && !ready.length && <div className={styles.empty}>
-      <Text size="sm" c="dimmed">Nothing waiting here. Start a session above.</Text>
-    </div>}
     {p.later.length > 0 && <div className={styles.section}>
       <UnstyledButton display="flex" w="100%" py={10} className={styles.later} aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
         <IconChevronRight size={13} className={p.laterOpen ? "rotate-90" : ""} /><Text size="xs">Later</Text><Text size="xs" c="dimmed">{p.later.length}</Text>

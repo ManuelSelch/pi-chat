@@ -63,11 +63,11 @@ it("restores parked conversations explicitly and retains archive access", () => 
   expect(p.onArchive).toHaveBeenCalledWith(p.later[0]);
 });
 
-it("shows a quiet caught-up message without duplicate Home heading or start actions", () => {
+it("shows no caught-up message or duplicate start actions when nothing is waiting", () => {
   const p = props();
   render(<MantineProvider><InboxPage {...p} rows={p.rows.filter(row => row.status === "running")} later={[]} /></MantineProvider>);
 
-  expect(screen.getByText("Nothing waiting here. Start a session above.")).toBeTruthy();
+  expect(screen.queryByText("Nothing waiting here. Start a session above.")).toBeNull();
   expect(screen.queryAllByRole("region")).toHaveLength(0);
   expect(screen.queryByRole("button", { name: /Later/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
