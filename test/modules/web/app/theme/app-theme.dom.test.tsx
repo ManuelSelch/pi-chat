@@ -11,7 +11,7 @@ function Probe() {
 }
 function shouldUseAppTheme() {
   expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
-  expect(screen.getByRole("dialog").textContent).toContain("#b39af6");
+  expect(screen.getByRole("dialog").textContent).toContain("#8b9baf");
   const styles = [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n");
   expect(styles).toContain("--mantine-color-body: #18191e");
   expect(styles).toContain("--mantine-color-default: #202127");

@@ -15,8 +15,8 @@ it("matches the approved AppTheme surfaces, text, accent and diffs", () => {
     "--mantine-color-dimmed": "#999aa9",
     "--mantine-color-default-border": "#30313b",
     "--mantine-color-default-hover": "#282933",
-    "--mantine-color-blue-filled": "#b39af6",
-    "--pi-selected-bg": "#30293e",
+    "--mantine-color-blue-filled": "#8b9baf",
+    "--pi-selected-bg": "#292f38",
     "--pi-diff-added": "#7bbda4",
     "--pi-diff-removed": "#eb969b",
   });

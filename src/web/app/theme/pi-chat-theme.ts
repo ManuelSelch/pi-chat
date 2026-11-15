@@ -9,8 +9,8 @@ export const PI_CHAT_THEME_COLORS = {
   muted: "#999aa9",
   border: "#30313b",
   hover: "#282933",
-  accent: "#b39af6",
-  selected: "#30293e",
+  accent: "#8b9baf",
+  selected: "#292f38",
   ready: "#7bbda4",
   blocked: "#f08080",
   working: "#e8a05b",
@@ -33,7 +33,7 @@ function shades(anchor: string): MantineColorsTuple {
 
 const c = PI_CHAT_THEME_COLORS;
 // Existing named-color props retain their semantic meaning; blue is the app's
-// primary vocabulary, now violet. Orange is the running-session indicator.
+// primary vocabulary, now slate blue. Orange is the running-session indicator.
 const anchors = { blue: c.accent, violet: c.accent, green: c.ready, red: c.blocked, orange: c.working, yellow: c.working, teal: c.accent, gray: c.muted };
 const variables: Record<string, string> = {
   "--mantine-color-body": c.page,

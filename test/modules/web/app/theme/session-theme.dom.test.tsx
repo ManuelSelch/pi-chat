@@ -27,7 +27,7 @@ async function open(id: string, appearance: "dark" | "light" = "dark") {
 }
 function shouldUseAppTheme() {
   expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
-  expect(screen.getByRole("dialog").textContent).toContain("#b39af6");
+  expect(screen.getByRole("dialog").textContent).toContain("#8b9baf");
   const css = [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n");
   expect(css).toContain("--mantine-color-body: #18191e");
 }

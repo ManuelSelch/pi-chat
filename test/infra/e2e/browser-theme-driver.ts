@@ -12,7 +12,7 @@ export class BrowserThemeDriver {
     await expect(this.page.locator("body")).toHaveCSS("background-color", "rgb(24, 25, 30)");
     await expect(this.page.locator("body")).toHaveCSS("color", "rgb(229, 229, 237)");
     await expect(this.page.locator("header")).toHaveCSS("border-bottom-color", "rgb(48, 49, 59)");
-    await expect.poll(() => this.page.locator("html").evaluate(el => getComputedStyle(el).getPropertyValue("--mantine-color-blue-filled").trim())).toBe("#b39af6");
+    await expect.poll(() => this.page.locator("html").evaluate(el => getComputedStyle(el).getPropertyValue("--mantine-color-blue-filled").trim())).toBe("#8b9baf");
   }
   async shouldThemePortalAppTheme(): Promise<void> {
     await expect(this.page.getByRole("dialog", { name: "Settings" })).toHaveCSS("background-color", "rgb(24, 25, 30)");
