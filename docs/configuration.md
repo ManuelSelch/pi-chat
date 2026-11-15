@@ -114,46 +114,23 @@ the server's Pi environment, not by adding secrets to the endpoint URL.
 
 ## Pi themes
 
-- Pi Chat always uses **Night shift**: graphite surfaces, violet accent and dark
-  controls/dialogs, independently of session themes and browser appearance.
-- Session states are blocked red, ready green, working orange and Later gray.
-- The fixed palette lives in `src/web/app/theme/night-shift-theme.ts`. There is
-  no browser theme selector. Old `pi-chat:lastTheme` storage is ignored, not migrated.
-- Runtime Pi themes still control extension-generated ANSI output, not Chat's
-  shell, messages or diff colours. Literal RGB and already-rendered ANSI strings
-  are preserved. The bundled [Classic themes](../themes/README.md) remain available
-  for Pi terminal/runtime output.
+- The interface uses a fixed dark theme, including Home and dialogs. Session
+  selection, browser appearance and old `pi-chat:lastTheme` storage do not change it.
+- Colours live in `src/web/app/theme/pi-chat-theme.ts`. Session states are
+  blocked red, ready green, working orange and Later gray.
+- Runtime Pi themes only affect extension-generated ANSI output. Literal RGB/ANSI
+  colours are preserved; syntax highlighting uses the existing GitHub-dark palette.
 
-To configure a **runtime Pi theme**:
+### Runtime themes
 
-- Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
-  project theme resource allowed by Pi's existing trust/resource rules).
-  Start from a valid Pi theme, not a partial Mantine palette.
-- Select it with `"theme": "my-theme"` in Pi's effective settings, for example
-  `~/.pi/agent/settings.json`. Set the theme file's `appearance` to `light`
-  or `dark`; this no longer changes Chat's fixed appearance.
-- Use concrete colors for every Pi token, including text. Avoid empty/default
-  terminal colors for headless use. Pi variables and its supported color formats
-  work. Optional Pi `export.pageBg`, `export.cardBg`, and `export.infoBg`
-  set exact interface surfaces; otherwise Pi's export derivation supplies them.
-- Missing, invalid, unavailable, system or terminal-dependent themes use Pi's
-  deterministic dark fallback and emit a server diagnostic. Fixed light/dark
-  pairs select their dark member.
-
-**Lifetime and limits:** themes resolve when a runtime is created or replaced,
-not on `/reload`. To apply edited theme files, close the runtime and open/create
-it again; opening an already-running runtime returns its existing cached palette.
-Ordinary snapshots, explicit reload and same-server reconnect preserve the SDK
-runtime-theme cache; close or server-instance changes clear it. Initialization
-still carries no palette. Required theme metadata in open/create responses is
-validated even though it no longer controls browser appearance; malformed or
-missing themes are rejected, not silently accepted.
-
-Night shift applies immediately before any session opens and stays unchanged
-across tab switches, reconnects, closing all sessions and page refresh. Home,
-settings and portalled dialogs share the same fixed theme. Syntax highlighting
-uses the existing GitHub-dark palette. There are no hidden recovery requests,
-theme watcher or browser-to-terminal synchronization.
+- Save a complete Pi theme with concrete colours under `~/.pi/agent/themes/`,
+  then select it using `"theme": "my-theme"` in Pi settings. Project theme
+  resources follow Pi's existing trust rules. See the [bundled Classic themes](../themes/README.md).
+- Recreate the runtime to apply theme edits; `/reload` does not refresh its palette.
+  Invalid or terminal-dependent themes use Pi's dark fallback with a diagnostic;
+  automatic light/dark pairs use their dark member.
+- Open/create responses still require valid theme metadata. SDK cache lifetime
+  is documented in the [protocol guide](protocol.md#recovery-cancellation-and-uncertainty).
 
 ## Private network access
 

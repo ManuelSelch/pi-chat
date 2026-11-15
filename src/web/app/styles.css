@@ -19,7 +19,7 @@ html::-webkit-scrollbar {
 
 /*
  * Markdown content styling. Everything keys off Mantine CSS variables, so
- * Night shift is fixed by the application provider, including body portals.
+ * The application provider fixes the theme, including body portals.
  */
 .markdown {
   line-height: 1.65;

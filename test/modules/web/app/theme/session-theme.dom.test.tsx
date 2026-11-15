@@ -25,7 +25,7 @@ async function open(id: string, appearance: "dark" | "light" = "dark") {
   await act(async () => Socket.current.reply({ summary: summary(snapshot), snapshot, theme }));
   return theme;
 }
-function shouldUseNightShift() {
+function shouldUseAppTheme() {
   expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
   expect(screen.getByRole("dialog").textContent).toContain("#b39af6");
   const css = [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n");
@@ -37,27 +37,27 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); vi.unstub
 it("caches runtime palettes without recoloring the app on switching, snapshots or reconnect", async () => {
   mount();
   expect(controller!.app.themes).toEqual({});
-  shouldUseNightShift();
+  shouldUseAppTheme();
 
   const dark = await open("a");
   const light = await open("b", "light");
   expect(controller!.app.themes).toEqual({ a: dark, b: light });
-  shouldUseNightShift();
+  shouldUseAppTheme();
   expect(document.getElementById("root")?.contains(screen.getByRole("dialog")) ?? false).toBe(false);
 
   const requests = Socket.current.requests.length;
   act(() => controller.focusTab("a"));
   expect(Socket.current.requests).toHaveLength(requests);
-  shouldUseNightShift();
+  shouldUseAppTheme();
 
   act(() => Socket.current.deliver(snapshotEvent({ sessionId: "b", throughSequence: 1 })));
-  shouldUseNightShift();
+  shouldUseAppTheme();
   act(() => Socket.current.deliver(snapshotEvent({ sessionId: "a", throughSequence: 1 })));
   expect(controller!.app.themes.a).toEqual(dark);
 
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); Socket.current.initialize([snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "b" })]); });
   expect(controller!.app.themes).toEqual({ a: dark, b: light });
-  shouldUseNightShift();
+  shouldUseAppTheme();
 });
 
 it("clears SDK caches on replacement, close and server-instance change without changing app appearance", async () => {
@@ -66,18 +66,18 @@ it("clears SDK caches on replacement, close and server-instance change without c
 
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", event: "session.replaced", data: { previousSessionId: "a", snapshot: snapshotData({ sessionId: "replacement" }) } }));
   expect(controller!.app.themes).toEqual({});
-  shouldUseNightShift();
+  shouldUseAppTheme();
 
   await open("b", "light");
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", sessionId: "b", sequence: 1, event: "session.closed", data: { reason: "requested" } }));
   expect(controller!.app.themes).toEqual({});
-  shouldUseNightShift();
+  shouldUseAppTheme();
 
   await open("c");
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); });
   act(() => Socket.current.reply({ ...initializeResult([snapshotData({ sessionId: "c" })]), serverInstanceId: "new-process" }));
   expect(controller!.app.themes).toEqual({});
-  shouldUseNightShift();
+  shouldUseAppTheme();
 });
 
 it.each([undefined, null, { ...themeData(), colors: { ...themeData().colors, accent: "url(evil)" } }])("rejects malformed/missing required theme without caching it (%j)", async theme => {
@@ -89,7 +89,7 @@ it.each([undefined, null, { ...themeData(), colors: { ...themeData().colors, acc
 
   expect(controller!.app.themes).toEqual({});
   expect(controller!.app.error).toBeTruthy();
-  shouldUseNightShift();
+  shouldUseAppTheme();
 });
 
 it("a rejected runtime theme cannot affect app appearance or populate an SDK cache", async () => {
@@ -104,15 +104,15 @@ it("a rejected runtime theme cannot affect app appearance or populate an SDK cac
 
   expect(controller!.app.themes).toEqual({});
   expect(controller!.app.error).toBeTruthy();
-  shouldUseNightShift();
+  shouldUseAppTheme();
   expect(localStorage.getItem("pi-chat:lastTheme")).toBeNull();
 });
 
-it("keeps Night shift when initialization restores sessions without palettes", () => {
+it("keeps AppTheme when initialization restores sessions without palettes", () => {
   mount();
 
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); Socket.current.initialize([snapshotData({ sessionId: "existing" })]); });
 
   expect(controller!.app.themes).toEqual({});
-  shouldUseNightShift();
+  shouldUseAppTheme();
 });

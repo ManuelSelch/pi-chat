@@ -1,12 +1,12 @@
 import { expect, it } from "vitest";
 import { DEFAULT_THEME, mergeMantineTheme } from "@mantine/core";
-import { nightShiftTheme, nightShiftVariables } from "../../../../../src/web/app/theme/night-shift-theme.js";
+import { piChatTheme, piChatVariables } from "../../../../../src/web/app/theme/pi-chat-theme.js";
 import { STATUS_COLOR, THEME } from "../../../../../src/web/ui/theme.js";
 
-const theme = mergeMantineTheme(DEFAULT_THEME, nightShiftTheme);
-const vars = nightShiftVariables(theme).dark;
+const theme = mergeMantineTheme(DEFAULT_THEME, piChatTheme);
+const vars = piChatVariables(theme).dark;
 
-it("matches the approved Night shift surfaces, text, accent and diffs", () => {
+it("matches the approved AppTheme surfaces, text, accent and diffs", () => {
   expect(vars).toMatchObject({
     "--mantine-color-body": "#18191e",
     "--mantine-color-default": "#202127",

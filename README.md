@@ -6,7 +6,7 @@ A local browser workspace for [Pi](https://github.com/earendil-works/pi), using 
 
 ## Features
 
-- Streaming chat with Markdown, LaTeX, and a fixed Night shift dark theme.
+- Streaming chat with Markdown, LaTeX, and a fixed dark theme.
 - Tool cards with highlighted code, edit diffs, and file previews.
 - Persistent session tabs, optional sidebar Inbox with Later, project browsing, and a Quick Switcher.
 - Native steering to guide Pi during a run.

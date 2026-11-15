@@ -3,18 +3,18 @@ import { expect, type Page } from "@playwright/test";
 /** Real computed styles and socket lifecycle stay behind the feature DSL. */
 export class BrowserThemeDriver {
   constructor(private readonly page: Page) {}
-  async shouldUseNightShift(): Promise<void> {
-    await this.shouldUseNightShiftShell();
+  async shouldUseAppTheme(): Promise<void> {
+    await this.shouldUseAppThemeShell();
     await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", "rgb(123, 189, 164)");
   }
-  async shouldUseNightShiftShell(): Promise<void> {
+  async shouldUseAppThemeShell(): Promise<void> {
     await expect(this.page.locator("html")).toHaveAttribute("data-mantine-color-scheme", "dark");
     await expect(this.page.locator("body")).toHaveCSS("background-color", "rgb(24, 25, 30)");
     await expect(this.page.locator("body")).toHaveCSS("color", "rgb(229, 229, 237)");
     await expect(this.page.locator("header")).toHaveCSS("border-bottom-color", "rgb(48, 49, 59)");
     await expect.poll(() => this.page.locator("html").evaluate(el => getComputedStyle(el).getPropertyValue("--mantine-color-blue-filled").trim())).toBe("#b39af6");
   }
-  async shouldThemePortalNightShift(): Promise<void> {
+  async shouldThemePortalAppTheme(): Promise<void> {
     await expect(this.page.getByRole("dialog", { name: "Settings" })).toHaveCSS("background-color", "rgb(24, 25, 30)");
   }
   async rememberLegacyLightAppearance(): Promise<void> {

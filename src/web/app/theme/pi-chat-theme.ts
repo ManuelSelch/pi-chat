@@ -1,7 +1,7 @@
 import { createTheme, type CSSVariablesResolver, type MantineColorsTuple } from "@mantine/core";
 
-/** Fixed application palette from the approved Night shift mockup. Not a runtime Pi theme. */
-export const NIGHT_SHIFT = {
+/** Fixed application palette from the approved mockup. Not a runtime Pi theme. */
+export const PI_CHAT_THEME_COLORS = {
   page: "#18191e",
   panel: "#202127",
   sidebar: "#141519",
@@ -31,7 +31,7 @@ function shades(anchor: string): MantineColorsTuple {
       : mix(anchor, "#000000", (index - 6) / 5)) as unknown as MantineColorsTuple;
 }
 
-const c = NIGHT_SHIFT;
+const c = PI_CHAT_THEME_COLORS;
 // Existing named-color props retain their semantic meaning; blue is the app's
 // primary vocabulary, now violet. Orange is the running-session indicator.
 const anchors = { blue: c.accent, violet: c.accent, green: c.ready, red: c.blocked, orange: c.working, yellow: c.working, teal: c.accent, gray: c.muted };
@@ -76,7 +76,7 @@ for (const [name, anchor] of Object.entries(anchors)) {
   });
 }
 
-export const nightShiftTheme = createTheme({
+export const piChatTheme = createTheme({
   primaryColor: "blue",
   primaryShade: 6,
   autoContrast: true,
@@ -89,4 +89,4 @@ export const nightShiftTheme = createTheme({
 });
 
 /** Root variables also apply to body portals, before any session opens. */
-export const nightShiftVariables: CSSVariablesResolver = () => ({ variables: {}, light: variables, dark: variables });
+export const piChatVariables: CSSVariablesResolver = () => ({ variables: {}, light: variables, dark: variables });
