@@ -35,7 +35,6 @@ function show() {
   const onOpenSession = vi.fn();
   const onOpenProject = vi.fn();
   const onNewSession = vi.fn();
-  const onOpenFolder = vi.fn();
   render(
     <MantineProvider>
       <Home
@@ -43,34 +42,22 @@ function show() {
         onOpenSession={onOpenSession}
         onOpenProject={onOpenProject}
         onNewSession={onNewSession}
-        onOpenFolder={onOpenFolder}
       />
     </MantineProvider>,
   );
-  return { onOpenSession, onOpenProject, onNewSession, onOpenFolder };
+  return { onOpenSession, onOpenProject, onNewSession };
 }
 
 describe("Home", () => {
-  it("opens the server folder picker without creating a default session", () => {
-    const { onOpenFolder, onNewSession } = show();
-    fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
-    expect(onOpenFolder).toHaveBeenCalledOnce();
-    expect(onNewSession).not.toHaveBeenCalled();
-  });
   it("starts quiet and does not show recent sessions before typing", () => {
     show();
 
+    expect(screen.getByText("Lets cook")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Search sessions and projects" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open folder" })).toBeNull();
+    expect(screen.queryByText(/agents are waiting for you/i)).toBeNull();
     expect(screen.queryByRole("option")).toBeNull();
-  });
-
-  it("creates a new default session from the button", () => {
-    const { onNewSession } = show();
-
-    fireEvent.click(screen.getByRole("button", { name: "New session" }));
-
-    expect(onNewSession).toHaveBeenCalledOnce();
   });
 
   it("creates a new default session when Enter is pressed on an empty search", () => {
