@@ -28,7 +28,7 @@ export function Inbox({ sessions, onOpen, onLater, onNew }: { sessions: Session[
   const later = sessions.filter(s => s.status === 'later');
   const row = (s: Session) => <SessionRow key={s.id} session={s} onOpen={() => onOpen(s)} onLater={() => onLater(s)}/>;
   return <div className="inbox-page relaxed-inbox">
-    <div className="page-heading"><div><div className="eyebrow">PICK UP WHERE YOUR AGENTS LEFT OFF</div><h1>Inbox<span className="heading-dot"/></h1><p>{attention.length ? 'A few things ready for your attention.' : 'You’re all caught up. Your agents have it from here.'}</p></div><Button className="primary-button" onClick={onNew}>New session <span>＋</span></Button></div>
+    <div className="page-heading"><div><div className="eyebrow">PICK UP WHERE YOUR AGENTS LEFT OFF</div><h1>Inbox<span className="heading-dot"/></h1><p>{attention.length ? 'A few things ready for your attention.' : 'You’re all caught up. Your agents have it from here.'}</p></div></div>
     <div className="inbox-groups">
       {(['blocked', 'ready'] as const).map(status => {
         const rows = attention.filter(s => s.status === status);
