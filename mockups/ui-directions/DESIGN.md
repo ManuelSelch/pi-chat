@@ -1,6 +1,6 @@
 # UI directions
 
-- Revision: 4. Status: in review. Approval: not yet requested or received.
+- Revision: 5. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -16,7 +16,7 @@
 
 - Current home: existing Home.tsx search-first structure, restyled with the chosen theme. Not a pixel-exact current-theme reproduction.
 - Inbox: spacious cards for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut.
-- Lets cook: exact requested title, project/model composer, shortcuts and an inbox attention nudge.
+- Lets cook: only the requested title, project/model composer and inbox attention nudge. No decorative icon, eyebrow, subtitle, suggestion buttons or keyboard hint. Composer attachment control removed (annotation 4 interpreted as the plus button).
 - Sidebar retained for navigation; toggle it for an edge-to-edge inbox.
 - Desktop uses persistent sidebar; below 800px it is hidden and all homes remain accessible through the explorer.
 
@@ -27,7 +27,7 @@
 - Open session cards in a session-preview drawer; expand Later to see parked sessions. Working sessions remain accessible in the existing sidebar, not the inbox.
 - Blocked session offers a simulated decision; replying marks the session working.
 - Move to Later, restore from Later, simulate agent completion, start simulated sessions.
-- Composer has local model/project selection and a mock context attachment. Selection does not route to a backend.
+- Composer has local model/project selection. Selection does not route to a backend.
 - All-working and empty states show a caught-up inbox; fake completion moves a working session into Ready to review.
 - Cmd/Ctrl+Enter submits the composer. No real folder picker, runtime, diff, settings or provider connection.
 - Static update: no timers, persistence or backend calls. No production behavior is approved for removal.
