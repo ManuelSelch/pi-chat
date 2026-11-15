@@ -60,6 +60,7 @@ describe("Home", () => {
   it("starts quiet and does not show recent sessions before typing", () => {
     show();
 
+    expect(screen.getByText("Lets cook")).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Search sessions and projects" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "New session" })).toBeTruthy();
     expect(screen.queryByRole("option")).toBeNull();

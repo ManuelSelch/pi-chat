@@ -57,7 +57,7 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
     <Center h="100%" px="md">
       <Stack gap="lg" w="100%" maw={620} style={{ height: "min(560px, calc(100dvh - 150px))" }}>
         <Stack gap={4} align="center">
-          <Text size="xl" fw={600}>Pi Chat</Text>
+          <Text size="xl" fw={600}>Lets cook</Text>
         </Stack>
 
         <Stack gap="sm">
