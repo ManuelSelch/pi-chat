@@ -1,29 +1,27 @@
 # UI directions
 
-- Revision: 10. Status: in review. Approval: not yet requested or received.
+- Revision: 11. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
 ## Directions
 
-- Studio: cool grey, blue, low-noise command centre. Codex-inspired multi-agent organisation.
-- Warm paper: ivory, clay, serif headings and more generous rows. Claude-inspired conversational calm.
-- Night shift: graphite, violet, tighter rows and branch metadata. T3 Code-inspired developer density.
+- Night shift only: graphite, violet, compact rows and branch metadata. T3 Code-inspired developer density. Earlier Studio and Warm paper explorations are no longer selectable.
 - Session-state colours across all themes: blocked red, ready green, working orange, later gray. Theme accent colours remain independent.
 - Inspiration, not replicas. Source research used public product descriptions, not authenticated app inspection.
 
 ## Home comparison
 
 - Current home: existing Home.tsx search-first structure, restyled with the chosen theme. Not a pixel-exact current-theme reproduction.
-- Inbox: spacious cards for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut. Header is only “Inbox”, without eyebrow, description or dot; no inbox footer or divider above Later.
+- Inbox: compact cards with 14px vertical padding, red/green status dots instead of icons, no open arrow, and addition/deletion numbers without a LOC label for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut. Header is only “Inbox”, without eyebrow, description or dot; no inbox footer or divider above Later.
 - Lets cook: only the requested title, single-line composer matching the current home search input and a single-line inbox attention nudge (no supporting description). No decorative icon, eyebrow, subtitle, suggestion buttons or keyboard hint. Composer attachment control removed (annotation 4 interpreted as the plus button).
 - Sidebar retained for navigation; toggle it for an edge-to-edge inbox.
 - Desktop uses persistent sidebar; below 800px it is hidden and all homes remain accessible through the explorer.
 
 ## Interactive states
 
-- Query parameters: `theme=studio|paper|night`, `home=current|inbox|cook`, `state=empty|running` (default: populated).
-- Theme/home selections update the URL. Reset restores populated fake sessions.
+- Query parameters: `home=current|inbox|cook`, `state=empty|running` (default: populated). Theme is always Night shift.
+- Home selections update the URL. Reset restores populated fake sessions.
 - Open session cards in a session-preview drawer; expand Later to see parked sessions. Working sessions remain accessible in the existing sidebar, not the inbox.
 - Blocked session offers a simulated decision; replying marks the session working.
 - Move to Later, restore from Later, simulate agent completion, start simulated sessions.

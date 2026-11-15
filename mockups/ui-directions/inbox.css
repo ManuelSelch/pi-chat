@@ -13,20 +13,21 @@
 .relaxed-inbox .session-row {
   border: 1px solid var(--border);
   border-radius: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   box-shadow: var(--shadow);
 }
-.relaxed-inbox .row-open { padding: 26px 24px; gap: 18px; }
-.relaxed-inbox .row-content { gap: 9px; }
+.relaxed-inbox .row-open { padding: 14px 18px; gap: 12px; }
+.relaxed-inbox .session-status { width: 7px; height: 7px; margin-top: 7px; }
+.relaxed-inbox .row-content { gap: 5px; }
 .relaxed-inbox .row-title { font-size: 14px; line-height: 1.5; }
 .relaxed-inbox .row-summary { font-size: 12px; line-height: 1.7; }
-.relaxed-inbox .row-meta { margin-top: 7px; font-size: 10px; gap: 18px; }
+.relaxed-inbox .row-meta { margin-top: 3px; font-size: 10px; gap: 18px; }
 .row-outcome {
   margin-left: auto;
   display: flex;
   align-items: flex-end;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
   flex-shrink: 0;
 }
 .relaxed-inbox .row-time { font-size: 10px; }
@@ -34,7 +35,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 6px 9px;
+  padding: 4px 7px;
   border-radius: 6px;
   background: var(--bg);
   font: 12px ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -42,7 +43,6 @@
 .loc-added { color: var(--ready); }
 .loc-removed { color: #b05252; }
 .theme-night .loc-removed { color: #eb969b; }
-.loc-label { color: var(--muted); font-size: 9px; }
 .relaxed-inbox .later-action { right: 19px; bottom: 8px; }
 .relaxed-inbox .later-section {
   padding-top: 22px;
@@ -63,19 +63,19 @@
 .later-toggle .expanded { transform: rotate(90deg); }
 .relaxed-inbox .inbox-footer { margin-top: 42px; }
 @media (max-width: 1150px) {
-  .relaxed-inbox .row-open { padding: 24px 18px; gap: 13px; }
+  .relaxed-inbox .row-open { padding: 14px 16px; gap: 12px; }
   .row-outcome { gap: 18px; }
   .relaxed-inbox .row-time { font-size: 9px; }
 }
 @media (max-width: 800px) {
   .relaxed-inbox { padding-top: 30px; }
-  .relaxed-inbox .row-open { flex-wrap: wrap; padding: 22px 18px; }
+  .relaxed-inbox .row-open { flex-wrap: wrap; padding: 14px 16px; }
   .relaxed-inbox .row-content { flex: 1; }
   .relaxed-inbox .row-title { font-size: 13px; }
   .relaxed-inbox .row-summary { font-size: 11px; }
   .row-outcome {
     width: 100%;
-    margin-left: 39px;
+    margin-left: 19px;
     flex-direction: row-reverse;
     align-items: center;
     justify-content: flex-end;
