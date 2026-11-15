@@ -1,6 +1,8 @@
 # UI directions
 
-- Revision: 17. Status: in review. Approval: not yet requested or received.
+- Revision: 17. Status: approved for Night shift inbox, Lets cook home and sidebar.
+- Approval evidence: user said “the inbox and home and sidebar look good. approved. and keep the session windows as it (open a session on click)”.
+- Session windows are out of redesign scope: clicking a session must open the existing production session view unchanged. The prototype drawer is illustrative and is not approved for implementation.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -43,4 +45,5 @@
 - User-led visual/interaction review. Agent browser automation and screenshots not requested or performed.
 - Readiness checks confirm HTTP/module serving only, not browser runtime or rendering.
 - Agentation: annotate from bottom-right toolbar, copy the Markdown batch and paste into chat.
-- No production pipeline required for mockup-only work. Explicit design approval required before implementation.
+- No production pipeline required for mockup-only work. Design approval recorded above; production implementation has not started. Preserve existing session journeys, do not copy prototype shortcuts into production, and confirm behavioral changes before implementing them.
+- Approved files preserved; agent-owned preview stopped at approval handoff.
