@@ -13,13 +13,12 @@ for (const width of [1680, 1024, 1280]) {
     const reply = Array.from({ length: 50 }, (_, i) => `Paragraph ${i + 1}: the session remains usable with Projects open.`).join("\n\n");
     await app.tabs.create({ responses: [{ prompt: "Keep projects open", reply }] });
     await app.widgets.named("status").show("Still working");
-    await app.projects.rememberChatBounds();
 
     await app.projects.open();
 
     await app.projects.shouldBeSidebar();
     await app.projects.shouldNotOverlapWorkspace();
-    if (width === 1680) await app.projects.shouldKeepChatBounds();
+    await app.projects.shouldCenterWorkspace("transcript");
     await app.widgets.shouldUseLayout(width === 1680 ? "docked" : "composer");
     await app.focus.typeWithoutRefocusing("Keep projects open");
     await app.focus.submitDraft();
@@ -42,6 +41,14 @@ for (const width of [1680, 1024, 1280]) {
     await app.focus.typeWithoutRefocusing("After closing Projects");
   });
 }
+
+test("centers home beside the open sidebar on a wide screen", async () => {
+  await app.browser.setViewport(1680);
+
+  await app.projects.open();
+
+  await app.projects.shouldCenterWorkspace("home");
+});
 
 test("keeps phone navigation modal and open through session selection and creation", async () => {
   await app.browser.setViewport(390, 844);
