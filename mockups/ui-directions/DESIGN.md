@@ -1,6 +1,6 @@
 # UI directions
 
-- Revision: 3. Status: in review. Approval: not yet requested or received.
+- Revision: 4. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -9,6 +9,7 @@
 - Studio: cool grey, blue, low-noise command centre. Codex-inspired multi-agent organisation.
 - Warm paper: ivory, clay, serif headings and more generous rows. Claude-inspired conversational calm.
 - Night shift: graphite, violet, tighter rows and branch metadata. T3 Code-inspired developer density.
+- Session-state colours across all themes: blocked red, ready green, working orange, later gray. Theme accent colours remain independent.
 - Inspiration, not replicas. Source research used public product descriptions, not authenticated app inspection.
 
 ## Home comparison
