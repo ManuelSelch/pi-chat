@@ -245,10 +245,12 @@ export class BrowserInboxDriver {
     const row = button.locator("..");
     const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
     if (await archive.count()) {
+      await row.hover();
+      const hoveredPrimary = await primary.boundingBox();
       const actionBox = await archive.boundingBox();
-      expect(primaryBox!.x + primaryBox!.width).toBeLessThanOrEqual(actionBox!.x);
-      const secondaryPadding = await secondary.evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
-      expect(secondaryBox!.x + secondaryBox!.width - secondaryPadding).toBeLessThanOrEqual(actionBox!.x);
+      expect(hoveredPrimary!.x + hoveredPrimary!.width).toBeLessThanOrEqual(actionBox!.x);
+      expect(Math.abs((hoveredPrimary!.y + hoveredPrimary!.height / 2) - (actionBox!.y + actionBox!.height / 2))).toBeLessThanOrEqual(1);
+      expect(actionBox!.y + actionBox!.height).toBeLessThanOrEqual(secondaryBox!.y + 1);
     }
   }
   async shouldHideRunningActions(title: string): Promise<void> {
