@@ -1,6 +1,6 @@
 # UI directions
 
-- Revision: 5. Status: in review. Approval: not yet requested or received.
+- Revision: 6. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -29,7 +29,7 @@
 - Move to Later, restore from Later, simulate agent completion, start simulated sessions.
 - Composer has local model/project selection. Selection does not route to a backend.
 - All-working and empty states show a caught-up inbox; fake completion moves a working session into Ready to review.
-- Cmd/Ctrl+Enter submits the composer. No real folder picker, runtime, diff, settings or provider connection.
+- No visible send button; Cmd/Ctrl+Enter submits the composer. No real folder picker, runtime, diff, settings or provider connection.
 - Static update: no timers, persistence or backend calls. No production behavior is approved for removal.
 
 ## Research / comparison
