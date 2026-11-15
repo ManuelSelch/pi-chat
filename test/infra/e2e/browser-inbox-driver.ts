@@ -86,8 +86,8 @@ export class BrowserInboxDriver {
   async shouldShowHome(): Promise<void> {
     await expect(this.page.getByRole("textbox", { name: "Message Pi" })).not.toBeVisible();
     await expect(this.page.getByRole("textbox", { name: "Search sessions and projects", exact: true })).toBeVisible();
-    await expect(this.page.getByRole("main").getByRole("button", { name: "New session", exact: true })).toBeVisible();
-    await expect(this.page.getByRole("button", { name: "Open folder", exact: true })).toBeVisible();
+    await expect(this.page.getByRole("main").getByRole("button", { name: "New session", exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("main").getByRole("button", { name: "Open folder", exact: true })).toHaveCount(0);
   }
   async shouldBeInSection(title: string, section: "Working" | "Ready" | "Needs you"): Promise<void> {
     await expect(this.panel().getByRole("region", { name: section, exact: true }).getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();

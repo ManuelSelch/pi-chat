@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent } from "react";
-import { Badge, Box, Button, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { Badge, Box, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { THEME } from "../../ui/theme.js";
-import { IconFolder, IconMessage, IconPlus, IconSearch } from "@tabler/icons-react";
+import { IconFolder, IconMessage, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildQuickOpenItems, rankQuickOpen } from "../quick-open/quick-open.js";
 import { relativeTime } from "../../ui/relative-time.js";
@@ -11,7 +11,6 @@ interface HomeProps {
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: () => void;
-  onOpenFolder: () => void;
 }
 
 /**
@@ -19,7 +18,7 @@ interface HomeProps {
  * modal: the same ranking, but always visible, because there is nothing behind
  * it to go back to.
  */
-export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, onOpenFolder }: HomeProps) {
+export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: HomeProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
@@ -71,14 +70,6 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession, on
             onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
             onKeyDown={onKeyDown}
           />
-          <Group justify="center">
-             <Button variant="default" leftSection={<IconPlus size={16} />} onClick={onNewSession}>
-              New session
-            </Button>
-            <Button variant="default" leftSection={<IconFolder size={16} />} onClick={onOpenFolder}>
-              Open folder
-            </Button>
-          </Group>
         </Stack>
 
         <Box h={320}>

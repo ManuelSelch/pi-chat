@@ -66,7 +66,6 @@ function AppContent() {
             onOpenSession={chat.openSession}
             onOpenProject={chat.openProject}
             onNewSession={() => chat.newSession()}
-            onOpenFolder={() => overlays.open("folderPicker")}
           />
         ) : (
           <MessageListContainer footerHeight={footerHeight + FOOTER_GAP} />

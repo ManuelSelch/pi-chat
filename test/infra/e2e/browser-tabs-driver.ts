@@ -31,7 +31,9 @@ export class BrowserTabsDriver {
     const index = await this.tabs().count();
     const release = this.world.reserveSession(options.responses, options);
     try {
-      await this.page.getByRole("button", { name: "New session", exact: true }).click();
+      const homeSearch = this.page.getByRole("main").getByRole("textbox", { name: "Search sessions and projects" });
+      if (await homeSearch.isVisible()) await homeSearch.press("Enter");
+      else await this.page.getByRole("button", { name: "New session", exact: true }).click();
       await expect(this.tabs()).toHaveCount(index + 1);
       const composer = this.page.getByRole("textbox", { name: "Message Pi" });
       await expect(composer).toBeVisible();
