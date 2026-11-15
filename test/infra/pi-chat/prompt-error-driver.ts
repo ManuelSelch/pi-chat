@@ -3,7 +3,7 @@ import { PiChatDriver } from "./pi-chat-driver.js";
 
 function invalidSectionExtension(pi: ExtensionAPI): void {
   pi.on("before_agent_start", async event => {
-    if (event.prompt === "Invalid section") event.systemPromptOptions.sections.agenticFlow = "Invalid";
+    if ("prompt" in event && event.prompt === "Invalid section") event.systemPromptOptions.sections.agenticFlow = "Invalid";
   });
 }
 

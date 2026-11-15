@@ -11,11 +11,13 @@ export class BrowserDriver {
     check(this.context, "Browser.Reconnect", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Reconnect changed the active conversation"));
   }
 
-  async takeControl(): Promise<void> {
+  async openSecondBrowser(): Promise<void> {
     const previousSession = this.context.client.appState.activeSessionId;
-    await this.context.takeControl();
-    check(this.context, "Browser.TakeControl", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Taking control changed the active conversation"));
+    await this.context.openSecondBrowser();
+    check(this.context, "Browser.OpenSecondBrowser", () => assert.equal(this.context.client.appState.activeSessionId, previousSession, "Opening another browser changed the active conversation"));
   }
+
+  switchBrowser(): void { this.context.switchBrowser(); }
 
   shouldShowError(message: string): void {
     check(this.context, "Browser.ShouldShowError", () => assert(this.context.client.appState.error?.includes(message)));

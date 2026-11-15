@@ -18,7 +18,7 @@ flowchart LR
 | Owner | Responsibility |
 |---|---|
 | [Pi Chat](../src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
-| [pi-server](https://github.com/ManuelSelch/pi-server) | HTTP/WebSocket hosting, controller admission, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
+| [pi-server](https://github.com/ManuelSelch/pi-server) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
 | [pi-sdk-typescript](https://github.com/ManuelSelch/pi-sdk-typescript) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
 
@@ -230,6 +230,6 @@ Chat does not carry a second source inventory or runnable server profiler.
 The server can execute tools and access files with its user's permissions. It
 has no application authentication; bind to loopback/private interfaces and use a
 trusted authenticated TLS proxy/VPN for remote access. Endpoint preferences do
-not bypass origin/controller protections. Logs are bounded/redacted and belong
+not bypass origin protections. Logs are bounded/redacted and belong
 to the host/server; connection diagnostics must not log chat frames or secrets.
 See [configuration](configuration.md) and [development](development.md).

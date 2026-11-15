@@ -52,7 +52,7 @@ readable. Consuming a scripted response alone does not prove it reached a client
 | Driver | Current operations / assertions |
 |---|---|
 | `Chat` | Send prompt, steer, wait for streaming/idle, release held response, abort; assert ordered history, exact counts, replies, queue and consumed responses |
-| `Browser` | Reconnect, take control; assert usable/Home state |
+| `Browser` | Reconnect, open and switch between browsers; assert usable/Home state |
 | `Tabs` | Create, switch, close, open persisted history, obtain saved path; assert active handle/membership/count |
 | `Projects` | Browse/open server folders; assert current project or retained Home |
 | `Extensions` | Run registered extension commands, wait/respond to opaque prompt handles, observe notifications/widgets and prompt removal |
@@ -70,7 +70,7 @@ readable. Consuming a scripted response alone does not prove it reached a client
 - Tab operations must be awaited serially. Opaque handles reject foreign/closed
   identities; saved-history reopening restores a new runtime identity.
 - Reconnect creates a fresh client/projection rather than trusting cached
-  transcript data. Take-control tests verify the previous controller closes.
+  transcript data. Multi-browser tests verify both clients remain connected and receive updates.
 - `extensions.runCommand` waits for first fresh visible UI output, not completion
   of a blocked command. Answer prompts explicitly; prompt handles enforce
   conversation ownership and cannot be reused after settlement.

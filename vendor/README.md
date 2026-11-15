@@ -1,29 +1,13 @@
 # Dependency provenance
 
-Chat pins the coordinated unpublished `/model` scope candidate of
-`@manuelselch/pi-sdk` via a file archive in [model-search](model-search/).
-[SOURCE.json](model-search/SOURCE.json) records its source revision and SHA-256
-checksum; the lockfile records SHA-512 integrity. Pi Server temporarily uses
-[live-checkouts](live-checkouts/SOURCE.json): the previous
-[prompt-errors](prompt-errors/SOURCE.json) artifact plus live checkout discovery,
-runtime-replacement catalogue refresh and protocol documentation compiled from
-the recorded server revision. Its original Pi 1.0.2 dependencies are retained for
-Chat's test harness; this is a local test artifact, not a published server release.
-
-No dependency overrides or installed-source patches are used in Chat. A clean
-Chat install needs no sibling checkouts. Both archives are local verification
-snapshots, not registry releases.
-
-To reproduce Pi Server source verification against the coordinated SDK
-candidate, install the SDK archive without saving over its registry manifest,
-then build/test:
-`npm install --no-save --package-lock=false --ignore-scripts <SDK archive path>`.
-The server source's registry SDK 0.2.0 alone does not contain model-scope metadata.
+Chat pins published Pi Server 0.3.0 and TypeScript SDK 0.2.1 registry
+releases. The lockfile records their package integrity. No dependency overrides
+or installed-source patches are used; a clean install needs no sibling checkouts.
 
 `npm run verify:dependencies` checks the installed public server API and wire
 version; it is not a source-revision/checksum verifier or proof of publication.
 [Dependency fixture tests](../test/infra-tests/npm-dependencies.test.ts) inspect
-archive pins, source receipts, checksums, lock integrity, SDK deduplication and
+registry pins, lock integrity, SDK deduplication and
 the public API.
 Use the [development workflow](../docs/development.md) after an authorized update.
 Clean installation needs no sibling server/SDK checkout or Swift toolchain.

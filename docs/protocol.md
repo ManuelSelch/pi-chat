@@ -22,9 +22,8 @@ contract installed by this checkout; upstream main may be newer.
   Inventory, snapshots, selected capabilities and server/connection identity are
   initialized together. Catalogue revision zero can be a cold-start placeholder;
   later discovery arrives through a catalogue update.
-- A new controller replaces the old controller only after initialization.
-  Superseded connections close with code `4001` and do not automatically fight
-  for control. User action explicitly calls `takeControl()`.
+- Multiple initialized clients may connect simultaneously. Server events are
+  published to each ready client; each browser retains its own navigation and drafts.
 - Origin validation still applies behind a proxy. The server and SDK do not add
   authentication/OAuth; protect the backend as described in
   [configuration](configuration.md#private-network-access).

@@ -107,6 +107,11 @@ export class ChatDriver {
     check(this.context, "Chat.ShouldHaveMessageCount", () => assert.equal(this.context.client.chat.messages.length, count));
   }
 
+  async waitForAssistantReply(text: string): Promise<void> {
+    const { client } = this.context;
+    await client.wait("Chat.WaitForAssistantReply", `assistant reply ${JSON.stringify(text)}`, () => client.chat.messages.some(m => m.role === "assistant" && m.text === text));
+  }
+
   shouldHaveAssistantReply(text: string): void {
     check(this.context, "Chat.ShouldHaveAssistantReply", () => assert(this.context.client.chat.messages.some(m => m.role === "assistant" && m.text === text), `Missing assistant reply ${JSON.stringify(text)}`));
   }

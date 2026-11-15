@@ -36,6 +36,7 @@ export class PiChatDriver {
   readonly projects: ProjectDriver;
   readonly extensions: ExtensionDriver;
   private disposal?: Promise<void>;
+  private static readonly otherClients = new WeakMap<DriverContext, BrowserClient>();
 
   private constructor(
     private readonly context: DriverContext,
@@ -83,12 +84,22 @@ export class PiChatDriver {
           context.client = new BrowserClient(listeningServer, timeoutMs, active);
           await context.client.ready("Browser.Reconnect");
         },
-        async takeControl() {
+        async openSecondBrowser() {
+          assert(!PiChatDriver.otherClients.has(context), "Second browser already open");
           const previous = context.client;
           const next = new BrowserClient(listeningServer, timeoutMs, previous.appState.activeSessionId);
-          await next.ready("Browser.TakeControl");
-          await previous.waitForClose();
+          try {
+            await next.ready("Browser.OpenSecondBrowser");
+            assert.equal(previous.sdk.getState().connection.phase, "ready", "Original browser disconnected");
+          } catch (error) { await next.close(); throw error; }
+          PiChatDriver.otherClients.set(context, previous);
           context.client = next;
+        },
+        switchBrowser() {
+          const other = PiChatDriver.otherClients.get(context);
+          assert(other, "Second browser is not open");
+          PiChatDriver.otherClients.set(context, context.client);
+          context.client = other;
         },
       };
       const app = new PiChatDriver(context, server, world);
@@ -104,7 +115,10 @@ export class PiChatDriver {
   }
 
   dispose(): Promise<void> {
-    this.disposal ??= cleanup(this.context.client, this.server, this.world);
+    this.disposal ??= (async () => {
+      try { await PiChatDriver.otherClients.get(this.context)?.close(); }
+      finally { await cleanup(this.context.client, this.server, this.world); }
+    })();
     return this.disposal;
   }
 }

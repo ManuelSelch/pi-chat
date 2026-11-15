@@ -8,7 +8,8 @@ export interface DriverContext {
   readonly projectPath: string;
   reserveSession(responses: readonly AssistantResponse[]): () => void;
   reconnect(): Promise<void>;
-  takeControl(): Promise<void>;
+  openSecondBrowser(): Promise<void>;
+  switchBrowser(): void;
   remainingResponses(): number;
   nextPrompt(): string | undefined;
   releaseControlledResponse(): void;

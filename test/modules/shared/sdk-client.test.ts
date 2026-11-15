@@ -19,7 +19,12 @@ it("uses the public v2 SDK against the actual loopback host, with admission and 
     expect(id).not.toBe("fake-session"); expect(client.getSession(id)?.sessionPath).toBe("fake-session.jsonl");
     const transcript = new Promise<void>(resolve => { const stop = client.onMessage(message => { if (message.type === "event" && message.event === "message.finalized") { stop(); resolve(); } }); });
     await expect(client.prompt(id, "hello")).resolves.toMatchObject({ state: "accepted" }); await transcript; expect(prompt).toHaveBeenCalledOnce();
-    const superseded = phase(client, "superseded"); const next = new PiClient({ endpoint: `ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`, transport: createWebSocketTransport(url => new WebSocket(url)) });
-    try { const nextReady = phase(next, "ready"); next.start(); await nextReady; await superseded; expect(next.getState().inventory[0]!.sessionId).toBe(id); } finally { next.dispose(); }
+    const next = new PiClient({ endpoint: `ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`, transport: createWebSocketTransport(url => new WebSocket(url)) });
+    try {
+      const nextReady = phase(next, "ready"); next.start(); await nextReady;
+      expect(client.getState().connection.phase).toBe("ready");
+      expect(next.getState().inventory[0]!.sessionId).toBe(id);
+      await expect(client.prompt(id, "from first browser")).resolves.toMatchObject({ state: "accepted" });
+    } finally { next.dispose(); }
   } finally { client.dispose(); await server.close(); }
 });

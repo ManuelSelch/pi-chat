@@ -39,9 +39,8 @@ export default function demo(_pi: ExtensionAPI): void {
 The registry below is distinct from Pi's native `ctx.ui` prompt/widget methods.
 Those interactions use server-owned registries and SDK presentation state:
 
-- Questions may occur outside a model turn. They expire after five minutes;
-  losing the controller starts a 60-second grace period. Minimize/reopen is
-  browser-only and does not pause either timer or submit an answer.
+- Questions may occur outside a model turn. Minimize/reopen is browser-only
+  and does not submit an answer. Prompt lifecycle is owned by the server.
 - Rich prompt bodies reuse safe lazy Markdown/code/math rendering without raw
   HTML or remote images. Question choices can require explicit Continue;
   ordinary literal menus remain immediate. Draft/selection/minimized state is

@@ -52,6 +52,29 @@ it("cleans up the runtime and client if startup cannot obtain a snapshot", async
   app.browser.shouldBeUsable();
 });
 
+it("keeps and disposes both browser connections", async () => {
+  app = await PiChatDriver.start();
+  const close = vi.spyOn(BrowserClient.prototype, "close");
+
+  await app.browser.openSecondBrowser();
+  app.browser.switchBrowser();
+  app.browser.shouldBeUsable();
+  await app.dispose();
+
+  expect(close).toHaveBeenCalledTimes(2);
+});
+
+it("cleans up a second browser that fails to initialize", async () => {
+  app = await PiChatDriver.start();
+  vi.spyOn(BrowserClient.prototype, "ready").mockRejectedValueOnce(new Error("Injected second browser failure"));
+  const close = vi.spyOn(BrowserClient.prototype, "close");
+
+  await expect(app.browser.openSecondBrowser()).rejects.toThrow("Injected second browser failure");
+
+  expect(close).toHaveBeenCalledTimes(1);
+  app.browser.shouldBeUsable();
+});
+
 it("reports failed tab creation and releases its script reservation for retry", async () => {
   app = await PiChatDriver.start({ startAtHome: true });
   vi.spyOn(TestWorld.prototype, "create").mockRejectedValueOnce(new Error("Injected session creation failure"));
