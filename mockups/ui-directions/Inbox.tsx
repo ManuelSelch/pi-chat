@@ -10,7 +10,6 @@ export function SessionRow({ session: s, onOpen, onLater }: { session: Session; 
       <span className={`mini-dot session-status ${s.status}`} role="img" aria-label={labels[s.status]}/>
       <span className="row-content">
         <span className="row-title">{s.title}</span>
-        <span className="row-summary">{s.summary}</span>
         <span className="row-meta"><span>{s.project}</span><span className="branch"><IconGitBranch size={12}/>{s.branch}</span></span>
       </span>
       <span className="row-outcome">
