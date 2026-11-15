@@ -1,3 +1,10 @@
+.inline {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+  padding: 4px;
+  background: var(--mantine-color-default);
+}
+
 /* Mantine's unlayered UnstyledButton reset may load after this module.
    Higher specificity preserves these overrides regardless of import order. */
 .row.row {

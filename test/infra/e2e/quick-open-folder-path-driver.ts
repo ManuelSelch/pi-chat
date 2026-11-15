@@ -4,14 +4,18 @@ import type { TestWorld } from "../pi-chat/test-world.js";
 export class QuickOpenFolderPathDriver {
   constructor(private readonly page: Page, private readonly world: TestWorld) {}
 
+  private input() {
+    return this.page.getByRole("textbox", { name: /^(Search folders, worktrees, sessions and actions|Search sessions and projects)$/ });
+  }
+
   async close(): Promise<void> {
     await this.page.keyboard.press("Escape");
-    await expect(this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" })).not.toBeVisible();
+    await expect(this.page.getByRole("listbox", { name: "Folders, worktrees, sessions and actions" })).not.toBeVisible();
   }
 
   async open(): Promise<void> {
     await this.page.keyboard.press("Meta+o");
-    await expect(this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" })).toBeVisible();
+    await expect(this.input()).toBeFocused();
   }
 
   private session(title: string) {
@@ -26,7 +30,7 @@ export class QuickOpenFolderPathDriver {
     await expect(result).not.toContainText("New session");
   }
   async shouldFindWorktreeSessionByTitle(title: string, repositoryName: string, branch: string): Promise<void> {
-    await this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" }).fill(`@${title}`);
+    await this.input().fill(`@${title}`);
     await this.shouldShowWorktreeSession(repositoryName, branch);
   }
   async shouldShowSessionOnce(title: string): Promise<void> { await expect(this.session(title)).toHaveCount(1); }
@@ -64,7 +68,7 @@ export class QuickOpenFolderPathDriver {
   }
 
   async searchByFolderPath(): Promise<void> {
-    await this.page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" }).fill("%palette-checkout");
+    await this.input().fill("%palette-checkout");
   }
 
   async shouldFindMatchingFolderWithoutShowingItsPath(): Promise<void> {

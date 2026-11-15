@@ -171,8 +171,9 @@ container query on the composer column, which inline styles cannot express.
 
 Runtime prompts represent server/extension interactions, distinct from generic
 application confirmations in `ui/confirm/`. Rich prompts reuse chat's lazy
-Markdown renderer; it is not exclusively a transcript/tool dependency. Home and
-Quick Switcher share ranking helpers within `sessions/`. Global layer order,
+Markdown renderer; it is not exclusively a transcript/tool dependency. Home embeds
+the same Quick Switcher component and data wiring used by the dialog; the global
+shortcut focuses its inline input on Home. Global layer order,
 Markdown styles, the widget grid container query and shared animations remain in
 `app/styles.css`; component CSS modules stay beside their consumers.
 

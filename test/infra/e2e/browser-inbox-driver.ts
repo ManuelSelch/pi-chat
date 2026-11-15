@@ -110,7 +110,7 @@ export class BrowserInboxDriver {
   }
   async shouldShowSearchResult(title: string): Promise<void> {
     await expect(this.page.getByRole("main").getByRole("option", { name: new RegExp(title) })).toBeVisible();
-    await expect(this.page.getByRole("main").getByRole("region", { name: "Ready", exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("main").getByRole("region", { name: "Ready", exact: true })).toBeVisible();
   }
   async shouldShowHomeActivity(titles: readonly string[], excluded: readonly string[] = []): Promise<void> {
     const main = this.page.getByRole("main");
