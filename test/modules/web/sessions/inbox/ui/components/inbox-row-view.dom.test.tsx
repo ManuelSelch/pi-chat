@@ -42,6 +42,17 @@ it.each([[60_000, "1m"], [120 * 60_000, "2h"], [3 * 24 * 60 * 60_000, "3d"], [0,
   } finally { vi.restoreAllMocks(); }
 });
 
+it.each([
+  ["idle", false, "--mantine-color-green-6"],
+  ["blocked", false, "--mantine-color-red-6"],
+  ["running", false, "--mantine-color-orange-6"],
+  ["idle", true, "--pi-status-later"],
+] as const)("uses the correct indicator for %s (Later=%s)", (status, later, color) => {
+  mount({ ...row(), status }, later);
+
+  expect(screen.getByRole("img").getAttribute("style")).toContain(color);
+});
+
 it("keeps Later untimed", () => {
   mount({ ...row(), modified: Date.now() - 60_000 }, true);
 

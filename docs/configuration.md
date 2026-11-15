@@ -114,20 +114,24 @@ the server's Pi environment, not by adding secrets to the endpoint URL.
 
 ## Pi themes
 
-Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,
-status colors, messages and diff colors. Extension widgets use the same runtime's
-Pi colors; literal RGB and already-rendered ANSI strings are preserved.
+- Pi Chat always uses **Night shift**: graphite surfaces, violet accent and dark
+  controls/dialogs, independently of session themes and browser appearance.
+- Session states are blocked red, ready green, working orange and Later gray.
+- The fixed palette lives in `src/web/app/theme/night-shift-theme.ts`. There is
+  no browser theme selector. Old `pi-chat:lastTheme` storage is ignored, not migrated.
+- Runtime Pi themes still control extension-generated ANSI output, not Chat's
+  shell, messages or diff colours. Literal RGB and already-rendered ANSI strings
+  are preserved. The bundled [Classic themes](../themes/README.md) remain available
+  for Pi terminal/runtime output.
 
-For the original Pi Chat palette, use the bundled [Classic light and dark
-themes](../themes/README.md). That guide covers installation, terminal appearance
-pairs and the limits of matching the original browser colors.
+To configure a **runtime Pi theme**:
 
 - Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
   project theme resource allowed by Pi's existing trust/resource rules).
   Start from a valid Pi theme, not a partial Mantine palette.
 - Select it with `"theme": "my-theme"` in Pi's effective settings, for example
   `~/.pi/agent/settings.json`. Set the theme file's `appearance` to `light`
-  or `dark`; Chat follows it rather than browser appearance.
+  or `dark`; this no longer changes Chat's fixed appearance.
 - Use concrete colors for every Pi token, including text. Avoid empty/default
   terminal colors for headless use. Pi variables and its supported color formats
   work. Optional Pi `export.pageBg`, `export.cardBg`, and `export.infoBg`
@@ -139,26 +143,17 @@ pairs and the limits of matching the original browser colors.
 **Lifetime and limits:** themes resolve when a runtime is created or replaced,
 not on `/reload`. To apply edited theme files, close the runtime and open/create
 it again; opening an already-running runtime returns its existing cached palette.
-Tab changes use each runtime's cached palette, including inside portalled dialogs.
-Ordinary snapshots, explicit reload and same-server reconnect preserve the cache;
-close or server-instance changes clear it.
+Ordinary snapshots, explicit reload and same-server reconnect preserve the SDK
+runtime-theme cache; close or server-instance changes clear it. Initialization
+still carries no palette. Required theme metadata in open/create responses is
+validated even though it no longer controls browser appearance; malformed or
+missing themes are rejected, not silently accepted.
 
-Separately, Pi Chat remembers the last selected runtime's resolved palette in
-browser-local storage (`pi-chat:lastTheme`). Home, settings and dialogs keep this
-appearance after all sessions close, and browser refresh restores it. A selected
-runtime's palette takes precedence and updates the remembered appearance;
-background sessions do not. This does not restore SDK cache entries or recolor
-extension widgets. Remembered colors may remain stale until a selected runtime
-supplies its actual palette. Storage is per browser origin, not per server process.
-
-Initialization still carries no palette. A new client with no valid remembered
-palette uses Mantine's auto-scheme defaults until a successful open/create
-response. Invalid or unavailable storage is ignored; if writes fail, appearance
-is retained in memory until the page closes. There are no hidden recovery
-requests, theme selector, watcher or browser-to-terminal synchronization.
-Syntax highlighting retains its existing light/dark palettes. Theme data is
-required in open/create responses; older responses without it are rejected,
-not silently accepted.
+Night shift applies immediately before any session opens and stays unchanged
+across tab switches, reconnects, closing all sessions and page refresh. Home,
+settings and portalled dialogs share the same fixed theme. Syntax highlighting
+uses the existing GitHub-dark palette. There are no hidden recovery requests,
+theme watcher or browser-to-terminal synchronization.
 
 ## Private network access
 

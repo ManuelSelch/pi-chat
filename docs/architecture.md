@@ -179,12 +179,12 @@ the composer column: at most two bottom-aligned cards per row, and a lone last
 card of an odd count spans the row. Below-composer and docked widgets remain
 stacked.
 
-Theme production belongs to each server runtime. Required open/create palettes
-populate the SDK's runtime cache; ordinary snapshots/reload do not refresh it.
-Chat maps the selected palette to root Mantine variables, including portals.
-Browser-owned remembered appearance is separate from the SDK cache and does not
-recolor extension ANSI output. See [theme configuration](configuration.md#pi-themes)
-for lifetime, fallback and persistence limits.
+Pi Chat owns its fixed Night shift appearance through `AppThemeProvider` and
+root Mantine variables, including portals. Session selection and browser theme
+storage cannot recolor it. Runtime Pi themes still color extension ANSI output;
+required open/create palettes populate the SDK cache, and ordinary snapshots/reload
+do not refresh it. No runtime palette is applied to the application shell.
+See [theme configuration](configuration.md#pi-themes) for the runtime boundary.
 
 ### File links and content presentation
 

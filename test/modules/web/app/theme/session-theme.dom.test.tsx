@@ -25,78 +25,94 @@ async function open(id: string, appearance: "dark" | "light" = "dark") {
   await act(async () => Socket.current.reply({ summary: summary(snapshot), snapshot, theme }));
   return theme;
 }
-function paletteCss() { return [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n"); }
+function shouldUseNightShift() {
+  expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
+  expect(screen.getByRole("dialog").textContent).toContain("#b39af6");
+  const css = [...document.querySelectorAll("style[data-mantine-styles]")].map(el => el.textContent).join("\n");
+  expect(css).toContain("--mantine-color-body: #18191e");
+}
 beforeEach(() => { vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); localStorage.clear(); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-it("selects cached palettes locally, covers portals and retains them through snapshots/reconnect", async () => {
+it("caches runtime palettes without recoloring the app on switching, snapshots or reconnect", async () => {
   mount();
   expect(controller!.app.themes).toEqual({});
+  shouldUseNightShift();
+
   const dark = await open("a");
   const light = await open("b", "light");
-  expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
-  expect(screen.getByRole("dialog").textContent).toContain(light.colors.accent);
+  expect(controller!.app.themes).toEqual({ a: dark, b: light });
+  shouldUseNightShift();
   expect(document.getElementById("root")?.contains(screen.getByRole("dialog")) ?? false).toBe(false);
-  expect(paletteCss()).toContain("--mantine-color-body: #111111");
+
   const requests = Socket.current.requests.length;
   act(() => controller.focusTab("a"));
-  expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
-  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
   expect(Socket.current.requests).toHaveLength(requests);
+  shouldUseNightShift();
+
   act(() => Socket.current.deliver(snapshotEvent({ sessionId: "b", throughSequence: 1 })));
-  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
+  shouldUseNightShift();
   act(() => Socket.current.deliver(snapshotEvent({ sessionId: "a", throughSequence: 1 })));
   expect(controller!.app.themes.a).toEqual(dark);
+
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); Socket.current.initialize([snapshotData({ sessionId: "a" }), snapshotData({ sessionId: "b" })]); });
   expect(controller!.app.themes).toEqual({ a: dark, b: light });
-  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
+  shouldUseNightShift();
 });
 
-it("clears SDK caches but remembers appearance on close, replacement and server-instance change", async () => {
-  mount(); const dark = await open("a");
+it("clears SDK caches on replacement, close and server-instance change without changing app appearance", async () => {
+  mount();
+  await open("a");
+
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", event: "session.replaced", data: { previousSessionId: "a", snapshot: snapshotData({ sessionId: "replacement" }) } }));
   expect(controller!.app.themes).toEqual({});
-  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
-  expect(paletteCss()).toContain("--pi-user-bg");
-  const light = await open("b", "light");
+  shouldUseNightShift();
+
+  await open("b", "light");
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", sessionId: "b", sequence: 1, event: "session.closed", data: { reason: "requested" } }));
   expect(controller!.app.themes).toEqual({});
-  expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
-  expect(screen.getByRole("dialog").textContent).toContain(light.colors.accent);
+  shouldUseNightShift();
+
   await open("c");
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); });
   act(() => Socket.current.reply({ ...initializeResult([snapshotData({ sessionId: "c" })]), serverInstanceId: "new-process" }));
   expect(controller!.app.themes).toEqual({});
-  expect(screen.getByRole("dialog").textContent).toContain(dark.colors.accent);
-  expect(paletteCss()).toContain("--pi-user-bg");
+  shouldUseNightShift();
 });
 
 it.each([undefined, null, { ...themeData(), colors: { ...themeData().colors, accent: "url(evil)" } }])("rejects malformed/missing required theme without caching it (%j)", async theme => {
-  mount(); act(() => controller.newSession("/project"));
+  mount();
+  act(() => controller.newSession("/project"));
   const snapshot = snapshotData({ sessionId: "bad" });
+
   await act(async () => Socket.current.reply({ summary: summary(snapshot), snapshot, theme }));
+
   expect(controller!.app.themes).toEqual({});
   expect(controller!.app.error).toBeTruthy();
+  shouldUseNightShift();
 });
 
-it("a rejected theme cannot replace remembered appearance or populate an SDK cache", async () => {
+it("a rejected runtime theme cannot affect app appearance or populate an SDK cache", async () => {
   mount();
-  const remembered = await open("a", "light");
+  await open("a", "light");
   act(() => Socket.current.deliver({ version: 2, type: "event", serverInstanceId: "process", sessionId: "a", sequence: 1, event: "session.closed", data: { reason: "requested" } }));
   act(() => controller.newSession("/project"));
   const snapshot = snapshotData({ sessionId: "bad" });
   const invalid = { ...themeData(), colors: { ...themeData().colors, accent: "url(evil)" } };
+
   await act(async () => Socket.current.reply({ summary: summary(snapshot), snapshot, theme: invalid }));
+
   expect(controller!.app.themes).toEqual({});
   expect(controller!.app.error).toBeTruthy();
-  expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
-  expect(screen.getByRole("dialog").textContent).toContain(remembered.colors.accent);
-  expect(JSON.parse(localStorage.getItem("pi-chat:lastTheme")!)).toEqual(remembered);
+  shouldUseNightShift();
+  expect(localStorage.getItem("pi-chat:lastTheme")).toBeNull();
 });
 
-it("uses defaults when no palette was remembered and initialization has no theme", () => {
+it("keeps Night shift when initialization restores sessions without palettes", () => {
   mount();
+
   act(() => { Socket.current.close(); vi.advanceTimersByTime(250); Socket.current.acceptConnection(); Socket.current.initialize([snapshotData({ sessionId: "existing" })]); });
+
   expect(controller!.app.themes).toEqual({});
-  expect(paletteCss()).not.toContain("--pi-user-bg");
+  shouldUseNightShift();
 });

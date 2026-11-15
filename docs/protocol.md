@@ -89,8 +89,8 @@ There is no offline mutation queue, replay journal or implicit heartbeat.
 Open/create theme metadata is required. Snapshot, reload and initialization do
 not provide replacement palettes. The SDK retains eligible same-server runtime
 cache entries across reconnect, and clears them on runtime removal/replacement
-or server-instance changes. Browser remembered appearance is not restored into
-this cache; see [themes](configuration.md#pi-themes).
+or server-instance changes. Pi Chat's fixed Night shift appearance is independent
+of this cache; see [themes](configuration.md#pi-themes).
 
 ## Verification ownership
 

@@ -158,7 +158,7 @@ shell and `AppOverlays`; features do not import those composition components.
 `app/state/` and `app/connection/` depend on SDK/shared types and application
 state, not feature presentation. The composition boundary is broader:
 `usePiChat` integrates Inbox lifecycle and endpoint loading, while
-`AppControllerProvider` composes prompt presentation, runtime themes, session
+`AppControllerProvider` composes prompt presentation, fixed Night shift appearance, session
 drafts and file actions. Most imports address files directly; server settings
 has an existing public entry point at `settings/server/index.ts`. Include
 type-only imports when reviewing dependency boundaries.

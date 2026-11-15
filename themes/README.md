@@ -13,6 +13,6 @@ For automatic terminal appearance selection, set the `theme` field in `~/.pi/age
 pi --use-theme pi-chat-classic-light/pi-chat-classic-dark
 ```
 
-The primary, text, neutral surfaces, border, link and status colors follow the old application palette. Additional terminal-only roles are mapped to matching colors. Pi does not paint the terminal's whole background: use `#ffffff` for light or `#242424` for dark in your terminal configuration for an exact page-background match.
+These themes are for Pi terminal/runtime output, not Pi Chat's fixed Night shift interface. Their primary, text, neutral surfaces, border, link and status colors follow the old application palette. Additional terminal-only roles are mapped to matching colors. Pi does not paint the terminal's whole background: use `#ffffff` for light or `#242424` for dark in your terminal configuration for an exact page-background match.
 
-Pi Chat's existing server chooses the dark member of an automatic pair. Select the light theme explicitly for new light Pi Chat runtimes. Existing runtime themes do not update automatically. The current browser adapter also derives interaction shades, so these themes restore the original palette rather than guarantee a pixel-identical copy of every Mantine state.
+Pi Chat's existing server chooses the dark member of an automatic pair. Select the light theme explicitly for new light Pi runtimes. Existing runtime themes do not update automatically. Runtime theme choices affect extension-produced ANSI output, but no longer recolor Pi Chat's shell, controls, messages or dialogs.
