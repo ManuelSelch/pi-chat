@@ -19,7 +19,7 @@ export function HeaderContainer() {
     const project = app.catalogue.projects.find(project => project.path === selected?.projectPath);
     const headerSession = selected && project?.quickChats ? { ...selected, projectName: "Quick Chat" } : selected;
     return <InboxHeader session={headerSession} title={selected?.title ?? (home ? "Home" : undefined)}
-      onHome={chat.showHome} branch={project?.worktree?.branch}
+      branch={project?.worktree?.primary === false ? project.worktree.branch : undefined}
       opened={overlays.state.projects} disabled={app.connection !== "open"} pending={chat.inbox.pending} saved={hasSavedSession(app.catalogue, selected?.sessionPath)}
       buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction}
       onToggle={() => { overlays.toggle("projects"); if (overlays.projectsPresentation === "sidebar") focusComposer(); }}

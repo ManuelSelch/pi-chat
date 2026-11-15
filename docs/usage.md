@@ -58,8 +58,8 @@ Home combines search and new-session access with compact **Blocked**, **Ready**,
 collapsed **Working** and collapsed **Later** lists. Typing replaces activity with matching sessions/projects;
 clearing search restores it. Press Enter on an empty search to start a session.
 The sidebar contains project sessions and Settings, without Home/Inbox buttons.
-Use the header Home icon to return without closing sessions, answering prompts or
-discarding drafts. Selecting a card opens the existing session view.
+Use the header close button to return Home; it closes empty idle sessions while preserving nonempty sessions, prompts and drafts. Selecting a card opens the existing session view.
+The header shows the branch instead of the conversation title for a linked worktree; other sessions show their conversation title.
 Project and worktree branch labels are prominent, with the smaller, gray
 conversation name underneath, including in Later. Working sessions also remain in their
 sidebar project. Sidebar dots sit beside the session or worktree name without timestamps;

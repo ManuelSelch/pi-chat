@@ -98,8 +98,7 @@ export class BrowserInboxDriver {
     await expect(this.panel().getByRole("button", { name: /^Open / }).filter({ has: this.page.getByRole("img", { name: status, exact: true }) })).toHaveCount(count);
   }
   async goHome(): Promise<void> {
-    await this.page.getByRole("banner").getByRole("button", { name: "Go to Home", exact: true }).click();
-    await this.shouldShowHome();
+    await this.closeView();
   }
   async shouldHaveNoPageNavigation(): Promise<void> {
     await expect(this.panel().getByRole("button", { name: "Home", exact: true })).toHaveCount(0);
@@ -185,6 +184,13 @@ export class BrowserInboxDriver {
       expect(widths.width).toBeGreaterThanOrEqual(widths.parentWidth - 2);
     }
   }
+  async shouldShowHeaderWorktree(branch: string, title: string): Promise<void> {
+    const header = this.page.getByRole("banner");
+    await expect(header.getByTitle(branch, { exact: true })).toBeVisible();
+    await expect(header.getByText(title, { exact: true })).toHaveCount(0);
+    await expect(header.getByTitle(`Branch: ${branch}`, { exact: true })).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "Go to Home", exact: true })).toHaveCount(0);
+  }
   async shouldShowWorktreeSession(repositoryName: string, branch: string): Promise<void> {
     const button = this.panel().getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) });
     await expect(button).toHaveCount(1);
@@ -269,9 +275,8 @@ export class BrowserInboxDriver {
   }
   async shouldHaveSoundHeaderGeometry(): Promise<void> {
     const header = this.page.getByRole("banner");
-    const branch = header.getByTitle("Branch: fix/a-very-long-branch-name-that-must-truncate-before-controls", { exact: true });
-    if (this.page.viewportSize()!.width >= 640) await expect(branch).toBeVisible();
-    else await expect(branch).toBeHidden();
+    await expect(header.getByTitle("Branch: fix/a-very-long-branch-name-that-must-truncate-before-controls", { exact: true })).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "Go to Home", exact: true })).toHaveCount(0);
     const boxes = await header.locator(":scope > div > *").evaluateAll(elements => elements.map(element => element.getBoundingClientRect()).filter(box => box.width && box.height).map(box => ({ left: box.left, right: box.right })));
     for (let i = 1; i < boxes.length; i++) expect(boxes[i]!.left).toBeGreaterThanOrEqual(boxes[i - 1]!.right - 1);
     const controls = await header.getByRole("button").evaluateAll(elements => elements.map(element => element.getBoundingClientRect()).filter(box => box.width && box.height).map(box => ({ left: box.left, right: box.right, width: box.width })));

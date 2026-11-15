@@ -18,6 +18,10 @@ test("a single worktree session uses two lines while retaining title-based disco
   await app.inbox.setEnabled(true);
 
   await app.inbox.shouldShowCompactWorktreeLabels(title, branch);
+  await app.inbox.shouldShowHeaderWorktree(branch, title);
+  await app.browser.setViewport(390, 844);
+  await app.inbox.shouldShowHeaderWorktree(branch, title);
+  await app.browser.setViewport(1024);
   await app.inbox.shouldHaveNoSearch();
   await app.inbox.shouldHaveReady(1);
 
