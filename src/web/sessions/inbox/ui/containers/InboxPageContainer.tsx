@@ -15,6 +15,5 @@ export function InboxPageContainer() {
       else if (row.path) void chat.inbox.select(row.path);
     }}
     onPark={row => { const target = row.sessionId ?? row.path; if (target) void chat.inbox.park(target); }}
-    onArchive={row => { if (row.path) void chat.inbox.archive(row.path); }}
-    onNew={() => chat.navigateWorkspace("home")} />;
+    onArchive={row => { if (row.path) void chat.inbox.archive(row.path); }} />;
 }

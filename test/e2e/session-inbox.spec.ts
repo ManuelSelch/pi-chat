@@ -119,13 +119,13 @@ test("working sessions stay accessible in projects but enter Inbox only when rea
 
   await app.inbox.shouldHaveStatusCount("Working", 1);
   await app.inbox.shouldHaveStatus("Folding conversation", "Working");
-  await app.inbox.navigate("Inbox");
-  await app.inbox.shouldShowInbox([], ["Folding conversation"]);
+  await app.inbox.goHome();
+  await app.inbox.shouldShowHomeActivity([], ["Folding conversation"]);
 
   await app.inbox.finishResponse("Folding conversation");
 
   await app.inbox.shouldHaveStatusCount("Working", 0);
-  await app.inbox.shouldShowInbox(["Folding conversation"]);
+  await app.inbox.shouldShowHomeActivity(["Folding conversation"]);
   await app.inbox.openFromInbox("Folding conversation");
   await app.chat.shouldShowAssistantReply("First finished");
 
@@ -137,48 +137,49 @@ test("working sessions stay accessible in projects but enter Inbox only when rea
 
   await app.inbox.shouldHaveStatusCount("Working", 1);
   await app.inbox.shouldHaveStatus("Folding conversation", "Working");
-  await app.inbox.navigate("Inbox");
-  await app.inbox.shouldShowInbox([], ["Folding conversation"]);
+  await app.inbox.goHome();
+  await app.inbox.shouldShowHomeActivity([], ["Folding conversation"]);
   await app.inbox.finishResponse("Folding conversation");
-  await app.inbox.shouldShowInbox(["Folding conversation"]);
+  await app.inbox.shouldShowHomeActivity(["Folding conversation"]);
   await app.inbox.openFromInbox("Folding conversation");
   await app.chat.shouldShowAssistantReply("Second finished");
 });
 
-test("Home and Inbox navigation preserve drafts and open the unchanged session view", async () => {
+test("combined Home preserves drafts, searches history and opens the unchanged session view", async () => {
   await savedConversation();
   await app.focus.typeWithoutRefocusing("Navigation draft");
 
-  await app.inbox.navigate("Home");
-  await app.inbox.shouldShowHome();
-  await app.inbox.navigate("Inbox");
-  await app.inbox.shouldShowInbox(["Inbox conversation"]);
+  await app.inbox.goHome();
+  await app.inbox.shouldHaveNoPageNavigation();
+  await app.inbox.shouldShowHomeActivity(["Inbox conversation"]);
+  await app.inbox.searchHome("Inbox conversation");
+  await app.inbox.shouldShowSearchResult("Inbox conversation");
+  await app.inbox.searchHome("");
+  await app.inbox.shouldShowHomeActivity(["Inbox conversation"]);
   await app.inbox.openFromInbox("Inbox conversation");
 
   await app.chat.shouldShowAssistantReply("Saved response");
   await app.focus.shouldHaveDraft("Navigation draft");
 
-  await app.inbox.navigate("Inbox");
+  await app.inbox.goHome();
   await app.inbox.parkFromInbox("Inbox conversation");
-  await app.inbox.shouldShowInbox([], ["Inbox conversation"]);
+  await app.inbox.shouldShowHomeActivity([], ["Inbox conversation"]);
   await app.inbox.shouldHaveLater(1);
   await app.inbox.resume("Inbox conversation");
   await app.focus.shouldHaveDraft("Navigation draft");
 });
 
-test("Home and Inbox navigation retain the phone drawer until explicitly dismissed", async () => {
+test("phones retain modal project navigation without redundant page buttons", async () => {
   await savedConversation();
   await app.browser.setViewport(390, 844);
 
-  await app.inbox.navigate("Inbox");
   await app.inbox.shouldBeDrawer();
-  await app.inbox.navigate("Home");
+  await app.inbox.shouldHaveNoPageNavigation();
+  await app.inbox.select("Inbox conversation");
   await app.inbox.shouldBeDrawer();
   await app.inbox.close();
-  await app.inbox.shouldShowHome();
-  await app.inbox.navigate("Inbox");
-  await app.inbox.close();
-  await app.inbox.shouldShowInbox(["Inbox conversation"]);
+  await app.inbox.goHome();
+  await app.inbox.shouldShowHomeActivity(["Inbox conversation"]);
   await app.inbox.openFromInbox("Inbox conversation");
   await app.chat.shouldShowAssistantReply("Saved response");
 });

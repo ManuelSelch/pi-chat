@@ -42,7 +42,6 @@ function AppContent() {
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const home = atHome(app);
-  const inboxPage = home && chat.inboxEnabled && app.workspacePage === "inbox";
   const headerHeight = chat.inboxEnabled ? 58 : 96;
   const { width } = useViewportSize();
   const layout = workspaceLayout(width, overlays.state.projects);
@@ -62,13 +61,15 @@ function AppContent() {
 
       <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
-        {inboxPage ? <InboxPageContainer /> : home ? (
+        {home ? (
           <Home
             catalogue={app.catalogue}
             onOpenSession={chat.openSession}
             onOpenProject={chat.openProject}
             onNewSession={() => chat.newSession()}
-          />
+          >
+            {chat.inboxEnabled && <InboxPageContainer />}
+          </Home>
         ) : (
           <MessageListContainer footerHeight={footerHeight + FOOTER_GAP} />
         )}

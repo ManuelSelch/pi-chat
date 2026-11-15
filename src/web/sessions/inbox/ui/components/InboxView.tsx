@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Alert, Box, Drawer, Group, ScrollArea, Text, UnstyledButton } from "@mantine/core";
-import { IconChevronDown, IconChevronRight, IconClockPause, IconFolder, IconHome, IconInbox, IconSettings, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronRight, IconClockPause, IconFolder, IconSettings, IconX } from "@tabler/icons-react";
 import type { InboxRow } from "../../domain/inbox-model.js";
 import { InboxRowView } from "./InboxRowView.js";
 import { focusComposer, useComposerFocusReturn } from "../../../../ui/focus/composer-focus.js";
@@ -9,7 +9,6 @@ import styles from "./Inbox.module.css";
 export interface InboxViewProps {
   opened: boolean; presentation: "sidebar" | "drawer"; activeSessionId: string; pending: boolean; error?: string;
   rows: readonly InboxRow[]; later: readonly InboxRow[];
-  page: "home" | "inbox" | "session"; onNavigate(page: "home" | "inbox"): void;
   laterOpen: boolean; onLaterToggle(): void;
   onClose(): void; onSettings(): void; onSelect(id: string): void; onOpenSaved(path: string): void; onPark(id: string): void; onArchive(path: string): void; onResume(path: string): void;
 }
@@ -41,7 +40,6 @@ export function InboxView(p: InboxViewProps) {
     group.push(item);
     projects.set(item.project, group);
   }
-  const attention = p.rows.filter(item => item.status !== "running").length;
   function toggleProject(project: string) {
     setCollapsed(previous => {
       const next = new Set(previous);
@@ -52,14 +50,6 @@ export function InboxView(p: InboxViewProps) {
   }
   const content = <div className="flex h-full min-h-0 flex-col gap-3 p-3">
     <Group justify="flex-end"><ActionIcon color="gray" variant="subtle" aria-label="Close sessions" onClick={p.onClose}><IconX size={18} /></ActionIcon></Group>
-    <div aria-label="Workspace pages" className="flex flex-col gap-1">
-      <UnstyledButton className={styles.navigation} display="flex" w="100%" px={11} py={10} aria-current={p.page === "inbox" ? "page" : undefined} onClick={() => p.onNavigate("inbox")}>
-        <IconInbox size={17} /><Text component="span" size="xs">Inbox</Text><Text component="span" size="xs" ml="auto">{attention}</Text>
-      </UnstyledButton>
-      <UnstyledButton className={styles.navigation} display="flex" w="100%" px={11} py={10} aria-current={p.page === "home" ? "page" : undefined} onClick={() => p.onNavigate("home")}>
-        <IconHome size={17} /><Text component="span" size="xs">Home</Text>
-      </UnstyledButton>
-    </div>
     {p.error && <Alert color="red" role="alert">{p.error}</Alert>}
     <ScrollArea className="min-h-0 flex-1">
       <Group justify="space-between" px={10} py={8}><Text size="10px" c="dimmed" tt="uppercase" lts="0.1em">Projects</Text><Text size="10px" c="dimmed">{projects.size}</Text></Group>

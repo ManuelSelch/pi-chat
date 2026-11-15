@@ -94,14 +94,16 @@ project-grouped sidebar. Ready contains other idle conversations
 except browser-local Later membership; it is not an unread-response list.
 History is not reopened automatically.
 
-`AppState.workspacePage` owns the page-lifetime Home/Inbox destination. Explicit
-navigation clears selection without closing runtimes; SDK updates retain that
-choice. Opening a session restores the existing transcript/composer. Close view or
-removal of the selected runtime returns to Home. `InboxContainer` and
-`InboxPageContainer` share the same row projection and lifecycle actions; project
-group and Later disclosure are local presentation state. The sidebar retains Later
-access and archive actions. Inbox cards omit unavailable change totals rather than
-synthesizing metrics. The default landing page remains Home.
+Home is the single landing page. Its search-first view composes activity from
+`InboxPageContainer` when sidebar mode is enabled. Search temporarily replaces
+activity; clearing it restores activity with Later initially collapsed. Header Home
+navigation clears selection without closing runtimes; SDK updates retain deliberate
+deselection. Opening a row restores the existing transcript/composer. Close view or
+removal of the selected runtime returns to Home. There is no separate page-routing
+state or Home/Inbox sidebar destination. `InboxContainer` and `InboxPageContainer`
+share the row projection and lifecycle actions; project and Later disclosure are
+local presentation state. The sidebar retains Later access and archive actions.
+Activity cards omit unavailable change totals rather than synthesizing metrics.
 
 `sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
 storage, lifecycle coordination and component/container UI. Parking loaded saved

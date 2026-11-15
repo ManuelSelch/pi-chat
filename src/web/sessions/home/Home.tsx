@@ -1,30 +1,27 @@
-import { useState, type KeyboardEvent } from "react";
-import { Badge, Box, Center, Group, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { Badge, Box, Group, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { THEME } from "../../ui/theme.js";
 import { IconFolder, IconMessage, IconSearch } from "@tabler/icons-react";
 import type { ProjectCatalogue } from "../../app/state/view-types.js";
 import { buildQuickOpenItems, rankQuickOpen } from "../quick-open/quick-open.js";
 import { relativeTime } from "../../ui/relative-time.js";
+import styles from "./Home.module.css";
 
 interface HomeProps {
+  children?: ReactNode;
   catalogue: ProjectCatalogue;
   onOpenSession: (path: string) => void;
   onOpenProject: (path: string) => void;
   onNewSession: () => void;
 }
 
-/**
- * Shown when every tab is closed. It is the quick-open palette without the
- * modal: the same ranking, but always visible, because there is nothing behind
- * it to go back to.
- */
-export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: HomeProps) {
+/** Home search shares Quick Switcher ranking; optional activity fills its quiet state. */
+export function Home({ children, catalogue, onOpenSession, onOpenProject, onNewSession }: HomeProps) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
 
   const hasQuery = query.trim().length > 0;
-  // No tab is open, so no session can be marked as already open. Empty home is
-  // intentionally quiet; results only appear once the user starts typing.
+  // Search retains existing saved-session/project discovery and ranking.
   const results = hasQuery ? rankQuickOpen(buildQuickOpenItems(catalogue, []), query) : [];
   const clamped = Math.min(active, Math.max(results.length - 1, 0));
 
@@ -53,13 +50,10 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
   }
 
   return (
-    <Center h="100%" px="md">
-      <Stack gap="lg" w="100%" maw={620} style={{ height: "min(560px, calc(100dvh - 150px))" }}>
-        <Stack gap={4} align="center">
-          <Text size="xl" fw={600}>Lets cook</Text>
-        </Stack>
-
-        <Stack gap="sm">
+    <div className={styles.page}>
+      <Stack gap={22} w="100%" maw={620} mx="auto">
+        <Title order={1} size={32} fw={550} ta="center">Lets cook</Title>
+        <div>
           <TextInput
             autoFocus
             size="md"
@@ -70,9 +64,9 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
             onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
             onKeyDown={onKeyDown}
           />
-        </Stack>
-
-        <Box h={320}>
+        </div>
+      </Stack>
+      <Box className={styles.activity}>
           {hasQuery ? (
             <Stack gap={2} role="listbox" aria-label="Sessions">
               {results.length === 0 ? (
@@ -96,16 +90,15 @@ export function Home({ catalogue, onOpenSession, onOpenProject, onNewSession }: 
                   <Text size="sm" truncate flex={1}>{item.title}</Text>
                   {item.kind === "project" ? <Badge size="xs" variant="light">project</Badge> : null}
                   <Text size="xs" c="dimmed" truncate maw={200}>
-                    {item.kind === "session" ? `${item.project} · ${relativeTime(item.modified)}` : "open latest session"}
+                    {item.kind === "session" ? `${item.project} — ${relativeTime(item.modified)}` : "open latest session"}
                   </Text>
                 </Group>
               </UnstyledButton>
                 ))
               )}
             </Stack>
-          ) : null}
-        </Box>
-      </Stack>
-    </Center>
+          ) : children}
+      </Box>
+    </div>
   );
 }

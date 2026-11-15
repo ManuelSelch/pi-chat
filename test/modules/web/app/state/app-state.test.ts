@@ -22,11 +22,11 @@ it("closes only the selected view and preserves deliberate deselection across SD
   expect(state.activeSessionId).toBe("b");
 });
 
-it.each(["home", "inbox"] as const)("navigates to %s without closing runtimes or losing background updates", page => {
+it("returns Home without closing runtimes or losing background updates", () => {
   const sessions = state.sessions;
-  state = reduceAppMessage(state, { type: "navigateWorkspace", page });
+  state = reduceAppMessage(state, { type: "closeView" });
 
-  expect(state.workspacePage).toBe(page);
+  expect(atHome(state)).toBe(true);
   expect(state.activeSessionId).toBe("");
   expect(state.viewClosed).toBe(true);
   expect(state.sessions).toBe(sessions);
@@ -34,7 +34,7 @@ it.each(["home", "inbox"] as const)("navigates to %s without closing runtimes or
 
   state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "background" }, "b", 1));
 
-  expect(state.workspacePage).toBe(page);
+  expect(atHome(state)).toBe(true);
   expect(state.activeSessionId).toBe("");
   expect(state.sessions.b?.draft?.text).toBe("background");
 

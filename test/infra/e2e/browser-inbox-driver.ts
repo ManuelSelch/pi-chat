@@ -97,18 +97,29 @@ export class BrowserInboxDriver {
   async shouldHaveStatusCount(status: "Working" | "Ready" | "Needs you", count: number): Promise<void> {
     await expect(this.panel().getByRole("button", { name: /^Open / }).filter({ has: this.page.getByRole("img", { name: status, exact: true }) })).toHaveCount(count);
   }
-  async navigate(page: "Home" | "Inbox"): Promise<void> {
-    await this.open();
-    await this.panel().getByRole("button", { name: page === "Inbox" ? /^Inbox/ : "Home", exact: page === "Home" }).click();
-    await expect(this.panel().getByRole("button", { name: page === "Inbox" ? /^Inbox/ : "Home", exact: page === "Home" })).toHaveAttribute("aria-current", "page");
+  async goHome(): Promise<void> {
+    await this.page.getByRole("banner").getByRole("button", { name: "Go to Home", exact: true }).click();
+    await this.shouldShowHome();
   }
-  async shouldShowInbox(titles: readonly string[], excluded: readonly string[] = []): Promise<void> {
+  async shouldHaveNoPageNavigation(): Promise<void> {
+    await expect(this.panel().getByRole("button", { name: "Home", exact: true })).toHaveCount(0);
+    await expect(this.panel().getByRole("button", { name: /^Inbox/ })).toHaveCount(0);
+  }
+  async searchHome(query: string): Promise<void> {
+    await this.page.getByRole("textbox", { name: "Search sessions and projects", exact: true }).fill(query);
+  }
+  async shouldShowSearchResult(title: string): Promise<void> {
+    await expect(this.page.getByRole("main").getByRole("option", { name: new RegExp(title) })).toBeVisible();
+    await expect(this.page.getByRole("main").getByRole("region", { name: "Ready", exact: true })).toHaveCount(0);
+  }
+  async shouldShowHomeActivity(titles: readonly string[], excluded: readonly string[] = []): Promise<void> {
     const main = this.page.getByRole("main");
-    await expect(main.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+    await expect(main.getByRole("heading", { name: "Lets cook", exact: true })).toBeVisible();
+    await expect(main.getByRole("textbox", { name: "Search sessions and projects", exact: true })).toBeVisible();
     for (const title of titles) await expect(main.getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();
     for (const title of excluded) await expect(main.getByRole("button", { name: `Open ${title}`, exact: true })).toHaveCount(0);
     await expect(this.page.getByRole("textbox", { name: "Message Pi" })).not.toBeVisible();
-    await expect(this.page.getByRole("banner").getByRole("button", { name: "New session", exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("banner").getByRole("button", { name: "New session", exact: true })).toBeVisible();
   }
   async openFromInbox(title: string): Promise<void> {
     const release = this.world.reserveSession([]);

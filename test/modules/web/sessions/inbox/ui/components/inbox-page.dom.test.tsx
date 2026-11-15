@@ -12,14 +12,14 @@ const props = (): InboxPageProps => ({
     { key: "running", sessionId: "running", title: "Background", primaryLabel: "Background", project: "Pi", status: "running" },
   ],
   later: [{ key: "later", path: "/later", title: "Parked", primaryLabel: "Parked", project: "Pi", status: "idle" }],
-  pending: false, laterOpen: false, onLaterToggle: vi.fn(), onOpen: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onNew: vi.fn(),
+  pending: false, laterOpen: false, onLaterToggle: vi.fn(), onOpen: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(),
 });
 
 it("shows Blocked and Ready cards, excludes working sessions, and keeps Later collapsed", () => {
   const p = props();
   render(<MantineProvider><InboxPage {...p} /></MantineProvider>);
 
-  expect(screen.getByRole("heading", { name: "Inbox" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Inbox" })).toBeNull();
   expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Blocked", "Ready"]);
   expect(screen.queryByText("Background")).toBeNull();
   expect(screen.queryByText("Parked")).toBeNull();
@@ -63,14 +63,13 @@ it("restores parked conversations explicitly and retains archive access", () => 
   expect(p.onArchive).toHaveBeenCalledWith(p.later[0]);
 });
 
-it("offers Home when caught up, even while work continues, without fake change counts", () => {
+it("shows a quiet caught-up message without duplicate Home heading or start actions", () => {
   const p = props();
   render(<MantineProvider><InboxPage {...p} rows={p.rows.filter(row => row.status === "running")} later={[]} /></MantineProvider>);
 
-  expect(screen.getByText("Nothing waiting here")).toBeTruthy();
+  expect(screen.getByText("Nothing waiting here. Start a session above.")).toBeTruthy();
   expect(screen.queryAllByRole("region")).toHaveLength(0);
   expect(screen.queryByRole("button", { name: /Later/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Start a session" }));
-  expect(p.onNew).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("button", { name: "Start a session" })).toBeNull();
 });

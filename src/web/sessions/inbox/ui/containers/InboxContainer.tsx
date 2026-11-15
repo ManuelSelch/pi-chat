@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppController } from "../../../../app/AppControllerContext.js";
 import { useOverlays } from "../../../../app/overlays/OverlayController.js";
-import { atHome } from "../../../../app/state/app-state.js";
 import { useInboxRows } from "../../app/use-inbox-rows.js";
 import { InboxView } from "../components/InboxView.js";
 
@@ -17,8 +16,6 @@ export function InboxContainer() {
     activeSessionId={chat.app.activeSessionId} pending={chat.inbox.pending || chat.app.connection !== "open"}
     rows={rows} later={chat.inbox.later}
     error={chat.inbox.error}
-    page={atHome(chat.app) ? chat.app.workspacePage : "session"}
-    onNavigate={chat.navigateWorkspace}
     laterOpen={laterOpen} onLaterToggle={() => setLaterOpen(value => !value)}
     onClose={() => overlays.close("projects")}
     onSettings={() => { if (overlays.projectsPresentation === "drawer") overlays.close("projects"); overlays.open("settings"); }}

@@ -6,7 +6,7 @@ import { InboxView, type InboxViewProps } from "../../../../../../../src/web/ses
 afterEach(cleanup);
 const props = (): InboxViewProps => ({
   opened: true, presentation: "sidebar", activeSessionId: "a", pending: false,
-  page: "session", onNavigate: vi.fn(), laterOpen: false, onLaterToggle: vi.fn(),
+  laterOpen: false, onLaterToggle: vi.fn(),
   rows: [
     { key: "a", sessionId: "a", path: "/a", title: "Question", primaryLabel: "Question", project: "Project", status: "blocked" },
     { key: "b", sessionId: "b", path: "/b", title: "Background", primaryLabel: "Background", project: "Project", status: "running" },
@@ -16,23 +16,12 @@ const props = (): InboxViewProps => ({
   onClose: vi.fn(), onSettings: vi.fn(), onSelect: vi.fn(), onOpenSaved: vi.fn(), onPark: vi.fn(), onArchive: vi.fn(), onResume: vi.fn(),
 });
 
-it.each(["sidebar", "drawer"] as const)("provides Home and Inbox navigation, current state and attention count in the %s", presentation => {
-  const p = { ...props(), presentation, page: "home" as const };
-  const { rerender } = render(<MantineProvider><InboxView {...p} /></MantineProvider>);
+it.each(["sidebar", "drawer"] as const)("omits redundant Home and Inbox destinations in the %s", presentation => {
+  render(<MantineProvider><InboxView {...props()} presentation={presentation} /></MantineProvider>);
 
-  expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
-  const inbox = screen.getByRole("button", { name: /^Inbox/ });
-  expect(inbox.textContent).toBe("Inbox2");
-  expect(inbox.getAttribute("aria-current")).toBeNull();
-  fireEvent.click(inbox);
-  expect(p.onNavigate).toHaveBeenCalledWith("inbox");
-  expect(p.onSelect).not.toHaveBeenCalled();
-  expect(p.onClose).not.toHaveBeenCalled();
-
-  rerender(<MantineProvider><InboxView {...p} page="inbox" /></MantineProvider>);
-  expect(screen.getByRole("button", { name: /^Inbox/ }).getAttribute("aria-current")).toBe("page");
-  fireEvent.click(screen.getByRole("button", { name: "Home" }));
-  expect(p.onNavigate).toHaveBeenCalledWith("home");
+  expect(screen.queryByRole("button", { name: "Home" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Inbox/ })).toBeNull();
+  expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
 });
 
 it("groups sessions by project, with collapsible groups and status dots", () => {

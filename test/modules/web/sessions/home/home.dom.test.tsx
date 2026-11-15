@@ -48,6 +48,23 @@ function show() {
   return { onOpenSession, onOpenProject, onNewSession };
 }
 
+it("combines activity with Home, replacing it with search results only while searching", () => {
+  render(<MantineProvider><Home catalogue={catalogue} onOpenSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()}>
+    <section aria-label="Ready">Ready conversations</section>
+  </Home></MantineProvider>);
+  const search = screen.getByRole("textbox", { name: "Search sessions and projects" });
+
+  expect(screen.getByRole("region", { name: "Ready" })).toBeTruthy();
+  fireEvent.change(search, { target: { value: "study" } });
+
+  expect(screen.queryByRole("region", { name: "Ready" })).toBeNull();
+  expect(screen.getByRole("option", { name: /Study Notes/ })).toBeTruthy();
+
+  fireEvent.change(search, { target: { value: "" } });
+
+  expect(screen.getByRole("region", { name: "Ready" })).toBeTruthy();
+});
+
 describe("Home", () => {
   it("starts quiet and does not show recent sessions before typing", () => {
     show();
