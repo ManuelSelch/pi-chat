@@ -179,7 +179,7 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
           onKeyDown={keyDown}
           variant={inline ? "default" : "unstyled"}
           size="md"
-          styles={inline ? undefined : { input: { paddingInline: "10px" } }}
+          styles={inline ? (expanded ? { input: { borderColor: "transparent" } } : undefined) : { input: { paddingInline: "10px" } }}
         />
 
         {(!inline || expanded) && <>
