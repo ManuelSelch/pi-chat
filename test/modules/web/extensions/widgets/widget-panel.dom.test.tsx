@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider as ThemeProvider } from "@mantine/core";
+import type { ReactNode } from "react";
+import { WidgetDisclosureProvider } from "../../../../../src/web/extensions/widgets/app/WidgetDisclosureProvider.js";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Widget } from "../../../../../src/shared/protocol.js";
@@ -12,6 +14,10 @@ import {
 import { placeWidgets } from "../../../../../src/web/extensions/widgets/widget-placement.js";
 
 afterEach(cleanup);
+
+function MantineProvider({ children }: { children: ReactNode }) {
+  return <ThemeProvider><WidgetDisclosureProvider>{children}</WidgetDisclosureProvider></ThemeProvider>;
+}
 
 function show(widgets: Widget[]) {
   render(
