@@ -10,6 +10,8 @@ const serverPort = Number(process.env.PI_CHAT_PORT ?? 8788);
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  // Mockups have their own dependencies and must not influence app pre-bundling.
+  optimizeDeps: { entries: ["index.html"] },
   define: { __PI_CHAT_BUILD__: JSON.stringify({ chat: chatBuildIdentity(), sdk: packageVersion(import.meta.resolve("@manuelselch/pi-sdk")) }) },
   server: {
     host: "127.0.0.1",
