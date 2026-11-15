@@ -44,8 +44,8 @@ for (const action of ["close", "snooze", "archive"] as const) {
     else await app.inbox.archiveCurrent();
 
     await app.inbox.shouldShowHome();
-    await app.inbox.shouldBeInSection("Other conversation", "Ready");
-    if (action === "close") await app.inbox.shouldBeInSection("Inbox conversation", "Ready");
+    await app.inbox.shouldHaveStatus("Other conversation", "Ready");
+    if (action === "close") await app.inbox.shouldHaveStatus("Inbox conversation", "Ready");
     if (action === "snooze") await app.inbox.shouldHaveLater(1);
     if (action === "archive") await app.inbox.shouldHaveNoArchiveNotice();
 
@@ -65,7 +65,7 @@ for (const action of ["snooze", "archive"] as const) {
     else await app.inbox.archiveReady("Inbox conversation");
 
     await app.chat.shouldShowAssistantReply("Other saved response");
-    await app.inbox.shouldBeInSection("Other conversation", "Ready");
+    await app.inbox.shouldHaveStatus("Other conversation", "Ready");
   });
 }
 
@@ -91,13 +91,12 @@ test("closing the view preserves background work and completion becomes Ready wi
   await app.chat.shouldShowAssistantReply("Ready to work");
   await app.chat.sendPrompt("Background work");
   await app.inbox.setEnabled(true);
-  await app.inbox.shouldHaveWorking(1);
-  await app.inbox.expandWorking();
-  await app.inbox.shouldBeInSection("Background conversation", "Working");
+  await app.inbox.shouldHaveStatusCount("Working", 1);
+  await app.inbox.shouldHaveStatus("Background conversation", "Working");
 
   await app.inbox.closeView();
   await app.inbox.create();
-  await app.inbox.shouldBeInSection("Background conversation", "Working");
+  await app.inbox.shouldHaveStatus("Background conversation", "Working");
   await app.inbox.closeView();
   await app.inbox.finishResponse("Background conversation");
 
@@ -106,7 +105,7 @@ test("closing the view preserves background work and completion becomes Ready wi
   await app.chat.shouldShowAssistantReply("Finished in background");
 });
 
-test("Working starts folded, resets after emptying, and folds again on reload", async () => {
+test("working sessions stay accessible in projects but enter Inbox only when ready, including after reload", async () => {
   await app.tabs.create({ responses: [
     { prompt: "Folding conversation", reply: "Ready to work" },
     { prompt: "First run", reply: "First finished", hold: true },
@@ -118,29 +117,70 @@ test("Working starts folded, resets after emptying, and folds again on reload", 
 
   await app.chat.sendPrompt("First run");
 
-  await app.inbox.shouldHaveWorking(1);
-  await app.inbox.expandWorking();
-  await app.inbox.shouldHaveWorking(1, true);
-  await app.inbox.shouldBeInSection("Folding conversation", "Working");
+  await app.inbox.shouldHaveStatusCount("Working", 1);
+  await app.inbox.shouldHaveStatus("Folding conversation", "Working");
+  await app.inbox.navigate("Inbox");
+  await app.inbox.shouldShowInbox([], ["Folding conversation"]);
 
   await app.inbox.finishResponse("Folding conversation");
 
-  await app.inbox.shouldHideStatusGroup("Working");
+  await app.inbox.shouldHaveStatusCount("Working", 0);
+  await app.inbox.shouldShowInbox(["Folding conversation"]);
+  await app.inbox.openFromInbox("Folding conversation");
   await app.chat.shouldShowAssistantReply("First finished");
 
   await app.chat.sendPrompt("Second run");
 
-  await app.inbox.shouldHaveWorking(1);
-  await app.inbox.expandWorking();
-  await app.inbox.shouldHaveWorking(1, true);
+  await app.inbox.shouldHaveStatusCount("Working", 1);
 
   await app.inbox.reload();
 
-  await app.inbox.shouldHaveWorking(1);
-  await app.inbox.expandWorking();
-  await app.inbox.shouldBeInSection("Folding conversation", "Working");
+  await app.inbox.shouldHaveStatusCount("Working", 1);
+  await app.inbox.shouldHaveStatus("Folding conversation", "Working");
+  await app.inbox.navigate("Inbox");
+  await app.inbox.shouldShowInbox([], ["Folding conversation"]);
   await app.inbox.finishResponse("Folding conversation");
+  await app.inbox.shouldShowInbox(["Folding conversation"]);
+  await app.inbox.openFromInbox("Folding conversation");
   await app.chat.shouldShowAssistantReply("Second finished");
+});
+
+test("Home and Inbox navigation preserve drafts and open the unchanged session view", async () => {
+  await savedConversation();
+  await app.focus.typeWithoutRefocusing("Navigation draft");
+
+  await app.inbox.navigate("Home");
+  await app.inbox.shouldShowHome();
+  await app.inbox.navigate("Inbox");
+  await app.inbox.shouldShowInbox(["Inbox conversation"]);
+  await app.inbox.openFromInbox("Inbox conversation");
+
+  await app.chat.shouldShowAssistantReply("Saved response");
+  await app.focus.shouldHaveDraft("Navigation draft");
+
+  await app.inbox.navigate("Inbox");
+  await app.inbox.parkFromInbox("Inbox conversation");
+  await app.inbox.shouldShowInbox([], ["Inbox conversation"]);
+  await app.inbox.shouldHaveLater(1);
+  await app.inbox.resume("Inbox conversation");
+  await app.focus.shouldHaveDraft("Navigation draft");
+});
+
+test("Home and Inbox navigation retain the phone drawer until explicitly dismissed", async () => {
+  await savedConversation();
+  await app.browser.setViewport(390, 844);
+
+  await app.inbox.navigate("Inbox");
+  await app.inbox.shouldBeDrawer();
+  await app.inbox.navigate("Home");
+  await app.inbox.shouldBeDrawer();
+  await app.inbox.close();
+  await app.inbox.shouldShowHome();
+  await app.inbox.navigate("Inbox");
+  await app.inbox.close();
+  await app.inbox.shouldShowInbox(["Inbox conversation"]);
+  await app.inbox.openFromInbox("Inbox conversation");
+  await app.chat.shouldShowAssistantReply("Saved response");
 });
 
 test("archiving the current conversation returns Home without an archive notice or Undo action", async () => {
@@ -150,8 +190,8 @@ test("archiving the current conversation returns Home without an archive notice 
 
   await app.inbox.shouldShowHome();
   await app.inbox.shouldHaveReady(0);
-  await app.inbox.shouldHideStatusGroup("Needs you");
-  await app.inbox.shouldHideStatusGroup("Working");
+  await app.inbox.shouldHaveStatusCount("Needs you", 0);
+  await app.inbox.shouldHaveStatusCount("Working", 0);
   await app.inbox.shouldHideLater();
   await app.inbox.shouldHaveNoArchiveNotice();
 });
@@ -189,12 +229,12 @@ test("blocked prompts remain in Needs you when selected, and closing the view re
   await app.prompts.shouldShowRichQuestion("Check 1");
   await app.prompts.choose("Check 1", "8");
   await app.prompts.minimize("Check 1");
-  await app.inbox.shouldBeInSection("New session", "Needs you");
+  await app.inbox.shouldHaveStatus("New session", "Needs you");
 
   await app.inbox.closeView();
   await app.inbox.select("New session");
 
-  await app.inbox.shouldBeInSection("New session", "Needs you");
+  await app.inbox.shouldHaveStatus("New session", "Needs you");
   await app.prompts.reopen("Check 1");
   await app.prompts.shouldHaveChoice("Check 1", "8");
   await app.prompts.minimize("Check 1");
@@ -208,7 +248,7 @@ test("saved Ready history survives a backend restart without reopening Later", a
   await app.restartBackend();
 
   await app.inbox.shouldHaveReady(1);
-  await app.inbox.shouldBeInSection("Inbox conversation", "Ready");
+  await app.inbox.shouldHaveStatus("Inbox conversation", "Ready");
   await app.inbox.parkReady("Inbox conversation");
   await app.inbox.shouldHaveReady(0);
   await app.inbox.shouldHaveLater(1);

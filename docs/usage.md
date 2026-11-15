@@ -53,20 +53,24 @@ creating a session keeps navigation open. Real dialogs still take focus.
 ### Session inbox
 
 **Settings → Feature Toggles → Show open sessions in sidebar** replaces horizontal
-tabs with the Inbox and is on by default. Explicit browser preferences are preserved.
+tabs with project-grouped sidebar sessions and is on by default. Explicit browser preferences are preserved.
+Use the sidebar **Home** and **Inbox** buttons to switch pages without closing sessions,
+answering prompts or discarding drafts. Home retains search and new-session access.
+Inbox shows compact **Blocked** and **Ready** cards; selecting a card opens the existing
+session view. Working sessions remain accessible in their sidebar project, not Inbox.
+Inbox counts all blocked and idle conversations outside Later; it is not an unread count.
+Change totals are omitted because the current session data does not supply them.
 The same group contains chimes, folder paths, archived-session visibility and
 **Compact transcript**, which is on by default; explicitly stored choices are
 preserved. In compact mode, transcript notices use minimal severity-colored lines
-while preserving their full text. **Needs you** contains blocked
+while preserving their full text. **Blocked** contains blocked
 questions/approvals. **Ready** includes all unarchived idle conversations except
 those in Later, including saved history after a server restart. Selecting an
 unloaded conversation opens it; history is never reopened automatically.
-**Working** starts collapsed and can be expanded independently. It stays expanded
-while any sessions are working, but resets to collapsed when emptied or the page
-is reloaded. Selecting a session does not answer
+Sidebar project groups can be collapsed independently. Selecting a session does not answer
 or dismiss a prompt. The Inbox has no search field; use Home search or Quick
-Switcher instead. A status group with no sessions, and the entire Later shelf when
-empty, are hidden rather than shown as an empty heading.
+Switcher instead. Empty Inbox status groups and an empty Later shelf are hidden.
+Later is also accessible from the sidebar while viewing a conversation.
 
 - **Later** parks a saved, idle conversation, closing its runtime if loaded.
   Later is untimed, collapsed by default, and remembered in this browser for

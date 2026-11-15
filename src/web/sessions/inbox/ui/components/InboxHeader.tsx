@@ -7,6 +7,7 @@ import styles from "./Inbox.module.css";
 
 interface InboxHeaderProps {
   session: Tab | undefined; branch: string | undefined; title: string | undefined;
+  showNew?: boolean;
   opened: boolean; disabled: boolean; pending: boolean; saved: boolean;
   buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[];
   onToggle(): void; onNew(): void; onPark(): void; onArchive(): void; onCloseView(): void; onAction(id: string): void;
@@ -34,7 +35,7 @@ export function InboxHeader(p: InboxHeaderProps) {
           <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Close current session view" title="Close view · discard empty session" onClick={p.onCloseView}><IconX size={17} /></ActionIcon>
         </div>
       </>}
-      <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="New session" title="New session" disabled={p.disabled} onClick={p.onNew}><IconPlus size={19} /></ActionIcon>
+      {p.showNew !== false && <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="New session" title="New session" disabled={p.disabled} onClick={p.onNew}><IconPlus size={19} /></ActionIcon>}
     </Group>
   </AppShell.Header>;
 }

@@ -7,6 +7,7 @@ export type AppAction =
   | { type: "clearError"; sessionId?: string }
   | { type: "focusSession"; sessionId: string }
   | { type: "closeView" }
+  | { type: "navigateWorkspace"; page: "home" | "inbox" }
   | { type: "sessionOpened"; sessionId: string }
   | { type: "openPending" }
   | { type: "closePending"; sessionId: string }
@@ -17,6 +18,7 @@ export interface AppState {
   tabs: ReadonlyDeep<AppTab[]>;
   activeSessionId: string;
   viewClosed?: boolean;
+  workspacePage: "home" | "inbox";
   /** Views share SDK projections, adding browser-owned transient transcript notices. */
   sessions: Record<string, ChatState>;
   sdkSessions: ReadonlyDeep<ClientState["sessions"]>;
@@ -34,7 +36,7 @@ export interface AppState {
 }
 
 export const initialAppState: AppState = {
-  tabs: [], activeSessionId: "", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {},
+  tabs: [], activeSessionId: "", workspacePage: "home", sessions: {}, sdkSessions: {}, sdkInventory: [], themes: {},
   catalogue: { projects: [] }, appFeatures: [], openingTabs: 0, closingSessionIds: [],
   tabsKnown: false, catalogueKnown: false, connection: "connecting",
 };
@@ -56,7 +58,8 @@ export function activeSession(state: AppState): ChatState {
 
 /** Application presentation only; PiClient is the sole wire/projection owner. */
 export function reduceAppMessage(state: AppState, action: AppAction): AppState {
-  if (action.type === "closeView") return { ...state, activeSessionId: "", viewClosed: true };
+  if (action.type === "navigateWorkspace") return { ...state, activeSessionId: "", viewClosed: true, workspacePage: action.page };
+  if (action.type === "closeView") return { ...state, activeSessionId: "", viewClosed: true, workspacePage: "home" };
   if (action.type === "focusSession") return state.tabs.some(tab => tab.sessionId === action.sessionId) ? { ...state, activeSessionId: action.sessionId, viewClosed: false } : state;
   if (action.type === "sessionOpened") return { ...state, activeSessionId: action.sessionId, viewClosed: false, error: undefined, openingTabs: Math.max(0, state.openingTabs - 1) };
   if (action.type === "openPending") return { ...state, openingTabs: state.openingTabs + 1 };
@@ -88,7 +91,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
     && !tabs.some(tab => tab.sessionId === selectedId);
   const viewClosed = state.viewClosed || selectedRemoved;
   let next: AppState = { ...state, serverInstanceId: sdk.serverInstanceId, sessions, sdkSessions: sdk.sessions, sdkInventory: sdk.inventory, themes: sdk.themes,
-    tabs, viewClosed, activeSessionId: viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
+    tabs, viewClosed, workspacePage: selectedRemoved ? "home" : state.workspacePage, activeSessionId: viewClosed ? "" : tabs.some(tab => tab.sessionId === selectedId) ? selectedId : tabs[0]?.sessionId ?? "",
     closingSessionIds: state.closingSessionIds.filter(id => tabs.some(tab => tab.sessionId === id)),
     catalogue: sdk.catalogue, catalogueKnown: sdk.projectsRevision > 0, appFeatures: sdk.features };
   if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };

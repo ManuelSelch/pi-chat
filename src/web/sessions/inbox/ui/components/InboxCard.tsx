@@ -1,0 +1,29 @@
+import { ActionIcon, Text, UnstyledButton } from "@mantine/core";
+import { IconArchive, IconClockPause, IconGitBranch } from "@tabler/icons-react";
+import type { InboxRow } from "../../domain/inbox-model.js";
+import { relativeTime } from "../../../../ui/relative-time.js";
+import { InboxStatus } from "./InboxStatus.js";
+import styles from "./InboxPage.module.css";
+
+interface InboxCardProps {
+  row: InboxRow; later: boolean; pending: boolean;
+  onOpen(): void; onPark(): void; onArchive(): void;
+}
+export function InboxCard({ row, later, pending, onOpen, onPark, onArchive }: InboxCardProps) {
+  const canMutate = !pending && row.status === "idle" && Boolean(row.path);
+  return <div className={styles.card}>
+    <UnstyledButton className={styles.open} display="block" w="100%" px={18} py={14} disabled={pending && !row.sessionId}
+      aria-label={`${later ? "Resume" : "Open"} ${row.title}`} onClick={onOpen}>
+      <div className={styles.title}><InboxStatus status={row.status} later={later} /><Text component="span" size="sm" truncate>{row.title}</Text></div>
+      <div className={styles.metadata}>
+        <Text component="span" size="xs" truncate>{row.project}</Text>
+        {row.branch && <span className={styles.branch} title={row.branch}><IconGitBranch size={12} /><span className="truncate">{row.branch}</span></span>}
+      </div>
+    </UnstyledButton>
+    <div className={styles.tools}>
+      {row.modified !== undefined && <Text size="10px" c="dimmed" className={styles.time}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
+      {!later && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Move ${row.title} to Later`} title="Move to Later" disabled={!canMutate} onClick={onPark}><IconClockPause size={14} /></ActionIcon>}
+      <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Archive ${row.title}`} title="Archive session" disabled={!canMutate} onClick={onArchive}><IconArchive size={14} /></ActionIcon>
+    </div>
+  </div>;
+}

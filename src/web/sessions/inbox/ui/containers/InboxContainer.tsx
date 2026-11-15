@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppController } from "../../../../app/AppControllerContext.js";
 import { useOverlays } from "../../../../app/overlays/OverlayController.js";
-import { visibleTabs } from "../../../../app/state/app-state.js";
-import { inboxRows } from "../../domain/inbox-model.js";
+import { atHome } from "../../../../app/state/app-state.js";
+import { useInboxRows } from "../../app/use-inbox-rows.js";
 import { InboxView } from "../components/InboxView.js";
 
 export function InboxContainer() {
   const chat = useAppController();
   const overlays = useOverlays();
-  const [workingOpen, setWorkingOpen] = useState(false);
   const [laterOpen, setLaterOpen] = useState(false);
-  const rows = useMemo(() => inboxRows(visibleTabs(chat.app), chat.app.catalogue, new Set(chat.inbox.later.map(row => row.path))), [chat.app.tabs, chat.app.closingSessionIds, chat.app.catalogue, chat.inbox.later]);
-  // A newly populated Working section starts folded, even if the previous one was expanded.
-  if (workingOpen && !rows.some(row => row.status === "running")) setWorkingOpen(false);
+  const rows = useInboxRows(chat.app, chat.inbox.later);
   // Mounting happens only on enabling Inbox, including a remembered preference.
   const open = useRef(overlays.open);
   useEffect(() => { open.current("projects"); }, []);
@@ -20,7 +17,8 @@ export function InboxContainer() {
     activeSessionId={chat.app.activeSessionId} pending={chat.inbox.pending || chat.app.connection !== "open"}
     rows={rows} later={chat.inbox.later}
     error={chat.inbox.error}
-    workingOpen={workingOpen} onWorkingToggle={() => setWorkingOpen(value => !value)}
+    page={atHome(chat.app) ? chat.app.workspacePage : "session"}
+    onNavigate={chat.navigateWorkspace}
     laterOpen={laterOpen} onLaterToggle={() => setLaterOpen(value => !value)}
     onClose={() => overlays.close("projects")}
     onSettings={() => { if (overlays.projectsPresentation === "drawer") overlays.close("projects"); overlays.open("settings"); }}

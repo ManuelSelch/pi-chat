@@ -89,20 +89,37 @@ export class BrowserInboxDriver {
     await expect(this.page.getByRole("main").getByRole("button", { name: "New session", exact: true })).toHaveCount(0);
     await expect(this.page.getByRole("main").getByRole("button", { name: "Open folder", exact: true })).toHaveCount(0);
   }
-  async shouldBeInSection(title: string, section: "Working" | "Ready" | "Needs you"): Promise<void> {
-    await expect(this.panel().getByRole("region", { name: section, exact: true }).getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();
+  async shouldHaveStatus(title: string, status: "Working" | "Ready" | "Needs you"): Promise<void> {
+    const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true });
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("img", { name: status, exact: true })).toBeVisible();
   }
-  async shouldHaveWorking(count: number, expanded = false): Promise<void> {
-    const section = this.panel().getByRole("region", { name: "Working", exact: true });
-    const toggle = section.getByRole("button", { name: /^Working/ });
-    await expect(toggle).toHaveText(`Working${count}`);
-    await expect(toggle).toHaveAttribute("aria-expanded", String(expanded));
-    await expect(section.getByRole("button", { name: /^Open / })).toHaveCount(expanded ? count : 0);
+  async shouldHaveStatusCount(status: "Working" | "Ready" | "Needs you", count: number): Promise<void> {
+    await expect(this.panel().getByRole("button", { name: /^Open / }).filter({ has: this.page.getByRole("img", { name: status, exact: true }) })).toHaveCount(count);
   }
-  async expandWorking(): Promise<void> {
-    const toggle = this.panel().getByRole("button", { name: /^Working/ });
-    await expect(toggle).toBeVisible();
-    if (await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
+  async navigate(page: "Home" | "Inbox"): Promise<void> {
+    await this.open();
+    await this.panel().getByRole("button", { name: page === "Inbox" ? /^Inbox/ : "Home", exact: page === "Home" }).click();
+    await expect(this.panel().getByRole("button", { name: page === "Inbox" ? /^Inbox/ : "Home", exact: page === "Home" })).toHaveAttribute("aria-current", "page");
+  }
+  async shouldShowInbox(titles: readonly string[], excluded: readonly string[] = []): Promise<void> {
+    const main = this.page.getByRole("main");
+    await expect(main.getByRole("heading", { name: "Inbox", exact: true })).toBeVisible();
+    for (const title of titles) await expect(main.getByRole("button", { name: `Open ${title}`, exact: true })).toBeVisible();
+    for (const title of excluded) await expect(main.getByRole("button", { name: `Open ${title}`, exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("textbox", { name: "Message Pi" })).not.toBeVisible();
+    await expect(this.page.getByRole("banner").getByRole("button", { name: "New session", exact: true })).toHaveCount(0);
+  }
+  async openFromInbox(title: string): Promise<void> {
+    const release = this.world.reserveSession([]);
+    try {
+      await this.page.getByRole("main").getByRole("button", { name: `Open ${title}`, exact: true }).click();
+      await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeEnabled();
+    } finally { release(); }
+  }
+  async parkFromInbox(title: string): Promise<void> {
+    await this.page.getByRole("main").getByRole("button", { name: `Move ${title} to Later`, exact: true }).click();
+    await expect(this.page.getByRole("main").getByRole("button", { name: `Open ${title}`, exact: true })).toHaveCount(0);
   }
   async finishResponse(title: string): Promise<void> {
     const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true }).locator("..");
@@ -111,14 +128,10 @@ export class BrowserInboxDriver {
     const path = await row.getAttribute("data-session-path");
     if (!path) throw new Error("Session path is not available");
     this.world.releaseControlledResponse(path);
-    await expect(this.panel().getByRole("region", { name: "Ready", exact: true }).locator(`[data-session-inbox-row="${id}"]`)).toBeVisible();
+    await this.shouldHaveStatus(title, "Ready");
   }
   async shouldHaveReady(count: number): Promise<void> {
-    await expect(this.panel().getByRole("region", { name: "Ready", exact: true }).getByRole("button", { name: /^Open / })).toHaveCount(count);
-    if (!count) await this.shouldHideStatusGroup("Ready");
-  }
-  async shouldHideStatusGroup(section: "Working" | "Ready" | "Needs you"): Promise<void> {
-    await expect(this.panel().getByRole("region", { name: section, exact: true })).toHaveCount(0);
+    await this.shouldHaveStatusCount("Ready", count);
   }
   async parkReady(title: string): Promise<void> {
     const row = this.panel().getByRole("button", { name: `Open ${title}`, exact: true }).locator("..");
@@ -150,7 +163,6 @@ export class BrowserInboxDriver {
     const actionBox = await row.getByRole("button", { name: `Move ${title} to Later`, exact: true }).boundingBox();
     expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(actionBox!.x);
     const toggles = [
-      { control: this.panel().getByRole("button", { name: /^Working/ }), expected: expectations.working },
       { control: this.later(), expected: expectations.later },
     ];
     for (const { control, expected } of toggles) {
@@ -228,10 +240,9 @@ export class BrowserInboxDriver {
     const padding = await button.locator(":scope > div").nth(1).evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
     expect(padding).toBe(0);
   }
-  async shouldHaveTightSectionHeadings(expectations: { working: boolean; later: boolean }): Promise<void> {
+  async shouldHaveTightProjectHeadings(expectations: { working: boolean; later: boolean }): Promise<void> {
     const headings = [
-      { heading: this.panel().getByRole("region", { name: "Ready", exact: true }).locator(":scope > div").first(), expected: true },
-      { heading: this.panel().getByRole("button", { name: /^Working/ }), expected: expectations.working },
+      { heading: this.panel().getByRole("region").first().getByRole("button").first(), expected: true },
       { heading: this.later(), expected: expectations.later },
     ];
     for (const { heading, expected } of headings) {

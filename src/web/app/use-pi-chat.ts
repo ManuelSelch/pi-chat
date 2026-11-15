@@ -83,6 +83,7 @@ export function usePiChat() {
   });
   return {
     app, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox,
+    navigateWorkspace: (page: "home" | "inbox") => dispatch({ type: "navigateWorkspace", page }),
     closeView: () => {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });

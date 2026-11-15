@@ -30,9 +30,8 @@ test("running sessions hide header pause and archive actions until completion", 
   await app.inbox.shouldHaveHeaderSessionActions(true);
 
   await app.chat.sendPrompt("Keep working");
-  await app.inbox.shouldHaveWorking(1);
-  await app.inbox.expandWorking();
-  await app.inbox.shouldBeInSection("Header actions", "Working");
+  await app.inbox.shouldHaveStatusCount("Working", 1);
+  await app.inbox.shouldHaveStatus("Header actions", "Working");
 
   await app.inbox.shouldHaveHeaderSessionActions(false);
   await app.inbox.shouldHideRunningActions("Header actions");

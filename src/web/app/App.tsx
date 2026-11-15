@@ -9,6 +9,7 @@ import { AppControllerProvider, useAppController } from "./AppControllerContext.
 import { atHome } from "./state/app-state.js";
 import { AppOverlays } from "./overlays/AppOverlays.js";
 import { Home } from "../sessions/home/Home.js";
+import { InboxPageContainer } from "../sessions/inbox/ui/containers/InboxPageContainer.js";
 import { HeaderContainer } from "./shell/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
@@ -41,6 +42,7 @@ function AppContent() {
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const home = atHome(app);
+  const inboxPage = home && chat.inboxEnabled && app.workspacePage === "inbox";
   const headerHeight = chat.inboxEnabled ? 58 : 96;
   const { width } = useViewportSize();
   const layout = workspaceLayout(width, overlays.state.projects);
@@ -60,7 +62,7 @@ function AppContent() {
 
       <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
-        {home ? (
+        {inboxPage ? <InboxPageContainer /> : home ? (
           <Home
             catalogue={app.catalogue}
             onOpenSession={chat.openSession}

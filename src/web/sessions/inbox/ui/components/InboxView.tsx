@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Alert, Box, Drawer, Group, ScrollArea, Text, UnstyledButton } from "@mantine/core";
-import { IconChevronDown, IconChevronRight, IconClockPause, IconSettings, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconChevronRight, IconClockPause, IconFolder, IconHome, IconInbox, IconSettings, IconX } from "@tabler/icons-react";
 import type { InboxRow } from "../../domain/inbox-model.js";
 import { InboxRowView } from "./InboxRowView.js";
 import { focusComposer, useComposerFocusReturn } from "../../../../ui/focus/composer-focus.js";
@@ -9,11 +9,13 @@ import styles from "./Inbox.module.css";
 export interface InboxViewProps {
   opened: boolean; presentation: "sidebar" | "drawer"; activeSessionId: string; pending: boolean; error?: string;
   rows: readonly InboxRow[]; later: readonly InboxRow[];
-  workingOpen: boolean; onWorkingToggle(): void; laterOpen: boolean; onLaterToggle(): void;
+  page: "home" | "inbox" | "session"; onNavigate(page: "home" | "inbox"): void;
+  laterOpen: boolean; onLaterToggle(): void;
   onClose(): void; onSettings(): void; onSelect(id: string): void; onOpenSaved(path: string): void; onPark(id: string): void; onArchive(path: string): void; onResume(path: string): void;
 }
 export function InboxView(p: InboxViewProps) {
   const focusReturn = useComposerFocusReturn(p.opened && p.presentation === "drawer");
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const panel = useRef<HTMLElement>(null);
   const hadFocus = useRef(false);
   const previous = useRef(p.presentation);
@@ -33,21 +35,42 @@ export function InboxView(p: InboxViewProps) {
     active={!later && item.sessionId === p.activeSessionId} later={later} pending={p.pending}
     onSelect={() => later ? item.path && p.onResume(item.path) : item.sessionId ? p.onSelect(item.sessionId) : item.path && p.onOpenSaved(item.path)}
     onPark={() => { const target = item.sessionId ?? item.path; if (target) p.onPark(target); }} onArchive={() => item.path && p.onArchive(item.path)} />;
-  const section = (label: string, rows: readonly InboxRow[], collapsible = false) => rows.length ? <section className="mb-4" aria-label={label}>
-    {collapsible ? <UnstyledButton display="flex" w="100%" pl={2} pr={8} py={4} mb={4} style={{ alignItems: "center", justifyContent: "space-between" }} aria-expanded={p.workingOpen} onClick={p.onWorkingToggle}>
-      <span className="flex items-center gap-1"><IconChevronRight size={12} className={p.workingOpen ? "rotate-90" : ""} /><Text component="span" size="xs" c="dimmed">{label}</Text></span>
-      <Text component="span" size="xs" c="dimmed">{rows.length}</Text>
-    </UnstyledButton> : <Group justify="space-between" pl={2} pr={10} py={4}><Text size="xs" c="dimmed">{label}</Text><Text size="xs" c="dimmed">{rows.length}</Text></Group>}
-    {(!collapsible || p.workingOpen) && rows.map(item => row(item))}
-  </section> : null;
+  const projects = new Map<string, InboxRow[]>();
+  for (const item of p.rows) {
+    const group = projects.get(item.project) ?? [];
+    group.push(item);
+    projects.set(item.project, group);
+  }
+  const attention = p.rows.filter(item => item.status !== "running").length;
+  function toggleProject(project: string) {
+    setCollapsed(previous => {
+      const next = new Set(previous);
+      if (next.has(project)) next.delete(project);
+      else next.add(project);
+      return next;
+    });
+  }
   const content = <div className="flex h-full min-h-0 flex-col gap-3 p-3">
     <Group justify="flex-end"><ActionIcon color="gray" variant="subtle" aria-label="Close sessions" onClick={p.onClose}><IconX size={18} /></ActionIcon></Group>
+    <div aria-label="Workspace pages" className="flex flex-col gap-1">
+      <UnstyledButton className={styles.navigation} display="flex" w="100%" px={11} py={10} aria-current={p.page === "inbox" ? "page" : undefined} onClick={() => p.onNavigate("inbox")}>
+        <IconInbox size={17} /><Text component="span" size="xs">Inbox</Text><Text component="span" size="xs" ml="auto">{attention}</Text>
+      </UnstyledButton>
+      <UnstyledButton className={styles.navigation} display="flex" w="100%" px={11} py={10} aria-current={p.page === "home" ? "page" : undefined} onClick={() => p.onNavigate("home")}>
+        <IconHome size={17} /><Text component="span" size="xs">Home</Text>
+      </UnstyledButton>
+    </div>
     {p.error && <Alert color="red" role="alert">{p.error}</Alert>}
     <ScrollArea className="min-h-0 flex-1">
-      {section("Needs you", p.rows.filter(item => item.status === "blocked"))}
-      {section("Ready", p.rows.filter(item => item.status === "idle"))}
-      {section("Working", p.rows.filter(item => item.status === "running"), true)}
-      {!p.rows.length && <Text size="xs" c="dimmed" ta="center" py="xl">Inbox clear</Text>}
+      <Group justify="space-between" px={10} py={8}><Text size="10px" c="dimmed" tt="uppercase" lts="0.1em">Projects</Text><Text size="10px" c="dimmed">{projects.size}</Text></Group>
+      {[...projects].map(([project, rows]) => <section key={project} aria-label={project} className="mb-3">
+        <UnstyledButton display="flex" w="100%" pl={2} pr={8} py={8} style={{ alignItems: "center", gap: 8 }} aria-expanded={!collapsed.has(project)} onClick={() => toggleProject(project)}>
+          <IconChevronRight size={12} className={collapsed.has(project) ? "" : "rotate-90"} /><IconFolder size={15} className="shrink-0" />
+          <Text component="span" size="xs" fw={600} truncate>{project}</Text>
+        </UnstyledButton>
+        {!collapsed.has(project) && rows.map(item => row(item))}
+      </section>)}
+      {!p.rows.length && <Text size="xs" c="dimmed" ta="center" py="xl">No sessions</Text>}
     </ScrollArea>
     {p.later.length > 0 && <div className="max-h-[37%] shrink-0 overflow-auto border-t border-[var(--mantine-color-default-border)] pt-2">
       <UnstyledButton display="flex" w="100%" pl={2} pr={4} py={8} style={{ alignItems: "center", gap: 8 }} aria-expanded={p.laterOpen} onClick={p.onLaterToggle}>
@@ -56,7 +79,7 @@ export function InboxView(p: InboxViewProps) {
       </UnstyledButton>
       {p.laterOpen && p.later.map(item => row(item, true))}
     </div>}
-    <div className="shrink-0 border-t border-[var(--mantine-color-default-border)] pt-2">
+    <div className="shrink-0 pt-2">
       <ActionIcon variant="subtle" color="gray" aria-label="Settings" title="Settings" onClick={p.onSettings}><IconSettings size={19} /></ActionIcon>
     </div>
   </div>;

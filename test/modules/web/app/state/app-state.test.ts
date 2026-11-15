@@ -22,6 +22,27 @@ it("closes only the selected view and preserves deliberate deselection across SD
   expect(state.activeSessionId).toBe("b");
 });
 
+it.each(["home", "inbox"] as const)("navigates to %s without closing runtimes or losing background updates", page => {
+  const sessions = state.sessions;
+  state = reduceAppMessage(state, { type: "navigateWorkspace", page });
+
+  expect(state.workspacePage).toBe(page);
+  expect(state.activeSessionId).toBe("");
+  expect(state.viewClosed).toBe(true);
+  expect(state.sessions).toBe(sessions);
+  expect(state.tabs).toHaveLength(2);
+
+  state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "background" }, "b", 1));
+
+  expect(state.workspacePage).toBe(page);
+  expect(state.activeSessionId).toBe("");
+  expect(state.sessions.b?.draft?.text).toBe("background");
+
+  state = reduceAppMessage(state, { type: "focusSession", sessionId: "b" });
+  expect(atHome(state)).toBe(false);
+  expect(state.activeSessionId).toBe("b");
+});
+
 it("keeps separate transcripts and sequences for busy and background sessions", () => {
   for (let sequence = 1; sequence <= 5; sequence++) state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "x" }, "b", sequence));
   state = harness.reduce(state, coreEvent("message.delta", { runId: "r", delta: "kept" }, "a", 1));

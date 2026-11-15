@@ -2,6 +2,9 @@
   background: var(--pi-sidebar-bg);
   border-right: 1px solid var(--mantine-color-default-border);
 }
+.navigation { align-items: center; gap: 11px; border-radius: 6px; }
+.navigation:hover { background: var(--mantine-color-default-hover); }
+.navigation[aria-current="page"] { background: var(--mantine-primary-color-light); color: var(--mantine-primary-color-light-color); font-weight: 600; }
 .row { position: relative; }
 .row:hover { background: var(--mantine-color-default-hover); }
 .row.selected {

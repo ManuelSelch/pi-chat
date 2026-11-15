@@ -5,97 +5,52 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { initialAppState, type AppState } from "../../../../../../../src/web/app/state/app-state.js";
 import { InboxContainer } from "../../../../../../../src/web/sessions/inbox/ui/containers/InboxContainer.js";
 
-const chat = { app: initialAppState as AppState, inbox: { later: [], pending: false }, focusTab: vi.fn() };
+const chat = { app: initialAppState as AppState, inbox: { later: [], pending: false }, focusTab: vi.fn(), navigateWorkspace: vi.fn() };
+const overlays = { open: vi.fn(), close: vi.fn(), state: { projects: true }, projectsPresentation: "sidebar" as "sidebar" | "drawer" };
 vi.mock("../../../../../../../src/web/app/AppControllerContext.js", () => ({ useAppController: () => chat }));
-vi.mock("../../../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({
-  open: vi.fn(), close: vi.fn(), state: { projects: true }, projectsPresentation: "sidebar",
-}) }));
+vi.mock("../../../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => overlays }));
 
-function setStatuses(...statuses: ("running" | "idle" | "blocked")[]) {
-  chat.app = { ...chat.app, tabs: statuses.map((status, index) => ({
-    sessionId: `session-${index}`, title: `Session ${index}`, projectName: "Project", projectPath: "/project", status,
-  })) };
-}
-const panel = () => <MantineProvider><InboxContainer /></MantineProvider>;
-const toggle = () => screen.getByRole("button", { name: /^Working/ });
-beforeEach(() => { chat.app = { ...initialAppState, connection: "open" }; });
+beforeEach(() => {
+  vi.clearAllMocks();
+  overlays.projectsPresentation = "sidebar";
+  chat.app = { ...initialAppState, tabsKnown: true, connection: "open" };
+});
 afterEach(cleanup);
+const panel = () => <MantineProvider><InboxContainer /></MantineProvider>;
 
-it("starts collapsed with running sessions and supports manual expansion and collapse", () => {
-  setStatuses("running");
-
+it.each(["sidebar", "drawer"] as const)("navigates workspace pages without dismissing the %s", presentation => {
+  overlays.projectsPresentation = presentation;
   render(panel());
 
-  expect(toggle().getAttribute("aria-expanded")).toBe("false");
-  expect(toggle().textContent).toBe("Working1");
-  expect(screen.queryByRole("button", { name: "Open Session 0" })).toBeNull();
+  expect(overlays.open).toHaveBeenCalledWith("projects");
+  expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+  fireEvent.click(screen.getByRole("button", { name: /^Inbox/ }));
 
-  fireEvent.click(toggle());
-
-  expect(screen.getByRole("button", { name: "Open Session 0" })).toBeTruthy();
-
-  fireEvent.click(toggle());
-
-  expect(toggle().getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("button", { name: "Open Session 0" })).toBeNull();
+  expect(chat.navigateWorkspace).toHaveBeenCalledWith("inbox");
+  expect(chat.focusTab).not.toHaveBeenCalled();
+  expect(overlays.close).not.toHaveBeenCalled();
 });
 
-it("collapses the first working session that arrives after an empty section", () => {
-  const view = render(panel());
-  expect(screen.queryByRole("button", { name: /^Working/ })).toBeNull();
-
-  setStatuses("running");
-  view.rerender(panel());
-
-  expect(toggle().getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("button", { name: "Open Session 0" })).toBeNull();
-});
-
-it("resets expansion when the last working session leaves, without hiding Ready or Needs you", () => {
-  setStatuses("running", "blocked");
-  const view = render(panel());
-  fireEvent.click(toggle());
-
-  setStatuses("idle", "blocked");
-  view.rerender(panel());
-
-  expect(screen.queryByRole("button", { name: /^Working/ })).toBeNull();
-  expect(screen.getByRole("button", { name: "Open Session 0" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Open Session 1" })).toBeTruthy();
-
-  setStatuses("running", "blocked");
-  view.rerender(panel());
-
-  expect(toggle().getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("button", { name: "Open Session 0" })).toBeNull();
-});
-
-it("keeps expansion while working sessions join or leave a nonempty section", () => {
-  setStatuses("running");
-  const view = render(panel());
-  fireEvent.click(toggle());
-
-  setStatuses("running", "running");
-  view.rerender(panel());
-
-  expect(toggle().getAttribute("aria-expanded")).toBe("true");
-  expect(toggle().textContent).toBe("Working2");
-  expect(screen.getByRole("button", { name: "Open Session 1" })).toBeTruthy();
-
-  setStatuses("idle", "running");
-  view.rerender(panel());
-
-  expect(toggle().getAttribute("aria-expanded")).toBe("true");
-  expect(screen.getByRole("button", { name: "Open Session 1" })).toBeTruthy();
-});
-
-it("starts collapsed again on a fresh mount rather than persisting expansion", () => {
-  setStatuses("running");
-  const view = render(panel());
-  fireEvent.click(toggle());
-  view.unmount();
-
+it("keeps working sessions accessible alongside idle sessions in their project", () => {
+  chat.app = { ...chat.app, activeSessionId: "running", tabs: [
+    { sessionId: "running", title: "Work", projectName: "Project", projectPath: "/project", status: "running" },
+    { sessionId: "idle", title: "Review", projectName: "Project", projectPath: "/project", status: "idle" },
+  ] };
   render(panel());
 
-  expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  expect(screen.getAllByRole("region").map(region => region.getAttribute("aria-label"))).toEqual(["Project"]);
+  expect(screen.getByRole("button", { name: "Open Work" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Open Review" }));
+  expect(chat.focusTab).toHaveBeenCalledWith("idle");
+  expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
+});
+
+it("opens Settings from phones after dismissing navigation", () => {
+  overlays.projectsPresentation = "drawer";
+  render(panel());
+
+  fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+  expect(overlays.close).toHaveBeenCalledWith("projects");
+  expect(overlays.open).toHaveBeenCalledWith("settings");
 });
