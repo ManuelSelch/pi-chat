@@ -14,6 +14,19 @@ vi.mock("../../../../../src/web/app/AppControllerContext.js", () => ({ useAppCon
 vi.mock("../../../../../src/web/app/overlays/OverlayController.js", () => ({ useOverlays: () => ({ state: { projects: false } }) }));
 afterEach(cleanup);
 
+it("shows the repository name for a linked worktree", () => {
+  chat.app = {
+    ...initialAppState, connection: "open", tabsKnown: true, activeSessionId: "worktree",
+    tabs: [{ sessionId: "worktree", title: "Conversation", projectPath: "/worktree", projectName: "checkout", status: "idle" }],
+    catalogue: { projects: [{ path: "/worktree", displayPath: "/worktree", name: "checkout", repositoryName: "my-project", worktree: { primary: false, detached: false, branch: "feature/header" }, exists: true, modified: 0, sessionCount: 0, sessions: [] }] },
+  };
+
+  render(<MantineProvider><AppShell><HeaderContainer /></AppShell></MantineProvider>);
+
+  expect(screen.getByText("my-project", { exact: true })).toBeTruthy();
+  expect(screen.getByText("feature/header", { exact: true })).toBeTruthy();
+});
+
 it.each([
   { catalogueName: "Quick Chats", quickChats: true, expected: "Quick Chat" },
   { catalogueName: "Personal folder", quickChats: false, expected: "manuelselch" },

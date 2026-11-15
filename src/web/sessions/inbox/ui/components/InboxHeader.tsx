@@ -17,7 +17,7 @@ export function InboxHeader(p: InboxHeaderProps) {
     <Group h={58} px={{ base: "xs", sm: "lg" }} gap="sm" wrap="nowrap">
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="Sessions" data-projects-toggle aria-expanded={p.opened} onClick={p.onToggle}><IconLayoutSidebar size={18} /></ActionIcon>
       <div className={styles.breadcrumb}>
-        {p.session && <><Text size="xs" c="dimmed" visibleFrom="sm" maw={128} miw={0} truncate>{p.session.projectName}</Text><IconChevronRight size={12} className="hidden shrink-0 sm:block" /></>}
+        {p.session && <><Text size="xs" c="dimmed" visibleFrom="sm" maw="70%" miw={0} truncate title={p.session.projectName}>{p.session.projectName}</Text><IconChevronRight size={12} className="hidden shrink-0 sm:block" /></>}
         {title && <Text size="xs" miw={0} flex={1} truncate title={title}>{title}</Text>}
       </div>
       {p.session && <>
