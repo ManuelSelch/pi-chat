@@ -32,7 +32,7 @@ export function Inbox({ sessions, onOpen, onLater, onNew }: { sessions: Session[
       {(['blocked', 'ready'] as const).map(status => {
         const rows = attention.filter(s => s.status === status);
         if (!rows.length) return null;
-        return <section key={status} aria-label={status === 'blocked' ? 'Needs a decision' : 'Ready to review'}><div className="section-heading"><span>{status === 'blocked' ? 'Needs a decision' : 'Ready to review'}</span></div>{rows.map(row)}</section>;
+        return <section key={status} aria-label={status === 'blocked' ? 'Blocked' : 'Ready to review'}><div className="section-heading"><span>{status === 'blocked' ? 'Blocked' : 'Ready to review'}</span></div>{rows.map(row)}</section>;
       })}
       {!attention.length && <div className="empty"><IconInbox size={36}/><h2>Nothing waiting here</h2><p>We’ll bring your agents here when they finish or need a decision.</p><Button variant="default" onClick={onNew}>Start a session</Button></div>}
       {later.length > 0 && <section className="later-section" aria-label="Later"><button className="later-toggle" aria-expanded={laterOpen} aria-controls="later-sessions" onClick={() => setLaterOpen(open => !open)}><IconChevronRight size={15} className={laterOpen ? 'expanded' : ''}/><IconClockPause size={15}/><span>Later</span><small>{later.length}</small></button><div id="later-sessions" hidden={!laterOpen}>{later.map(row)}</div></section>}
