@@ -16,6 +16,12 @@ Scenarios use real Pi sessions and WebSocket transport, not a rendered browser. 
 
 `e2e/skills.spec.ts` covers skill command discovery/selection, compact invocation and read cards, reload, per-tab resources, disabled discovery, and skill steering during streaming (including reconnect). `e2e/chat.spec.ts` also verifies that `!` / `!!` remain blocked during steering. `app.tabs.create({ skills, responses })` installs temporary skills per session; response `readSkill` scripts a real SDK read before its reply. Only the model stream is scripted. Skill UI selectors and assertions live in `app.skills`.
 
+## Session storage isolation
+
+- Worktree-command fixtures must pass an explicit session directory inside the disposable test project.
+- The harness extension context retains its initial in-memory manager, even after TestWorld replaces the session's manager. Its `getSessionDir()` is undefined; passing that to `SessionManager.create` leaks files into the user's real Pi history.
+- [TestWorld safety tests](infra-tests/pi-chat/test-world.test.ts) reject that fallback before it writes and verify replacement files disappear on disposal.
+
 ## E2E coverage
 
 Import `test` (and `expect`) from `infra/e2e/coverage/fixtures.ts` in browser specs,
