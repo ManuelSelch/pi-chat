@@ -1,6 +1,6 @@
 # UI directions
 
-- Revision: 14. Status: in review. Approval: not yet requested or received.
+- Revision: 15. Status: in review. Approval: not yet requested or received.
 - Goal: compare colour, density and home-screen purpose without production changes.
 - Isolated React prototype; all sessions, runtime labels, agent replies, files and test results are fake.
 
@@ -13,7 +13,7 @@
 ## Home comparison
 
 - Current home: existing Home.tsx search-first structure, restyled with the chosen theme. Not a pixel-exact current-theme reproduction.
-- Inbox: compact cards with 14px vertical padding, red/green status dots instead of icons, no open arrow, and addition/deletion numbers without a LOC label for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. Blocked section is labelled “Blocked”. Snooze occupies its own grid column, never overlays content. Change counts are plain 10px text aligned with project/branch metadata on the second row. Cards show no agent description or summary; only title, project/branch, timestamp and change counts. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut. Header is only “Inbox”, without eyebrow, description or dot; no inbox footer or divider above Later.
+- Inbox: compact cards with 14px vertical padding, red/green status dots instead of icons, no open arrow, and addition/deletion numbers without a LOC label for blocked decisions and ready reviews only. Working sessions stay out of the inbox; Later is collapsed by default. No filters, search, project selector or summary counters. Added/removed LOC is prominent where a diff exists. Blocked section is labelled “Blocked”. Snooze occupies its own grid column in the top-right alongside the timestamp, never overlays content. Minimal gray icon, white on hover/focus, no background. Change counts are plain 10px text aligned with project/branch metadata on the second row. Cards show no agent description or summary; only title, project/branch, timestamp and change counts. No header New session button or mandatory new-session composer; use sidebar navigation to start a session. The caught-up empty state retains its start-session shortcut. Header is only “Inbox”, without eyebrow, description or dot; no inbox footer or divider above Later.
 - Lets cook: only the requested title, single-line composer matching the current home search input and a single-line inbox attention nudge (no supporting description). No decorative icon, eyebrow, subtitle, suggestion buttons or keyboard hint. Composer attachment control removed (annotation 4 interpreted as the plus button).
 - Sidebar retained for navigation; toggle it for an edge-to-edge inbox.
 - Desktop uses persistent sidebar; below 800px it is hidden and all homes remain accessible through the explorer.
