@@ -179,12 +179,9 @@ the composer column: at most two bottom-aligned cards per row, and a lone last
 card of an odd count spans the row. Below-composer and docked widgets remain
 stacked.
 
-Theme production belongs to each server runtime. Required open/create palettes
-populate the SDK's runtime cache; ordinary snapshots/reload do not refresh it.
-Chat maps the selected palette to root Mantine variables, including portals.
-Browser-owned remembered appearance is separate from the SDK cache and does not
-recolor extension ANSI output. See [theme configuration](configuration.md#pi-themes)
-for lifetime, fallback and persistence limits.
+- `AppThemeProvider` owns the fixed application theme, including portals.
+- Runtime Pi themes only color extension ANSI output, not the interface.
+- See [theme configuration](configuration.md#pi-themes) for setup and lifetime.
 
 ### File links and content presentation
 

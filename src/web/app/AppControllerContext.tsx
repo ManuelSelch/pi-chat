@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { usePromptPresentation } from "../extensions/prompts/app/use-prompt-presentation.js";
 import { usePiChat } from "./use-pi-chat.js";
-import { SessionThemeProvider } from "./theme/SessionThemeProvider.js";
+import { AppThemeProvider } from "./theme/AppThemeProvider.js";
 import { SessionDraftProvider } from "../sessions/drafts/app/SessionDraftProvider.js";
 import { FileActionsProvider } from "../chat/markdown/FileActions.js";
 
@@ -12,14 +12,12 @@ const AppControllerContext = createContext<AppController | undefined>(undefined)
 export function AppControllerProvider({ children }: { children: ReactNode }) {
   const controller = usePiChat();
   const promptPresentation = usePromptPresentation({ ...controller.app, respond: controller.respondToPrompt });
-  const { themes, activeSessionId } = controller.app;
-  const palette = Object.hasOwn(themes, activeSessionId) ? themes[activeSessionId] : undefined;
 
   return (
     <AppControllerContext.Provider value={{ ...controller, promptPresentation }}>
-      <SessionThemeProvider palette={palette}>
+      <AppThemeProvider>
         <SessionDraftProvider><FileActionsProvider openFile={controller.openFile}>{children}</FileActionsProvider></SessionDraftProvider>
-      </SessionThemeProvider>
+      </AppThemeProvider>
     </AppControllerContext.Provider>
   );
 }

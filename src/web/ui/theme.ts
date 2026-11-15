@@ -51,8 +51,9 @@ export const THEME = {
 
   status: {
     idle: "var(--mantine-color-green-6)",
-    running: "var(--mantine-color-yellow-6)",
+    running: "var(--mantine-color-orange-6)",
     blocked: "var(--mantine-color-red-6)",
+    later: "var(--pi-status-later)",
     success: "var(--mantine-color-green-6)",
     warning: "var(--mantine-color-yellow-6)",
     error: "var(--mantine-color-red-6)",

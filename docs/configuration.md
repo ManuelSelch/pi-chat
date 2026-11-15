@@ -114,51 +114,23 @@ the server's Pi environment, not by adding secrets to the endpoint URL.
 
 ## Pi themes
 
-Pi Chat uses the active runtime's Pi theme for the shell, controls, dialogs,
-status colors, messages and diff colors. Extension widgets use the same runtime's
-Pi colors; literal RGB and already-rendered ANSI strings are preserved.
+- The interface uses a fixed dark theme, including Home and dialogs. Session
+  selection, browser appearance and old `pi-chat:lastTheme` storage do not change it.
+- Colours live in `src/web/app/theme/pi-chat-theme.ts`. Session states are
+  blocked red, ready green, working orange and Later gray.
+- Runtime Pi themes only affect extension-generated ANSI output. Literal RGB/ANSI
+  colours are preserved; syntax highlighting uses the existing GitHub-dark palette.
 
-For the original Pi Chat palette, use the bundled [Classic light and dark
-themes](../themes/README.md). That guide covers installation, terminal appearance
-pairs and the limits of matching the original browser colors.
+### Runtime themes
 
-- Put a complete custom Pi theme in `~/.pi/agent/themes/my-theme.json` (or a
-  project theme resource allowed by Pi's existing trust/resource rules).
-  Start from a valid Pi theme, not a partial Mantine palette.
-- Select it with `"theme": "my-theme"` in Pi's effective settings, for example
-  `~/.pi/agent/settings.json`. Set the theme file's `appearance` to `light`
-  or `dark`; Chat follows it rather than browser appearance.
-- Use concrete colors for every Pi token, including text. Avoid empty/default
-  terminal colors for headless use. Pi variables and its supported color formats
-  work. Optional Pi `export.pageBg`, `export.cardBg`, and `export.infoBg`
-  set exact interface surfaces; otherwise Pi's export derivation supplies them.
-- Missing, invalid, unavailable, system or terminal-dependent themes use Pi's
-  deterministic dark fallback and emit a server diagnostic. Fixed light/dark
-  pairs select their dark member.
-
-**Lifetime and limits:** themes resolve when a runtime is created or replaced,
-not on `/reload`. To apply edited theme files, close the runtime and open/create
-it again; opening an already-running runtime returns its existing cached palette.
-Tab changes use each runtime's cached palette, including inside portalled dialogs.
-Ordinary snapshots, explicit reload and same-server reconnect preserve the cache;
-close or server-instance changes clear it.
-
-Separately, Pi Chat remembers the last selected runtime's resolved palette in
-browser-local storage (`pi-chat:lastTheme`). Home, settings and dialogs keep this
-appearance after all sessions close, and browser refresh restores it. A selected
-runtime's palette takes precedence and updates the remembered appearance;
-background sessions do not. This does not restore SDK cache entries or recolor
-extension widgets. Remembered colors may remain stale until a selected runtime
-supplies its actual palette. Storage is per browser origin, not per server process.
-
-Initialization still carries no palette. A new client with no valid remembered
-palette uses Mantine's auto-scheme defaults until a successful open/create
-response. Invalid or unavailable storage is ignored; if writes fail, appearance
-is retained in memory until the page closes. There are no hidden recovery
-requests, theme selector, watcher or browser-to-terminal synchronization.
-Syntax highlighting retains its existing light/dark palettes. Theme data is
-required in open/create responses; older responses without it are rejected,
-not silently accepted.
+- Save a complete Pi theme with concrete colours under `~/.pi/agent/themes/`,
+  then select it using `"theme": "my-theme"` in Pi settings. Project theme
+  resources follow Pi's existing trust rules. See the [bundled Classic themes](../themes/README.md).
+- Recreate the runtime to apply theme edits; `/reload` does not refresh its palette.
+  Invalid or terminal-dependent themes use Pi's dark fallback with a diagnostic;
+  automatic light/dark pairs use their dark member.
+- Open/create responses still require valid theme metadata. SDK cache lifetime
+  is documented in the [protocol guide](protocol.md#recovery-cancellation-and-uncertainty).
 
 ## Private network access
 

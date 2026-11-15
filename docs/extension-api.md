@@ -49,8 +49,7 @@ Those interactions use server-owned registries and SDK presentation state:
 - Widgets carry ANSI-styled plain string lines. Markdown is literal; HTTP(S)
   OSC 8 links are supported with safe new-tab attributes. Formatting does not
   imply arbitrary terminal-control support or client-side code execution.
-- Pi runtime theme colors are produced server-side. Browser remembered shell
-  appearance does not reinterpret an extension's literal RGB/ANSI strings.
+- Pi runtime theme colors are produced server-side. Pi Chat's application theme does not reinterpret an extension's literal RGB/ANSI strings.
 
 See [presentation ownership](architecture.md#runtime-prompts-widgets-and-themes),
 [user interactions](usage.md#extension-prompts-and-widgets) and

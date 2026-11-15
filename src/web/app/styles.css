@@ -19,7 +19,7 @@ html::-webkit-scrollbar {
 
 /*
  * Markdown content styling. Everything keys off Mantine CSS variables, so
- * light/dark follow MantineProvider's color scheme with no media queries here.
+ * The application provider fixes the theme, including body portals.
  */
 .markdown {
   line-height: 1.65;
@@ -135,7 +135,7 @@ html::-webkit-scrollbar {
 .hljs-built_in, .hljs-title.class_, .hljs-variable, .hljs-template-variable { color: var(--hljs-builtin); }
 .hljs-attr, .hljs-attribute, .hljs-name, .hljs-tag { color: var(--hljs-attr); }
 
-/* Selection and user-message content use exact Pi roles when supplied. */
+/* Selection and user-message content use the fixed application theme. */
 ::selection { background: var(--pi-selected-bg, var(--mantine-primary-color-light)); }
 [data-pi-user-message] .markdown { color: inherit; }
 

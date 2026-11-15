@@ -1,26 +1,31 @@
 import { expect, type Page } from "@playwright/test";
-import type { SessionTheme } from "@manuelselch/pi-sdk";
-
-function rgb(hex: string) { return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`; }
 
 /** Real computed styles and socket lifecycle stay behind the feature DSL. */
 export class BrowserThemeDriver {
   constructor(private readonly page: Page) {}
-  async shouldUse(palette: SessionTheme): Promise<void> {
-    await this.shouldUseShell(palette);
-    await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", rgb(palette.colors.success));
+  async shouldUseAppTheme(): Promise<void> {
+    await this.shouldUseAppThemeShell();
+    await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", "rgb(123, 189, 164)");
   }
-  async shouldUseShell(palette: SessionTheme): Promise<void> {
-    await expect(this.page.locator("html")).toHaveAttribute("data-mantine-color-scheme", palette.appearance);
-    await expect(this.page.locator("body")).toHaveCSS("background-color", rgb(palette.surfaces.pageBg));
-    await expect(this.page.locator("body")).toHaveCSS("color", rgb(palette.colors.text));
-    await expect(this.page.locator("header")).toHaveCSS("border-bottom-color", rgb(palette.colors.border));
+  async shouldUseAppThemeShell(): Promise<void> {
+    await expect(this.page.locator("html")).toHaveAttribute("data-mantine-color-scheme", "dark");
+    await expect(this.page.locator("body")).toHaveCSS("background-color", "rgb(24, 25, 30)");
+    await expect(this.page.locator("body")).toHaveCSS("color", "rgb(229, 229, 237)");
+    await expect(this.page.locator("header")).toHaveCSS("border-bottom-color", "rgb(48, 49, 59)");
+    await expect.poll(() => this.page.locator("html").evaluate(el => getComputedStyle(el).getPropertyValue("--mantine-color-blue-filled").trim())).toBe("#8b9baf");
   }
-  async shouldThemePortal(palette: SessionTheme): Promise<void> {
-    await expect(this.page.getByRole("dialog", { name: "Settings" })).toHaveCSS("background-color", rgb(palette.surfaces.pageBg));
+  async shouldThemePortalAppTheme(): Promise<void> {
+    await expect(this.page.getByRole("dialog", { name: "Settings" })).toHaveCSS("background-color", "rgb(24, 25, 30)");
   }
-  async shouldUseDefaults(): Promise<void> {
-    await expect.poll(() => this.page.locator("html").evaluate(el => getComputedStyle(el).getPropertyValue("--pi-user-bg"))).toBe("");
+  async rememberLegacyLightAppearance(): Promise<void> {
+    await this.page.evaluate(() => {
+      localStorage.setItem("pi-chat:lastTheme", JSON.stringify({ name: "old-light", appearance: "light", colors: {
+        accent: "#23614c", text: "#182d25", muted: "#666666", border: "#888888", selectedBg: "#eeeeee", mdLink: "#23614c",
+        success: "#28734c", warning: "#aa9900", error: "#aa0000", userMessageBg: "#ffffff", userMessageText: "#182d25",
+        thinkingText: "#666666", toolDiffAdded: "#28734c", toolDiffRemoved: "#aa0000",
+      }, surfaces: { pageBg: "#f6f3e8", cardBg: "#fffdf4", infoBg: "#e6eee4" } }));
+      localStorage.setItem("mantine-color-scheme-value", "light");
+    });
   }
   async reconnect(): Promise<void> {
     // Interrupt just this page's real socket; the server and SDK reconnect normally.

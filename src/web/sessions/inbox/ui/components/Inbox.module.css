@@ -1,5 +1,5 @@
 .panel {
-  background: var(--mantine-color-body);
+  background: var(--pi-sidebar-bg);
   border-right: 1px solid var(--mantine-color-default-border);
 }
 .row { position: relative; }
