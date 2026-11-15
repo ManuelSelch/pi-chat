@@ -11,7 +11,7 @@ export class BrowserSkillsDriver {
   }
 
   private option(name: string): Locator {
-    return this.page.getByRole("option").filter({ hasText: `/skill:${name}` });
+    return this.page.getByRole("option").filter({ hasText: `/${name}` });
   }
 
   async type(text: string): Promise<void> { await this.composer.fill(text); }
@@ -20,6 +20,7 @@ export class BrowserSkillsDriver {
     const option = this.option(name);
     await expect(option).toBeVisible();
     await expect(option).toContainText(`${name} browser fixture`);
+    await expect(option).not.toContainText(`/skill:${name}`);
     await expect(option.locator(".mantine-Badge-root")).toHaveText("skill");
   }
   async shouldNotOffer(name: string): Promise<void> { await expect(this.option(name)).toHaveCount(0); }

@@ -15,6 +15,17 @@ function Commands() {
   ]} activeIndex={active} onHover={setActive} onSelect={vi.fn()} /></div>;
 }
 
+it("hides the skill prefix only in skill labels and selects the original command", () => {
+  const select = vi.fn();
+  const skill = { kind: "command" as const, name: "skill:review", source: "skill" as const };
+  render(<MantineProvider><CommandMenu commands={[skill, { kind: "command", name: "skill:custom", source: "extension" }]} activeIndex={0} onHover={vi.fn()} onSelect={select} /></MantineProvider>);
+
+  expect(screen.getByText("/review")).toBeTruthy();
+  expect(screen.getByText("/skill:custom")).toBeTruthy();
+  fireEvent.mouseDown(screen.getByText("/review"));
+  expect(select).toHaveBeenCalledWith(skill);
+});
+
 for (const kind of ["commands", "quick open"] as const) {
   it(`${kind}: ignores enter and stationary movement; hover does not scroll`, () => {
     render(<MantineProvider>{kind === "commands" ? <Commands /> : <QuickOpen

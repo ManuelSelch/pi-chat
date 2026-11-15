@@ -48,7 +48,7 @@ export function CommandMenu({ commands, activeIndex, onHover, onSelect }: Comman
               }}
             >
               <Group gap={6} wrap="nowrap">
-                <Text size="sm" fw={600} c={command.kind === "action" && command.disabled ? "dimmed" : undefined}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.name}`}</Text>
+                <Text size="sm" fw={600} c={command.kind === "action" && command.disabled ? "dimmed" : undefined}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.source === "skill" ? command.name.replace(/^skill:/, "") : command.name}`}</Text>
                 {command.kind === "command" && command.argumentHint ? <Text size="xs" c="dimmed">{command.argumentHint}</Text> : null}
                 {command.kind !== "argument" ? <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge> : null}
               </Group>
