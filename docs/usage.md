@@ -57,7 +57,8 @@ tabs with project-grouped sidebar sessions and is on by default. Explicit browse
 Use the sidebar **Home** and **Inbox** buttons to switch pages without closing sessions,
 answering prompts or discarding drafts. Home retains search and new-session access.
 Inbox shows compact **Blocked** and **Ready** cards; selecting a card opens the existing
-session view. Working sessions remain accessible in their sidebar project, not Inbox.
+session view. Project and worktree branch labels are prominent, with the smaller,
+gray conversation name underneath, including in Later. Working sessions remain accessible in their sidebar project, not Inbox.
 Inbox counts all blocked and idle conversations outside Later; it is not an unread count.
 Change totals are omitted because the current session data does not supply them.
 The same group contains chimes, folder paths, archived-session visibility and

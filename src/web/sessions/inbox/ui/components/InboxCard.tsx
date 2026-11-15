@@ -14,11 +14,12 @@ export function InboxCard({ row, later, pending, onOpen, onPark, onArchive }: In
   return <div className={styles.card}>
     <UnstyledButton className={styles.open} display="block" w="100%" px={18} py={14} disabled={pending && !row.sessionId}
       aria-label={`${later ? "Resume" : "Open"} ${row.title}`} onClick={onOpen}>
-      <div className={styles.title}><InboxStatus status={row.status} later={later} /><Text component="span" size="sm" truncate>{row.title}</Text></div>
-      <div className={styles.metadata}>
-        <Text component="span" size="xs" truncate>{row.project}</Text>
-        {row.branch && <span className={styles.branch} title={row.branch}><IconGitBranch size={12} /><span className="truncate">{row.branch}</span></span>}
+      <div className={styles.title}>
+        <InboxStatus status={row.status} later={later} />
+        <Text component="span" size="sm" fw={600} truncate title={row.project}>{row.project}</Text>
+        {row.branch && <span className={styles.branch} title={row.branch}><IconGitBranch size={14} /><Text component="span" size="sm" fw={600} truncate>{row.branch}</Text></span>}
       </div>
+      <Text size="xs" c="dimmed" truncate className={styles.sessionName} title={row.title}>{row.title}</Text>
     </UnstyledButton>
     <div className={styles.tools}>
       {row.modified !== undefined && <Text size="10px" c="dimmed" className={styles.time}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}

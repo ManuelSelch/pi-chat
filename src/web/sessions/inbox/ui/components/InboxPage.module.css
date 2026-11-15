@@ -6,9 +6,9 @@
 .card:hover { background: var(--mantine-color-default-hover); }
 .open { text-align: left; }
 .title { display: flex; align-items: center; gap: 12px; min-width: 0; padding-right: 130px; }
-.metadata { display: flex; align-items: center; gap: 16px; min-width: 0; margin-top: 6px; padding-left: 18px; color: var(--mantine-color-dimmed); }
-.metadata > * { min-width: 0; max-width: 50%; }
-.branch { display: flex; align-items: center; gap: 4px; font-size: 10px; }
+.title > * { min-width: 0; }
+.sessionName { margin-top: 6px; padding-left: 18px; }
+.branch { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .branch svg { flex-shrink: 0; }
 .tools { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 6px; height: 21px; }
 .time { white-space: nowrap; }

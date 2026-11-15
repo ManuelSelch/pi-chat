@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { MantineProvider } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { InboxPage, type InboxPageProps } from "../../../../../../../src/web/sessions/inbox/ui/components/InboxPage.js";
 
@@ -33,6 +33,24 @@ it("shows Blocked and Ready cards, excludes working sessions, and keeps Later co
   expect(p.onPark).toHaveBeenCalledWith(p.rows[1]);
   fireEvent.click(screen.getByRole("button", { name: /^Later/ }));
   expect(p.onLaterToggle).toHaveBeenCalledOnce();
+});
+
+it("emphasizes project and worktree above a small dimmed session name", () => {
+  render(<MantineProvider><InboxPage {...props()} /></MantineProvider>);
+
+  const card = screen.getByRole("button", { name: "Open Review" });
+  const project = within(card).getByText("Pi");
+  const branch = within(card).getByText("feature");
+  const session = within(card).getByText("Review");
+
+  expect(project.getAttribute("data-size")).toBe("sm");
+  expect(branch.getAttribute("data-size")).toBe("sm");
+  expect(project.style.fontWeight).toBe("600");
+  expect(branch.style.fontWeight).toBe("600");
+  expect(project.parentElement).toBe(branch.parentElement?.parentElement);
+  expect(session.getAttribute("data-size")).toBe("xs");
+  expect(session.style.color).toBe("var(--mantine-color-dimmed)");
+  expect(card.lastElementChild).toBe(session);
 });
 
 it("restores parked conversations explicitly and retains archive access", () => {
