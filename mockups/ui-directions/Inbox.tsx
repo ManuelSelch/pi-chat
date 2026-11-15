@@ -10,10 +10,8 @@ export function SessionRow({ session: s, onOpen, onLater }: { session: Session; 
       <span className={`mini-dot session-status ${s.status}`} role="img" aria-label={labels[s.status]}/>
       <span className="row-content">
         <span className="row-title">{s.title}</span>
-        <span className="row-meta"><span>{s.project}</span><span className="branch"><IconGitBranch size={12}/>{s.branch}</span></span>
-      </span>
-      <span className="row-outcome">
         <span className="row-time">{s.time}</span>
+        <span className="row-meta"><span>{s.project}</span><span className="branch"><IconGitBranch size={12}/>{s.branch}</span></span>
         {s.changes && <span className="loc-summary" aria-label={`${added?.slice(1)} lines added, ${removed?.slice(1)} lines removed`}><span className="loc-added">{added}</span><span className="loc-removed">{removed}</span></span>}
       </span>
     </button>
