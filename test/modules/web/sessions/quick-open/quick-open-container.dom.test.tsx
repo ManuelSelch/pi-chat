@@ -22,8 +22,8 @@ beforeEach(() => {
   controller.state = { ...initialChatState, projectPath: "/current" };
 });
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
-it.each(["home", "session"] as const)("opens via Cmd+O from %s and Escape closes without changing sessions", async (view) => {
-  if (view === "session") {
+it("opens via Cmd+O from a session and Escape closes without changing sessions", async () => {
+  {
     controller.app.activeSessionId = "one";
     controller.app.tabs = [{ sessionId: "one", title: "One", projectPath: "/current", projectName: "current", status: "idle" }];
   }
@@ -37,6 +37,15 @@ it.each(["home", "session"] as const)("opens via Cmd+O from %s and Escape closes
   expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
   expect(controller.newSession).not.toHaveBeenCalled();
   expect(controller.openSession).not.toHaveBeenCalled();
+});
+
+it("focuses and expands the inline switcher on Home via Cmd+O", () => {
+  render(<MantineProvider><OverlayController><Harness /><ConfirmDialogProvider><SessionActionsProvider><QuickOpenContainer inline /></SessionActionsProvider></ConfirmDialogProvider></OverlayController></MantineProvider>);
+  fireEvent.keyDown(document.body, { key: "o", code: "KeyO", metaKey: true });
+  const input = screen.getByPlaceholderText("Search");
+  expect(document.activeElement).toBe(input);
+  expect(screen.getByRole("button", { name: "/ Actions" })).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
 });
 
 function Harness() {

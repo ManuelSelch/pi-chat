@@ -7,7 +7,7 @@ import { useDisplayPath } from "../../settings/preferences/use-display-path.js";
 import { useSessionActions } from "../actions/SessionActionsProvider.js";
 import { QuickOpen } from "./QuickOpen.js";
 
-export function QuickOpenContainer() {
+export function QuickOpenContainer({ inline = false }: { inline?: boolean }) {
   const { app, openSession, openProject, newSession, inbox, focusTab } = useAppController();
   const { actions } = useSessionActions();
   const displayPath = useDisplayPath();
@@ -15,10 +15,16 @@ export function QuickOpenContainer() {
   const opened = overlays.state.quickOpen;
   const laterPaths = useMemo(() => new Set(inbox.later.map(row => row.path)), [inbox.later]);
 
+  function openQuickSwitcher() {
+    const homeSearch = document.querySelector<HTMLInputElement>("[data-home-quick-open]");
+    if (homeSearch) { homeSearch.focus(); homeSearch.dispatchEvent(new Event("home-quick-open")); return; }
+    overlays.open("quickOpen");
+  }
+
   useHotkeys(
-    [
-      ["mod+shift+O", () => overlays.open("quickOpen")],
-      ["mod+O", () => overlays.open("quickOpen")],
+    inline ? [] : [
+      ["mod+shift+O", openQuickSwitcher],
+      ["mod+O", openQuickSwitcher],
     ],
     [],
   );
@@ -27,13 +33,14 @@ export function QuickOpenContainer() {
     <>
       <QuickOpen
         opened={opened}
+        inline={inline}
         onClose={() => overlays.close("quickOpen")}
         catalogue={app.catalogue}
         tabs={visibleTabs(app)}
         onOpenSession={openSession}
         onFocusSession={focusTab}
         onOpenProject={openProject}
-        onNewSession={(path) => { void newSession(path); }}
+        onNewSession={(path) => { void newSession(path || undefined); }}
         actions={actions}
         laterPaths={laterPaths}
         showDisplayPath={displayPath.show}

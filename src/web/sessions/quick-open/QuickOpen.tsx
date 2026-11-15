@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
-import { IconBolt, IconClockPause, IconFolder, IconFolderPlus, IconGitBranch } from "@tabler/icons-react";
+import { IconBolt, IconClockPause, IconFolder, IconFolderPlus, IconGitBranch, IconSearch } from "@tabler/icons-react";
 import { InboxStatus } from "../inbox/ui/components/InboxStatus.js";
 import classes from "./QuickOpen.module.css";
 import type { ProjectCatalogue, Tab } from "../../app/state/view-types.js";
@@ -13,6 +13,7 @@ import type { SessionAction } from "../actions/session-actions.js";
 
 interface QuickOpenProps {
   opened: boolean;
+  inline?: boolean;
   onClose: () => void;
   catalogue: ProjectCatalogue;
   tabs: readonly Tab[];
@@ -60,12 +61,15 @@ function SessionIndicator({ status }: { status: QuickOpenItem["status"] }) {
 }
 
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
+export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
   const focusReturn = useComposerFocusReturn(opened);
+  const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const activeRef = useRef<HTMLButtonElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const initialFocus = useRef(false);
+  const switcherIntent = useRef(false);
   const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
 
   const items = buildQuickOpenItems(catalogue, tabs, actions, laterPaths);
@@ -86,6 +90,18 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onF
       : catalogue.projects.length === 0
         ? "No folders or sessions yet. Open a folder to get started."
         : "No recent sessions. Search or choose a scope.";
+
+  useEffect(() => {
+    if (!inline) return;
+    const input = inputRef.current;
+    if (!input) return;
+    const expand = () => { switcherIntent.current = true; setExpanded(true); };
+    input.addEventListener("home-quick-open", expand);
+    initialFocus.current = true;
+    input.focus();
+    initialFocus.current = false;
+    return () => input.removeEventListener("home-quick-open", expand);
+  }, [inline]);
 
   useEffect(() => {
     // Every opening starts fresh, showing the most recent sessions.
@@ -110,11 +126,15 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onF
     else if (item.kind === "projectAction") {
       if (item.targetPath) onNewSession(item.targetPath);
     } else onOpenProject(item.path);
+    if (inline) { setExpanded(false); setQuery(""); }
     onClose();
   }
 
   function keyDown(event: KeyboardEvent<HTMLInputElement>): void {
     if (event.nativeEvent.isComposing) return;
+    if (inline && event.key === "Escape") { event.stopPropagation(); switcherIntent.current = false; setExpanded(false); inputRef.current?.blur(); return; }
+    if (inline && !query.trim() && !switcherIntent.current && event.key === "Enter") { event.preventDefault(); onNewSession(""); return; }
+    if (inline && (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Tab")) switcherIntent.current = true;
     if (event.key === "Tab") {
       event.preventDefault();
       event.stopPropagation();
@@ -138,35 +158,31 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onF
     }
     if (event.key === "Enter") {
       event.preventDefault();
-      choose(results[selectedIndex]!);
+      const item = results[selectedIndex];
+      if (item) choose(item);
     }
   }
 
-  return (
-    <Modal
-      {...focusReturn}
-      opened={opened}
-      onClose={onClose}
-      withCloseButton={false}
-      size="lg"
-      padding="xs"
-      title={null}
-      styles={{ body: { overflowX: "hidden" } }}
-    >
+  const content = (
       <Stack gap="xs" className={pointerActive ? classes.pointerActive : undefined} style={{ minWidth: 0, overflowX: "hidden" }}>
         <TextInput
           ref={inputRef}
-          data-autofocus
-          aria-label="Search folders, worktrees, sessions and actions"
-          placeholder="Search folders, worktrees, sessions and actions…"
+          data-autofocus={!inline || undefined}
+          data-home-quick-open={inline || undefined}
+          aria-label={inline ? "Search sessions and projects" : "Search folders, worktrees, sessions and actions"}
+          placeholder={inline ? "Search" : "Search folders, worktrees, sessions and actions…"}
+          leftSection={inline ? <IconSearch size={16} /> : undefined}
+          onFocus={() => { if (inline && !initialFocus.current) setExpanded(true); }}
+          onClick={() => { if (inline) setExpanded(true); }}
           value={query}
-          onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); }}
+          onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); if (inline) setExpanded(true); }}
           onKeyDown={keyDown}
-          variant="unstyled"
+          variant={inline ? "default" : "unstyled"}
           size="md"
-          styles={{ input: { paddingInline: "10px" } }}
+          styles={inline ? undefined : { input: { paddingInline: "10px" } }}
         />
 
+        {(!inline || expanded) && <>
         <Group gap={4} px={8} aria-label="Search scopes">
           {scopes.map((scope) => (
             <UnstyledButton key={scope.prefix} className={classes.scope} aria-pressed={scope.kind === scopeKind}
@@ -220,8 +236,11 @@ export function QuickOpen({ opened, onClose, catalogue, tabs, onOpenSession, onF
           </Stack>
         </ScrollArea.Autosize>
 
-        <Text size="xs" c="dimmed" px={10}>Tab to cycle filters · ↑↓ to move · Enter to open · Esc to close</Text>
+        {!inline && <Text size="xs" c="dimmed" px={10}>Tab to cycle filters · ↑↓ to move · Enter to open · Esc to close</Text>}
+        </>}
       </Stack>
-    </Modal>
   );
+
+  if (inline) return <div className={classes.inline}>{content}</div>;
+  return <Modal {...focusReturn} opened={opened} onClose={onClose} withCloseButton={false} size="lg" padding="xs" title={null} styles={{ body: { overflowX: "hidden" } }}>{content}</Modal>;
 }

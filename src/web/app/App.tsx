@@ -9,6 +9,7 @@ import { AppControllerProvider, useAppController } from "./AppControllerContext.
 import { atHome } from "./state/app-state.js";
 import { AppOverlays } from "./overlays/AppOverlays.js";
 import { Home } from "../sessions/home/Home.js";
+import { QuickOpenContainer } from "../sessions/quick-open/QuickOpenContainer.js";
 import { InboxPageContainer } from "../sessions/inbox/ui/containers/InboxPageContainer.js";
 import { HeaderContainer } from "./shell/HeaderContainer.js";
 import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
@@ -62,12 +63,7 @@ function AppContent() {
       <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
         {home ? (
-          <Home
-            catalogue={app.catalogue}
-            onOpenSession={chat.openSession}
-            onOpenProject={chat.openProject}
-            onNewSession={() => chat.newSession()}
-          >
+          <Home search={<QuickOpenContainer inline />}>
             {chat.inboxEnabled && <InboxPageContainer />}
           </Home>
         ) : (

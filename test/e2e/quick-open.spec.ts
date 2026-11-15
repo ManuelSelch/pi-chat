@@ -61,7 +61,7 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
   const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
   try {
     await page.locator("body").press("Meta+o");
-    const input = page.getByRole("textbox", { name: "Search folders, worktrees, sessions and actions" });
+    const input = page.getByRole("textbox", { name: /^(Search folders, worktrees, sessions and actions|Search sessions and projects)$/ });
     await expect(input).toBeFocused();
     const actions = page.getByRole("button", { name: "/ Actions", exact: true });
     await expect(actions).toHaveCSS("font-size", "12px");
@@ -103,7 +103,7 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
     await expect(rows.nth(0)).toHaveAttribute("aria-selected", "true");
     await expect(rows.nth(1)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await input.press("Escape");
-    await expect(input).not.toBeVisible();
+    await expect(page.getByRole("listbox", { name: "Folders, worktrees, sessions and actions" })).not.toBeVisible();
   } finally {
     await app.dispose();
   }

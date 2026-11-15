@@ -1,107 +1,13 @@
 // @vitest-environment jsdom
 import { MantineProvider } from "@mantine/core";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ProjectCatalogue } from "../../../../../src/shared/protocol.js";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, expect, it } from "vitest";
 import { Home } from "../../../../../src/web/sessions/home/Home.js";
 
 afterEach(cleanup);
 
-const catalogue: ProjectCatalogue = {
-  projects: [
-    {
-      path: "/work/pi-chat",
-      displayPath: "/work/pi-chat",
-      name: "pi-chat",
-      exists: true,
-      modified: Date.now(),
-      sessionCount: 1,
-      sessions: [
-        {
-          path: "/sessions/study.jsonl",
-          id: "s1",
-          title: "Study Notes",
-          nameSource: "manual",
-          modified: Date.now(),
-          created: 0,
-          messageCount: 4,
-        },
-      ],
-    },
-  ],
-};
-
-function show() {
-  const onOpenSession = vi.fn();
-  const onOpenProject = vi.fn();
-  const onNewSession = vi.fn();
-  render(
-    <MantineProvider>
-      <Home
-        catalogue={catalogue}
-        onOpenSession={onOpenSession}
-        onOpenProject={onOpenProject}
-        onNewSession={onNewSession}
-      />
-    </MantineProvider>,
-  );
-  return { onOpenSession, onOpenProject, onNewSession };
-}
-
-it("combines activity with Home, replacing it with search results only while searching", () => {
-  render(<MantineProvider><Home catalogue={catalogue} onOpenSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()}>
-    <section aria-label="Ready">Ready conversations</section>
-  </Home></MantineProvider>);
-  const search = screen.getByRole("textbox", { name: "Search sessions and projects" });
-
+it("keeps the home search and activity together", () => {
+  render(<MantineProvider><Home search={<input aria-label="Search sessions and projects" />}><section aria-label="Ready">Ready conversations</section></Home></MantineProvider>);
+  expect(screen.getByRole("textbox", { name: "Search sessions and projects" })).toBeTruthy();
   expect(screen.getByRole("region", { name: "Ready" })).toBeTruthy();
-  fireEvent.change(search, { target: { value: "study" } });
-
-  expect(screen.queryByRole("region", { name: "Ready" })).toBeNull();
-  expect(screen.getByRole("option", { name: /Study Notes/ })).toBeTruthy();
-
-  fireEvent.change(search, { target: { value: "" } });
-
-  expect(screen.getByRole("region", { name: "Ready" })).toBeTruthy();
-});
-
-describe("Home", () => {
-  it("starts quiet and does not show recent sessions before typing", () => {
-    show();
-
-    expect(screen.getByText("Lets cook")).toBeTruthy();
-    expect(screen.getByRole("textbox", { name: "Search sessions and projects" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "New session" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Open folder" })).toBeNull();
-    expect(screen.queryByText(/agents are waiting for you/i)).toBeNull();
-    expect(screen.queryByRole("option")).toBeNull();
-  });
-
-  it("creates a new default session when Enter is pressed on an empty search", () => {
-    const { onNewSession } = show();
-
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Search sessions and projects" }), { key: "Enter" });
-
-    expect(onNewSession).toHaveBeenCalledOnce();
-  });
-
-  it("shows matching sessions only after typing", () => {
-    show();
-    const search = screen.getByRole("textbox", { name: "Search sessions and projects" });
-
-    fireEvent.change(search, { target: { value: "study" } });
-
-    expect(screen.getByRole("option", { name: /Study Notes/ })).toBeTruthy();
-  });
-
-  it("opens the highlighted session when Enter is pressed after typing", () => {
-    const { onOpenSession, onNewSession } = show();
-    const search = screen.getByRole("textbox", { name: "Search sessions and projects" });
-
-    fireEvent.change(search, { target: { value: "study" } });
-    fireEvent.keyDown(search, { key: "Enter" });
-
-    expect(onOpenSession).toHaveBeenCalledWith("/sessions/study.jsonl");
-    expect(onNewSession).not.toHaveBeenCalled();
-  });
 });

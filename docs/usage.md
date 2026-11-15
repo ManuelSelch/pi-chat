@@ -107,7 +107,9 @@ Later is also accessible from the sidebar while viewing a conversation.
 
 ## Quick Switcher and local actions
 
-Open Quick Switcher from Home or a conversation. Search names, paths, project
+On Home, focus or type in Search to use the inline Quick Switcher; ⌘O and
+⌘⇧O focus it there. Activity remains visible below. In a conversation, the
+shortcuts open the Quick Switcher dialog. Search names, paths, project
 context and branches; results distinguish folders, worktrees, sessions and
 available local actions. Empty unscoped search shows recent sessions. The
 **Show folder path in projects panel** setting also controls folder and worktree
@@ -121,7 +123,8 @@ paths in Quick Switcher; hidden paths remain searchable.
 | `/` | Local actions |
 
 Click a scope or cycle with Tab/Shift+Tab, use arrows to select and Enter to
-activate; Escape dismisses. Live sessions appear immediately with their current
+activate; Escape dismisses. On Home, Enter in an untouched empty search starts a
+new session; invoking the switcher shortcut or navigating results selects instead. Live sessions appear immediately with their current
 titles; selecting one focuses it. Saved-only sessions are reopened. A folder or
 worktree follows the existing project-opening behavior. A no-match query can be
 edited without closing the switcher.
