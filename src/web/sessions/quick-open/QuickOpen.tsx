@@ -241,6 +241,6 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
       </Stack>
   );
 
-  if (inline) return <div className={classes.inline}>{content}</div>;
+  if (inline) return <div data-home-quick-open-frame className={classes.inline} style={{ borderColor: expanded ? undefined : "transparent" }}>{content}</div>;
   return <Modal {...focusReturn} opened={opened} onClose={onClose} withCloseButton={false} size="lg" padding="xs" title={null} styles={{ body: { overflowX: "hidden" } }}>{content}</Modal>;
 }

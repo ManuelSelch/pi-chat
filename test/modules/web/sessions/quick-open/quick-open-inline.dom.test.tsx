@@ -20,10 +20,14 @@ it("hides the search border only while the inline switcher is expanded", () => {
   render(<MantineProvider><QuickOpen inline opened={false} onClose={vi.fn()} catalogue={{ projects: [] }} tabs={[]} onOpenSession={vi.fn()} onFocusSession={vi.fn()} onOpenProject={vi.fn()} onNewSession={vi.fn()} /></MantineProvider>);
   const input = screen.getByPlaceholderText("Search") as HTMLInputElement;
 
+  const frame = input.closest('[data-home-quick-open-frame]') as HTMLElement;
+  expect(frame.style.borderColor).toBe("transparent");
   expect(input.style.borderColor).not.toBe("transparent");
   fireEvent.click(input);
+  expect(frame.style.borderColor).not.toBe("transparent");
   expect(input.style.borderColor).toBe("transparent");
   fireEvent.keyDown(input, { key: "Escape" });
+  expect(frame.style.borderColor).toBe("transparent");
   expect(input.style.borderColor).not.toBe("transparent");
 });
 
