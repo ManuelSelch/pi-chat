@@ -45,7 +45,6 @@
 .loc-label { color: var(--muted); font-size: 9px; }
 .relaxed-inbox .later-action { right: 19px; bottom: 8px; }
 .relaxed-inbox .later-section {
-  border-top: 1px solid var(--border);
   padding-top: 22px;
   margin-top: 38px;
 }

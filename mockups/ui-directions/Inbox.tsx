@@ -28,7 +28,7 @@ export function Inbox({ sessions, onOpen, onLater, onNew }: { sessions: Session[
   const later = sessions.filter(s => s.status === 'later');
   const row = (s: Session) => <SessionRow key={s.id} session={s} onOpen={() => onOpen(s)} onLater={() => onLater(s)}/>;
   return <div className="inbox-page relaxed-inbox">
-    <div className="page-heading"><div><div className="eyebrow">PICK UP WHERE YOUR AGENTS LEFT OFF</div><h1>Inbox<span className="heading-dot"/></h1><p>{attention.length ? 'A few things ready for your attention.' : 'You’re all caught up. Your agents have it from here.'}</p></div></div>
+    <div className="page-heading"><h1>Inbox</h1></div>
     <div className="inbox-groups">
       {(['blocked', 'ready'] as const).map(status => {
         const rows = attention.filter(s => s.status === status);
@@ -38,6 +38,5 @@ export function Inbox({ sessions, onOpen, onLater, onNew }: { sessions: Session[
       {!attention.length && <div className="empty"><IconInbox size={36}/><h2>Nothing waiting here</h2><p>We’ll bring your agents here when they finish or need a decision.</p><Button variant="default" onClick={onNew}>Start a session</Button></div>}
       {later.length > 0 && <section className="later-section" aria-label="Later"><button className="later-toggle" aria-expanded={laterOpen} aria-controls="later-sessions" onClick={() => setLaterOpen(open => !open)}><IconChevronRight size={15} className={laterOpen ? 'expanded' : ''}/><IconClockPause size={15}/><span>Later</span><small>{later.length}</small></button><div id="later-sessions" hidden={!laterOpen}>{later.map(row)}</div></section>}
     </div>
-    <footer className="inbox-footer"><span>Local workspace</span><span>Only the things that need you</span></footer>
   </div>;
 }
