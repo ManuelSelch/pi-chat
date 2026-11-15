@@ -6,8 +6,6 @@ import type { TestWorld } from "../pi-chat/test-world.js";
 export class BrowserProjectsDriver {
   private readonly panel: Locator;
 
-  private chatBounds?: { x: number; width: number };
-
   constructor(private readonly page: Page, private readonly world: TestWorld) {
     this.panel = page.getByRole("dialog", { name: "Projects", exact: true }).or(page.getByRole("navigation", { name: "Projects", exact: true }));
   }
@@ -40,20 +38,17 @@ export class BrowserProjectsDriver {
     await expect.poll(() => this.panel.evaluate(node => node.contains(document.activeElement))).toBe(true);
   }
 
-  async rememberChatBounds(): Promise<void> {
-    const form = this.page.locator("form").filter({ has: this.page.getByRole("textbox", { name: "Message Pi" }) });
-    const bounds = await form.boundingBox();
-    expect(bounds).not.toBeNull();
-    this.chatBounds = bounds!;
-  }
-
-  async shouldKeepChatBounds(): Promise<void> {
-    expect(this.chatBounds).toBeDefined();
-    const expected = this.chatBounds!;
-    const form = this.page.locator("form").filter({ has: this.page.getByRole("textbox", { name: "Message Pi" }) });
+  async shouldCenterWorkspace(page: "home" | "transcript"): Promise<void> {
+    const content = page === "home" ? this.page.getByRole("heading", { name: "Lets cook" }) : this.page.getByRole("main").locator(".mantine-Container-root").first();
+    const composer = this.page.locator("form").filter({ has: this.page.getByRole("textbox", { name: "Message Pi" }) });
     await expect.poll(async () => {
-      const bounds = await form.boundingBox();
-      return bounds && Math.abs(bounds.x - expected.x) < 1 && Math.abs(bounds.width - expected.width) < 1;
+      const panel = await this.panel.boundingBox();
+      const column = await content.boundingBox();
+      const form = page === "transcript" ? await composer.boundingBox() : null;
+      const viewport = this.page.viewportSize();
+      if (!panel || !column || !viewport || (page === "transcript" && !form)) return false;
+      const center = (panel.x + panel.width + viewport.width) / 2;
+      return Math.abs(column.x + column.width / 2 - center) < 2 && (!form || Math.abs(form.x + form.width / 2 - center) < 2);
     }).toBe(true);
   }
 

@@ -48,11 +48,12 @@ function AppContent() {
   const { width } = useViewportSize();
   const layout = workspaceLayout(width, overlays.state.projects);
   const { docked: widgetsDocked } = placeWidgets(state.widgets, layout.widgetsDocked);
+  const workspaceLeft = typeof layout.left === "number" ? `${layout.left}px` : layout.left;
 
   return (
     <AppShell header={{ height: headerHeight }} padding={0} style={{
       "--pi-header-height": `${headerHeight}px`,
-      "--pi-workspace-left": `${layout.left}px`,
+      "--pi-workspace-left": workspaceLeft,
       "--pi-projects-width": layout.sidebarWidth,
     } as CSSProperties}>
       <HeaderContainer />
@@ -61,7 +62,7 @@ function AppContent() {
 
       <AppOverlays />
 
-      <AppShell.Main ml={layout.left} w={`calc(100% - ${layout.left}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
+      <AppShell.Main ml={workspaceLeft} w={`calc(100% - ${workspaceLeft})`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
         {home ? (
           <Home search={<QuickOpenContainer inline />}>
