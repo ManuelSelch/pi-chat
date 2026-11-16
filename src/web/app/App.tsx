@@ -1,24 +1,24 @@
 import { useState, type CSSProperties } from "react";
 import { AppShell } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
-import { ConfirmDialogProvider } from "../ui/confirm/ConfirmDialogProvider.js";
-import { MessageListContainer } from "../chat/transcript/MessageListContainer.js";
-import { WidgetDock } from "../extensions/widgets/WidgetDock.js";
-import { WidgetDisclosureProvider } from "../extensions/widgets/app/WidgetDisclosureProvider.js";
-import { placeWidgets } from "../extensions/widgets/widget-placement.js";
+import { ConfirmDialogProvider } from "../components/confirm/ConfirmDialogProvider.js";
+import { MessageListContainer } from "../features/chat/transcript/components/MessageListContainer.js";
+import { WidgetDock } from "../features/extensions/widgets/components/WidgetDock.js";
+import { WidgetDisclosureProvider } from "../features/extensions/widgets/stores/WidgetDisclosureProvider.js";
+import { placeWidgets } from "../features/extensions/widgets/utils/widget-placement.js";
 import { AppControllerProvider, useAppController } from "./AppControllerContext.js";
-import { atHome } from "./state/app-state.js";
+import { atHome } from "./stores/app-state.js";
 import { AppOverlays } from "./overlays/AppOverlays.js";
-import { Home } from "../sessions/home/Home.js";
-import { QuickOpenContainer } from "../sessions/quick-open/QuickOpenContainer.js";
-import { InboxPageContainer } from "../sessions/inbox/ui/containers/InboxPageContainer.js";
-import { HeaderContainer } from "./shell/HeaderContainer.js";
-import { ComposerContainer } from "../chat/composer/ComposerContainer.js";
+import { Home } from "../features/sessions/home/components/Home.js";
+import { QuickOpenContainer } from "../features/sessions/quick-open/components/QuickOpenContainer.js";
+import { InboxPageContainer } from "../features/sessions/inbox/components/InboxPageContainer.js";
+import { HeaderContainer } from "./components/HeaderContainer.js";
+import { ComposerContainer } from "../features/chat/composer/components/ComposerContainer.js";
 import { OverlayController, useOverlays } from "./overlays/OverlayController.js";
-import { SessionActionsProvider } from "../sessions/actions/SessionActionsProvider.js";
+import { SessionActionsProvider } from "../features/sessions/actions/stores/SessionActionsProvider.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
-import { InboxNoticeContainer } from "../sessions/inbox/ui/containers/InboxNoticeContainer.js";
-import { workspaceLayout } from "./shell/domain/workspace-layout.js";
+import { InboxNoticeContainer } from "../features/sessions/inbox/components/InboxNoticeContainer.js";
+import { workspaceLayout } from "./utils/workspace-layout.js";
 
 /** Breathing room between the last message and the composer. */
 const FOOTER_GAP = 24;

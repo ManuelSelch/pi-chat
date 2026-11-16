@@ -32,19 +32,18 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 [App](../src/web/app/App.tsx) composes the controller, confirmations, overlay and
 session-action providers, global keyboard routing and responsive workspace.
-[Frontend organization](development.md#frontend-organization) describes the six
-source owners and their actual dependency boundaries.
+[Frontend organization](development.md#frontend-organization) describes application composition, feature modules and shared folders.
 
-[usePiChat](../src/web/app/use-pi-chat.ts) creates one `PiClient` per mounted
+[usePiChat](../src/web/app/hooks/use-pi-chat.ts) creates one `PiClient` per mounted
 controller, supplies the selected endpoint and browser transport, exposes typed
 operations and disposes subscriptions/client state on unmount.
-[bindPiChat](../src/web/app/connection/sdk-binding.ts) projects SDK state and
+[bindPiChat](../src/web/app/lib/sdk-binding.ts) projects SDK state and
 notifications into browser-owned views. Chat does not implement another wire
 session reducer or request tracker.
 
 - SDK state owns runtime inventory, authoritative session projections, catalogue,
   prompt lists, operation outcomes and runtime theme caches.
-- `app/state` owns selection, optimistic opening/closing and transient anchored
+- `app/stores` owns selection, optimistic opening/closing and transient anchored
   notices. Pi model errors and prompt-execution exceptions arrive as live error
   notifications and appear as transcript lines; the notification lines are transient and are not written to
   saved session history or restored as composer popups from runtime error
@@ -68,7 +67,7 @@ Pi's current context, so compaction can shorten history. Live/final/snapshot
 message identity prevents duplicated history; a reconnect does not promise to
 recover an unobserved partial streaming prefix.
 
-[SessionActionsProvider](../src/web/sessions/actions/SessionActionsProvider.tsx)
+[SessionActionsProvider](../src/web/features/sessions/actions/stores/SessionActionsProvider.tsx)
 shares local action definitions and session-scoped errors between composer and
 Quick Switcher. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
@@ -105,7 +104,7 @@ share the row projection and lifecycle actions; project and Later disclosure are
 local presentation state. The sidebar retains Later access and archive actions.
 Activity cards omit unavailable change totals rather than synthesizing metrics.
 
-`sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
+`features/sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
 storage, lifecycle coordination and component/container UI. Parking loaded saved
 idle work stores intent before close; parking unloaded history only stores
 membership. Resume removes membership after confirmed opening. Definite failures
@@ -123,7 +122,7 @@ replacement transfers selection, while startup/reconnect retain their existing
 selection fallback. Later reconciliation removes missing/archived/external
 reopens only after authoritative catalogue availability.
 
-[SessionDraftProvider](../src/web/sessions/drafts/app/SessionDraftProvider.tsx)
+[SessionDraftProvider](../src/web/features/sessions/drafts/stores/SessionDraftProvider.tsx)
 owns page-lifetime composer drafts. Unsaved runtime keys transfer to saved paths,
 so parking/reopening can reuse drafts even when the runtime ID changes. Browser
 reload does not persist these drafts.
@@ -157,14 +156,14 @@ dialogs, navigation, folders and Settings. Desktop navigation is non-modal;
 phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
 Settings stays mounted while closed so chime playback remains active.
 
-[Composer focus](../src/web/ui/focus/composer-focus.ts) restores only an enabled,
+[Composer focus](../src/web/hooks/composer-focus.ts) restores only an enabled,
 connected, visible composer when no dialog owns focus. Mantine exit callbacks
 increment a revision; a layout effect consumes it once after React commits DOM
 removal. This is not a polling loop or a promise that an animation frame implies
 a commit. Reopening or a newer/nested dialog prevents stale restoration. A
 minimized pending prompt can receive focus through its Reopen button while the
 composer is disabled. Background stream/snapshot updates do not request focus.
-See [focus test discipline](../test/README.md#composer-focus-regressions).
+See [focus test discipline](../testing/README.md#composer-focus-regressions).
 
 ### Runtime prompts, widgets and themes
 
@@ -174,7 +173,7 @@ instance, runtime and prompt ID; they survive tab changes/reconnects but not pag
 refresh. Authoritative removal/replacement clears them. Submission guards prevent
 duplicate answers; failures retain drafts for retry. Minimize is local and does
 not answer, cancel, extend expiry or pause the server's disconnect grace.
-[Prompt presentation](../src/web/extensions/prompts/app/use-prompt-presentation.ts)
+[Prompt presentation](../src/web/features/extensions/prompts/hooks/use-prompt-presentation.ts)
 keeps these drafts out of SDK snapshots. Native `/model` is an immediate select
 with all available references in `options` and a server-resolved
 `modelScope.scoped` subset. Search and scoped/all selection are browser-owned
@@ -206,7 +205,7 @@ validates readable regular files and uses an injectable, bounded OS opener;
 readable paths outside the project are allowed. This is not a project sandbox,
 security scan, file download or client-device open operation.
 
-[FileActionsProvider](../src/web/chat/markdown/FileActions.tsx) supplies a stable
+[FileActionsProvider](../src/web/features/chat/markdown/stores/FileActions.tsx) supplies a stable
 callback and bounded, dismissible, expiring failures outside chat history.
 Success/cancellation produces no toast. Local cancellation cannot undo an OS
 open already accepted by the server. Markdown/read/write previews and edit

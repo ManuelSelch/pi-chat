@@ -1,0 +1,246 @@
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Group, Modal, ScrollArea, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { IconBolt, IconClockPause, IconFolder, IconFolderPlus, IconGitBranch, IconSearch } from "@tabler/icons-react";
+import { InboxStatus } from "../../inbox/components/InboxStatus.js";
+import classes from "./QuickOpen.module.css";
+import type { ProjectCatalogue, Tab } from "../../../../types/view-types.js";
+import { buildQuickOpenItems, folderSearchChoices, parseQuickOpenQuery, rankQuickOpen, type QuickOpenItem } from "../utils/quick-open.js";
+import { relativeTime } from "../../../../utils/relative-time.js";
+import { usePointerModality } from "../../../../hooks/usePointerModality.js";
+import { useComposerFocusReturn } from "../../../../hooks/composer-focus.js";
+
+import type { SessionAction } from "../../actions/utils/session-actions.js";
+
+interface QuickOpenProps {
+  opened: boolean;
+  inline?: boolean;
+  onClose: () => void;
+  catalogue: ProjectCatalogue;
+  tabs: readonly Tab[];
+  onOpenSession: (path: string) => void;
+  onFocusSession: (sessionId: string) => void;
+  onOpenProject: (path: string) => void;
+  onNewSession: (path: string) => void;
+  actions?: readonly SessionAction[];
+  laterPaths?: ReadonlySet<string>;
+  showDisplayPath?: boolean;
+}
+
+const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
+const resultIcons = { project: IconFolder, worktree: IconGitBranch, projectAction: IconFolderPlus, action: IconBolt } as const;
+const iconStyle = { flexShrink: 0, color: "var(--mantine-color-dimmed)" } as const;
+const scopes = [
+  { prefix: "", label: "All", kind: undefined },
+  { prefix: "#", label: "# Folders", kind: "project" },
+  { prefix: "%", label: "% Worktrees", kind: "worktree" },
+  { prefix: "@", label: "@ Sessions", kind: "session" },
+  { prefix: "/", label: "/ Actions", kind: "action" },
+] as const;
+
+function resultTitle(item: QuickOpenItem): string {
+  return item.kind === "worktree" ? item.branch ?? item.title : item.primaryLabel ?? item.title;
+}
+
+function resultContext(item: QuickOpenItem, showDisplayPath: boolean): string {
+  if (item.kind === "action") return item.project;
+  if (item.kind === "projectAction") return showDisplayPath ? item.project : "New session";
+  const checkout = item.branch ?? (item.detached ? `detached at ${item.commit?.slice(0, 7) ?? "unknown commit"}` : undefined);
+  const project = item.repositoryName ?? item.project;
+  if (item.kind === "session") {
+    const conversation = item.primaryLabel && item.title !== "New session" && item.title !== item.primaryLabel ? item.title : undefined;
+    return [project, item.primaryLabel ? conversation : checkout, relativeTime(item.modified)].filter(Boolean).join(" · ");
+  }
+  if (item.kind === "worktree") return [item.repositoryName ?? (showDisplayPath ? item.repositoryPath : undefined), item.detached ? checkout : undefined, showDisplayPath ? item.displayPath ?? item.path : undefined].filter(Boolean).join(" · ");
+  return showDisplayPath ? item.displayPath ?? item.path : "";
+}
+
+/** Reuses the existing session status indicator and snooze icon for Later. */
+function SessionIndicator({ status }: { status: QuickOpenItem["status"] }) {
+  if (status === "later") return <IconClockPause size={16} aria-hidden="true" style={iconStyle} />;
+  return <span style={{ ...iconStyle, display: "inline-flex", justifyContent: "center", width: 16 }}><InboxStatus status={status ?? "idle"} /></span>;
+}
+
+/** Scoped entity search and a small set of existing application actions. */
+export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
+  const focusReturn = useComposerFocusReturn(opened);
+  const [expanded, setExpanded] = useState(false);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const initialFocus = useRef(false);
+  const switcherIntent = useRef(false);
+  const { pointerActive, onPointerMove, reset: resetPointerModality } = usePointerModality();
+
+  const items = buildQuickOpenItems(catalogue, tabs, actions, laterPaths);
+  const scopeKind = parseQuickOpenQuery(query).kind;
+  const rankedResults = rankQuickOpen(items, query);
+  const results = query.trim() ? folderSearchChoices(rankedResults) : rankedResults;
+  // Catalogue snapshots can remove results without a query edit.
+  const rawActive = Math.min(active, Math.max(0, results.length - 1));
+  const selectedIndex = results[rawActive]?.disabled
+    ? results.findIndex((item, index) => index > rawActive && !item.disabled) >= 0
+      ? results.findIndex((item, index) => index > rawActive && !item.disabled)
+      : results.findIndex(item => !item.disabled)
+    : rawActive;
+  const emptyText = parseQuickOpenQuery(query).text
+    ? `Nothing matches “${query.trim()}”.`
+    : scopeKind
+      ? `No ${{ session: "sessions", project: "folders", worktree: "worktrees", action: "actions" }[scopeKind]} available.`
+      : catalogue.projects.length === 0
+        ? "No folders or sessions yet. Open a folder to get started."
+        : "No recent sessions. Search or choose a scope.";
+
+  useEffect(() => {
+    if (!inline) return;
+    const input = inputRef.current;
+    if (!input) return;
+    const expand = () => { switcherIntent.current = true; setExpanded(true); };
+    input.addEventListener("home-quick-open", expand);
+    initialFocus.current = true;
+    input.focus();
+    initialFocus.current = false;
+    return () => input.removeEventListener("home-quick-open", expand);
+  }, [inline]);
+
+  useEffect(() => {
+    // Every opening starts fresh, showing the most recent sessions.
+    if (opened) {
+      setQuery("");
+      setActive(0);
+      resetPointerModality();
+    }
+  }, [opened, resetPointerModality]);
+
+  useEffect(() => {
+    if (!pointerActive) activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active, pointerActive]);
+
+  function choose(item: QuickOpenItem): void {
+    if (item.disabled) return;
+    if (item.kind === "session") {
+      if (item.sessionId) onFocusSession(item.sessionId);
+      else if (item.sessionPath) onOpenSession(item.sessionPath);
+    }
+    else if (item.kind === "action") item.action?.run();
+    else if (item.kind === "projectAction") {
+      if (item.targetPath) onNewSession(item.targetPath);
+    } else onOpenProject(item.path);
+    if (inline) { setExpanded(false); setQuery(""); }
+    onClose();
+  }
+
+  function keyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (event.nativeEvent.isComposing) return;
+    if (inline && event.key === "Escape") { event.stopPropagation(); switcherIntent.current = false; setExpanded(false); inputRef.current?.blur(); return; }
+    if (inline && !query.trim() && !switcherIntent.current && event.key === "Enter") { event.preventDefault(); onNewSession(""); return; }
+    if (inline && (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Tab")) switcherIntent.current = true;
+    if (event.key === "Tab") {
+      event.preventDefault();
+      event.stopPropagation();
+      const current = scopes.findIndex((scope) => scope.kind === scopeKind);
+      const step = event.shiftKey ? -1 : 1;
+      const next = scopes[(current + step + scopes.length) % scopes.length]!;
+      const text = scopeKind ? query.trim().slice(1).trimStart() : query.trim();
+      setQuery(`${next.prefix}${text}`);
+      setActive(0);
+      return;
+    }
+    if (results.length === 0) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      for (let offset = 1; offset <= results.length; offset++) {
+        const next = (selectedIndex + step * offset + results.length * 2) % results.length;
+        if (!results[next]!.disabled) { setActive(next); break; }
+      }
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const item = results[selectedIndex];
+      if (item) choose(item);
+    }
+  }
+
+  const content = (
+      <Stack gap="xs" className={pointerActive ? classes.pointerActive : undefined} style={{ minWidth: 0, overflowX: "hidden" }}>
+        <TextInput
+          ref={inputRef}
+          data-autofocus={!inline || undefined}
+          data-home-quick-open={inline || undefined}
+          aria-label={inline ? "Search sessions and projects" : "Search folders, worktrees, sessions and actions"}
+          placeholder={inline ? "Search" : "Search folders, worktrees, sessions and actions…"}
+          leftSection={inline ? <IconSearch size={16} /> : undefined}
+          onFocus={() => { if (inline && !initialFocus.current) setExpanded(true); }}
+          onClick={() => { if (inline) setExpanded(true); }}
+          value={query}
+          onChange={(event) => { setQuery(event.currentTarget.value); setActive(0); if (inline) setExpanded(true); }}
+          onKeyDown={keyDown}
+          variant={inline ? "default" : "unstyled"}
+          size="md"
+          styles={inline ? { input: { borderColor: "transparent" } } : { input: { paddingInline: "10px" } }}
+        />
+
+        {(!inline || expanded) && <>
+        <Group gap={4} px={8} aria-label="Search scopes">
+          {scopes.map((scope) => (
+            <UnstyledButton key={scope.prefix} className={classes.scope} aria-pressed={scope.kind === scopeKind}
+              onClick={() => {
+                setQuery(scope.prefix);
+                setActive(0);
+                inputRef.current?.focus();
+              }}>
+              {scope.label}
+            </UnstyledButton>
+          ))}
+        </Group>
+
+        <ScrollArea.Autosize
+          mah="55vh"
+          type="scroll"
+          scrollbarSize={6}
+          offsetScrollbars="y"
+          styles={{ root: { overflowX: "hidden" }, viewport: { overflowX: "hidden", paddingInlineEnd: 8 } }}
+        >
+          <Stack gap={2} role="listbox" aria-label="Folders, worktrees, sessions and actions" style={{ width: "100%", minWidth: 0, overflowX: "hidden", boxSizing: "border-box" }}>
+            {results.length === 0 ? (
+              <Text size="sm" c="dimmed" p="8px 12px">{emptyText}</Text>
+            ) : null}
+            {results.map((item, index) => (
+              <UnstyledButton
+                key={`${item.kind}:${item.path}`}
+                ref={index === selectedIndex ? activeRef : undefined}
+                role="option"
+                className={classes.row}
+                aria-label={[`${resultTypes[item.kind]}: ${resultTitle(item)}`, resultContext(item, showDisplayPath), item.isOpen ? "Open" : ""].filter(Boolean).join(" · ")}
+                aria-selected={index === selectedIndex}
+                disabled={item.disabled}
+                onPointerMove={(event) => onPointerMove(event, index, selectedIndex, setActive)}
+                onClick={() => choose(item)}
+                p="8px 12px"
+              >
+                <Group gap="xs" wrap="nowrap" align="center" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                  {(() => {
+                    if (item.kind === "session") return <SessionIndicator status={item.status} />;
+                    const Icon = resultIcons[item.kind];
+                    return <Icon size={16} aria-hidden="true" style={iconStyle} />;
+                  })()}
+                  <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
+                    <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}</Text>
+                    <Text size="xs" c="dimmed" truncate>{resultContext(item, showDisplayPath)}</Text>
+                  </Stack>
+                </Group>
+              </UnstyledButton>
+            ))}
+          </Stack>
+        </ScrollArea.Autosize>
+
+        {!inline && <Text size="xs" c="dimmed" px={10}>Tab to cycle filters · ↑↓ to move · Enter to open · Esc to close</Text>}
+        </>}
+      </Stack>
+  );
+
+  if (inline) return <div data-home-quick-open-frame className={classes.inline}>{content}</div>;
+  return <Modal {...focusReturn} opened={opened} onClose={onClose} withCloseButton={false} size="lg" padding="xs" title={null} styles={{ body: { overflowX: "hidden" } }}>{content}</Modal>;
+}

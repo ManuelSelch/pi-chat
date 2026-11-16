@@ -116,7 +116,7 @@ the server's Pi environment, not by adding secrets to the endpoint URL.
 
 - The interface uses a fixed dark theme, including Home and dialogs. Session
   selection, browser appearance and old `pi-chat:lastTheme` storage do not change it.
-- Colours live in `src/web/app/theme/pi-chat-theme.ts`. Session states are
+- Colours live in `src/web/lib/theme/pi-chat-theme.ts`. Session states are
   blocked red, ready green, working orange and Later gray.
 - Runtime Pi themes only affect extension-generated ANSI output. Literal RGB/ANSI
   colours are preserved; syntax highlighting uses the existing GitHub-dark palette.

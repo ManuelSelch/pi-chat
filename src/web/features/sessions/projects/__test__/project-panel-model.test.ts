@@ -1,0 +1,109 @@
+import { describe, expect, it } from "vitest";
+import type { ChatProjectSummary, ChatSessionSummary, ProjectCatalogue } from "../../../../../shared/protocol.js";
+import { buildPanelGroups } from "../utils/project-panel-model.js";
+
+let next = 0;
+function session(overrides: Partial<ChatSessionSummary> = {}): ChatSessionSummary {
+  next += 1;
+  return { path: `/sessions/${next}.jsonl`, id: `s${next}`, title: `Chat ${next}`, nameSource: "manual", modified: next, created: 0, messageCount: 1, ...overrides };
+}
+
+function project(overrides: Partial<ChatProjectSummary> & Pick<ChatProjectSummary, "path" | "name">): ChatProjectSummary {
+  return { displayPath: overrides.path, exists: true, modified: 0, sessionCount: 0, sessions: [], ...overrides };
+}
+
+function catalogue(...projects: ChatProjectSummary[]): ProjectCatalogue {
+  return { projects };
+}
+
+describe("buildPanelGroups", () => {
+  it("sorts recent projects by unarchived activity, ignoring newer archived sessions", () => {
+    const older = project({ path: "/a", name: "Alpha", modified: 1000, sessions: [session({ modified: 10 }), session({ modified: 100, archivedAt: 1 })] });
+    const newer = project({ path: "/z", name: "Zulu", sessions: [session({ modified: 20 })] });
+    const groups = buildPanelGroups(catalogue(older, newer), "/a");
+
+    expect(groups.map(group => group.name)).toEqual(["Zulu", "Alpha"]);
+  });
+
+  it("uses linked-worktree activity for repository recency", () => {
+    const main = project({ path: "/repo", name: "Zulu", repositoryPath: "/repo", worktree: { branch: "main", detached: false, primary: true }, sessions: [session({ modified: 1 })] });
+    const linked = project({ path: "/feature", name: "feature", repositoryPath: "/repo", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ modified: 30 })] });
+    const other = project({ path: "/a", name: "Alpha", sessions: [session({ modified: 20 })] });
+
+    expect(buildPanelGroups(catalogue(other, main, linked), "/feature").map(group => group.name)).toEqual(["Zulu", "Alpha"]);
+  });
+
+  it("breaks recency ties by name then key and keeps pins and archived-only projects alphabetical", () => {
+    const active = (path: string, name: string, modified = 10, pinned = false) => project({ path, name, pinned, sessions: [session({ modified })] });
+    const archived = (path: string, name: string, modified: number) => project({ path, name, sessions: [session({ modified, archivedAt: 1 })] });
+    const groups = buildPanelGroups(catalogue(
+      active("/pin-z", "Z pinned", 100, true), active("/pin-a", "A pinned", 1, true),
+      active("/same-z", "Same"), active("/same-a", "Same"), active("/alpha", "Alpha"),
+      archived("/old-z", "Z old", 100), archived("/old-a", "A old", 1),
+    ), "/elsewhere");
+
+    expect(groups.filter(group => group.pinned).map(group => group.name)).toEqual(["A pinned", "Z pinned"]);
+    expect(groups.filter(group => !group.pinned && group.activeCount > 0).map(group => group.key)).toEqual(["/alpha", "/same-a", "/same-z"]);
+    expect(groups.filter(group => !group.pinned && group.activeCount === 0).map(group => group.name)).toEqual(["A old", "Z old"]);
+  });
+
+  it("merges worktree checkouts of one repository and tags sessions with their branch", () => {
+    const main = project({ path: "/repo", name: "pi-chat", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "main", detached: false, primary: true }, sessions: [session({ title: "On main", modified: 5 })], sessionCount: 1 });
+    const feature = project({ path: "/repo-feature", name: "feature", displayPath: "~/.worktrees/repo/feature", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ title: "Feature work", modified: 9 })], sessionCount: 1 });
+
+    const [group] = buildPanelGroups(catalogue(main, feature), "/repo-feature");
+
+    expect(group?.key).toBe("/repo");
+    expect(group?.name).toBe("pi-chat");
+    expect(group?.sessions.map(entry => [entry.session.title, entry.branch])).toEqual([["Feature work", "feat/x"], ["On main", "main"]]);
+    expect(group?.activeCount).toBe(2);
+    const byTitle = new Map((group?.sessions ?? []).map(entry => [entry.session.title, entry]));
+    expect(byTitle.get("Feature work")?.worktreeLabel).toBe(true);
+    // The primary checkout keeps the session title even with one session.
+    expect(byTitle.get("On main")?.worktreeLabel).toBe(false);
+  });
+
+  it("labels a lone worktree session with the worktree name and keeps titles when several share one", () => {
+    const feature = project({ path: "/repo-feature", name: "feature", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session({ title: "Only one" })], sessionCount: 1 });
+    const other = project({ path: "/repo-other", name: "other", repositoryPath: "/repo", repositoryName: "pi-chat", worktree: { branch: "feat/y", detached: false, primary: false }, sessions: [session({ title: "First" }), session({ title: "Second" })], sessionCount: 2 });
+
+    const [group] = buildPanelGroups(catalogue(feature, other), "/repo-feature");
+    const byTitle = new Map((group?.sessions ?? []).map(entry => [entry.session.title, entry]));
+
+    expect(byTitle.get("Only one")?.worktreeLabel).toBe(true);
+    expect(byTitle.get("First")?.worktreeLabel).toBe(false);
+    expect(byTitle.get("Second")?.worktreeLabel).toBe(false);
+  });
+
+  it("keeps projects with archived-only sessions visible in the panel", () => {
+    const oldChat = session({ archivedAt: 1 });
+    const archivedOnly = project({ path: "/work/old", name: "old", sessions: [oldChat], sessionCount: 0 });
+
+    const groups = buildPanelGroups(catalogue(archivedOnly), "/elsewhere");
+
+    expect(groups.map(group => group.name)).toEqual(["old"]);
+    expect(groups[0]?.sessions[0]?.session.archivedAt).toBe(1);
+  });
+
+  it("puts Quick Chats first and keeps it out of repository grouping", () => {
+    const quick = project({ path: "/home/me", name: "Quick Chats", displayPath: "~", quickChats: true, sessions: [session()], sessionCount: 1 });
+    const folder = project({ path: "/work/app", name: "app", sessions: [session()], sessionCount: 1 });
+
+    const groups = buildPanelGroups(catalogue(folder, quick), "/work/app");
+
+    expect(groups.map(group => group.name)).toEqual(["Quick Chats", "app"]);
+    expect(groups[0]?.quickChats).toBe(true);
+    expect(groups[1]?.quickChats).toBe(false);
+  });
+
+  it("sorts pinned groups first and hides empty projects, but keeps a primary checkout with a visible worktree", () => {
+    const pinned = project({ path: "/work/pinned", name: "pinned", pinned: true, sessions: [session()], sessionCount: 1 });
+    const empty = project({ path: "/work/empty", name: "empty" });
+    const primary = project({ path: "/repo", name: "repo", repositoryPath: "/repo", repositoryName: "repo", worktree: { branch: "main", detached: false, primary: true } });
+    const feature = project({ path: "/repo-feature", name: "feature", repositoryPath: "/repo", repositoryName: "repo", worktree: { branch: "feat/x", detached: false, primary: false }, sessions: [session()], sessionCount: 1 });
+
+    const groups = buildPanelGroups(catalogue(empty, primary, feature, pinned), "/work/pinned");
+
+    expect(groups.map(group => group.name)).toEqual(["pinned", "repo"]);
+  });
+});

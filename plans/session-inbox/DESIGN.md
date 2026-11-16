@@ -33,19 +33,19 @@ The user explicitly approved these corrections before implementation. The origin
 - The Inbox domain model will resolve project context from catalogue `repositoryName ?? name` for saved rows and catalogue-backed live rows. Live rows without a catalogue entry retain their runtime project name. This is handling incomplete discovery, not supporting an older protocol.
 - Preserve branch-first labels, conversation subtitles, identities, lifecycle, non-repository names and Quick Chats. Scope excludes header, SDK/server, stored names and original Projects panel. No layout redesign or new dependency.
 - The browser fixture accepts an explicit `repositoryName` and creates the real primary Git checkout directory with that name; it must be a safe directory name distinct from the linked checkout. The scenario supplies `my-project` rather than depending on a hidden fixture constant.
-- Regression contract: [repository-name browser scenario](../../test/e2e/inbox-worktree-labels.spec.ts) uses a real linked Git worktree whose repository, checkout and branch have distinct names. Assert the exact project-context text for live, backend-restarted unloaded Ready, Later on desktop/phone, and resumed rows, while retaining branch/subtitle assertions.
+- Regression contract: [repository-name browser scenario](../../testing/e2e/inbox-worktree-labels.spec.ts) uses a real linked Git worktree whose repository, checkout and branch have distinct names. Assert the exact project-context text for live, backend-restarted unloaded Ready, Later on desktop/phone, and resumed rows, while retaining branch/subtitle assertions.
 - Supporting unit tests will cover catalogue-based naming across live statuses, saved history and missing catalogue metadata. Existing worktree-label and lifecycle scenarios remain unchanged.
 - Verification planned: focused unit/browser regressions, full relevant suites, build/typecheck. Scenario preparation has not run tests yet. No blocking questions.
 
 ## Components
 | Package/module | Component | Change | Responsibility |
 |---|---|---|---|
-| Chat application | [app-state](../../src/web/app/state/app-state.ts), [usePiChat](../../src/web/app/use-pi-chat.ts) | Changed | Own explicit selection, runtime actions and reconciliation; distinguish empty selection from absent runtime |
+| Chat application | [app-state](../../src/web/app/stores/app-state.ts), [usePiChat](../../src/web/app/hooks/use-pi-chat.ts) | Changed | Own explicit selection, runtime actions and reconciliation; distinguish empty selection from absent runtime |
 | Sessions inbox | Proposed inbox model, Later storage adapter and controller | New | Derive sections from inventory, store parked paths scoped to normalized server endpoint, coordinate parking/resume/archive/Undo |
 | Sessions inbox | Proposed InboxView / InboxContainer | New | Pure accessible rows/sections; container binds presentation to application operations |
-| Chat composer | [ComposerContainer](../../src/web/chat/composer/ComposerContainer.tsx) | Changed | Use application-owned page-lifetime drafts keyed by session path when available, runtime ID otherwise; transfer drafts when an unsaved runtime gains a path |
-| Shell / navigation | [App](../../src/web/app/App.tsx), [HeaderView](../../src/web/app/shell/HeaderView.tsx), overlays | Changed | Mode-dependent header height, explicit empty workspace, responsive sidebar/drawer, existing extension slots |
-| Settings | [SettingsContainer](../../src/web/settings/SettingsContainer.tsx) and proposed preference hook | Changed | Persist mode preference, initially off; enabling opens sidebar |
+| Chat composer | [ComposerContainer](../../src/web/features/chat/composer/components/ComposerContainer.tsx) | Changed | Use application-owned page-lifetime drafts keyed by session path when available, runtime ID otherwise; transfer drafts when an unsaved runtime gains a path |
+| Shell / navigation | [App](../../src/web/app/App.tsx), [HeaderView](../../src/web/app/components/HeaderView.tsx), overlays | Changed | Mode-dependent header height, explicit empty workspace, responsive sidebar/drawer, existing extension slots |
+| Settings | [SettingsContainer](../../src/web/features/settings/components/SettingsContainer.tsx) and proposed preference hook | Changed | Persist mode preference, initially off; enabling opens sidebar |
 | SDK / server | PiClient inventory/catalogue and close/open/archive operations | Reused | Authoritative runtime, conversation persistence and archive ownership |
 
 Later is durable browser-local membership, keyed by conversation path; it is not inferred from all closed history. Search and collapse state are view-local; Later starts collapsed and Working expanded. Drafts and the single archive-Undo record live for this page only.

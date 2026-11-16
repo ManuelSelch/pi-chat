@@ -22,10 +22,10 @@ Apply visually approved revision 3 of [the mockup](../../mockups/widget-grid/DES
 
 ## Verification
 
-- [Component scenarios](../../test/modules/web/extensions/widgets/widget-panel.dom.test.tsx) cover the three-card grid (structure, order, disclosure, no height cap, `1 / -1` on the last card) and the even-count case with no span. They do not prove the column count, and the inline `align-items` assertion was replaced by the class assertion because bottom alignment moved into the stylesheet.
-- [Composer scenarios](../../test/modules/web/chat/composer/steering.dom.test.tsx) keep asserting that only above-composer panels use the grid.
-- [Browser scenarios](../../test/e2e/widgets.spec.ts) push three real extension widgets through the real runtime at the composer viewport and assert bottom-aligned row packing, that the third card begins a new row and spans the full grid width, and that no row holds more than two cards.
-- Run: `npm test` 943 passed / 109 files; `npx tsc --noEmit` clean; `npm run build` clean; `npx playwright test test/e2e/widgets.spec.ts` 7 passed. The new browser scenario failed before the production change (no `.widget-grid-rows` element) and passed after it.
+- [Component scenarios](../../src/web/features/extensions/widgets/__test__/widget-panel.dom.test.tsx) cover the three-card grid (structure, order, disclosure, no height cap, `1 / -1` on the last card) and the even-count case with no span. They do not prove the column count, and the inline `align-items` assertion was replaced by the class assertion because bottom alignment moved into the stylesheet.
+- [Composer scenarios](../../src/web/features/chat/composer/__test__/steering.dom.test.tsx) keep asserting that only above-composer panels use the grid.
+- [Browser scenarios](../../testing/e2e/widgets.spec.ts) push three real extension widgets through the real runtime at the composer viewport and assert bottom-aligned row packing, that the third card begins a new row and spans the full grid width, and that no row holds more than two cards.
+- Run: `npm test` 943 passed / 109 files; `npx tsc --noEmit` clean; `npm run build` clean; `npx playwright test testing/e2e/widgets.spec.ts` 7 passed. The new browser scenario failed before the production change (no `.widget-grid-rows` element) and passed after it.
 
 ## Open Questions
 

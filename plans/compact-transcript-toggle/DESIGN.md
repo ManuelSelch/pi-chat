@@ -13,12 +13,12 @@ Implement approved [mockup revision 6](../../mockups/settings-features/DESIGN.md
 - Supersede the separate-Transcript, retained archive-description and comfortable-default decisions in [header-settings](../header-settings/DESIGN.md); preserve its remaining scope. No dependency changes.
 
 ## Verification
-- [SettingsDrawer DOM scenarios](../../test/modules/web/settings/settings-drawer.dom.test.tsx): five toggles, both density mappings/callbacks, group order with extension controls, session/restart callbacks, Home availability, busy session controls, unavailable chimes, description removal; existing extension/archive scenarios remain.
-- [Preference-hook scenario](../../test/modules/web/settings/preferences/use-transcript-density.dom.test.tsx): fresh browser defaults to `compact`; a stored `comfortable` is honored and persisted.
-- [Endpoint hook scenarios](../../test/modules/web/settings/server/app/use-server-settings.dom.test.tsx): prefilled default/custom/query, unchanged and blank-default save gating. Preserve confirmed persistence-before-reload, cancellation, invalid input, storage failure, reset-invalid-draft and blank-removes-override contracts. The storage-failure fixture now edits to a genuinely different endpoint and the blank-override fixture stores a distinct endpoint; asserted outcomes are unchanged.
-- [Server panel DOM scenario](../../test/modules/web/settings/server/ui/server-settings-panel.dom.test.tsx): editable URL and status without duplicate endpoint/helper text. Preserve disconnected recovery, disabled actions, validation and storage/origin errors.
+- [SettingsDrawer DOM scenarios](../../src/web/features/settings/__test__/settings-drawer.dom.test.tsx): five toggles, both density mappings/callbacks, group order with extension controls, session/restart callbacks, Home availability, busy session controls, unavailable chimes, description removal; existing extension/archive scenarios remain.
+- [Preference-hook scenario](../../src/web/features/settings/preferences/__test__/use-transcript-density.dom.test.tsx): fresh browser defaults to `compact`; a stored `comfortable` is honored and persisted.
+- [Endpoint hook scenarios](../../src/web/features/settings/server/__test__/use-server-settings.dom.test.tsx): prefilled default/custom/query, unchanged and blank-default save gating. Preserve confirmed persistence-before-reload, cancellation, invalid input, storage failure, reset-invalid-draft and blank-removes-override contracts. The storage-failure fixture now edits to a genuinely different endpoint and the blank-override fixture stores a distinct endpoint; asserted outcomes are unchanged.
+- [Server panel DOM scenario](../../src/web/features/settings/server/__test__/server-settings-panel.dom.test.tsx): editable URL and status without duplicate endpoint/helper text. Preserve disconnected recovery, disabled actions, validation and storage/origin errors.
 - These tests use real components/hooks with callback spies, not a backend or real reload. No Driver changes or throwing scaffolds. DOM assertions do not verify equal-width geometry or badge placement; offer implemented screenshots at desktop/mobile with permission.
-- Results: `test/modules/web/settings` passes 78/78 and `npx tsc --noEmit` passes. Full-suite/e2e and browser screenshots are not run.
+- Results: `testing/modules/web/settings` passes 78/78 and `npx tsc --noEmit` passes. Full-suite/e2e and browser screenshots are not run.
 
 ## Open Questions
 None.

@@ -36,7 +36,7 @@ Do not interpret this plan as permission to implement every proposed feature or 
 - `src/server/projects/worktree-discovery.ts`: read-only Git discovery.
 - `src/server/application/chat-application-service.ts`: owns session/tab lifecycle and catalogue invalidation. Deletion closes an open session and rejects streaming sessions.
 - `src/shared/protocol.ts`: typed commands and catalogue data.
-- `src/web/sessions/projects/ProjectSessionDrawer.tsx`: repository grouping, checkout selection, session lists, and deletion confirmation.
+- `src/web/features/sessions/projects/components/ProjectSessionDrawer.tsx`: repository grouping, checkout selection, session lists, and deletion confirmation.
 - Home, Quick Open, composer session actions, and every catalogue consumer must be checked when changing filtering.
 
 Existing worktree requirements in `docs/worktree-projects/REQUIREMENTS.md` remain valid except where this document explicitly changes visibility or missing-directory archive access.

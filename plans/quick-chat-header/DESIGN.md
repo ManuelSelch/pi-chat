@@ -13,8 +13,8 @@ HeaderContainer will use that existing catalogue lookup to derive the header pre
 - This restores a label in the existing layout, so no new mockup is needed.
 
 ## Verification
-- Proposed executable rendering scenarios: [quick-chat-header.dom.test.tsx](../../test/modules/web/app/shell/quick-chat-header.dom.test.tsx). They exercise the real HeaderContainer and InboxHeader with supplied application state, not a browser or live server. No new Driver or assertion semantics.
-- Preserve existing header title/navigation and inbox action-eligibility tests in [session-title.dom.test.tsx](../../test/modules/web/app/shell/session-title.dom.test.tsx) and [inbox-header.dom.test.tsx](../../test/modules/web/sessions/inbox/ui/components/inbox-header.dom.test.tsx).
+- Proposed executable rendering scenarios: [quick-chat-header.dom.test.tsx](../../src/web/app/components/__test__/quick-chat-header.dom.test.tsx). They exercise the real HeaderContainer and InboxHeader with supplied application state, not a browser or live server. No new Driver or assertion semantics.
+- Preserve existing header title/navigation and inbox action-eligibility tests in [session-title.dom.test.tsx](../../src/web/app/components/__test__/session-title.dom.test.tsx) and [inbox-header.dom.test.tsx](../../src/web/features/sessions/inbox/__test__/inbox-header.dom.test.tsx).
 - Run focused DOM tests and TypeScript checking after approval.
 
 ## Open Questions

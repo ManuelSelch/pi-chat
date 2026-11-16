@@ -1,4 +1,4 @@
-import { ProductionServerDriver } from '../test/infra/production/production-server-driver.mjs';
+import { ProductionServerDriver } from '../testing/infra/production/production-server-driver.mjs';
 
 const server = await ProductionServerDriver.start();
 try {

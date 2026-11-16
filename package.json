@@ -27,8 +27,8 @@
     "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
     "capture:readme": "tsx scripts/capture-readme.ts",
     "test:watch": "vitest",
-    "lint": "eslint src test extension vite.config.ts --max-warnings 0",
-    "test:tooling": "node --test test/tooling/*.check.mjs"
+    "lint": "eslint src testing extension vite.config.ts --max-warnings 0",
+    "test:tooling": "node --test testing/tooling/*.check.mjs"
   },
   "engines": {
     "node": ">=22.19"

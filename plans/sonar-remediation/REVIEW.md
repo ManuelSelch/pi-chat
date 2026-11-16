@@ -101,7 +101,7 @@ No remotely exploitable critical vulnerability was established in this scoped re
 ### 6. Highlight callbacks — intentional use of index, low-priority cleanup (2 MAJOR)
 
 - Rule: `typescript:S7727`.
-- Location: `src/web/chat/tools/FileHighlight.tsx:12,17`.
+- Location: `src/web/features/chat/tools/components/FileHighlight.tsx:12,17`.
 - Keys: `AaFkfU0DESiijjIYdZv4`, `AaFkfU0DESiijjIYdZv5`.
 - `tokenNode(token, key)` deliberately receives the array index as the React sibling key. The third iterator argument is ignored; the usual callback-arity bug is not present.
 - Plan: explicitly forward both token and index through wrappers at both levels to make the intent analyzer-visible. Do not forward only the token and accidentally lose keys. Preserve safe text/span-only rendering and plain-text fallback.
@@ -118,7 +118,7 @@ No remotely exploitable critical vulnerability was established in this scoped re
 ### 8. Markdown loop advance — intentional parser behavior (1 MAJOR)
 
 - Rule/key: `typescript:S2310` / `AaFkVrKXIWcgPfQvFeSQ`.
-- Location: `src/web/chat/markdown/remark-display-math.ts:98`.
+- Location: `src/web/features/chat/markdown/utils/remark-display-math.ts:98`.
 - `index = close` deliberately skips the formula just consumed. Deleting it would reprocess formula contents and can duplicate or misparse subsequent formulas. This is not an early exit or a demonstrated infinite loop.
 - Plan: express the scanner with explicit cursor advancement and guaranteed progress rather than a for-counter reassignment. Preserve inline/display distinctions, escaped dollars, prices, unmatched delimiters, text boundaries, and multiple formulas. Avoid broad parser changes in this slice.
 
@@ -135,6 +135,6 @@ No remotely exploitable critical vulnerability was established in this scoped re
 ## Verification performed
 
 - Five focused Vitest files passed: **73 tests** covering offered models, project session/display behavior, system file opener, Markdown, and file content.
-- Command: `node_modules/.bin/vitest run test/modules/server/runtime/pi/offered-models.test.ts test/modules/server/projects/project-session-service.test.ts test/modules/server/files/system-file-opener.test.ts test/modules/web/chat/markdown/markdown.dom.test.tsx test/modules/web/chat/tools/file-content.dom.test.tsx`.
+- Command: `node_modules/.bin/vitest run testing/modules/server/runtime/pi/offered-models.test.ts testing/modules/server/projects/project-session-service.test.ts testing/modules/server/files/system-file-opener.test.ts src/web/features/chat/markdown/__test__/markdown.dom.test.tsx src/web/features/chat/tools/__test__/file-content.dom.test.tsx`.
 - Bounded regex timing probe, model-order demonstration, and DOM focus identity probe ran successfully without changing source.
 - Full suite, production build, browser keyboard checks, Swift loopback tests, clean dependency installation, and a new Sonar analysis were **not** run during this planning-only review. They are implementation verification requirements, not completed fixes.

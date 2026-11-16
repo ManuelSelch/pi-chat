@@ -93,7 +93,7 @@ of this cache; see [themes](configuration.md#pi-themes).
 
 ## Verification ownership
 
-Chat's [contract integration checks](../test/modules/shared/sdk-contract.test.ts)
+Chat's [contract integration checks](../src/shared/__test__/sdk-contract.test.ts)
 and [application drivers](integration-tests/DRIVERS.md) exercise the installed
 public SDK/server boundary. Protocol generation, malformed-wire fixtures and
 server-internal lifecycle tests belong to their owning repositories. Swift owns

@@ -1,14 +1,14 @@
 # Application drivers
 
 Scenarios express outcomes through product-language drivers, not sockets,
-selectors or arbitrary waits. [Test placement](../../test/README.md) separates
+selectors or arbitrary waits. [Test placement](../../testing/README.md) separates
 module/DOM tests, non-rendered application scenarios, browser workflows and
 support-infrastructure tests. Choose the lowest boundary that faithfully proves
 the outcome: protocol projections cannot prove focus, geometry or rendering.
 
 ## Non-rendered application driver
 
-[PiChatDriver](../../test/infra/pi-chat/pi-chat-driver.ts) starts an embedded
+[PiChatDriver](../../testing/infra/pi-chat/pi-chat-driver.ts) starts an embedded
 public server, harness-backed real Pi sessions and a WebSocket client using
 `PiClient` plus the production `bindPiChat`/application-state binding. It does
 not render React or implement another wire-session reducer. Only model replies
@@ -42,7 +42,7 @@ it("retains the conversation after reconnect", async () => {
 ```
 
 This example uses the relative import depth of
-[`test/scenarios/browser/reconnect.test.ts`](../../test/scenarios/browser/reconnect.test.ts).
+[`testing/scenarios/browser/reconnect.test.ts`](../../testing/scenarios/browser/reconnect.test.ts).
 Register successfully created drivers for cleanup; `start()` cleans partial
 startup and `dispose()` is idempotent. Keep setup, action and assertion phases
 readable. Consuming a scripted response alone does not prove it reached a client.
@@ -79,7 +79,7 @@ readable. Consuming a scripted response alone does not prove it reached a client
 
 ### Isolation and limits
 
-[TestWorld](../../test/infra/pi-chat/test-world.ts) owns temporary project/history,
+[TestWorld](../../testing/infra/pi-chat/test-world.ts) owns temporary project/history,
 per-session settings/resources/model scripts and cleanup, including in-flight
 creation. Opening persisted sessions is restricted to its session directory.
 Continuing a persisted project and runtime replacement explicitly throw as
@@ -91,14 +91,14 @@ those operations.
 
 ## Real browser driver
 
-[PiChatBrowserDriver](../../test/infra/e2e/pi-chat-browser-driver.ts) drives the
+[PiChatBrowserDriver](../../testing/infra/e2e/pi-chat-browser-driver.ts) drives the
 built frontend in Chromium against an ephemeral loopback server and real Pi
 sessions with scripted model responses. Its catalogue/history/archive metadata
 are test-owned. It composes feature drivers for Chat, Tabs, Home, Projects, Inbox,
 Settings, Focus, Prompts, Widgets, Theme, Skills and Extensions. Locators, retrying
 assertions, viewport and reload mechanics stay in these drivers.
 
-Browser scenarios import [coverage fixtures](../../test/infra/e2e/coverage/fixtures.ts)
+Browser scenarios import [coverage fixtures](../../testing/infra/e2e/coverage/fixtures.ts)
 so optional coverage attaches before navigation and flushes before teardown.
 Browser-only resources such as fixture skills are installed per session through
 `tabs.create` options; response `readSkill` uses the actual read tool. New page
@@ -108,21 +108,21 @@ opening assertion.
 
 ## Existing executable contracts
 
-- [Prompt/reply](../../test/scenarios/chat/prompt-reply.test.ts),
-  [steering](../../test/scenarios/chat/steering.test.ts),
-  [active-turn reconnect](../../test/scenarios/browser/active-turn-reconnect.test.ts),
-  [takeover](../../test/scenarios/browser/takeover.test.ts) and
-  [persisted reopening](../../test/scenarios/tabs/persisted-open.test.ts).
-- [Project archive](../../test/e2e/project-archive.spec.ts),
-  [pinning](../../test/e2e/project-pin.spec.ts),
-  [responsive Projects](../../test/e2e/projects-sidebar.spec.ts),
-  [Inbox](../../test/e2e/session-inbox.spec.ts) and
-  [worktree labels](../../test/e2e/inbox-worktree-labels.spec.ts).
-- [Focus](../../test/e2e/composer-focus.spec.ts),
-  [endpoint recovery](../../test/e2e/server-endpoint.spec.ts),
-  [rich prompts](../../test/e2e/prompt-presentation.spec.ts),
-  [widgets](../../test/e2e/widgets.spec.ts), [themes](../../test/e2e/theme.spec.ts)
-  and [skills](../../test/e2e/skills.spec.ts).
+- [Prompt/reply](../../testing/scenarios/chat/prompt-reply.test.ts),
+  [steering](../../testing/scenarios/chat/steering.test.ts),
+  [active-turn reconnect](../../testing/scenarios/browser/active-turn-reconnect.test.ts),
+  [takeover](../../testing/scenarios/browser/takeover.test.ts) and
+  [persisted reopening](../../testing/scenarios/tabs/persisted-open.test.ts).
+- [Project archive](../../testing/e2e/project-archive.spec.ts),
+  [pinning](../../testing/e2e/project-pin.spec.ts),
+  [responsive Projects](../../testing/e2e/projects-sidebar.spec.ts),
+  [Inbox](../../testing/e2e/session-inbox.spec.ts) and
+  [worktree labels](../../testing/e2e/inbox-worktree-labels.spec.ts).
+- [Focus](../../testing/e2e/composer-focus.spec.ts),
+  [endpoint recovery](../../testing/e2e/server-endpoint.spec.ts),
+  [rich prompts](../../testing/e2e/prompt-presentation.spec.ts),
+  [widgets](../../testing/e2e/widgets.spec.ts), [themes](../../testing/e2e/theme.spec.ts)
+  and [skills](../../testing/e2e/skills.spec.ts).
 
 These links identify maintained contract locations, not a claim that every
 legacy requirement is covered or that the suites passed at this revision.
@@ -136,13 +136,13 @@ Do not enable automatic dependency scripts just to build that Git dependency.
 The manifest/lockfile identify the harness revision; no local checkout is needed.
 
 ```sh
-npm test -- test/scenarios
-npm test -- test/infra-tests
-npm test -- test/modules
+npm test -- testing/scenarios
+npm test -- testing/infra-tests
+npm test -- __test__
 npm run build
-npx playwright test test/e2e/project-archive.spec.ts test/e2e/project-pin.spec.ts
+npx playwright test testing/e2e/project-archive.spec.ts testing/e2e/project-pin.spec.ts
 ```
 
 Browser tests require Chromium. Run shared-build-output workflows serially; see
 [coverage and CI](../development.md#e2e-coverage) and
-[focus assertion discipline](../../test/README.md#composer-focus-regressions).
+[focus assertion discipline](../../testing/README.md#composer-focus-regressions).
