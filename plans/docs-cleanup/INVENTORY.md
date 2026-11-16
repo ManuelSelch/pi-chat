@@ -156,7 +156,7 @@
 
 - [docs/composer-focus/DESIGN.md](https://github.com/ManuelSelch/pi-chat/blob/3e0eb8585340a67e510270af4ceed071b9b1b0a1/docs/composer-focus/DESIGN.md), line 40.
 - [docs/pi-server-extraction/INVENTORY.md](https://github.com/ManuelSelch/pi-chat/blob/3e0eb8585340a67e510270af4ceed071b9b1b0a1/docs/pi-server-extraction/INVENTORY.md), line 31.
-- [test/README.md](../../test/README.md), line 25.
+- [testing/README.md](../../testing/README.md), line 25.
 
 ### docs/composer-focus/REQUIREMENTS.md
 
@@ -189,7 +189,7 @@
 - [docs/architecture.md](../../docs/architecture.md), line 108.
 - [docs/configuration.md](../../docs/configuration.md), line 26.
 - [docs/pi-server-extraction/INVENTORY.md](https://github.com/ManuelSelch/pi-chat/blob/3e0eb8585340a67e510270af4ceed071b9b1b0a1/docs/pi-server-extraction/INVENTORY.md), line 34.
-- [test/README.md](../../test/README.md), line 21.
+- [testing/README.md](../../testing/README.md), line 21.
 - [vendor/README.md](../../vendor/README.md), line 7.
 
 ### docs/extension-api.md
@@ -540,4 +540,4 @@
 
 - [Existing session-inbox requirements](../session-inbox/REQUIREMENTS.md) and [design](../session-inbox/DESIGN.md): contain approved corrections and refinements; implementation commits are not proof of final acceptance. Leave unchanged.
 - [Mockups](../../mockups/): preserve approved baselines; no asset/prototype deletion proposed here.
-- [Testing guide](../../test/README.md), [vendor guide](../../vendor/README.md), [themes guide](../../themes/README.md), root [README](../../README.md), scripts and manifests: link consumers and reconciliation targets only. Their documentation links may need updating in an approved migration.
+- [Testing guide](../../testing/README.md), [vendor guide](../../vendor/README.md), [themes guide](../../themes/README.md), root [README](../../README.md), scripts and manifests: link consumers and reconciliation targets only. Their documentation links may need updating in an approved migration.

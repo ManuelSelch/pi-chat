@@ -1,0 +1,64 @@
+import { useEffect, useRef } from "react";
+import { Badge, Group, Paper, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
+import { THEME } from "../../../../config/theme.js";
+import { usePointerModality } from "../../../../hooks/usePointerModality.js";
+import type { MenuItem } from "../utils/command-menu.js";
+
+interface CommandMenuProps {
+  commands: MenuItem[];
+  activeIndex: number;
+  onHover: (index: number) => void;
+  onSelect: (command: MenuItem) => void;
+}
+
+export function CommandMenu({ commands, activeIndex, onHover, onSelect }: CommandMenuProps) {
+  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const mouseActive = useRef<number | null>(null);
+  const { onPointerMove } = usePointerModality();
+
+  useEffect(() => {
+    if (mouseActive.current !== activeIndex) activeRef.current?.scrollIntoView({ block: "nearest" });
+    mouseActive.current = null;
+  }, [activeIndex]);
+
+  if (commands.length === 0) return null;
+
+  return (
+    <Paper withBorder radius="md" shadow="md" mb="xs" p={4} role="listbox" aria-label={commands[0]?.kind === "argument" ? "Argument suggestions" : "Commands"}>
+      <ScrollArea.Autosize mah={260}>
+        <Stack gap={0}>
+          {commands.map((command, index) => (
+            <UnstyledButton
+              key={command.kind === "argument" ? `${index}:${command.value}` : command.name}
+              ref={index === activeIndex ? activeRef : undefined}
+              role="option"
+              aria-selected={index === activeIndex}
+              aria-disabled={command.kind === "action" && command.disabled ? true : undefined}
+              onPointerMove={(event) => {
+                if (index !== activeIndex) mouseActive.current = index;
+                onPointerMove(event, index, activeIndex, onHover);
+              }}
+              // The composer keeps focus, so selection must happen before blur.
+              onMouseDown={(event) => { event.preventDefault(); onSelect(command); }}
+              p="6px 10px"
+              style={{
+                borderRadius: "var(--mantine-radius-sm)",
+                background: index === activeIndex ? THEME.surface.panelHover : undefined,
+                opacity: command.kind === "action" && command.disabled ? 0.45 : undefined,
+              }}
+            >
+              <Group gap={6} wrap="nowrap">
+                <Text size="sm" fw={600} c={command.kind === "action" && command.disabled ? "dimmed" : undefined}>{command.kind === "argument" ? command.label : command.kind === "action" ? command.name : `/${command.source === "skill" ? command.name.replace(/^skill:/, "") : command.name}`}</Text>
+                {command.kind === "command" && command.argumentHint ? <Text size="xs" c="dimmed">{command.argumentHint}</Text> : null}
+                {command.kind !== "argument" ? <Badge size="xs" variant="light">{command.kind === "action" ? "session" : command.source ?? "command"}</Badge> : null}
+              </Group>
+              {command.description ? (
+                <Text size="xs" c="dimmed" lineClamp={1}>{command.description}</Text>
+              ) : null}
+            </UnstyledButton>
+          ))}
+        </Stack>
+      </ScrollArea.Autosize>
+    </Paper>
+  );
+}

@@ -1,7 +1,7 @@
 # Later and close session commands — Design
 
 ## Overview
-Restore an explicit close action lost when the tabs action was renamed to Move to Later in Inbox mode, and split the single context-dependent `close-tab` entry in [session-actions.ts](../../src/web/sessions/actions/session-actions.ts) into three stable session actions: **Close Session**, **Later**, and **Archive Session**. Keep the composer ⌘K menu, Quick Switcher and Inbox mouse controls on the same underlying operations.
+Restore an explicit close action lost when the tabs action was renamed to Move to Later in Inbox mode, and split the single context-dependent `close-tab` entry in [session-actions.ts](../../src/web/features/sessions/actions/utils/session-actions.ts) into three stable session actions: **Close Session**, **Later**, and **Archive Session**. Keep the composer ⌘K menu, Quick Switcher and Inbox mouse controls on the same underlying operations.
 
 ## Decisions & Trade-offs
 - Replace the context-renamed `close-tab` action with two ids: `close-session` (close the runtime, no Later membership) and `later-session` (park into Later). `archive-session` is retained. Labels are plain `Close Session`, `Later`, `Archive Session`; the leading `/` stays composer filtering behavior, not part of the name.
@@ -14,10 +14,10 @@ Restore an explicit close action lost when the tabs action was renamed to Move t
 - No separate mockup: this is a stable-label/eligibility change to an existing list plus a disabled state, not a new layout or interaction redesign.
 
 ## Verification
-- [Session action builder scenarios](../../test/modules/web/sessions/actions/session-actions.test.ts): three actions with ids/labels, Inbox hides `later-session` when off, disabled while busy/unsaved, close routes to `closeSession`, Later to `parkSession`, archive unchanged, Home/disconnected/stale guards retained.
-- [Shared menu DOM scenarios](../../test/modules/web/sessions/actions/shared-menus.dom.test.tsx): composer and palette run Close Session/Later/Archive Session; disabled rows are non-selectable; archive error display and Restart exclusion retained.
-- [Composer completion scenarios](../../test/modules/web/chat/composer/composer-completion.dom.test.tsx): `/close`, `/later`, `/archive` exact submissions; running-session Later disabled.
-- [Quick Switcher browser scenario](../../test/e2e/quick-open.spec.ts): tabs mode lists Close Session/Archive Session without Later; Inbox mode lists all three.
+- [Session action builder scenarios](../../src/web/features/sessions/actions/__test__/session-actions.test.ts): three actions with ids/labels, Inbox hides `later-session` when off, disabled while busy/unsaved, close routes to `closeSession`, Later to `parkSession`, archive unchanged, Home/disconnected/stale guards retained.
+- [Shared menu DOM scenarios](../../src/web/features/sessions/actions/__test__/shared-menus.dom.test.tsx): composer and palette run Close Session/Later/Archive Session; disabled rows are non-selectable; archive error display and Restart exclusion retained.
+- [Composer completion scenarios](../../src/web/features/chat/composer/__test__/composer-completion.dom.test.tsx): `/close`, `/later`, `/archive` exact submissions; running-session Later disabled.
+- [Quick Switcher browser scenario](../../testing/e2e/quick-open.spec.ts): tabs mode lists Close Session/Archive Session without Later; Inbox mode lists all three.
 
 ## Open Questions
 None.

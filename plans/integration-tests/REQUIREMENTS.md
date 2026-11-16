@@ -14,8 +14,8 @@ Follow-up slices cover project folder browsing/opening and errors, controlled
 response abort, controller takeover, and real Pi extension confirmation UI.
 The `Extensions` driver covers registered commands, confirmation/cancellation,
 notifications, widgets, pending-prompt reconnect, and per-session isolation.
-Scenarios live under `test/scenarios/`; reusable drivers and their tests are
-separate under `test/infra/` and `test/infra-tests/`. See [DRIVERS.md](../../docs/integration-tests/DRIVERS.md).
+Scenarios live under `testing/scenarios/`; reusable drivers and their tests are
+separate under `testing/infra/` and `testing/infra-tests/`. See [DRIVERS.md](../../docs/integration-tests/DRIVERS.md).
 Persisted session reopening, active-model-turn reconnect, and broader extension
 actions/reload remain planned. Current verification uses root Pi SDK 1.0.2.
 
@@ -26,7 +26,7 @@ provides real SDK sessions wrapped in `AgentSessionRuntime` and attached through
 `PiRuntimeAdapter.fromRuntime`. Its `prepare()` configures model responses without
 submitting prompts, so the scenarios drive the real Pi Chat server themselves.
 Compatibility is verified by the normal scenario suite, replacing the standalone
-spike. Run `npm ci && npm test -- test/scenarios`.
+spike. Run `npm ci && npm test -- testing/scenarios`.
 See [DRIVERS.md](../../docs/integration-tests/DRIVERS.md#setup-and-commands) for installation and runtime seams.
 
 This plan follows the driver pattern already used in the BlueFlow
@@ -314,7 +314,7 @@ Write ordinary Vitest tests using the drivers. Suggested first scenarios:
    - keep the public API imperative and product-oriented.
 2. **Extract the protocol client**
    - move reusable connection/message waiting code from
-     `test/modules/server/transport/websocket-transport.test.ts` into test support;
+     `testing/modules/server/transport/websocket-transport.test.ts` into test support;
    - retain existing low-level tests and avoid changing production protocol.
 3. **Implement test world and root application driver**
    - start/stop isolated `PiChatServer` instances;

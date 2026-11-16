@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { useMediaQuery } from "@mantine/hooks";
-import type { Tab } from "../state/view-types.js";
+import type { Tab } from "../../types/view-types.js";
 
 export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab";
 

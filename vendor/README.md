@@ -6,7 +6,7 @@ or installed-source patches are used; a clean install needs no sibling checkouts
 
 `npm run verify:dependencies` checks the installed public server API and wire
 version; it is not a source-revision/checksum verifier or proof of publication.
-[Dependency fixture tests](../test/infra-tests/npm-dependencies.test.ts) inspect
+[Dependency fixture tests](../testing/infra-tests/npm-dependencies.test.ts) inspect
 registry pins, lock integrity, SDK deduplication and
 the public API.
 Use the [development workflow](../docs/development.md) after an authorized update.

@@ -8,7 +8,7 @@ const root = process.cwd();
 const outputDir = resolve("coverage-e2e");
 
 export function isAppSource(path) {
-  return ["src/web/", "src/host/", "src/shared/"].some(prefix => path.startsWith(prefix)) && !path.split("/").includes("..") && /\.(ts|tsx)$/.test(path) && !path.endsWith(".d.ts");
+  return ["src/web/", "src/host/", "src/shared/"].some(prefix => path.startsWith(prefix)) && !path.split("/").some(part => part === ".." || part === "__test__") && /\.(ts|tsx)$/.test(path) && !path.endsWith(".d.ts");
 }
 
 function appUrl(url) {

@@ -30,7 +30,7 @@ let app: { dispose(): Promise<void> } | undefined;
 
 try {
   // Reuse the real application/SDK browser driver; only the model boundary is scripted.
-  const { PiChatBrowserDriver } = await import("../test/infra/e2e/pi-chat-browser-driver.js");
+  const { PiChatBrowserDriver } = await import("../testing/infra/e2e/pi-chat-browser-driver.js");
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1120, height: 780 }, deviceScaleFactor: 2, colorScheme: "dark", reducedMotion: "reduce", locale: "en-US", timezoneId: "UTC" });
   const page = await context.newPage();

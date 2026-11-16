@@ -30,16 +30,16 @@
 
 | Consolidated area | Current documentation / executable evidence |
 |---|---|
-| Package/server/SDK extraction, compiled host and Swift test ownership | [Architecture](../../docs/architecture.md#package-boundaries), [development](../../docs/development.md#server-boundary), [provenance/attribution](../../vendor/README.md), public-boundary/fixture tests linked from [test guide](../../test/README.md#contract-locations) |
+| Package/server/SDK extraction, compiled host and Swift test ownership | [Architecture](../../docs/architecture.md#package-boundaries), [development](../../docs/development.md#server-boundary), [provenance/attribution](../../vendor/README.md), public-boundary/fixture tests linked from [test guide](../../testing/README.md#contract-locations) |
 | Protocol and recovery | New [integration reference](../../docs/protocol.md) links the installed SDK authority; old illustrative protocol retained with backend obligations, not presented as current schema |
 | Frontend ownership, composition, styles and widget layout | [Development](../../docs/development.md#frontend-organization), [architecture](../../docs/architecture.md), existing widget DOM/browser tests |
 | Completion, skills, bash, steering and shared session actions | [Usage](../../docs/usage.md), [input ownership](../../docs/architecture.md#conversation-input-and-actions), composer/action tests and permanent steering/skill/browser scenarios |
 | Titles, Projects/worktrees, recency, pins, archive and Inbox | [Navigation](../../docs/architecture.md#session-navigation-and-drafts), [usage](../../docs/usage.md#sessions), project-model/browser contracts; newer approved Inbox behavior remains current |
-| Focus and overlay lifecycle | [Architecture](../../docs/architecture.md#focus-and-overlays), [test discipline and commands](../../test/README.md#composer-focus-regressions); actual delayed-commit and browser assertions retained unchanged |
+| Focus and overlay lifecycle | [Architecture](../../docs/architecture.md#focus-and-overlays), [test discipline and commands](../../testing/README.md#composer-focus-regressions); actual delayed-commit and browser assertions retained unchanged |
 | Endpoint configuration, restart and logging | [Configuration](../../docs/configuration.md), [host lifecycle/security](../../docs/architecture.md#host-lifecycle-and-security), existing host/command/endpoint/npm-lookup tests |
 | Rich prompts, widgets/OSC 8 and runtime/remembered themes | [Architecture](../../docs/architecture.md#runtime-prompts-widgets-and-themes), [extension API](../../docs/extension-api.md#native-pi-ui-contributions), [usage](../../docs/usage.md#extension-prompts-and-widgets), existing prompt/widget/theme contracts |
 | Files and tool rendering | [File ownership](../../docs/architecture.md#file-links-and-content-presentation), [usage](../../docs/usage.md#opening-local-file-links), parser/action/rendering tests; original pending macOS/browser checks retained, not claimed complete |
-| Integration drivers and harness setup | Reconciled [driver guide](../../docs/integration-tests/DRIVERS.md) and [test guide](../../test/README.md); roadmap preserved separately |
+| Integration drivers and harness setup | Reconciled [driver guide](../../docs/integration-tests/DRIVERS.md) and [test guide](../../testing/README.md); roadmap preserved separately |
 | Coverage, CI container and hardening rationale | [Development](../../docs/development.md#e2e-coverage), [CI](../../docs/development.md#ci-and-static-analysis), [trusted npm operations](../../docs/configuration.md#npm-backed-operations); dated Sonar evidence retained separately |
 | README capture and static assets | [Capture guide](../../docs/readme-showcase/CAPTURE.md), source/composition/fixture tests; explicitly documents stale selector/navigation/theme assumptions without changing capture behavior |
 

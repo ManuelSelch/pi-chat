@@ -1,9 +1,9 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { usePromptPresentation } from "../extensions/prompts/app/use-prompt-presentation.js";
-import { usePiChat } from "./use-pi-chat.js";
-import { AppThemeProvider } from "./theme/AppThemeProvider.js";
-import { SessionDraftProvider } from "../sessions/drafts/app/SessionDraftProvider.js";
-import { FileActionsProvider } from "../chat/markdown/FileActions.js";
+import { usePromptPresentation } from "../features/extensions/prompts/hooks/use-prompt-presentation.js";
+import { usePiChat } from "./hooks/use-pi-chat.js";
+import { AppThemeProvider } from "../lib/theme/AppThemeProvider.js";
+import { SessionDraftProvider } from "../features/sessions/drafts/stores/SessionDraftProvider.js";
+import { FileActionsProvider } from "../features/chat/markdown/stores/FileActions.js";
 
 export type AppController = ReturnType<typeof usePiChat> & { promptPresentation: ReturnType<typeof usePromptPresentation> };
 

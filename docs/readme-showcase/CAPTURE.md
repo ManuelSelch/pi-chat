@@ -69,8 +69,8 @@ there is no byte-identical cross-platform image guarantee.
 The script asserts intended tool/content/navigation states, absence of page
 JavaScript errors and non-clipped results before composing images. Those checks
 must actually complete before a capture can be called verified.
-[Composition tests](../../test/infra-tests/readme-showcase.test.ts) cover image
+[Composition tests](../../testing/infra-tests/readme-showcase.test.ts) cover image
 ordering, labels, offline assembly and input validation;
-[fixture tests](../../test/infra-tests/showcase-fixtures.test.ts) cover cleanup.
+[fixture tests](../../testing/infra-tests/showcase-fixtures.test.ts) cover cleanup.
 Neither substitutes for a successful current browser capture or user visual
 acceptance.

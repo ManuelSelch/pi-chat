@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": false, "rootDir": "src", "outDir": "dist" },
-  "include": ["src/host/**/*.ts", "src/shared/node/npm-command.ts"]
+  "include": ["src/host/**/*.ts", "src/shared/node/npm-command.ts"],
+  "exclude": ["**/__test__/**"]
 }

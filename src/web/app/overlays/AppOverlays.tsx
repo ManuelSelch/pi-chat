@@ -1,11 +1,11 @@
-import { InboxContainer } from "../../sessions/inbox/ui/containers/InboxContainer.js";
+import { InboxContainer } from "../../features/sessions/inbox/components/InboxContainer.js";
 import { useAppController } from "../AppControllerContext.js";
-import { PromptModal } from "../../extensions/prompts/PromptModal.js";
-import { CloseSessionDialog } from "../../sessions/dialogs/CloseSessionDialog.js";
-import { QuickOpenContainer } from "../../sessions/quick-open/QuickOpenContainer.js";
-import { ProjectSessionContainer } from "../../sessions/projects/ProjectSessionContainer.js";
-import { FolderPickerContainer } from "../../sessions/folders/FolderPickerContainer.js";
-import { SettingsContainer } from "../../settings/SettingsContainer.js";
+import { PromptModal } from "../../features/extensions/prompts/components/PromptModal.js";
+import { CloseSessionDialog } from "../../features/sessions/dialogs/components/CloseSessionDialog.js";
+import { QuickOpenContainer } from "../../features/sessions/quick-open/components/QuickOpenContainer.js";
+import { ProjectSessionContainer } from "../../features/sessions/projects/components/ProjectSessionContainer.js";
+import { FolderPickerContainer } from "../../features/sessions/folders/components/FolderPickerContainer.js";
+import { SettingsContainer } from "../../features/settings/components/SettingsContainer.js";
 import { useOverlays } from "./OverlayController.js";
 
 /** App-level assembly only; each feature retains its own overlay behavior. */

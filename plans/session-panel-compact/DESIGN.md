@@ -11,9 +11,9 @@ Apply visually approved revision 2 of [the mockup](../../mockups/session-panel-c
 - Sidebar title-search journeys and no-match counts are intentionally removed; original Home/Quick Switcher discovery stays available. Worktree title-based actions and hover labels remain.
 
 ## Verification
-- [Component scenarios](../../test/modules/web/sessions/inbox/ui/components/inbox-view.dom.test.tsx) cover empty → populated → Ready-only rendering in both sidebar and drawer, with real InboxView and supplied rows/callbacks. They do not exercise backend persistence.
-- [Browser lifecycle scenarios](../../test/e2e/session-inbox.spec.ts) retain real saved-session park/reload/resume/archive and draft preservation, replacing search actions with absence assertions and zero-Later expectations with absence.
-- [Worktree scenarios](../../test/e2e/inbox-worktree-labels.spec.ts) retain label/action/restart coverage, removing only Inbox search.
+- [Component scenarios](../../src/web/features/sessions/inbox/__test__/inbox-view.dom.test.tsx) cover empty → populated → Ready-only rendering in both sidebar and drawer, with real InboxView and supplied rows/callbacks. They do not exercise backend persistence.
+- [Browser lifecycle scenarios](../../testing/e2e/session-inbox.spec.ts) retain real saved-session park/reload/resume/archive and draft preservation, replacing search actions with absence assertions and zero-Later expectations with absence.
+- [Worktree scenarios](../../testing/e2e/inbox-worktree-labels.spec.ts) retain label/action/restart coverage, removing only Inbox search.
 - Planned: focused component/model suites, affected browser suites, typecheck/build. None run yet; assertions are real, not throwing scaffolds.
 
 ## Open Questions

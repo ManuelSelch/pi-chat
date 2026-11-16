@@ -11,7 +11,7 @@ Keep the existing Inbox model and row component responsible for labels and rende
 - Reuse existing components and domain helpers without new dependencies or state ownership.
 
 ## Verification
-- Proposed browser scenario: [inbox-worktree-labels.spec.ts](../../test/e2e/inbox-worktree-labels.spec.ts). Assert compact live/history/Later rows, desktop/phone, title search and existing lifecycle actions. The new assertion method is explicitly throwing scaffolding, not a reproduced production failure.
+- Proposed browser scenario: [inbox-worktree-labels.spec.ts](../../testing/e2e/inbox-worktree-labels.spec.ts). Assert compact live/history/Later rows, desktop/phone, title search and existing lifecycle actions. The new assertion method is explicitly throwing scaffolding, not a reproduced production failure.
 - Update existing branch-label scenarios to assert two lines for single-session checkouts; preserve three-line assertions in a dedicated multiple-session case. Keep title/branch search and all lifecycle assertions.
 - Add model cases for one/multiple saved and unsaved conversations and stable disambiguation across status/search/Later. Add component checks for hidden title hover/accessibility, suffix-free minute/hour/day labels and unchanged `just now`/Later.
 - Run relevant model/component/browser tests and typecheck/build; capture the implemented panel using authorized browser automation. Tests and screenshot are not yet run.

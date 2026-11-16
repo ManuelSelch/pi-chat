@@ -52,7 +52,7 @@ Those interactions use server-owned registries and SDK presentation state:
 
 See [presentation ownership](architecture.md#runtime-prompts-widgets-and-themes),
 [user interactions](usage.md#extension-prompts-and-widgets) and
-[browser contracts](../test/e2e/prompt-presentation.spec.ts).
+[browser contracts](../testing/e2e/prompt-presentation.spec.ts).
 
 ## Slots
 

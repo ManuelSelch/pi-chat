@@ -15,7 +15,7 @@ below do not imply that tests or visual acceptance have just run.
 - [Development](development.md): setup, build/test/CI, source organization and
   documentation/scenario workflow.
 - [Application drivers](integration-tests/DRIVERS.md) and
-  [test guide](../test/README.md): faithful test boundaries and permanent contracts.
+  [test guide](../testing/README.md): faithful test boundaries and permanent contracts.
 - [Dependency provenance](../vendor/README.md): pinned releases and source ownership.
 - [Classic themes](../themes/README.md): shipped palette files and installation.
 - [Showcase assets](readme-showcase/CAPTURE.md): capture arguments, isolation and
