@@ -11,7 +11,7 @@ interface HomeProps {
 export function Home({ search, children }: HomeProps) {
   return (
     <div className={styles.page}>
-      <Stack gap={22} w="100%" maw={620} mx="auto">
+      <Stack gap={22} w="100%">
         <Title order={1} size={32} fw={550} ta="center">Lets cook</Title>
         {search}
       </Stack>
