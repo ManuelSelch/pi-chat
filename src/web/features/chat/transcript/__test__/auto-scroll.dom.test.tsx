@@ -1,10 +1,14 @@
 /** @vitest-environment jsdom */
 
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAutoScroll } from "../hooks/use-auto-scroll.js";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 /**
  * jsdom has no layout, so the hook's window measurements are backed by a
@@ -27,8 +31,8 @@ function distanceFromBottom(): number {
   return viewport.scrollHeight - viewport.scrollY - viewport.innerHeight;
 }
 
-function Harness({ followKey }: { followKey: string }) {
-  const bottomRef = useAutoScroll({ sessionId: "session", followKey });
+function Harness({ followKey, sessionId = "session" }: { followKey: string; sessionId?: string }) {
+  const bottomRef = useAutoScroll({ sessionId, followKey });
   return <div ref={bottomRef} data-testid="bottom" />;
 }
 
@@ -41,8 +45,18 @@ async function flushFrame(): Promise<void> {
 
 describe("useAutoScroll", () => {
   let scrollIntoView: ReturnType<typeof vi.spyOn>;
+  let resizeTranscript: () => void;
 
   beforeEach(() => {
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeTranscript = () => callback([], this as unknown as ResizeObserver);
+      }
+      observe() {}
+      disconnect() {}
+    });
+    viewport.scrollHeight = 2000;
+    viewport.innerHeight = 1000;
     installViewport();
     atBottom();
     scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
@@ -120,10 +134,58 @@ describe("useAutoScroll", () => {
     expect(scrollIntoView).toHaveBeenCalled();
   });
 
-  it("does not follow a restored session that is not at the bottom", async () => {
-    viewport.scrollY -= 300;
+  it("follows delayed transcript layout growth without another message update", async () => {
     render(<Harness followKey="1" />);
     await flushFrame();
+    scrollIntoView.mockClear();
+
+    viewport.scrollHeight += 600;
+    act(() => resizeTranscript());
+
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("does not follow delayed layout growth after the reader scrolls up", async () => {
+    render(<Harness followKey="1" />);
+    await flushFrame();
+    viewport.scrollY -= 50;
+    fireEvent.wheel(window, { deltaY: -20 });
+    scrollIntoView.mockClear();
+
+    viewport.scrollHeight += 600;
+    act(() => resizeTranscript());
+
     expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("opens a long session at the bottom without requiring prior scroll position", async () => {
+    viewport.scrollY = 0;
+    render(<Harness followKey="1" />);
+    await flushFrame();
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("pins a newly selected session after the reader scrolled up in the previous one", async () => {
+    const { rerender } = render(<Harness followKey="1" />);
+    await flushFrame();
+    viewport.scrollY -= 300;
+    fireEvent.wheel(window, { deltaY: -300 });
+    scrollIntoView.mockClear();
+
+    rerender(<Harness sessionId="another-session" followKey="1" />);
+    await flushFrame();
+
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("keeps following updates after StrictMode replays mount effects", async () => {
+    const { rerender } = render(<StrictMode><Harness followKey="1" /></StrictMode>);
+    await flushFrame();
+    scrollIntoView.mockClear();
+
+    rerender(<StrictMode><Harness followKey="2" /></StrictMode>);
+    await flushFrame();
+
+    expect(scrollIntoView).toHaveBeenCalled();
   });
 });

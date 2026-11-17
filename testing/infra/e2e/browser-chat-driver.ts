@@ -45,6 +45,33 @@ export class BrowserChatDriver {
     await expect(this.page.getByRole("main").getByText(text, { exact: true })).not.toBeVisible();
   }
 
+  async shouldShowLatestReplyInViewport(text: string): Promise<void> {
+    const reply = this.page.getByRole("main").getByText(text, { exact: true });
+    await expect(reply).toBeInViewport({ ratio: 1 });
+    // Being in the viewport alone is insufficient: the fixed composer can hide it.
+    await expect.poll(async () => {
+      const replyBox = await reply.boundingBox();
+      const composerBox = await this.page.locator("form").filter({ has: this.composer }).boundingBox();
+      return replyBox !== null && composerBox !== null && replyBox.y + replyBox.height <= composerBox.y;
+    }).toBe(true);
+  }
+
+  async shouldKeepReplyOutsideViewport(text: string): Promise<void> {
+    const reply = this.page.getByRole("main").getByText(text, { exact: true });
+    await expect(reply).toBeVisible();
+    await expect(reply).not.toBeInViewport();
+  }
+
+  async scrollUpInTranscript(): Promise<void> {
+    const previous = await this.page.evaluate(() => window.scrollY);
+    expect(previous).toBeGreaterThan(0);
+    const main = await this.page.getByRole("main").boundingBox();
+    if (!main) throw new Error("Transcript is not visible");
+    await this.page.mouse.move(main.x + main.width / 2, 300);
+    await this.page.mouse.wheel(0, -600);
+    await expect.poll(() => this.page.evaluate(() => window.scrollY)).toBeLessThan(previous - 100);
+  }
+
   async shouldBeIdle(): Promise<void> {
     await expect(this.page.locator("form").filter({ has: this.composer })).not.toHaveAttribute("aria-busy", "true");
   }

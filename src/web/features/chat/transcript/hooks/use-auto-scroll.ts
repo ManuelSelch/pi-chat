@@ -14,7 +14,7 @@ function distanceFromBottom(): number {
 export function useAutoScroll({ sessionId, followKey }: { sessionId: string; followKey: string }) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const shouldFollowRef = useRef(true);
-  const previousSessionIdRef = useRef(sessionId);
+  const previousSessionIdRef = useRef<string | null>(null);
   const frameRef = useRef<number | null>(null);
 
   function scrollToBottom(): void {
@@ -35,12 +35,29 @@ export function useAutoScroll({ sessionId, followKey }: { sessionId: string; fol
     if (previousSessionIdRef.current !== sessionId) {
       previousSessionIdRef.current = sessionId;
       shouldFollowRef.current = true;
-      schedule();
-      return;
+      // Opening is navigation, not a request to preserve the previous page's
+      // position. Pin before scroll measurements can mistake it for reader intent.
+      scrollToBottom();
     }
 
     if (shouldFollowRef.current) schedule();
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
   }, [sessionId, followKey]);
+
+  useLayoutEffect(() => {
+    // Lazy Markdown and images can grow after the message update's frame.
+    // Observe the transcript, not just message keys, while still respecting opt-out.
+    const transcript = bottomRef.current?.parentElement;
+    if (!transcript) return;
+    const observer = new ResizeObserver(() => {
+      if (shouldFollowRef.current) scrollToBottom();
+    });
+    observer.observe(transcript);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // Position alone cannot end following in compact mode: a burst of collapsed
@@ -70,7 +87,6 @@ export function useAutoScroll({ sessionId, followKey }: { sessionId: string; fol
       lastTouchY = y;
     }
 
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleScroll);
     window.addEventListener("wheel", handleWheel, { passive: true });
@@ -78,7 +94,6 @@ export function useAutoScroll({ sessionId, followKey }: { sessionId: string; fol
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
       window.removeEventListener("wheel", handleWheel);

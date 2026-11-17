@@ -149,6 +149,13 @@ discovery. The inbox header uses the catalogue's `quickChats` marker to label
 home-folder sessions “Quick Chat”; other header project names retain their runtime
 labels. This presentation does not modify runtime inventory. Row actions continue using original identities. The panel has no search field; empty project groups, Inbox status groups and an empty Later shelf are omitted entirely.
 
+### Transcript scrolling
+
+- Opening or switching a session pins the transcript to its latest message.
+- Message updates and delayed Markdown/image layout growth keep following until the reader scrolls up; returning to the bottom resumes following.
+- [Scroll hook](../src/web/features/chat/transcript/hooks/use-auto-scroll.ts) owns follow intent, layout observation and animation-frame cleanup.
+- [Browser scenarios](../testing/e2e/transcript-scroll.spec.ts) verify Home opening, session switching, reload and reader opt-out against actual viewport/composer geometry.
+
 ### Focus and overlays
 
 [AppOverlays](../src/web/app/overlays/AppOverlays.tsx) assembles prompts, session

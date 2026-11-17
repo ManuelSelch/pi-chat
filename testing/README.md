@@ -55,6 +55,13 @@ PI_CHAT_COVERAGE=1 npm run build
 node scripts/run-playwright-coverage.mjs testing/e2e/composer-focus.spec.ts --workers=2
 ```
 
+## Transcript scroll regressions
+
+- [Browser scenarios](e2e/transcript-scroll.spec.ts) assert that opening, switching and reloading a long session show the latest reply above the composer, while completion preserves manual scroll-up.
+- DOM hook tests cover follow intent, delayed layout growth and StrictMode cleanup; they do not prove actual scrolling.
+- Review opening/navigation outcomes separately from streaming opt-out. Do not infer preserved scroll intent just because a newly mounted transcript starts far from the bottom.
+- `toBeVisible()` only proves rendering, not viewport placement. Scroll assertions must not scroll/focus the target into view themselves.
+
 ## Contract locations
 
 These are permanent checks, not a second prose specification or a promise of
