@@ -1,5 +1,6 @@
 import { useAppController } from "../../../app/AppControllerContext.js";
 import { useOverlays } from "../../../app/overlays/OverlayController.js";
+import { useAgentation } from "../preferences/hooks/use-agentation.js";
 import { useChimes } from "../preferences/hooks/use-chimes.js";
 import { useDisplayPath } from "../preferences/hooks/use-display-path.js";
 import { useHideArchivedSessions } from "../preferences/hooks/use-hide-archived-sessions.js";
@@ -13,6 +14,7 @@ export function SettingsContainer() {
   const overlays = useOverlays();
   const { app, state } = chat;
   const busy = state.status === "running" || state.status === "aborting";
+  const agentation = useAgentation();
   const chimes = useChimes(app.tabs);
   const displayPath = useDisplayPath();
   const archivedSessions = useHideArchivedSessions();
@@ -20,6 +22,8 @@ export function SettingsContainer() {
   
   return (
     <SettingsDrawer
+      agentationEnabled={agentation.enabled}
+      setAgentationEnabled={agentation.setEnabled}
       inboxEnabled={chat.inboxEnabled}
       setInboxEnabled={chat.setInboxEnabled}
       opened={overlays.state.settings}

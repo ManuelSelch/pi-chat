@@ -25,6 +25,8 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         compactSession={noop}
         inboxEnabled={false}
         setInboxEnabled={noop}
+        agentationEnabled={false}
+        setAgentationEnabled={noop}
         chimesEnabled={false}
         setChimesEnabled={noop}
         chimesAvailable
@@ -57,12 +59,12 @@ describe("SettingsDrawer groups", () => {
     expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
   });
 
-  it("groups all five switches under Feature Toggles including Compact transcript", () => {
+  it("groups all switches under Feature Toggles including Agentation", () => {
     renderDrawer(initialChatState.extensions);
     const group = screen.getByRole("group", { name: "Feature Toggles" });
 
-    expect(within(group).getAllByRole("switch")).toHaveLength(5);
-    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript"]) {
+    expect(within(group).getAllByRole("switch")).toHaveLength(6);
+    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript", "Agentation UI feedback"]) {
       expect(within(group).getByRole("switch", { name })).toBeTruthy();
     }
     for (const name of ["Sessions", "Sounds", "Projects"]) {
@@ -70,6 +72,17 @@ describe("SettingsDrawer groups", () => {
     }
     expect(screen.queryByText("Transcript", { exact: true })).toBeNull();
     expect(screen.queryByRole("radiogroup", { name: "Transcript density" })).toBeNull();
+  });
+
+  it("toggles Agentation feedback", () => {
+    const setAgentationEnabled = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "compact", vi.fn(), { setAgentationEnabled });
+    const toggle = screen.getByRole("switch", { name: "Agentation UI feedback" }) as HTMLInputElement;
+
+    expect(toggle.checked).toBe(false);
+    fireEvent.click(toggle);
+
+    expect(setAgentationEnabled).toHaveBeenCalledExactlyOnceWith(true);
   });
 
   it.each([

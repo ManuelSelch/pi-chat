@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { AgentationFeedback } from "../features/settings/components/AgentationFeedback.js";
 import { AppShell } from "@mantine/core";
 import { useViewportSize } from "@mantine/hooks";
 import { ConfirmDialogProvider } from "../components/confirm/ConfirmDialogProvider.js";
@@ -56,6 +57,7 @@ function AppContent() {
       "--pi-workspace-left": workspaceLeft,
       "--pi-projects-width": layout.sidebarWidth,
     } as CSSProperties}>
+      <AgentationFeedback />
       <HeaderContainer />
 
       {home ? null : <WidgetDock widgets={widgetsDocked} />}

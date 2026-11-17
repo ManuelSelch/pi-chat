@@ -18,6 +18,8 @@ interface SettingsDrawerProps {
   setThinkingLevel: (level: ThinkingLevel) => void;
   setModel: (model: string) => void;
   compactSession: () => void;
+  agentationEnabled: boolean;
+  setAgentationEnabled: (value: boolean) => void;
   inboxEnabled: boolean;
   setInboxEnabled: (value: boolean) => void;
   chimesEnabled: boolean;
@@ -32,7 +34,7 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -84,7 +86,8 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, v
         <Panel>
           <div role="group" aria-label="Feature Toggles">
             <SectionHeader icon={<IconAdjustments size={16} />}>Feature Toggles</SectionHeader>
-            <Switch label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
+            <Switch label="Agentation UI feedback" checked={agentationEnabled} onChange={(event) => setAgentationEnabled(event.currentTarget.checked)} />
+            <Switch mt="sm" label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
             <Switch
               mt="sm"
               checked={chimesEnabled}

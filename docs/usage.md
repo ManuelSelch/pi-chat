@@ -109,6 +109,12 @@ Later is also accessible from the sidebar while viewing a conversation.
   membership. Use Quick Switcher for projects and history, or disable Inbox
   to use Projects browsing and its Archived sections.
 
+## UI feedback
+
+- Enable **Settings → Feature Toggles → Agentation UI feedback** to show the annotation toolbar. It is off by default and remembered in this browser.
+- Annotate the interface, copy the feedback, and paste it into a Pi conversation. No MCP server is required.
+- Disable the toggle to remove the toolbar. The preference is not an access-control mechanism; avoid including sensitive information in copied feedback.
+
 ## Quick Switcher and local actions
 
 On Home, focus or type in Search to use the inline Quick Switcher; ⌘O and
