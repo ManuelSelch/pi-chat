@@ -3,6 +3,7 @@ import { IconArchive, IconArrowUpRight, IconClockPause } from "@tabler/icons-rea
 import type { InboxRow } from "../utils/inbox-model.js";
 import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
+import { worktreeLabel } from "../../utils/worktree-label.js";
 
 interface InboxRowViewProps {
   row: InboxRow;
@@ -20,7 +21,7 @@ export function InboxRowView({ row, active, later = false, pending, onSelect, on
       {later && <Text component="span" display="block" size="xs" c="dimmed" truncate mb={4}>{row.project}</Text>}
       <Group className={styles.primary} wrap="nowrap" gap={8}>
         <InboxStatus status={row.status} later={later} />
-        <Text component="span" size="sm" truncate miw={0} flex={1} title={row.primaryLabel}>{row.primaryLabel}</Text>
+        <Text component="span" size="sm" truncate miw={0} flex={1} title={row.primaryLabel}>{row.primaryLabel === row.branch ? worktreeLabel(row.primaryLabel) : row.primaryLabel}</Text>
         {later && <IconArrowUpRight size={14} className="shrink-0" />}
       </Group>
       {row.secondaryLabel && <Text size="xs" c="dimmed" truncate mt={4} pl={14} title={row.secondaryLabel}>{row.secondaryLabel}</Text>}

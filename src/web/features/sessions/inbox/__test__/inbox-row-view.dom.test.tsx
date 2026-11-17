@@ -17,7 +17,7 @@ function mount(value = row(), later = false) {
 it.each([false, true])("renders worktree-first labels while preserving conversation-based action names (Later=%s)", later => {
   mount(row(), later);
 
-  expect(screen.getByTitle("feat/worktree").textContent).toBe("feat/worktree");
+  expect(screen.getByTitle("feat/worktree").textContent).toBe("worktree");
   expect(screen.getByText("Conversation title").textContent).toBe("Conversation title");
   expect(screen.getByRole("button", { name: `${later ? "Resume" : "Open"} Conversation title` })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Archive Conversation title" })).toBeTruthy();
@@ -82,6 +82,12 @@ it("keeps idle lifecycle actions available and blocked actions guarded", () => {
 
   expect(screen.getByRole("button", { name: "Move Conversation title to Later" })).toHaveProperty("disabled", true);
   expect(screen.getByRole("button", { name: "Archive Conversation title" })).toHaveProperty("disabled", true);
+});
+
+it("does not strip branch-like prefixes from conversation titles", () => {
+  mount({ ...row(), title: "feature/csmm-123-description", primaryLabel: "feature/csmm-123-description", secondaryLabel: undefined });
+
+  expect(screen.getByText("feature/csmm-123-description")).toBeTruthy();
 });
 
 it("does not add a redundant branch subtitle to main-checkout rows", () => {

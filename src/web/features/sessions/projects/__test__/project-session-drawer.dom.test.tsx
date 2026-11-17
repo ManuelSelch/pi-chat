@@ -85,12 +85,12 @@ describe("ProjectSessionDrawer", () => {
 
   it.each([
     { currentSessionPath: "/sessions/main.jsonl", label: "Main chat" },
-    { currentSessionPath: "/sessions/feature.jsonl", label: "feat/worktree-projects-panel" },
+    { currentSessionPath: "/sessions/feature.jsonl", label: "worktree-projects-panel" },
   ])("does not highlight the opened session or worktree row ($currentSessionPath)", ({ currentSessionPath, label }) => {
     show({ data: groupedCatalogue, currentPath: "/work/pi-chat-feature", currentSessionPath });
     const button = screen.getByText(label).closest("button")!;
     expect(button.getAttribute("aria-current")).toBe("page");
-    const otherLabel = currentSessionPath === "/sessions/main.jsonl" ? "feat/worktree-projects-panel" : "Main chat";
+    const otherLabel = currentSessionPath === "/sessions/main.jsonl" ? "worktree-projects-panel" : "Main chat";
     const otherButton = screen.getByText(otherLabel).closest("button")!;
     expect(button.parentElement!.className).toBe(otherButton.parentElement!.className);
   });
@@ -160,7 +160,7 @@ describe("ProjectSessionDrawer", () => {
 
     expect(screen.getByText("pi-chat")).toBeTruthy();
     expect(screen.getByText("~/work/pi-chat")).toBeTruthy();
-    expect(screen.getByText("feat/worktree-projects-panel")).toBeTruthy();
+    expect(screen.getByTitle("feat/worktree-projects-panel").textContent).toBe("worktree-projects-panel");
     expect(screen.getByText("Main chat")).toBeTruthy();
     expect(screen.queryByText("fix/reconnect")).toBeNull();
     expect(screen.queryByText("~/.worktrees/pi-chat/feature")).toBeNull();

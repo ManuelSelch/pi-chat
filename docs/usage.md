@@ -92,6 +92,9 @@ Later is also accessible from the sidebar while viewing a conversation.
   leaves the current conversation visible.
 - Drafts survive switching and parking/resuming during the page lifetime,
   but not browser reloads.
+- Worktree labels in the sidebar, Later and Projects omit leading `feature/`,
+  `feat/`, `fix/` and `bugfix/`; hover the label for the full branch name.
+  Conversation titles and actual Git branch names are unchanged.
 - Single-session linked-worktree rows show just the project and branch. Hover
   the row for its conversation title; action names are unchanged.
   Worktrees with multiple unarchived conversations retain smaller title subtitles

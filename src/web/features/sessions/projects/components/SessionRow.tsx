@@ -1,6 +1,7 @@
 import { ActionIcon, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArchive, IconArchiveOff, IconGitBranch } from "@tabler/icons-react";
 import styles from "./SessionRow.module.css";
+import { worktreeLabel } from "../../utils/worktree-label.js";
 import { MANTINE_COLOR } from "../../../../config/theme.js";
 import type { ChatSessionSummary } from "../../../../types/view-types.js";
 
@@ -21,8 +22,8 @@ export function SessionRow({ session, label, active, disabled, archiveDisabled, 
   return (
     <div className={styles.row}>
       <UnstyledButton className={styles.content} disabled={disabled} aria-current={active ? "page" : undefined} onClick={onOpen}>
-        <Text className={styles.title} fw={archived ? 400 : 500} size="sm">
-          {label ? <><IconGitBranch size={12} className={styles.branch} />{label}</> : session.title}
+        <Text className={styles.title} fw={archived ? 400 : 500} size="sm" title={label}>
+          {label ? <><IconGitBranch size={12} className={styles.branch} />{worktreeLabel(label)}</> : session.title}
         </Text>
       </UnstyledButton>
       {onArchive ? <Tooltip label={archived ? "Restore session" : "Archive session"}>
