@@ -16,17 +16,21 @@ test("shares session actions between composer and quickswitcher", async ({ page 
     await composer.press("Escape");
     await composer.fill("");
     await composer.press("Meta+o");
-    await page.getByRole("button", { name: "/ Actions", exact: true }).click();
+    const switcher = page.getByRole("dialog");
+    await switcher.getByRole("button", { name: "/ Actions", exact: true }).click();
     for (const name of ["New session", "Close Session", "Archive Session", "Open folder…", "Settings"]) {
-      await expect(page.getByRole("option", { name: new RegExp(`Action: ${name}`) })).toBeVisible();
+      await expect(switcher.getByRole("option", { name: new RegExp(`Action: ${name}`) })).toBeVisible();
     }
-    await page.getByRole("option", { name: /Action: Close Session/ }).click();
+    await switcher.getByRole("option", { name: /Action: Close Session/ }).click();
     await app.home.shouldBeVisible();
+    await expect(switcher).toBeHidden();
     await page.locator("body").press("Meta+o");
-    await page.getByRole("button", { name: "/ Actions", exact: true }).click();
-    await expect(page.getByRole("option", { name: /Action: Close Session/ })).toHaveCount(0);
-    await expect(page.getByRole("option", { name: /Action: Archive Session/ })).toHaveCount(0);
-    await expect(page.getByRole("option", { name: /Action: New session/ })).toBeVisible();
+    const homeSearch = page.getByRole("main");
+    await expect(homeSearch.getByRole("textbox", { name: "Search sessions and projects", exact: true })).toBeFocused();
+    await homeSearch.getByRole("button", { name: "/ Actions", exact: true }).click();
+    await expect(homeSearch.getByRole("option", { name: /Action: Close Session/ })).toHaveCount(0);
+    await expect(homeSearch.getByRole("option", { name: /Action: Archive Session/ })).toHaveCount(0);
+    await expect(homeSearch.getByRole("option", { name: /Action: New session/ })).toBeVisible();
   } finally {
     await app.dispose();
   }
