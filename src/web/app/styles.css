@@ -135,8 +135,7 @@ html::-webkit-scrollbar {
 .hljs-built_in, .hljs-title.class_, .hljs-variable, .hljs-template-variable { color: var(--hljs-builtin); }
 .hljs-attr, .hljs-attribute, .hljs-name, .hljs-tag { color: var(--hljs-attr); }
 
-/* Selection and user-message content use the fixed application theme. */
-::selection { background: var(--pi-selected-bg, var(--mantine-primary-color-light)); }
+/* Keep user-message markdown aligned with its message color. */
 [data-pi-user-message] .markdown { color: inherit; }
 
 /* Streaming cursor. */

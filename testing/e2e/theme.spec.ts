@@ -11,6 +11,7 @@ test("AppTheme stays fixed while runtime themes color extension widgets and pres
     surfaces: { pageBg: "#f6f3e8", cardBg: "#fffdf4", infoBg: "#e6eee4" } };
   try {
     await app.theme.shouldUseAppThemeShell();
+    await app.theme.shouldUseNativeTextSelection();
     const first = await app.tabs.create({ responses: [], theme: dark });
     await app.theme.shouldUseAppTheme();
     const widget = app.widgets.named("palette");
