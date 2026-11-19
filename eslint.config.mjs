@@ -7,6 +7,13 @@ export default [
     languageOptions: { parser: tseslint.parser },
     plugins: { '@typescript-eslint': tseslint.plugin },
     rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXOpeningElement[name.name=/^(?!iframe$)[a-z]/] > JSXAttribute[name.name="title"], JSXOpeningElement[name.name=/^(Text|ActionIcon|UnstyledButton|Box)$/] > JSXAttribute[name.name="title"]',
+          message: 'Do not use title attributes for native tooltips.',
+        },
+      ],
       '@typescript-eslint/naming-convention': [
         'error',
         { selector: 'variable', format: ['camelCase', 'PascalCase', 'UPPER_CASE'], leadingUnderscore: 'allowDouble', trailingUnderscore: 'allowDouble' },

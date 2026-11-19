@@ -17,25 +17,25 @@ function mount(value = row(), later = false) {
 it.each([false, true])("renders worktree-first labels while preserving conversation-based action names (Later=%s)", later => {
   mount(row(), later);
 
-  expect(screen.getByTitle("feat/worktree").textContent).toBe("worktree");
+  expect(screen.getByText("worktree").textContent).toBe("worktree");
   expect(screen.getByText("Conversation title").textContent).toBe("Conversation title");
   expect(screen.getByRole("button", { name: `${later ? "Resume" : "Open"} Conversation title` })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Archive Conversation title" })).toBeTruthy();
 });
 
-it.each([false, true])("keeps the hidden title on hover and accessible actions for compact rows (Later=%s)", later => {
+it.each([false, true])("keeps accessible actions without native tooltips for compact rows (Later=%s)", later => {
   mount({ ...row(), secondaryLabel: undefined }, later);
 
   const button = screen.getByRole("button", { name: `${later ? "Resume" : "Open"} Conversation title` });
-  expect(button.title).toBe("Conversation title");
+  expect(button.hasAttribute("title")).toBe(false);
   expect(screen.queryByText("Conversation title")).toBeNull();
-  expect(screen.getByTitle("feat/worktree")).toBeTruthy();
+  expect(screen.getByText("worktree")).toBeTruthy();
 });
 
 it("places the status indicator next to the worktree name and omits recency", () => {
   mount({ ...row(), modified: Date.now() - 60_000 });
 
-  expect(screen.getByRole("img").parentElement?.parentElement).toBe(screen.getByTitle("feat/worktree").parentElement);
+  expect(screen.getByRole("img").parentElement?.parentElement).toBe(screen.getByText("worktree").parentElement);
   expect(screen.queryByText(/^(1m|1m ago)$/)).toBeNull();
 });
 

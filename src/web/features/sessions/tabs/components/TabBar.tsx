@@ -1,4 +1,4 @@
-import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Loader, ScrollArea, Text, UnstyledButton } from "@mantine/core";
 import { IconPlus, IconX } from "@tabler/icons-react";
 import type { Tab, TabStatus } from "../../../../types/view-types.js";
 import { MANTINE_COLOR, STATUS_COLOR, THEME } from "../../../../config/theme.js";
@@ -44,7 +44,6 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
                 }}
               >
                 <Group gap={6} wrap="nowrap">
-                  <Tooltip label={`${STATUS_LABEL[tab.status]} · ${tab.projectName}`}>
                     <Box
                       aria-label={STATUS_LABEL[tab.status]}
                       data-status={tab.status}
@@ -52,7 +51,6 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
                       h={8}
                       style={{ borderRadius: "50%", background: STATUS_COLOR[tab.status], flexShrink: 0 }}
                     />
-                  </Tooltip>
                   <Text size="xs" truncate c={active ? undefined : "dimmed"}>{tab.title}</Text>
                   <ActionIcon
                     component="div"
@@ -77,11 +75,9 @@ export function TabBar({ tabs, opening, activeSessionId, onFocus, onClose, onNew
           ))}
         </Group>
       </ScrollArea>
-      <Tooltip label="New session in this project">
-        <Button size="compact-xs" variant="subtle" color={MANTINE_COLOR.neutral} aria-label="New session" onClick={onNew}>
+      <Button size="compact-xs" variant="subtle" color={MANTINE_COLOR.neutral} aria-label="New session" onClick={onNew}>
           <IconPlus size={14} />
         </Button>
-      </Tooltip>
     </Group>
   );
 }

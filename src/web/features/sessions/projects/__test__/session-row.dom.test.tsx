@@ -18,7 +18,7 @@ it.each(["feature", "feat", "fix", "bugfix"])("removes the %s prefix but keeps t
   mount(branch);
 
   expect(screen.getByRole("button").textContent).toBe("csmm-123-improve-session-labels");
-  expect(screen.getByTitle(branch)).toBeTruthy();
+  expect(screen.getByRole("button").querySelector("[title]")).toBeNull();
 });
 
 it.each(["team/csmm-123-description", "feature-description", "feature/", "main", "feature/team/description"])("preserves meaningful branch content in %s", branch => {

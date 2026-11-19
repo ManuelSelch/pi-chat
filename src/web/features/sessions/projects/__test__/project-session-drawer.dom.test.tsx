@@ -160,7 +160,7 @@ describe("ProjectSessionDrawer", () => {
 
     expect(screen.getByText("pi-chat")).toBeTruthy();
     expect(screen.getByText("~/work/pi-chat")).toBeTruthy();
-    expect(screen.getByTitle("feat/worktree-projects-panel").textContent).toBe("worktree-projects-panel");
+    expect(screen.getByText("worktree-projects-panel").textContent).toBe("worktree-projects-panel");
     expect(screen.getByText("Main chat")).toBeTruthy();
     expect(screen.queryByText("fix/reconnect")).toBeNull();
     expect(screen.queryByText("~/.worktrees/pi-chat/feature")).toBeNull();
