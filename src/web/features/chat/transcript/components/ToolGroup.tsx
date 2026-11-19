@@ -10,19 +10,22 @@ export type ActivityMessage = ToolMessage | { id: string; role: "thinking"; thin
 
 /** One closed disclosure for tools and reasoning, in transcript order. */
 export const ToolGroup = memo(function ToolGroup({ messages, onLocalLink }: { messages: ActivityMessage[]; onLocalLink?: (path: string) => void }) {
-  const counts = new Map<string, number>();
+  const names = new Set<string>();
+  let total = 0;
   let running = 0;
   let failed = 0;
   for (const message of messages) {
     if (message.role !== "tool") continue;
     const { tool } = message;
-    counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
+    names.add(tool.name);
+    total++;
     if (tool.status === "running") running++;
     if (tool.status === "error") failed++;
   }
-  const summary = counts.size
-    ? `Used ${Array.from(counts, ([name, count]) => `${count} ${name}`).join(", ")}`
-    : "Thinking";
+  if (!total) return <>{messages.map((message) => message.role === "thinking"
+    ? <ThinkingPanel key={message.id} thinking={message.thinking} streaming={message.streaming ?? false} autoExpand={false} onLocalLink={onLocalLink} />
+    : null)}</>;
+  const summary = `Used ${total} ${Array.from(names).join(", ")}`;
   return (
     <Box component="details" className="tool-group" data-testid="tool-group">
       <Box component="summary">

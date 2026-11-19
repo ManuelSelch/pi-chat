@@ -54,7 +54,7 @@ describe("MessageList", () => {
       { id: "c", role: "assistant", text: "Final answer" },
     ], undefined, true);
     const groups = screen.getAllByTestId("tool-group") as HTMLDetailsElement[];
-    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual(["Used 2 read, 1 write, 1 bash"]);
+    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual(["Used 4 read, write, bash"]);
     expect(groups.every((group) => !group.open)).toBe(true);
     const first = groups[0]!;
     expect(first.querySelectorAll("[data-testid='tool-card']")).toHaveLength(4);
@@ -81,22 +81,20 @@ describe("MessageList", () => {
     expect(await screen.findByText("Final answer")).not.toBeNull();
   });
 
-  it("keeps streaming thinking collapsed inside the same group through updates", () => {
+  it("shows standalone streaming thinking in one collapsed panel through updates", () => {
     const { rerender, container } = renderMessages([], { runId: "run", text: "", thinking: "Start" }, true);
-    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
-    expect(group.open).toBe(false);
-    expect((screen.getByTestId("thinking-panel") as HTMLDetailsElement).open).toBe(false);
+    const panel = screen.getByTestId("thinking-panel") as HTMLDetailsElement;
+    expect(screen.queryByTestId("tool-group")).toBeNull();
+    expect(panel.open).toBe(false);
     expect(container.querySelector(".stream-cursor")).toBeNull();
     rerender(<MantineProvider><MessageList messages={[]} draft={{ runId: "run", text: "", thinking: "Start more" }} compact /></MantineProvider>);
-    expect(screen.getByTestId("tool-group")).toBe(group);
-    expect(group.open).toBe(false);
-    group.open = true;
-    fireEvent(group, new Event("toggle"));
+    expect(screen.getByTestId("thinking-panel")).toBe(panel);
+    panel.open = true;
+    fireEvent(panel, new Event("toggle"));
     rerender(<MantineProvider><MessageList messages={[]} draft={{ runId: "run", text: "Answer", thinking: "Start more" }} compact /></MantineProvider>);
-    expect(screen.getByTestId("tool-group")).toBe(group);
-    expect(group.open).toBe(true);
-    expect((screen.getByTestId("thinking-panel") as HTMLDetailsElement).open).toBe(false);
-    expect(group.textContent).not.toContain("Answer");
+    expect(screen.getByTestId("thinking-panel")).toBe(panel);
+    expect(panel.open).toBe(true);
+    expect(panel.textContent).not.toContain("Answer");
   });
 
   it("appends live thinking to the preceding tools without opening the group", () => {
