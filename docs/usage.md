@@ -31,8 +31,8 @@ unsaved but are disabled until it becomes an idle saved conversation. There is n
 delete-session command or custom rename action; titles come from Pi.
 
 In Inbox mode, the header close button returns to Home and automatically closes
-an empty session runtime; non-empty sessions remain available in the session
-panel.
+a session runtime with no conversation messages, including one containing only
+bash commands; non-empty sessions remain available in the session panel.
 
 Projects keeps Quick Chats separate from repository groups. Pinned projects
 come before recent projects, whose order uses latest unarchived conversation
@@ -58,7 +58,7 @@ Home combines search and new-session access with compact **Blocked**, **Ready**,
 collapsed **Working** and collapsed **Later** lists. Typing replaces activity with matching sessions/projects;
 clearing search restores it. Press Enter on an empty search to start a session.
 The sidebar contains project sessions and Settings, without Home/Inbox buttons.
-Use the header close button to return Home; it closes empty idle sessions while preserving nonempty sessions, prompts and drafts. Selecting a card opens the existing session view.
+Use the header close button to return Home; it closes sessions without conversation messages while preserving nonempty sessions, prompts and drafts. Bash commands alone do not count as conversation messages. Selecting a card opens the existing session view.
 The header shows the branch instead of the conversation title for a linked worktree; other sessions show their conversation title.
 Project and worktree branch labels are prominent, with the smaller, gray
 conversation name underneath, including in Later. Working sessions also remain in their

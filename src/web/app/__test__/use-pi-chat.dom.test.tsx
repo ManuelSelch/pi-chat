@@ -52,6 +52,20 @@ it("closes an empty idle runtime instead of retaining an empty Inbox session", a
   expect(result.current.app.tabs).toEqual([]);
 });
 
+it("closes a runtime containing only a bash command when closing its view", async () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect([snapshotData({ sessionId: "s", messages: [{ id: "b", role: "bash", bash: { command: "git push", output: "Done", status: "success", exitCode: 0, excludeFromContext: false, truncated: false } }] })]);
+
+  act(() => result.current.closeView());
+
+  expect(socket.requests.at(-1)).toMatchObject({ method: "session.close", sessionId: "s" });
+  await act(async () => {
+    socket.deliver(coreEvent("session.closed", { reason: "requested" }, "s", 1));
+    socket.reply({ state: "completed" });
+  });
+  expect(result.current.app.tabs).toEqual([]);
+});
+
 it.each(["blocked", "nonempty"] as const)("only clears selection for a %s conversation", kind => {
   const { result } = renderHook(() => usePiChat());
   const socket = connect([snapshotData({ sessionId: "s", runtime: { status: "idle" }, prompts: kind === "blocked" ? [{ id: "p", title: "Answer", kind: "editor" }] : [], messages: kind === "nonempty" ? [{ id: "u", role: "user", text: "Hello" }] : [] })]);
