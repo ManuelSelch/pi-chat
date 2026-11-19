@@ -31,8 +31,8 @@ function distanceFromBottom(): number {
   return viewport.scrollHeight - viewport.scrollY - viewport.innerHeight;
 }
 
-function Harness({ followKey, sessionId = "session" }: { followKey: string; sessionId?: string }) {
-  const bottomRef = useAutoScroll({ sessionId, followKey });
+function Harness({ followKey, sessionId = "session", footerHeight = 100 }: { followKey: string; sessionId?: string; footerHeight?: number }) {
+  const bottomRef = useAutoScroll({ sessionId, followKey, footerHeight });
   return <div ref={bottomRef} data-testid="bottom" />;
 }
 
@@ -46,13 +46,15 @@ async function flushFrame(): Promise<void> {
 describe("useAutoScroll", () => {
   let scrollIntoView: ReturnType<typeof vi.spyOn>;
   let resizeTranscript: () => void;
+  let observe: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    observe = vi.fn();
     vi.stubGlobal("ResizeObserver", class {
       constructor(callback: ResizeObserverCallback) {
         resizeTranscript = () => callback([], this as unknown as ResizeObserver);
       }
-      observe() {}
+      observe = observe;
       disconnect() {}
     });
     viewport.scrollHeight = 2000;
@@ -134,6 +136,18 @@ describe("useAutoScroll", () => {
     expect(scrollIntoView).toHaveBeenCalled();
   });
 
+  it("observes main padding changes at the border box and follows them", async () => {
+    const { getByRole } = render(<main><Harness followKey="1" /></main>);
+    await flushFrame();
+    expect(observe).toHaveBeenCalledWith(getByRole("main"), { box: "border-box" });
+    scrollIntoView.mockClear();
+
+    viewport.scrollHeight += 60;
+    act(() => resizeTranscript());
+
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
   it("follows delayed transcript layout growth without another message update", async () => {
     render(<Harness followKey="1" />);
     await flushFrame();
@@ -143,6 +157,29 @@ describe("useAutoScroll", () => {
     act(() => resizeTranscript());
 
     expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("repositions the latest reply when the composer height changes", async () => {
+    const { rerender } = render(<Harness followKey="1" footerHeight={100} />);
+    await flushFrame();
+    scrollIntoView.mockClear();
+
+    rerender(<Harness followKey="1" footerHeight={200} />);
+    await flushFrame();
+
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("does not follow composer height changes after the reader scrolls up", async () => {
+    const { rerender } = render(<Harness followKey="1" footerHeight={100} />);
+    await flushFrame();
+    fireEvent.wheel(window, { deltaY: -20 });
+    scrollIntoView.mockClear();
+
+    rerender(<Harness followKey="1" footerHeight={200} />);
+    await flushFrame();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
   it("does not follow delayed layout growth after the reader scrolls up", async () => {

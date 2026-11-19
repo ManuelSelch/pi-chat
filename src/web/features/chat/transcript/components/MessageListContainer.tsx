@@ -16,7 +16,7 @@ export function MessageListContainer({ footerHeight }: MessageListContainerProps
   const openFile = useFileAction();
   const onLocalLink = useCallback((path: string) => openFile(state.sessionId, path), [openFile, state.sessionId]);
   const followKey = `${state.messages.length}:${state.messages.at(-1)?.id ?? ""}:${state.draft?.text.length ?? 0}:${state.draft?.thinking.length ?? 0}:${state.status}`;
-  const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey });
+  const bottomRef = useAutoScroll({ sessionId: state.sessionId, followKey, footerHeight });
 
   return (
     <Container size="sm" py="xl">

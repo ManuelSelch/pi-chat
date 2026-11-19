@@ -11,7 +11,7 @@ function distanceFromBottom(): number {
   return documentElement.scrollHeight - window.scrollY - window.innerHeight;
 }
 
-export function useAutoScroll({ sessionId, followKey }: { sessionId: string; followKey: string }) {
+export function useAutoScroll({ sessionId, followKey, footerHeight }: { sessionId: string; followKey: string; footerHeight: number }) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const shouldFollowRef = useRef(true);
   const previousSessionIdRef = useRef<string | null>(null);
@@ -45,17 +45,19 @@ export function useAutoScroll({ sessionId, followKey }: { sessionId: string; fol
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
     };
-  }, [sessionId, followKey]);
+  }, [sessionId, followKey, footerHeight]);
 
   useLayoutEffect(() => {
-    // Lazy Markdown and images can grow after the message update's frame.
-    // Observe the transcript, not just message keys, while still respecting opt-out.
+    // Lazy content and the main area's composer padding can grow after the
+    // message update's frame. Follow both without overriding reader opt-out.
     const transcript = bottomRef.current?.parentElement;
     if (!transcript) return;
     const observer = new ResizeObserver(() => {
       if (shouldFollowRef.current) scrollToBottom();
     });
     observer.observe(transcript);
+    const main = transcript.closest("main");
+    if (main) observer.observe(main, { box: "border-box" });
     return () => observer.disconnect();
   }, []);
 
