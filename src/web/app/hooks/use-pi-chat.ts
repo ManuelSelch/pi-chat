@@ -6,6 +6,7 @@ import { activeSession, initialAppState, reduceAppMessage } from "../stores/app-
 import { browserTransport } from "../lib/browser-transport.js";
 import { bindPiChat } from "../lib/sdk-binding.js";
 import { loadEndpoint } from "../../features/settings/server/index.js";
+import { sameSessionPath } from "../../features/sessions/utils/session-projection.js";
 
 /** React lifecycle and browser presentation over one UI-independent SDK client. */
 export function usePiChat() {
@@ -72,7 +73,6 @@ export function usePiChat() {
   const takeControl = useCallback(() => control((client) => client.takeControl()), [control]);
 
   // User-visible focus remains application-owned; the SDK always gets an ID.
-  const session = activeSession(app);
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
   const [inboxEnabled, setInboxEnabled] = useLocalStorage({ key: "pi-chat:session-inbox", defaultValue: true, getInitialValueInEffect: false });
   const inbox = useInboxLifecycle(app, serverEndpoint.endpoint, {
@@ -81,8 +81,12 @@ export function usePiChat() {
     archive: archiveSession,
     focus: id => dispatch({ type: "focusSession", sessionId: id }),
   });
+  const selectedPath = app.tabs.find(tab => tab.sessionId === app.activeSessionId)?.sessionPath;
+  const hidingArchive = inboxEnabled && selectedPath && inbox.archivingPaths.some(path => sameSessionPath(path, selectedPath));
+  const presentedApp = hidingArchive ? { ...app, activeSessionId: "", viewClosed: true } : app;
+  const session = activeSession(presentedApp);
   return {
-    app, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox,
+    app: presentedApp, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox,
     showHome: () => dispatch({ type: "closeView" }),
     closeView: () => {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice" || message.role === "bash")) closeTab(app.activeSessionId);

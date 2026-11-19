@@ -38,6 +38,20 @@ it("restores a closing tab and focus when teardown fails", async () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => result.current.closeTab("s")); expect(result.current.app.closingSessionIds).toEqual(["s"]);
   await act(async () => socket.reject("operationFailed", "Partial close; retry explicitly")); expect(result.current.app.closingSessionIds).toEqual([]); expect(result.current.app.activeSessionId).toBe("s"); expect(result.current.app.tabs).toHaveLength(1);
 });
+it("hides the active transcript while archive is pending and restores it on failure", async () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect([snapshotData({ sessionId: "s", sessionPath: "/saved.jsonl" })]);
+
+  let pending!: Promise<void>;
+  act(() => { pending = result.current.inbox.archive("/saved.jsonl"); });
+
+  expect(result.current.app.viewClosed).toBe(true);
+  expect(result.current.app.activeSessionId).toBe("");
+  await act(async () => { socket.reject("operationFailed", "Archive failed"); await pending; });
+  expect(result.current.app.activeSessionId).toBe("s");
+  expect(result.current.inbox.error).toBe("Archive failed");
+});
+
 it("closes an empty idle runtime instead of retaining an empty Inbox session", async () => {
   const { result } = renderHook(() => usePiChat());
   const socket = connect();
