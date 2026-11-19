@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAppSource, validateLcov, validateNodeData, recoverNodeEntries } from "../../../../scripts/report-playwright-coverage.mjs";
+import { isAppSource, validateLcov, validateNodeData, recoverNodeEntries, isUnmappedRuntime } from "../../../../scripts/report-playwright-coverage.mjs";
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { createHash } from "node:crypto";
@@ -8,6 +8,11 @@ describe("E2E coverage scope", () => {
   it("keeps only original root application sources", () => {
     for (const path of ["src/host/index.ts", "src/web/App.tsx", "src/shared/files.ts"]) expect(isAppSource(path)).toBe(true);
     for (const path of ["src/server/bootstrap/server.ts", "packages/pi-sdk/typescript/src/client.ts", "node_modules/lib/src/a.ts", "testing/a.ts", "src/web/features/chat/composer/__test__/composer.test.tsx", "src/host/__test__/host.test.ts", "dist/web/a.js", "src/a.d.ts", "src/../packages/a.ts", "/other/src/a.ts"]) expect(isAppSource(path)).toBe(false);
+  });
+  it("only excludes the generated Rolldown runtime when it has no source map", () => {
+    expect(isUnmappedRuntime("/assets/rolldown-runtime-abc123.js", "generated runtime")).toBe(true);
+    expect(isUnmappedRuntime("/assets/index-abc123.js", "application bundle")).toBe(false);
+    expect(isUnmappedRuntime("/assets/rolldown-runtime-abc123.js", "//# sourceMappingURL=runtime.js.map")).toBe(false);
   });
   it("rejects backend coverage without a usable transform map", () => {
     const url = pathToFileURL(resolve("src/host/index.ts")).href;

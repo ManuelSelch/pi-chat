@@ -11,6 +11,10 @@ export function isAppSource(path) {
   return ["src/web/", "src/host/", "src/shared/"].some(prefix => path.startsWith(prefix)) && !path.split("/").some(part => part === ".." || part === "__test__") && /\.(ts|tsx)$/.test(path) && !path.endsWith(".d.ts");
 }
 
+export function isUnmappedRuntime(pathname, source) {
+  return /^\/assets\/rolldown-runtime-[\w-]+\.js$/.test(pathname) && !source.includes("sourceMappingURL=");
+}
+
 function appUrl(url) {
   if (!url.startsWith("file:")) return false;
   return isAppSource(relative(root, fileURLToPath(url)).replaceAll("\\", "/"));
@@ -97,6 +101,8 @@ export async function generateReport() {
       if (relative(resolve("dist/web"), bundle).startsWith("..")) throw new Error("Invalid bundle path");
       const source = await readFile(bundle, "utf8");
       if (source !== entry.source) throw new Error(`Coverage bundle does not match local build: ${pathname}`);
+      // Rolldown's generated helper has no original source or source map.
+      if (isUnmappedRuntime(pathname, source)) continue;
       const map = JSON.parse(await readFile(`${bundle}.map`, "utf8"));
       if (!map.mappings || !map.sourcesContent?.length) throw new Error(`Missing browser source map: ${pathname}`);
       // Resolve relative Vite sources against this exact bundle, not the reporting cwd.
