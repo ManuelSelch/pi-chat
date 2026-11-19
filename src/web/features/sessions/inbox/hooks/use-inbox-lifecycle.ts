@@ -23,6 +23,7 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   const entriesRef = useRef(entries);
   const [error, setError] = useState(initial.error);
   const [pending, setPending] = useState(false);
+  const [archivingPaths, setArchivingPaths] = useState<string[]>([]);
   const locked = useRef(false);
   const uncertain = useRef(false);
   const waitForTabs = useRef<AppState["tabs"] | undefined>(undefined);
@@ -48,6 +49,10 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
     try { persist(next); uncertain.current = false; }
     catch (cause) { setError(errorText(cause)); }
   }, [app.sdkInventory, app.tabs, app.catalogue, app.connection, app.tabsKnown, app.catalogueKnown, pending]);
+
+  useEffect(() => {
+    setArchivingPaths(paths => paths.filter(path => hasSavedSession(app.catalogue, path) || app.tabs.some(tab => sameSessionPath(tab.sessionPath, path))));
+  }, [app.catalogue, app.tabs]);
 
   async function run(operation: () => Promise<void>) {
     if (locked.current || uncertain.current || latest.current.app.connection !== "open") return;
@@ -98,17 +103,21 @@ export function useInboxLifecycle(app: AppState, endpoint: string, operations: I
   const archive = (path: string) => run(async () => {
     const tab = latest.current.app.tabs.find(tab => sameSessionPath(tab.sessionPath, path));
     if (tab && tab.status !== "idle") return;
-    await latest.current.operations.archive(path, true);
+    setArchivingPaths(paths => [...paths, path]);
+    try { await latest.current.operations.archive(path, true); }
+    catch (cause) {
+      setArchivingPaths(paths => paths.filter(item => !sameSessionPath(item, path)));
+      throw cause;
+    }
     persist(entriesRef.current.filter(entry => !sameSessionPath(entry.path, path)));
   });
 
   const later = useMemo(() => {
-    const open = new Set(app.tabs.flatMap(tab => tab.sessionPath ? [sessionPathKey(tab.sessionPath)] : []));
-    const saved = new Set(entries.filter(entry => !open.has(sessionPathKey(entry.path))).map(entry => sessionPathKey(entry.path)));
+    const saved = new Set(entries.map(entry => sessionPathKey(entry.path)));
     return historyRows(app.catalogue, app.tabs).filter(row => saved.has(sessionPathKey(row.path)));
   }, [entries, app.catalogue, app.tabs]);
   return {
-    later,
+    later, archivingPaths,
     pending: pending || uncertain.current || entries.some(entry => entry.phase === "parking" && app.sdkInventory.some(tab => sameSessionPath(tab.sessionPath, entry.path) && tab.status === "closing")), error,
     select, park, resume, archive, dismissError: () => setError(undefined),
   };
