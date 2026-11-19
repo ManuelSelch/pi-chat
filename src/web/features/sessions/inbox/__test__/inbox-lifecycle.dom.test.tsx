@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useInboxLifecycle } from "../hooks/use-inbox-lifecycle.js";
 import { initialAppState, type AppState } from "../../../../app/stores/app-state.js";
 import { loadLater, saveLater } from "../lib/later-storage.js";
+import { useInboxRows } from "../hooks/use-inbox-rows.js";
 
 const endpoint = "ws://localhost/ws";
 const history = { path: "/a", id: "saved", title: "A", nameSource: "manual" as const, modified: 1, created: 0, messageCount: 1 };
@@ -120,6 +121,27 @@ it("persists parking intent before close and commits only after completion", asy
   expect(result.current.later).toHaveLength(1);
 });
 
+it("hides a parking session immediately and restores it if close fails", async () => {
+  let fail!: (error: Error) => void;
+  operations.close.mockImplementation(() => new Promise<void>((_, reject) => { fail = reject; }));
+  const { result } = renderHook(() => {
+    const inbox = useInboxLifecycle(app, endpoint, operations);
+    return { inbox, rows: useInboxRows(app, inbox.later) };
+  });
+  let parking!: Promise<void>;
+
+  act(() => { parking = result.current.inbox.park("a"); });
+
+  expect(result.current.rows).toEqual([]);
+  expect(result.current.inbox.later.map(row => row.path)).toEqual(["/a"]);
+
+  await act(async () => { fail(new Error("Close failed")); await parking; });
+
+  expect(result.current.rows.map(row => row.sessionId)).toEqual(["a"]);
+  expect(result.current.inbox.later).toEqual([]);
+  expect(result.current.inbox.error).toBe("Close failed");
+});
+
 it("rolls back a definite close failure without losing the open conversation", async () => {
   operations.close.mockRejectedValue(new Error("Close failed"));
   const { result } = mount();
@@ -189,6 +211,23 @@ it("leaves the open runtime alone when durable parking intent cannot be stored",
   expect(operations.close).not.toHaveBeenCalled();
   expect(result.current.error).toContain("Could not save Later");
   vi.restoreAllMocks();
+});
+
+it("hides an open session while archiving and restores it on failure", async () => {
+  let fail!: (error: Error) => void;
+  operations.archive.mockImplementation(() => new Promise<void>((_, reject) => { fail = reject; }));
+  const { result } = renderHook(() => {
+    const inbox = useInboxLifecycle(app, endpoint, operations);
+    return { inbox, rows: useInboxRows(app, inbox.later, inbox.archivingPaths) };
+  });
+  let archive!: Promise<void>;
+
+  act(() => { archive = result.current.inbox.archive("/a"); });
+  expect(result.current.rows).toEqual([]);
+
+  await act(async () => { fail(new Error("Archive failed")); await archive; });
+  expect(result.current.rows.map(row => row.sessionId)).toEqual(["a"]);
+  expect(result.current.inbox.error).toBe("Archive failed");
 });
 
 it("preserves membership and reports a failed archive", async () => {

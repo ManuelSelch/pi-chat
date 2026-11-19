@@ -5,7 +5,7 @@ import { InboxPage } from "./InboxPage.js";
 
 export function InboxPageContainer() {
   const chat = useAppController();
-  const rows = useInboxRows(chat.app, chat.inbox.later);
+  const rows = useInboxRows(chat.app, chat.inbox.later, chat.inbox.archivingPaths);
   const [laterOpen, setLaterOpen] = useState(false);
   return <InboxPage rows={rows} later={chat.inbox.later} pending={chat.inbox.pending || chat.app.connection !== "open"} error={chat.inbox.error}
     laterOpen={laterOpen} onLaterToggle={() => setLaterOpen(value => !value)}

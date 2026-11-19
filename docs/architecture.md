@@ -106,12 +106,12 @@ Activity cards omit unavailable change totals rather than synthesizing metrics.
 
 `features/sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
 storage, lifecycle coordination and component/container UI. Parking loaded saved
-idle work stores intent before close; parking unloaded history only stores
-membership. Resume removes membership after confirmed opening. Definite failures
+idle work stores intent before close and immediately moves its row to Later while
+the runtime closes; parking unloaded history only stores membership. Resume removes membership after confirmed opening. Definite failures
 roll back; uncertain outcomes reconcile with authoritative inventory/catalogue
 without automatic mutation replay. Revision zero is a cold-start catalogue
-placeholder, not authoritative empty history. Archive uses server metadata;
-success does not create an Undo record or success notice. Notices show errors.
+placeholder, not authoritative empty history. Archive hides the Inbox row while the
+server updates metadata and restores it on failure; success does not create an Undo record or success notice. Notices show errors.
 
 Closing a nonempty view deliberately clears selection and renders Home without
 stopping background work. Empty idle runtimes are closed. Removing the selected

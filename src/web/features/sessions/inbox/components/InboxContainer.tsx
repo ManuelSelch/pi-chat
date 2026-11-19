@@ -8,7 +8,7 @@ export function InboxContainer() {
   const chat = useAppController();
   const overlays = useOverlays();
   const [laterOpen, setLaterOpen] = useState(false);
-  const rows = useInboxRows(chat.app, chat.inbox.later);
+  const rows = useInboxRows(chat.app, chat.inbox.later, chat.inbox.archivingPaths);
   // Mounting happens only on enabling Inbox, including a remembered preference.
   const open = useRef(overlays.open);
   useEffect(() => { open.current("projects"); }, []);

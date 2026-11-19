@@ -48,7 +48,7 @@ export function inboxRows(tabs: readonly Tab[], catalogue: ProjectCatalogue, lat
   const counts = checkoutConversationCounts(catalogue, tabs);
   const history = new Map(historyRows(catalogue, tabs).map(row => [sessionPathKey(row.path), row]));
   const projected = projectSessions(catalogue, tabs);
-  const live: InboxRow[] = projected.filter(entry => entry.tab !== undefined).map(({ tab: runtime, project }) => {
+  const live: InboxRow[] = projected.filter(entry => entry.tab !== undefined && ![...laterPaths].some(path => sameSessionPath(path, entry.tab?.sessionPath))).map(({ tab: runtime, project }) => {
     const tab = runtime!;
     return {
       ...(tab.sessionPath ? history.get(sessionPathKey(tab.sessionPath)) : undefined), key: tab.sessionId, sessionId: tab.sessionId, path: tab.sessionPath ? history.get(sessionPathKey(tab.sessionPath))?.path : undefined,
