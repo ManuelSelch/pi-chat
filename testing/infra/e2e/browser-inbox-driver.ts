@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { AssistantResponse, TestWorld } from "../pi-chat/test-world.js";
+import { worktreeLabel } from "../../../src/web/features/sessions/utils/worktree-label.js";
 import { pageCoverage } from "./coverage/browser-coverage.js";
 
 export class BrowserInboxDriver {
@@ -186,16 +187,16 @@ export class BrowserInboxDriver {
   }
   async shouldShowHeaderWorktree(branch: string, title: string): Promise<void> {
     const header = this.page.getByRole("banner");
-    await expect(header.getByTitle(branch, { exact: true })).toBeVisible();
+    await expect(header.getByText(branch, { exact: true })).toBeVisible();
     await expect(header.getByText(title, { exact: true })).toHaveCount(0);
     await expect(header.getByTitle(`Branch: ${branch}`, { exact: true })).toHaveCount(0);
     await expect(header.getByRole("button", { name: "Go to Home", exact: true })).toHaveCount(0);
   }
   async shouldShowWorktreeSession(repositoryName: string, branch: string): Promise<void> {
-    const button = this.panel().getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) });
+    const button = this.panel().getByRole("button").filter({ has: this.page.getByText(worktreeLabel(branch), { exact: true }) });
     await expect(button).toHaveCount(1);
     await expect(button).toBeVisible();
-    await expect(this.panel().getByRole("region", { name: repositoryName, exact: true }).getByRole("button").filter({ has: this.page.getByTitle(branch, { exact: true }) })).toBeVisible();
+    await expect(this.panel().getByRole("region", { name: repositoryName, exact: true }).getByRole("button").filter({ has: this.page.getByText(worktreeLabel(branch), { exact: true }) })).toBeVisible();
     await expect(button.getByText(repositoryName, { exact: true })).toHaveCount(0);
     await expect(button.getByText("New session", { exact: true })).toHaveCount(0);
   }
@@ -209,25 +210,25 @@ export class BrowserInboxDriver {
   }
   async shouldShowCompactWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
-    await expect(button).toHaveAttribute("title", title);
-    await expect(button.getByTitle(branch, { exact: true })).toBeVisible();
+    await expect(button).not.toHaveAttribute("title");
+    await expect(button.getByText(worktreeLabel(branch), { exact: true })).toBeVisible();
     await expect(button.getByText(title, { exact: true })).toHaveCount(0);
     await expect(button.locator(":scope > div")).toHaveCount(1);
-    const primary = button.getByTitle(branch, { exact: true });
+    const primary = button.getByText(worktreeLabel(branch), { exact: true });
     await expect(primary.locator("..").getByRole("img", { name: /^(Ready|Working|Needs you)$/ })).toBeVisible();
     await expect(button.getByText(/^(just now|\d+[mhd])$/)).toHaveCount(0);
     const row = button.locator("..");
     const archive = row.getByRole("button", { name: `Archive ${title}`, exact: true });
     if (await archive.count()) {
       await row.hover();
-      const primaryBox = await button.getByTitle(branch, { exact: true }).boundingBox();
+      const primaryBox = await button.getByText(worktreeLabel(branch), { exact: true }).boundingBox();
       const actionBox = await archive.boundingBox();
       expect(primaryBox!.x + primaryBox!.width).toBeLessThanOrEqual(actionBox!.x);
     }
   }
   async shouldShowWorktreeLabels(title: string, branch: string, later = false): Promise<void> {
     const button = this.panel().getByRole("button", { name: `${later ? "Resume" : "Open"} ${title}`, exact: true });
-    const primary = button.getByTitle(branch, { exact: true });
+    const primary = button.getByText(worktreeLabel(branch), { exact: true });
     const secondary = button.locator("p").getByText(title, { exact: true });
     await expect(primary).toBeVisible();
     await expect(secondary).toBeVisible();

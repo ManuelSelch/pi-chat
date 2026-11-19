@@ -1,5 +1,5 @@
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ActionIcon, Alert, Box, Button, Divider, Drawer, Group, ScrollArea, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Alert, Box, Button, Divider, Drawer, Group, ScrollArea, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../../../config/theme.js";
 import { StatusBadge } from "../../../../components/StatusBadge.js";
@@ -133,28 +133,22 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
             </span>
           </UnstyledButton>
           <div className={styles.groupActions}>
-            {pinProject && !group.quickChats ? <Tooltip label={group.pinned ? "Unpin project" : "Pin project"}>
-              <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={pending} aria-label={`${group.pinned ? "Unpin" : "Pin"} ${group.name}`}
+            {pinProject && !group.quickChats ? <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={pending} aria-label={`${group.pinned ? "Unpin" : "Pin"} ${group.name}`}
                 onClick={() => void mutate(() => pinProject(group.key, !group.pinned))}>
                 {group.pinned ? <IconPinnedOff size={15} /> : <IconPin size={15} />}
-              </ActionIcon>
-            </Tooltip> : null}
+              </ActionIcon> : null}
             {removeProject && !group.quickChats && other.some(item => item.key === group.key) ? (
-              <Tooltip label="Remove from project history">
-                <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={pending}
+              <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={pending}
                   aria-label={`Remove ${group.name} from project history`}
                   onClick={() => void mutate(() => removeProject(group.key))}>
                   <IconTrash size={15} />
                 </ActionIcon>
-              </Tooltip>
             ) : null}
-            <Tooltip label={group.quickChats ? "New chat" : "New session"}>
-              <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={!group.exists}
+            <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} disabled={!group.exists}
                 aria-label={`New ${group.quickChats ? "chat" : "session"} in ${group.name}`}
                 onClick={() => newSession(group.path)}>
                 <IconPlus size={15} />
               </ActionIcon>
-            </Tooltip>
           </div>
           <StatusBadge className={styles.groupCount}>{group.activeCount}</StatusBadge>
         </div>

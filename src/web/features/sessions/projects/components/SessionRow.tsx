@@ -1,4 +1,4 @@
-import { ActionIcon, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Text, UnstyledButton } from "@mantine/core";
 import { IconArchive, IconArchiveOff, IconGitBranch } from "@tabler/icons-react";
 import styles from "./SessionRow.module.css";
 import { worktreeLabel } from "../../utils/worktree-label.js";
@@ -22,15 +22,13 @@ export function SessionRow({ session, label, active, disabled, archiveDisabled, 
   return (
     <div className={styles.row}>
       <UnstyledButton className={styles.content} disabled={disabled} aria-current={active ? "page" : undefined} onClick={onOpen}>
-        <Text className={styles.title} fw={archived ? 400 : 500} size="sm" title={label}>
+        <Text className={styles.title} fw={archived ? 400 : 500} size="sm">
           {label ? <><IconGitBranch size={12} className={styles.branch} />{worktreeLabel(label)}</> : session.title}
         </Text>
       </UnstyledButton>
-      {onArchive ? <Tooltip label={archived ? "Restore session" : "Archive session"}>
-        <ActionIcon className={styles.action} size="sm" variant="subtle" color={MANTINE_COLOR.neutral} disabled={archiveDisabled} aria-label={`${archived ? "Restore" : "Archive"} ${session.title}`} onClick={onArchive}>
+      {onArchive ? <ActionIcon className={styles.action} size="sm" variant="subtle" color={MANTINE_COLOR.neutral} disabled={archiveDisabled} aria-label={`${archived ? "Restore" : "Archive"} ${session.title}`} onClick={onArchive}>
           {archived ? <IconArchiveOff size={14} /> : <IconArchive size={14} />}
-        </ActionIcon>
-      </Tooltip> : null}
+        </ActionIcon> : null}
     </div>
   );
 }

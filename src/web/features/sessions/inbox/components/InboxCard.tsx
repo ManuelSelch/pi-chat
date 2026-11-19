@@ -16,15 +16,15 @@ export function InboxCard({ row, later, pending, onOpen, onPark, onArchive }: In
       aria-label={`${later ? "Resume" : "Open"} ${row.title}`} onClick={onOpen}>
       <div className={styles.title}>
         <InboxStatus status={row.status} later={later} />
-        <Text component="span" size="sm" fw={600} truncate title={row.project}>{row.project}</Text>
-        {row.branch && <span className={styles.branch} title={row.branch}><IconGitBranch size={14} /><Text component="span" size="sm" fw={600} truncate>{row.branch}</Text></span>}
+        <Text component="span" size="sm" fw={600} truncate>{row.project}</Text>
+        {row.branch && <span className={styles.branch}><IconGitBranch size={14} /><Text component="span" size="sm" fw={600} truncate>{row.branch}</Text></span>}
       </div>
-      <Text size="xs" c="dimmed" truncate className={styles.sessionName} title={row.title}>{row.title}</Text>
+      <Text size="xs" c="dimmed" truncate className={styles.sessionName}>{row.title}</Text>
     </UnstyledButton>
     <div className={styles.tools}>
       {row.modified !== undefined && <Text size="10px" c="dimmed" className={styles.time}>{relativeTime(row.modified).replace(/ ago$/, "")}</Text>}
-      {!later && row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Move ${row.title} to Later`} title="Move to Later" disabled={!canMutate} onClick={onPark}><IconClockPause size={14} /></ActionIcon>}
-      {row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Archive ${row.title}`} title="Archive session" disabled={!canMutate} onClick={onArchive}><IconArchive size={14} /></ActionIcon>}
+      {!later && row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Move ${row.title} to Later`} disabled={!canMutate} onClick={onPark}><IconClockPause size={14} /></ActionIcon>}
+      {row.status !== "running" && <ActionIcon size={21} variant="subtle" color="gray" aria-label={`Archive ${row.title}`} disabled={!canMutate} onClick={onArchive}><IconArchive size={14} /></ActionIcon>}
     </div>
   </div>;
 }

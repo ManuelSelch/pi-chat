@@ -70,7 +70,7 @@ export function InboxView(p: InboxViewProps) {
       {p.laterOpen && p.later.map(item => row(item, true))}
     </div>}
     <div className="shrink-0 pt-2">
-      <ActionIcon variant="subtle" color="gray" aria-label="Settings" title="Settings" onClick={p.onSettings}><IconSettings size={19} /></ActionIcon>
+      <ActionIcon variant="subtle" color="gray" aria-label="Settings" onClick={p.onSettings}><IconSettings size={19} /></ActionIcon>
     </div>
   </div>;
   if (p.presentation === "drawer") return <Drawer.Root {...focusReturn} opened={p.opened} onClose={p.onClose} size={320} padding={0}>
