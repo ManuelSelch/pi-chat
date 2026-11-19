@@ -18,9 +18,9 @@ to start a session without previous Pi history. Tabs keep conversations separate
 Session actions are available from the ⌘K menu, the Quick Switcher `/` scope, and
 typed exactly as `/close`, `/later`, or `/archive`:
 
-- **Close Session** closes the current session's runtime; it is always available
-  and closes immediately, including while the session is running. The tab close
-  button uses the same immediate close behavior.
+- **Close Session** uses the same behavior as the close button: in Inbox mode it
+  returns Home, closing only sessions without conversation messages, prompts or
+  drafts; in tab mode it closes the runtime immediately.
 - **Later** parks a saved, idle conversation into Later (Inbox mode only).
 - **Archive Session** archives the current idle session without deleting its
   transcript. Archived sessions remain available under **Archived** in Projects,

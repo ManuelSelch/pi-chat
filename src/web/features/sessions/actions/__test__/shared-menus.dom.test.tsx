@@ -15,7 +15,7 @@ const chat = vi.hoisted(() => ({
   promptPresentation: { minimized: false, prompt: undefined },
   app: {} as AppState, state: {} as ChatState,
   inboxEnabled: false, inbox: { park: vi.fn(), later: [] as { path: string }[] },
-  newSession: vi.fn(), closeTab: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
+  newSession: vi.fn(), closeTab: vi.fn(), closeView: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
   openSession: vi.fn(), openProject: vi.fn(), prompt: vi.fn(), dismissError: vi.fn(),
   completeCommandArguments: vi.fn(async () => []),
 }));
@@ -66,6 +66,13 @@ for (const menu of ["composer", "palette"] as const) {
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
     else expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
     expect(chat.prompt).not.toHaveBeenCalled();
+  });
+  it(`${menu}: uses the header close behavior in Inbox mode`, async () => {
+    chat.inboxEnabled = true;
+    mount();
+    await select(menu, "Close Session");
+    expect(chat.closeView).toHaveBeenCalledOnce();
+    expect(chat.closeTab).not.toHaveBeenCalled();
   });
   it(`${menu}: excludes Restart server even when the server advertises it`, async () => {
     mount();

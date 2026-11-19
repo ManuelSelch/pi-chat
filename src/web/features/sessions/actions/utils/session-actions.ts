@@ -36,7 +36,7 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
     if (state.sessionId) {
       actions.push({
         id: "close-session", name: "Close Session",
-        description: state.navigation === "inbox" ? "Close this session and keep it in Ready" : "Close this session's tab", run: () => {
+        description: state.navigation === "inbox" ? "Return Home, keeping non-empty sessions open" : "Close this session's tab", run: () => {
           if (sessionCurrent()) operations.closeSession(state.sessionId);
         },
       });

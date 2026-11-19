@@ -15,6 +15,7 @@ const chat = {
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),
   prompt: vi.fn(),
   closeTab: vi.fn(),
+  closeView: vi.fn(),
   archiveSession: vi.fn().mockResolvedValue(undefined),
   inboxEnabled: false,
   inbox: { park: vi.fn() },
@@ -105,6 +106,18 @@ describe("composer session actions", () => {
     fireEvent.keyDown(textarea, { key: "Escape" });
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(chat.closeTab).toHaveBeenCalledWith("s1");
+    expect(chat.prompt).not.toHaveBeenCalled();
+  });
+
+  it("runs /close through the header close-view action in Inbox mode", () => {
+    chat.inboxEnabled = true;
+    mount();
+    const textarea = type("/close");
+    fireEvent.keyDown(textarea, { key: "Escape" });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    expect(chat.closeView).toHaveBeenCalledOnce();
+    expect(chat.closeTab).not.toHaveBeenCalled();
     expect(chat.prompt).not.toHaveBeenCalled();
   });
 
