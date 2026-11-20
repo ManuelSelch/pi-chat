@@ -26,14 +26,14 @@ Chat consumes compiled packages, not sibling sources or a package workspace.
 See the [manifest](../package.json) and [lockfile](../package-lock.json) for
 SDK/server dependency versions and [dependency provenance](../vendor/README.md)
 for the installed contract boundary. Public server imports are the
-root, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
+root, `/plugins`, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 ## Plugin primitives and local runtime
 
-- [Local plugin primitives](plugins.md) define lazy built-ins and typed remote contracts.
-- [The isolated host runtime](plugin-runtime.md) activates host entries, validates local calls and owns rollback/cleanup.
-- File opening remains an inactive scaffold; neither the runtime nor plugin transport is wired into the application.
+- [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
+- [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
+- File opening remains an inactive scaffold. Web activation and plugin network transport are not implemented.
 
 ## Browser composition and state
 
@@ -228,7 +228,7 @@ access endpoints; raw HTML and remote preview images remain disabled.
 
 ## Host lifecycle and security
 
-[The host](../src/host/index.ts) embeds the server with explicit built web assets,
+[The host](../src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
 log ownership and idempotent shutdown. Managed PID records are published
 atomically. The `/pi-chat restart` extension resolves npm beside its running Node,
 runs `npm ci` and `npm run build`, and reports failures before signaling the host.

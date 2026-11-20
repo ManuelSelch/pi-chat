@@ -13,7 +13,7 @@ const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 const isDevelopment = process.env.PI_CHAT_DEV === "1";
 const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
-const server = createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger });
+const server = await createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 
 // Signals do not acquire WebSocket control, so existing browsers can reconnect.

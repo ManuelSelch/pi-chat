@@ -1,0 +1,18 @@
+{
+  "@manuelselch/pi-sdk": {
+    "archive": "manuelselch-pi-sdk-0.3.0-plugin.0.tgz",
+    "sourceRepository": "https://github.com/ManuelSelch/pi-sdk-typescript",
+    "sourceRevision": "a62955059af6697ff18dcff68647fa957db542b7",
+    "sha256": "09d398edd11b62600509ef2e1d19a6b196dd5b1bf5259f489c4839e4e78cfd36",
+    "integrity": "sha512-/YAZlTeoFYYk+q0sHuk9R/LXEJP1LI5K3UNqAshxWg37rHuXNZRI3areajxeUEyS6AzCtX3rwyd+Okv9LW9eKA==",
+    "version": "0.3.0-plugin.0"
+  },
+  "@manuelselch/pi-server": {
+    "archive": "manuelselch-pi-server-0.4.0-plugin.0.tgz",
+    "sourceRepository": "https://github.com/ManuelSelch/pi-server",
+    "sourceRevision": "12a40bd8e46d6780adbb8b103b22a4398aa17e19",
+    "sha256": "bb76e31e69b89df9223b665304eee534cc50fb1c89dc420764d52e31cd4bc2f2",
+    "integrity": "sha512-RlBnTiilcfME9EApDh18KCM12+k9DxGVz9Zri+oQdVPY4i3vGiUl9+NnHvyu+pzKy0fuqDocFaL3BRG3Sp2C/w==",
+    "version": "0.4.0-plugin.0"
+  }
+}

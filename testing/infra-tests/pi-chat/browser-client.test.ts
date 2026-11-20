@@ -11,7 +11,7 @@ afterEach(async () => {
 
 async function connect() {
   const unsupported = async (): Promise<never> => { throw new Error("Not supported in the client test"); };
-  server = createPiServer({ runtimeFactory: {
+  server = await createPiServer({ runtimeFactory: {
     continueProject: unsupported, openSession: unsupported, newSession: unsupported,
   } });
   await new Promise<void>(resolve => server!.httpServer.listen(0, "127.0.0.1", resolve));

@@ -21,8 +21,8 @@ npm start
 
 Generated application `dist/` artifacts are local and are not committed. The
 server and TypeScript SDK are independent, precompiled packages; no sibling
-checkout, server source tree or package workspace is required. Pi Server 0.3.0
-and the TypeScript SDK 0.2.1 are pinned registry releases. No Swift SDK is
+checkout, server source tree or package workspace is required. This branch uses
+committed SDK/server candidate archives with source/integrity receipts rather than published releases. No Swift SDK is
 vendored, and Chat does not run Swift tests. See
 [dependency provenance](../vendor/README.md) for installed-package ownership.
 `npm run verify:dependencies` checks the installed public server API and protocol
@@ -126,7 +126,7 @@ maintaining a second Markdown requirements catalogue.
 
 Chat’s host adds `/api/pi-chat/version` with a startup-captured server version and no-store responses. Vite captures the installed frontend SDK version plus clean exact Git tag (otherwise `dev`) into the browser build. Settings fetches runtime metadata only while open and connected; failures display Unavailable without affecting the transport. No SDK/server protocol changes are needed.
 
-Consumers use only public root, `/extensions`, `/testing` and `/testing/loopback` APIs. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
+Consumers use only public root, `/plugins`, `/extensions`, `/testing` and `/testing/loopback` APIs. Await `createPiServer()` before listening; it owns host plugin startup and shutdown. The former source registry alias is removed: migrate extensions to `@manuelselch/pi-server/extensions`; registration names and the global symbol remain unchanged. Register local extension-bearing packages explicitly by path; no runtime settings or registration paths are relocated.
 
 Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests
 and production lifecycle smoke. Fakes come from compiled server testing exports.

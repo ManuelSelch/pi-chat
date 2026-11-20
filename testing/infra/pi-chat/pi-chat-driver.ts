@@ -59,7 +59,7 @@ export class PiChatDriver {
     let client: BrowserClient | undefined;
     try {
       const initial = options.startAtHome ? undefined : await world.create(options.responses ?? []);
-      server = createPiServer({ runtime: initial, runtimeFactory: world.factory });
+      server = await createPiServer({ runtime: initial, runtimeFactory: world.factory });
       const listeningServer = server;
       await new Promise<void>((resolve, reject) => {
         listeningServer.httpServer.once("error", reject);

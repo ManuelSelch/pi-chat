@@ -89,7 +89,7 @@ export class PiChatBrowserDriver {
           metadataFile: join(world.projectPath, ".pi-chat", "projects.json"),
         },
       });
-      server = createServer();
+      server = await createServer();
       const listen = (port: number) => new Promise<void>((resolveListen, reject) => {
         server!.httpServer.once("error", reject);
         server!.httpServer.listen(port, "127.0.0.1", () => {
@@ -105,7 +105,7 @@ export class PiChatBrowserDriver {
         await world.dispose();
       }, async () => {
         await server!.close();
-        server = createServer();
+        server = await createServer();
         await listen(port);
       });
       if (options.inboxEnabled !== undefined) {

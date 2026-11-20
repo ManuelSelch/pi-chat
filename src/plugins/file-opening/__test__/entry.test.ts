@@ -1,16 +1,15 @@
 import { expect, test } from "vitest";
 import fileOpening from "../index.js";
-import { filePathSchema, fileOpeningContract } from "../contract.js";
+import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
+import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 
 test("identifies the inactive file-opening plugin", () => {
   expect(fileOpening.id).toBe("file-opening");
-  expect(fileOpening.provides).toEqual([fileOpeningContract]);
+  expect(fileOpening.requires).toEqual([fileOpeningContract]);
 });
 
-test("keeps host setup explicitly unimplemented", async () => {
-  const host = await fileOpening.host();
-
-  expect(() => host.setup()).toThrow("File-opening host plugin is not implemented.");
+test("does not carry a host implementation in the browser plugin", () => {
+  expect("host" in fileOpening).toBe(false);
 });
 
 test("keeps web setup explicitly unimplemented", async () => {

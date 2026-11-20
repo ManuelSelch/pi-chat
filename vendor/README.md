@@ -1,14 +1,16 @@
 # Dependency provenance
 
-Chat pins published Pi Server 0.3.0 and TypeScript SDK 0.2.1 registry
-releases. The lockfile records their package integrity. No dependency overrides
-or installed-source patches are used; a clean install needs no sibling checkouts.
+This branch consumes unpublished SDK/server npm candidates stored here. The
+[manifest](../package.json) and lockfile pin the local archives; [candidate receipts](candidates.json)
+record their source revisions, SHA-256 and SHA-512 integrity. No publishing,
+dependency overrides or installed-source patches are used. A clean install needs
+no sibling checkout. Supply both archives when installing these candidates elsewhere;
+the server does not bundle a private SDK.
 
-`npm run verify:dependencies` checks the installed public server API and wire
-version; it is not a source-revision/checksum verifier or proof of publication.
-[Dependency fixture tests](../testing/infra-tests/npm-dependencies.test.ts) inspect
-registry pins, lock integrity, SDK deduplication and
-the public API.
+`npm run verify:dependencies` checks installed public server/plugin APIs and wire
+version; it is not proof of publication. [Dependency fixture tests](../testing/infra-tests/npm-dependencies.test.ts)
+verify archive checksums, receipt/manifest/lock agreement, SDK deduplication and
+the installed lifecycle API.
 Use the [development workflow](../docs/development.md) after an authorized update.
 Clean installation needs no sibling server/SDK checkout or Swift toolchain.
 

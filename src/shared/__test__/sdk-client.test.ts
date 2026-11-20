@@ -12,7 +12,7 @@ function phase(client: PiClient, target: ConnectionPhase): Promise<void> {
 }
 it("uses the public v2 SDK against the actual loopback host, with admission and streaming", async () => {
   const runtime = new FakeRuntimeAdapter(); const prompt = vi.spyOn(runtime, "prompt");
-  const server = createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  const server = await createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const client = new PiClient({ endpoint: `ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`, transport: createWebSocketTransport(url => new WebSocket(url)) });
   try {
     const ready = phase(client, "ready"); client.start(); await ready; const id = client.getState().inventory[0]!.sessionId;
