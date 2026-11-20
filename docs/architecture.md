@@ -23,8 +23,9 @@ flowchart LR
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
 
 Chat consumes compiled packages, not sibling sources or a package workspace.
-The current manifest and lockfile pin SDK/server 0.2.0 registry releases. See [dependency provenance](../vendor/README.md), rather than inferring
-installed behavior from a package version alone. Public server imports are the
+See the [manifest](../package.json) and [lockfile](../package-lock.json) for
+SDK/server dependency versions and [dependency provenance](../vendor/README.md)
+for the installed contract boundary. Public server imports are the
 root, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
