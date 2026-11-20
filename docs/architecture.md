@@ -219,6 +219,11 @@ open already accepted by the server. Markdown/read/write previews and edit
 highlighting are browser presentation of existing tool content, not new file
 access endpoints; raw HTML and remote preview images remain disabled.
 
+- JSX lint rejects explicit native-tooltip `title` attributes.
+- The shared Markdown renderer strips generated `title` properties after its
+  rehype plugins, including in tool-card previews; JSX lint cannot inspect
+  attributes generated from Markdown at runtime.
+
 ## Host lifecycle and security
 
 [The host](../src/host/index.ts) embeds the server with explicit built web assets,

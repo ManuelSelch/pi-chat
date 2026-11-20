@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import remarkMath from "remark-math";
 import { remarkDisplayMath } from "../utils/remark-display-math.js";
+import { rehypeNoNativeTooltips } from "../utils/rehype-no-native-tooltips.js";
 import { localPathFromHref } from "../utils/local-link.js";
 
 const SAFE_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
@@ -58,7 +59,7 @@ export const Markdown = memo(function Markdown({ children, disableImages = false
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }], remarkDisplayMath, ...(preserveLineBreaks ? [remarkBreaks] : [])]}
-      rehypePlugins={[rehypeKatex, rehypeHighlight]}
+      rehypePlugins={[rehypeKatex, rehypeHighlight, rehypeNoNativeTooltips]}
       urlTransform={(url) => /^file:/i.test(url) ? url : defaultUrlTransform(url)}
       components={{ a: (props) => <SafeLink {...props} onLocalLink={onLocalLink} />, ...(disableImages ? { img: ({ alt }: { alt?: string }) => <span>{alt ?? ""}</span> } : {}) }}
     >

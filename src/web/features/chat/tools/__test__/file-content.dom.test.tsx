@@ -24,6 +24,22 @@ it("previews Markdown reads without loading images or HTML", async () => {
   expect(await screen.findByRole("heading", { name: "Read document" })).toBeTruthy();
   expect(container.querySelector("img, script")).toBeNull();
 });
+it.each([false, true])("renders Markdown tool previews without native tooltips (compact=%s)", async compact => {
+  const { container } = render(<MantineProvider><ToolCard compact={compact} tool={{
+    toolCallId: "titled-read", name: "read", status: "success", argsText: '{"path":"README.md"}',
+    outputText: '[Documentation](https://example.com "Native tooltip")',
+  }} /></MantineProvider>);
+  const card = screen.getByTestId("tool-card") as HTMLDetailsElement;
+  expect(container.querySelector("[title]")).toBeNull();
+
+  card.open = true;
+  fireEvent(card, new Event("toggle"));
+
+  const link = await screen.findByRole("link", { name: "Documentation" });
+  expect(link.getAttribute("href")).toBe("https://example.com");
+  expect(container.querySelector("[title]")).toBeNull();
+});
+
 it.each(["notes.txt", "file.unknown", undefined])("keeps %s literal instead of treating it as Markdown", (path) => {
   const text = "# Not a heading\n<script>bad()</script>";
   const { container } = show({ name: "write", argsText: JSON.stringify({ path }), writeContent: { text, truncated: false } });
