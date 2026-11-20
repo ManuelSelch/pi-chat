@@ -81,9 +81,11 @@ try {
   run(['--test', ...((await readdir(directory)).filter(file => file.endsWith('.test.mjs')))], directory);
   await writeFile(join(directory, 'consumer.ts'), `import { createPiServer, createPiRuntimeAdapter, createRestartService, type PiServerOptions, type RuntimeAdapter, type FileLogger } from '@manuelselch/pi-server';
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from '@manuelselch/pi-server/extensions';
+import { createFileOpeningPlugin } from '@manuelselch/pi-server/plugins';
+import { fileOpeningContract } from '@manuelselch/pi-sdk/plugins/file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
-const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null } };
+const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile })], pluginRpcContracts: [fileOpeningContract] };
 const server = await createPiServer(options); void server.httpServer; void server.close;
 void createPiRuntimeAdapter; void createRestartService; void snapshotData; void runLoopbackFixture;
 `);

@@ -50,6 +50,22 @@ test("awaits host plugin readiness before constructing a connectable HTTP server
   await server.close();
 });
 
+test("plugin service factories cannot use server actions during setup or after close", async () => {
+  let services!: import("../../../../src/index.js").ServerPluginServices;
+  const server = await createPiServer({ plugins: provided => {
+    services = provided;
+    return [definePlugin({ id: "service-lifetime", host: async () => ({ async setup() {
+      await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+      expect(calls.http).not.toHaveBeenCalled();
+      expect(calls.chat).not.toHaveBeenCalled();
+    } }) })];
+  } });
+
+  await server.close();
+
+  await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+});
+
 test("failed plugin setup rolls back without constructing network or session resources", async () => {
   const cleanup = vi.fn();
   const plugin = definePlugin({ id: "failed", host: async () => ({ setup(ctx) {

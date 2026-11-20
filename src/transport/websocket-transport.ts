@@ -32,6 +32,13 @@ export class WebSocketTransport {
     this.unsubscribe = chat.subscribe((sessionId, event) => this.publisher.publish(sessionId, event));
     this.server.on("connection", socket => this.connect(socket));
   }
+  /** Plugin input carries public incarnation IDs, never raw adapter IDs. */
+  async openFile(sessionId: string, path: string) {
+    let raw: string;
+    try { raw = this.publisher.rawId(sessionId); }
+    catch { return { ok: false as const, error: { code: "sessionUnavailable" as const, message: "This session is no longer available on the server." } }; }
+    return this.chat.openFile(raw, path);
+  }
   /** `session.archive` for in-process extensions, published to all ready clients alike. */
   async archiveSession(path: string): Promise<void> {
     await this.chat.archiveSession(path, true);

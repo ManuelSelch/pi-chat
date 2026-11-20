@@ -1,5 +1,6 @@
 import express from "express";
 import type { PluginDefinition, RemoteContract } from "@manuelselch/pi-sdk/plugins";
+import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
@@ -34,9 +35,13 @@ export interface CatalogueOptions {
   /** null suppresses the permanent home-folder catalogue entry in isolated hosts. */
   homeDirectory?: string | null;
 }
+export interface ServerPluginServices {
+  /** Available to handlers after server readiness, not during plugin setup. */
+  openFile(sessionId: string, path: string): Promise<FileOpenResult>;
+}
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
-  plugins?: readonly PluginDefinition[];
+  plugins?: readonly PluginDefinition[] | ((services: ServerPluginServices) => readonly PluginDefinition[]);
   /** Contracts explicitly exposed over the existing WebSocket; none by default. */
   pluginRpcContracts?: readonly RemoteContract[];
   runtime?: RuntimeAdapter;
@@ -56,7 +61,15 @@ export function createPiRuntimeAdapter(runtime: AgentSessionRuntime): RuntimeAda
   return PiRuntimeAdapter.fromRuntime(runtime);
 }
 export async function createPiServer(options: PiServerOptions = {}): Promise<PiServer> {
-  const plugins = createPluginRuntime(options.plugins ?? []);
+  let transport: WebSocketTransport | undefined;
+  const services: ServerPluginServices = {
+    openFile: (sessionId, path) => {
+      if (!transport) return Promise.reject(new Error("Server application is not ready."));
+      return transport.openFile(sessionId, path);
+    },
+  };
+  const definitions = typeof options.plugins === "function" ? options.plugins(services) : options.plugins ?? [];
+  const plugins = createPluginRuntime(definitions);
   await plugins.start();
 
   const teardown: (() => void | Promise<void>)[] = [() => plugins.dispose()];
@@ -92,11 +105,12 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
       if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
     });
     const extensions = options.extensions ?? getPiChatExtensionRegistry();
-    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
-    teardown.push(() => chat.dispose());
-    const transport = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);
-    teardown.unshift(() => transport.close());
-    const releaseSessionHost = extensions.bindSessionHost({ archive: path => transport.archiveSession(path) });
+    const application = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
+    teardown.push(() => application.dispose());
+    const connection = new WebSocketTransport(httpServer, application, options.logger, pluginRpc);
+    transport = connection;
+    teardown.unshift(() => { transport = undefined; return connection.close(); });
+    const releaseSessionHost = extensions.bindSessionHost({ archive: path => connection.archiveSession(path) });
     teardown.unshift(releaseSessionHost);
     let closing: Promise<void> | undefined;
     return { httpServer, close() {
