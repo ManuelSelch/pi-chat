@@ -39,6 +39,10 @@ const event: ServerMessage = { version: 2, type: "protocolError", serverInstance
 requestSchema.parse(command); serverMessageSchema.parse(event);
 const transport: TransportFactory = (_endpoint, _handlers) => ({ send(_text) {}, close() {}, dispose() {} });
 const client = new PiClient({ endpoint: "ws://example/ws", transport });
+const remoteFile = client.plugin(fileOpeningContract);
+const remoteOpened: ReturnType<typeof fileClient.open> = remoteFile.open({ sessionId: "runtime", path: "readme.md" });
+// @ts-expect-error Remote plugin calls retain contract input inference.
+remoteFile.open(null);
 const pendingSession: Promise<string> = client.createSession();
 const admission: Promise<Result<"message.send">> = client.prompt("runtime", "hello");
 const requiredPalette: SessionTheme = (null! as Result<"session.open">).theme;

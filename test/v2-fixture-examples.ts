@@ -34,6 +34,7 @@ export const operationExamples: Record<Method, { params: object; result: object;
   "directory.browse": { params: { path: "/p" }, result: { path: "/p", breadcrumbs: [], entries: [] } },
   "command.complete": { sessionId: "runtime", params: { commandName: "demo", argumentPrefix: "st" }, result: { items: [{ value: "staging", label: "Staging" }] } },
   "file.open": { sessionId: "runtime", params: { path: "./report.pdf" }, result: completed },
+  "plugin.call": { params: { contractId: "test-counter", contractVersion: 1, method: "increment", input: null }, result: { value: 1 } },
 };
 const eventData: Record<Event["event"], object> = {
   "session.snapshot": snapshot,

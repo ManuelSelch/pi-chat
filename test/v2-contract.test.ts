@@ -67,10 +67,10 @@ describe("v2-only contract", () => {
     expect(snapshotSchema.safeParse({ ...snapshot, presentation }).success).toBe(true);
   });
 
-  it("has exactly the approved 23 methods without tab/focus or feature wrappers", () => {
+  it("has the core methods and optional plugin RPC without tab/focus or feature wrappers", () => {
     expect(Object.keys(operationSchemas).sort()).toEqual([
       "server.initialize", "server.ping", "server.restart", "session.create", "session.open", "session.list", "session.snapshot", "session.close", "session.compact", "session.reload", "session.archive",
-      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "extension.run", "directory.browse", "command.complete", "file.open",
+      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "extension.run", "directory.browse", "command.complete", "file.open", "plugin.call",
     ].sort());
   });
 });

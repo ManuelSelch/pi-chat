@@ -5,6 +5,8 @@ import { defaultScheduler, type Scheduler, type CancellationSignal } from "./pla
 import { applySnapshot, initialSessionState, reduceSessionMessage, type SessionState } from "./session-state.js";
 import type { Transport, TransportFactory } from "./transport.js";
 import { PendingRequests } from "./requests/pending-requests.js";
+import type { RemoteContract, RemoteContractClient } from "./plugins/remote-contract.js";
+import { pluginCallParamsSchema } from "./protocol/plugin-rpc.js";
 
 export type ReadonlyDeep<T> = T extends readonly (infer U)[] ? readonly ReadonlyDeep<U>[] : T extends object ? { readonly [K in keyof T]: ReadonlyDeep<T[K]> } : T;
 export type ConnectionPhase = "stopped" | "connecting" | "synchronizing" | "ready" | "reconnecting" | "superseded" | "failed" | "disposed";
@@ -118,6 +120,22 @@ export class PiClient {
       if (!parsed.success) throw new SDKError("invalidRequest", "Invalid v2 request.", "notSent", requestId);
       return this.pending.request(requestId, { kind: method, sessionId }, () => { ++this.connectionRequests; this.sendFrame(parsed.data); }, options.signal) as Promise<Result<M>>;
     } catch (error) { return Promise.reject(error); }
+  }
+  /** Typed server-scoped RPC over this connection; never activates or retries a plugin. */
+  plugin<C extends RemoteContract>(contract: C): RemoteContractClient<C> {
+    const methods = Object.entries(contract.methods).map(([name, method]) => [name, async (input: unknown) => {
+      let params: Params<"plugin.call">;
+      try {
+        params = pluginCallParamsSchema.parse({
+          contractId: contract.id, contractVersion: contract.version, method: name, input: method.input.parse(input),
+        });
+      } catch { throw new SDKError("invalidRequest", "Invalid plugin call input.", "notSent"); }
+
+      const result = await this.request("plugin.call", params);
+      try { return method.output.parse(result.value); }
+      catch { throw new SDKError("invalidMessage", "Invalid plugin call result.", "unknown"); }
+    }]);
+    return Object.freeze(Object.fromEntries(methods)) as RemoteContractClient<C>;
   }
   prompt(id: string, message: string) { return this.request("message.send", { message }, id); }
   abort(id: string) { return this.request("run.abort", {}, id); }

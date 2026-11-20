@@ -34,7 +34,8 @@
           "project.pin",
           "project.remove",
           "file.open",
-          "server.restart"
+          "server.restart",
+          "plugin.call"
         ]
       }
     },

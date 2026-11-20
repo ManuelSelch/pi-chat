@@ -1,6 +1,6 @@
 {
   "name": "@manuelselch/pi-sdk",
-  "version": "0.3.0-plugin.0",
+  "version": "0.3.0-plugin.1",
   "type": "module",
   "license": "MIT",
   "description": "Pi Server TypeScript SDK and authoritative v2 protocol",

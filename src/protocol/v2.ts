@@ -4,6 +4,7 @@ import { modelScopeSchema, validateModelScope } from "./model-scope.js";
 import { sessionThemeSchema } from "./theme.js";
 import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
 import { filePathSchema } from "./files.js";
+import { pluginCallParamsSchema, pluginCallResultSchema } from "./plugin-rpc.js";
 import {
   bashMessageSchema, toolCardSchema, skillInvocationSchema, thinkingLevelSchema, chatMessageSchema,
   projectCatalogueSchema, slashCommandSchema, commandCompletionItemSchema,
@@ -13,7 +14,7 @@ import {
 export const VERSION = 2 as const;
 export const idSchema = z.string().min(1).max(128).regex(/^[^\u0000-\u001f\u007f-\u009f]+$/);
 export const counterSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
-export const capabilitySchema = z.enum(["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", "server.restart"]);
+export const capabilitySchema = z.enum(["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", "server.restart", "plugin.call"]);
 export type Capability = z.infer<typeof capabilitySchema>;
 export const errorSchema = z.object({ code: z.string().min(1).max(128), message: z.string().min(1), details: z.json().optional() });
 export type ProtocolError = z.infer<typeof errorSchema>;
@@ -79,6 +80,7 @@ function session<P extends z.ZodType, R extends z.ZodType>(params: P, result: R,
 export const operationSchemas = {
   "server.initialize": server(z.object({ client: z.object({ name: z.string().min(1).max(128), version: z.string().min(1).max(128) }), capabilities: z.array(z.string().min(1).max(128)).max(32).default([]) }), initializeResultSchema),
   "server.ping": server(empty, completedSchema),
+  "plugin.call": server(pluginCallParamsSchema, pluginCallResultSchema, "plugin.call"),
   "server.restart": server(empty, acceptedSchema, "server.restart"),
   "session.create": server(z.object({ projectPath: z.string().min(1).optional() }), openedSchema),
   "session.open": server(z.object({ sessionPath: z.string().min(1) }), openedSchema),

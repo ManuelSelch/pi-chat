@@ -1076,6 +1076,43 @@
           }
         }
       }
+    },
+    {
+      "method": "plugin.call",
+      "request": {
+        "version": 2,
+        "type": "request",
+        "requestId": "request-23",
+        "method": "plugin.call",
+        "params": {
+          "contractId": "test-counter",
+          "contractVersion": 1,
+          "method": "increment",
+          "input": null
+        }
+      },
+      "response": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-23",
+        "ok": true,
+        "result": {
+          "value": 1
+        }
+      },
+      "rejection": {
+        "version": 2,
+        "type": "response",
+        "requestId": "request-23",
+        "ok": false,
+        "error": {
+          "code": "operationFailed",
+          "message": "Rejected",
+          "details": {
+            "retry": false
+          }
+        }
+      }
     }
   ],
   "events": [
