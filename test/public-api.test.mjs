@@ -9,6 +9,8 @@ const directory = await mkdtemp(join(tmpdir(), 'pi-server-api-'));
 process.env.PI_CODING_AGENT_DIR = join(directory, 'agent');
 const api = await import('../dist/index.js');
 const extensions = await import('../dist/extensions.js');
+const plugins = await import('../dist/plugins.js');
+const { definePlugin } = await import('@manuelselch/pi-sdk/plugins');
 const testing = await import('../dist/testing/index.js');
 const { ServerDriver } = await import('./server-driver.mjs');
 
@@ -16,6 +18,7 @@ try {
   await test('public exports expose contracts, not application/transport internals', () => {
     for (const name of ['createPiServer', 'createPiRuntimeAdapter', 'createRestartService', 'createFileLogger']) assert.equal(typeof api[name], 'function');
     for (const name of ['ChatApplicationService', 'WebSocketTransport', 'PiRuntimeAdapter', 'ProjectSessionService']) assert.equal(api[name], undefined);
+    assert.equal(typeof plugins.createPluginRuntime, 'function');
     assert.equal(extensions.resetPiChatExtensionRegistryForTests, undefined);
     assert.equal(typeof testing.resetPiChatExtensionRegistryForTests, 'function');
     assert.equal(typeof testing.snapshotData, 'function');
@@ -46,13 +49,19 @@ try {
     await ServerDriver.run(directory, server => server.assertStatic('embedded assets'), { staticDirectory: assets });
   });
   await test('close before listen disposes injected runtime once without owning its logger', async () => {
-    let disposed = 0; let loggerClosed = 0;
+    let disposed = 0; let loggerClosed = 0; let activated = 0; let pluginDisposed = 0;
+    let signal;
+    const plugin = definePlugin({ id: 'installed', host: async () => ({ setup(ctx) {
+      activated++; signal = ctx.signal; ctx.onCleanup(() => { pluginDisposed++; });
+    } }) });
     const runtime = new testing.FakeRuntimeAdapter();
     runtime.dispose = () => { disposed++; };
     const logger = { info() {}, warn() {}, error() {}, flush: async () => {}, close: async () => { loggerClosed++; } };
-    const server = api.createPiServer({ runtime, logger, catalogue: { metadataFile: join(directory, 'close.json') } });
+    const server = await api.createPiServer({ runtime, logger, plugins: [plugin], catalogue: { metadataFile: join(directory, 'close.json') } });
+    assert.equal(activated, 1); assert.equal(signal.aborted, false);
     await server.close(); await server.close();
     assert.equal(disposed, 1); assert.equal(loggerClosed, 0);
+    assert.equal(pluginDisposed, 1); assert.equal(signal.aborted, true);
   });
   await test('standalone restart never invokes npm or an implicit build', async () => {
     const order = [];

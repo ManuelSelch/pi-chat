@@ -43,7 +43,7 @@ async function main(): Promise<void> {
   const restart = values["no-restart"] ? undefined : createRestartService({
     plan: { command: process.execPath, args: restartArgs, cwd: project }, shutdown: () => { void shutdown(); },
   });
-  const server = createPiServer({ staticDirectory, logger, restart });
+  const server = await createPiServer({ staticDirectory, logger, restart });
   process.on("SIGINT", () => { void shutdown(); });
   process.on("SIGTERM", () => { void shutdown(); });
   server.httpServer.on("error", error => { logger.error("server.error", { message: error.message }); console.error(error); void shutdown(1); });

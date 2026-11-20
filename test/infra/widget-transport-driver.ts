@@ -28,7 +28,7 @@ export class WidgetTransportDriver {
   static async start(): Promise<WidgetTransportDriver> {
     const driver = new WidgetTransportDriver();
     try {
-      driver.server = createPiServer({ runtime: driver.runtime });
+      driver.server = await createPiServer({ runtime: driver.runtime });
       driver.server.httpServer.listen(0, "127.0.0.1");
       await once(driver.server.httpServer, "listening");
       driver.client = new PiClient({

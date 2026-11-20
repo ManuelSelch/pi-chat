@@ -29,7 +29,7 @@ async function setup() {
   const lister = { listAll: async () => [{ path: savedPath, id: "implementation", cwd, created: new Date(0), modified: new Date(1), messageCount: 2, firstMessage: "Implement it" }] };
   const runtime = new FakeRuntimeAdapter();
   const extensions = createPiChatExtensionRegistry();
-  server = createPiServer({ runtime, extensions, catalogue: { lister, sessionsDirectory, metadataFile, discovery: { forDirectory: async () => undefined }, homeDirectory: null } });
+  server = await createPiServer({ runtime, extensions, catalogue: { lister, sessionsDirectory, metadataFile, discovery: { forDirectory: async () => undefined }, homeDirectory: null } });
   server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const controller = await v2Socket(server);
   await controller.initialize();

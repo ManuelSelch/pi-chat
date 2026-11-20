@@ -1,6 +1,6 @@
 {
   "name": "@manuelselch/pi-server",
-  "version": "0.3.0",
+  "version": "0.4.0-plugin.0",
   "license": "MIT",
   "author": "Manuel Selch",
   "repository": {
@@ -32,12 +32,17 @@
     "docs/architecture.drawio",
     "docs/CONFIGURATION.md",
     "docs/EXTENSIONS.md",
+    "docs/PLUGINS.md",
     "docs/PROTOCOL.md"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "import": "./dist/plugins.js"
     },
     "./extensions": {
       "types": "./dist/extensions.d.ts",
@@ -74,7 +79,7 @@
     "@earendil-works/pi-mcp": "1.4.0",
     "@earendil-works/pi-telemetry": "1.4.0",
     "@earendil-works/pi-tui": "1.4.0",
-    "@manuelselch/pi-sdk": "0.2.1",
+    "@manuelselch/pi-sdk": "0.3.0-plugin.0",
     "express": "^5.2.1",
     "ws": "^8.21.3",
     "zod": "^4.6.4"

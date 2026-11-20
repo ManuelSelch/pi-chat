@@ -22,7 +22,7 @@ beforeEach(() => { captured.factories.length = 0; vi.clearAllMocks(); });
 
 describe("server runtime factory defaults", () => {
   it.each(["omitted", "undefined"])("lazily delegates all default factory methods when %s", async (argument) => {
-    const server = argument === "omitted" ? createPiServer({  }) : createPiServer({  });
+    const server = argument === "omitted" ? await createPiServer({  }) : await createPiServer({  });
     try {
       expect(PiRuntimeAdapter.create).not.toHaveBeenCalled();
       expect(PiRuntimeAdapter.openSession).not.toHaveBeenCalled();
@@ -42,8 +42,8 @@ describe("server runtime factory defaults", () => {
   });
 
   it("creates independent factory objects and methods for separate servers", async () => {
-    const first = createPiServer({  });
-    const second = createPiServer({  });
+    const first = await createPiServer({  });
+    const second = await createPiServer({  });
     try {
       const [left, right] = captured.factories;
       expect(left).not.toBe(right);
@@ -55,7 +55,7 @@ describe("server runtime factory defaults", () => {
 
   it("passes a supplied factory through unchanged without calling SDK methods", async () => {
     const factory = { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() };
-    const server = createPiServer({ runtimeFactory: factory });
+    const server = await createPiServer({ runtimeFactory: factory });
     try {
       expect(captured.factories).toEqual([factory]);
       expect(captured.factories[0]).toBe(factory);

@@ -12,6 +12,7 @@ Every arrow means “source imports target”, including type-only imports; it d
 | `application` | Session commands and lifecycle coordination, mutation guards, extension hooks and shared live-runtime registry. |
 | `runtime` | Runtime contracts and the Pi adapter: lazy agent creation, transcript/tool/event mapping, headless theme and web extension UI context. |
 | `projects` | Persisted-session catalogue, project metadata, directory browsing and Git worktree discovery. |
+| `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. |
 | `extensions` | In-process extension registrations, session-host binding and UI prompt/status/widget registries. |
 | `bootstrap` | Process restart planning/execution and PID-file publication. |
 | `files` | File-open validation and delegation to the system opener. |
@@ -31,13 +32,13 @@ External boundaries, intentionally not diagram boxes:
 
 ## State and runtime flow
 
-1. The CLI or embedding caller creates the host. `createPiServer()` returns an HTTP server without listening or creating an agent runtime by default.
+1. The CLI or embedding caller awaits `createPiServer({ plugins })`. Host plugins activate once per server before HTTP/WebSocket construction; readiness returns an unbound server without creating an agent runtime by default.
 2. A WebSocket client initializes v2 and negotiates capabilities. Transport dispatches validated operations to the application service.
 3. Open/create operations lazily obtain a Pi adapter through the runtime factory. The application registry owns live adapters and subscriptions; duplicate open paths are coordinated.
 4. Runtime events reach the application and then the transport publisher. Ready clients receive snapshots/events filtered by negotiated capabilities. UI tab order and focus remain client-owned.
 5. Disconnect disposes connection-local state, **not** live agent sessions. A reconnect resynchronizes from current state; explicit session close or host shutdown disposes retained runtimes.
 
-Host `close()` is idempotent: release the extension session-host binding, terminate transport connections, close the HTTP listener and dispose application runtimes.
+Host `close()` is idempotent: release the extension session-host binding, terminate transport connections, close HTTP, dispose host plugins, then application runtimes. All teardown steps are attempted even if one fails. Startup failure rolls back owned resources; see [plugin lifecycle](PLUGINS.md).
 Embedding callers own flushing/closing injected loggers. The CLI owns signals, PID/log setup and standalone restart; embedding may inject restart behavior, including an explicit build callback.
 A failed explicit restart build leaves the existing process serving.
 

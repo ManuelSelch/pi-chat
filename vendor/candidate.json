@@ -1,0 +1,9 @@
+{
+  "package": "@manuelselch/pi-sdk",
+  "version": "0.3.0-plugin.0",
+  "archive": "manuelselch-pi-sdk-0.3.0-plugin.0.tgz",
+  "sourceRepository": "https://github.com/ManuelSelch/pi-sdk-typescript",
+  "sha256": "09d398edd11b62600509ef2e1d19a6b196dd5b1bf5259f489c4839e4e78cfd36",
+  "integrity": "sha512-/YAZlTeoFYYk+q0sHuk9R/LXEJP1LI5K3UNqAshxWg37rHuXNZRI3areajxeUEyS6AzCtX3rwyd+Okv9LW9eKA==",
+  "sourceRevision": "a62955059af6697ff18dcff68647fa957db542b7"
+}

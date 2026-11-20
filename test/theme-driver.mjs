@@ -21,7 +21,7 @@ export class ThemeDriver {
     await mkdir(this.project); await mkdir(this.otherProject);
     this.extension = join(this.directory, 'theme-extension.ts');
     await writeFile(this.extension, `export default pi => { pi.on('session_start', (_, ctx) => ctx.ui.setWidget('theme', [ctx.ui.theme.fg('accent', ctx.ui.theme.bold('Custom widget'))])); };`);
-    this.server = createPiServer({ runtimeFactory: {
+    this.server = await createPiServer({ runtimeFactory: {
       newSession: cwd => this.makeRuntime(cwd, this.nextSelection ?? (cwd === this.project ? 'light/custom' : 'light')),
       openSession: () => assert.fail('opening an already-running runtime must reuse its palette'),
       continueProject: () => assert.fail('unexpected continue'),

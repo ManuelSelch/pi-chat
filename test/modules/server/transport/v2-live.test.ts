@@ -35,7 +35,7 @@ it("sends initialization before a blocked catalogue refresh and then publishes t
   const gate = new Promise<void>(resolve => { release = resolve; });
   const catalogue = vi.fn(async () => { await gate; return { projects: [] }; });
   vi.spyOn(ProjectSessionService.prototype, "catalogue").mockImplementation(catalogue);
-  server = createPiServer({ runtime: new FakeRuntimeAdapter() });
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter() });
   server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect();
   try {
@@ -51,7 +51,7 @@ it("sends initialization before a blocked catalogue refresh and then publishes t
 });
 
 it("initializes atomically with fresh runtime identity and rejects v1 on the live socket", async () => {
-  server = createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect();
   const state = await connection.initialize();
   expect(state.protocolVersion).toBe(2);
@@ -65,12 +65,12 @@ it("initializes atomically with fresh runtime identity and rejects v1 on the liv
 it("initializes and streams Pi tool IDs longer than control-plane IDs", async () => {
   const runtime = new FakeRuntimeAdapter(); const base = runtime.snapshot(); const toolCallId = `pi-tool-${"x".repeat(512)}`;
   vi.spyOn(runtime, "snapshot").mockReturnValue({ ...base, messages: [{ id: toolMessageId(toolCallId), role: "tool", tool: { toolCallId: normalizePiId(toolCallId, 123), name: "read", status: "success", outputText: "ok" } }] });
-  server = createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const state = await connection.initialize();
   expect(state.snapshots[0].messages[0]).toMatchObject({ id: toolMessageId(toolCallId), tool: { toolCallId: normalizePiId(toolCallId, 123) } });
 });
 it("queues admission before synchronous Pi events and publishes operation settlement", async () => {
-  server = createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const state = await connection.initialize();
   const sessionId = state.snapshots[0].sessionId;
   connection.send("message.send", "prompt", { message: "hello" }, sessionId);
@@ -86,7 +86,7 @@ it("queues admission before synchronous Pi events and publishes operation settle
 });
 it("answers session-level prompts once, rejects invalid/late replies, and cancels on close", async () => {
   const runtime = new FakeRuntimeAdapter();
-  server = createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const state = await connection.initialize(); const sessionId = state.snapshots[0].sessionId;
   const pending = runtime.uiContext().confirm("Allow action?", "Run it?");
   const opened = await connection.inbox.wait(message => message.event === "prompt.list.changed" && message.data.prompts.length === 1);
@@ -107,7 +107,7 @@ it("answers session-level prompts once, rejects invalid/late replies, and cancel
 });
 it("acknowledges restart admission before the best-effort stopping event", async () => {
   const restart = vi.fn(async () => undefined);
-  server = createPiServer({ runtimeFactory: { continueProject: vi.fn(), newSession: vi.fn(), openSession: vi.fn() }, restart: { restart } });
+  server = await createPiServer({ runtimeFactory: { continueProject: vi.fn(), newSession: vi.fn(), openSession: vi.fn() }, restart: { restart } });
   server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(["server.restart"]); await connection.initialize();
   connection.send("server.restart", "restart", {});
@@ -120,7 +120,7 @@ it("acknowledges restart admission before the best-effort stopping event", async
 });
 it("keeps runtime identity across explicit in-place reload", async () => {
   const runtime = new FakeRuntimeAdapter(); const reload = vi.spyOn(runtime, "reload");
-  server = createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const initial = await connection.initialize(); const sessionId = initial.snapshots[0].sessionId;
   connection.send("session.reload", "reload", {}, sessionId);
   const receipt = await connection.inbox.wait(message => message.requestId === "reload");
@@ -133,7 +133,7 @@ it("keeps runtime identity across explicit in-place reload", async () => {
 it("retains closing identity after failed teardown and accepts explicit retry", async () => {
   const runtime = new FakeRuntimeAdapter();
   vi.spyOn(runtime, "dispose").mockImplementationOnce(() => { void runtime.abort(); throw new Error("partial"); });
-  server = createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: runtime }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const state = await connection.initialize(); const sessionId = state.snapshots[0].sessionId;
   connection.send("session.close", "close1", {}, sessionId);
   expect(await connection.inbox.wait(message => message.requestId === "close1")).toMatchObject({ ok: false, error: { details: { partial: true } } });
@@ -147,7 +147,7 @@ it("retains closing identity after failed teardown and accepts explicit retry", 
   await connection.inbox.wait(message => message.event === "session.closed");
 });
 it("never reuses runtime identity when the same saved history is reopened", async () => {
-  server = createPiServer({ runtime: new FakeRuntimeAdapter(), runtimeFactory: { continueProject: vi.fn(), newSession: vi.fn(), openSession: async () => new FakeRuntimeAdapter() } });
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter(), runtimeFactory: { continueProject: vi.fn(), newSession: vi.fn(), openSession: async () => new FakeRuntimeAdapter() } });
   server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const connection = await connect(); const state = await connection.initialize(); const sessionId = state.snapshots[0].sessionId;
   connection.send("session.close", "close", {}, sessionId);
@@ -160,13 +160,13 @@ it("never reuses runtime identity when the same saved history is reopened", asyn
   expect(await connection.inbox.wait(message => message.requestId === "stale")).toMatchObject({ ok: false, error: { code: "sessionNotFound" } });
 });
 it("rejects foreign browser origins before opening a connection", async () => {
-  server = createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const socket = new WebSocket(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`, { origin: "https://evil.example" });
   const status = await new Promise<number>(resolve => { socket.on("unexpected-response", (_request, response) => { resolve(response.statusCode!); response.resume(); socket.terminate(); }); socket.on("error", () => {}); });
   expect(status).toBe(403);
 });
 it("keeps both connections usable after a second client initializes", async () => {
-  server = createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
+  server = await createPiServer({ runtime: new FakeRuntimeAdapter() }); server.httpServer.listen(0, "127.0.0.1"); await once(server.httpServer, "listening");
   const first = await connect(); await first.initialize();
   const candidate = await connect();
   first.send("server.ping", "ping");

@@ -28,7 +28,7 @@ npm run verify:package
 npm pack
 ```
 
-The package uses its own lockfile, not the Chat workspace. `verify:package` installs compiled tarballs in a private temporary consumer, checks SDK initialization/public declarations and runs CLI/restart/fixture scenarios without Chat sources, frontend dependencies or tsx. All test agent/history/metadata storage is private. The SDK is pinned to published `@manuelselch/pi-sdk@0.2.0` as a normal npm dependency, not bundled into server artifacts. `verify:package` rejects bundled SDK files and verifies registry integrity and shared SDK resolution in an isolated installed consumer, without a sibling checkout. Preparing this dependency change does not publish a server release or change Chat's installed dependencies.
+The package uses its own lockfile, not the Chat workspace. `verify:package` installs compiled tarballs in a private temporary consumer, checks SDK initialization/public declarations and runs CLI/restart/fixture scenarios without Chat sources, frontend dependencies or tsx. All test agent/history/metadata storage is private. This branch consumes an unpublished SDK candidate: the manifest pins its exact version and the lockfile resolves the integrity-pinned archive under `vendor/`. `npm ci` needs no sibling checkout. `verify:package` supplies both candidate tarballs explicitly to an isolated consumer and verifies shared SDK resolution without bundling. Installing the server candidate elsewhere requires supplying the matching SDK candidate too; no publication is implied.
 
 Pi 1.0.2 uses broad internal ranges. Pinning its working dependency family (agent-core/AI 1.0.2; codemode/MCP/TUI/telemetry/chord 1.0.3) prevents incompatible upgrades in consumers where package overrides would be ignored. Keep these pins until a separately verified Pi update.
 
@@ -54,9 +54,10 @@ Headless by default: `/health` and `/ws`, no session creation or browser launch.
 
 ## Public API ownership
 
-- Root: `createPiServer(options)`, `createPiRuntimeAdapter(runtime)`, `createRestartService(options)`, `createFileLogger(options)` and their structural contracts.
-- Server options: runtime/factory, optional static directory, restart, extensions, structural file-open service, logger and catalogue configuration (lister, session directory, discovery, metadata file, home directory; null suppresses home).
-- Handle: `httpServer` for listen/address/error ownership; idempotent async `close()`. Close disposes transport and runtimes; callers flush/close injected loggers. Runtime creation stays lazy.
+- Root: async `createPiServer(options)` (await before listening), `createPiRuntimeAdapter(runtime)`, `createRestartService(options)`, `createFileLogger(options)` and their structural contracts.
+- Server options: explicit host `plugins`, runtime/factory, optional static directory, restart, extensions, structural file-open service, logger and catalogue configuration (lister, session directory, discovery, metadata file, home directory; null suppresses home).
+- Handle: `httpServer` for listen/address/error ownership; idempotent async `close()`. Close disposes transport, plugins and runtimes; callers flush/close injected loggers. Runtime creation stays lazy.
+- `/plugins`: isolated host runtime; [plugin lifecycle](docs/PLUGINS.md) documents startup readiness, rollback and cleanup.
 - `/extensions`: existing registration types and registry functions, retaining `Symbol.for("pi-chat.extension-registry")`, plus the `PiChatSessionHost` that a running server binds for in-process extensions. Test reset is not exported here.
 - `/testing`: compiled fake runtime, fixture data and registry reset; no test-framework runtime dependency.
 - `/testing/loopback`: `runLoopbackFixture()`. A plain-Node launcher imports and awaits it, with no arguments. It creates a private canonical workspace, binds ephemeral loopback, rejects other project paths, prints `PI_FIXTURE_READY { directory, endpoint }`, and on SIGTERM explicitly closes retained runtimes and exclusively writes `cleanup.json`. The test driver removes successful artifacts.

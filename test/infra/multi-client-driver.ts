@@ -146,7 +146,7 @@ export class MultiClientDriver {
       return send.apply(this, args);
     });
     const second = this.runtimes[1]!;
-    this.server = createPiServer({ runtime: this.runtimes[0], runtimeFactory: {
+    this.server = await createPiServer({ runtime: this.runtimes[0], runtimeFactory: {
       newSession: async () => second, openSession: async () => second, continueProject: async () => second,
     } });
     await new Promise<void>(resolve => this.server.httpServer.listen(0, "127.0.0.1", resolve));

@@ -1,4 +1,6 @@
 import express from "express";
+import type { PluginDefinition } from "@manuelselch/pi-sdk/plugins";
+import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
 import { resolve } from "node:path";
 import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
@@ -32,6 +34,8 @@ export interface CatalogueOptions {
   homeDirectory?: string | null;
 }
 export interface PiServerOptions {
+  /** Explicit built-in host plugins, activated once per server before readiness. */
+  plugins?: readonly PluginDefinition[];
   runtime?: RuntimeAdapter;
   runtimeFactory?: RuntimeAdapterFactory;
   staticDirectory?: string;
@@ -48,37 +52,58 @@ export interface PiServer {
 export function createPiRuntimeAdapter(runtime: AgentSessionRuntime): RuntimeAdapter {
   return PiRuntimeAdapter.fromRuntime(runtime);
 }
-export function createPiServer(options: PiServerOptions = {}): PiServer {
-  const catalogue = options.catalogue ?? {};
-  const projects = new ProjectSessionService(catalogue.lister, catalogue.sessionsDirectory, catalogue.discovery,
-    catalogue.metadataFile ? new ProjectMetadataStore(catalogue.metadataFile) : undefined,
-    catalogue.homeDirectory);
-  const factory = options.runtimeFactory ?? {
-    continueProject: (path: string) => PiRuntimeAdapter.create(path),
-    openSession: (path: string) => PiRuntimeAdapter.openSession(path),
-    newSession: (path: string) => PiRuntimeAdapter.newSession(path),
-  };
-  const app = express();
-  app.get("/health", (_request, response) => response.json({ ok: true }));
-  if (options.staticDirectory) {
-    const directory = resolve(options.staticDirectory);
-    app.use(express.static(directory));
-    app.get("/{*path}", (_request, response) => response.sendFile(resolve(directory, "index.html")));
+export async function createPiServer(options: PiServerOptions = {}): Promise<PiServer> {
+  const plugins = createPluginRuntime(options.plugins ?? []);
+  await plugins.start();
+
+  const teardown: (() => void | Promise<void>)[] = [() => plugins.dispose()];
+  async function cleanup(): Promise<void> {
+    const errors: unknown[] = [];
+    for (const release of teardown) {
+      try { await release(); }
+      catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "Server cleanup failed.");
   }
-  const httpServer = createServer(app);
-  const extensions = options.extensions ?? getPiChatExtensionRegistry();
-  const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
-  const transport = new WebSocketTransport(httpServer, chat, options.logger);
-  const releaseSessionHost = extensions.bindSessionHost({ archive: path => transport.archiveSession(path) });
-  let closing: Promise<void> | undefined;
-  return { httpServer, close() {
-    return closing ??= (async () => {
-      options.logger?.info("server.shutdown");
-      releaseSessionHost();
-      try {
-        await transport.close();
-        if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
-      } finally { await chat.dispose(); }
-    })();
-  } };
+
+  try {
+    const catalogue = options.catalogue ?? {};
+    const projects = new ProjectSessionService(catalogue.lister, catalogue.sessionsDirectory, catalogue.discovery,
+      catalogue.metadataFile ? new ProjectMetadataStore(catalogue.metadataFile) : undefined,
+      catalogue.homeDirectory);
+    const factory = options.runtimeFactory ?? {
+      continueProject: (path: string) => PiRuntimeAdapter.create(path),
+      openSession: (path: string) => PiRuntimeAdapter.openSession(path),
+      newSession: (path: string) => PiRuntimeAdapter.newSession(path),
+    };
+    const app = express();
+    app.get("/health", (_request, response) => response.json({ ok: true }));
+    if (options.staticDirectory) {
+      const directory = resolve(options.staticDirectory);
+      app.use(express.static(directory));
+      app.get("/{*path}", (_request, response) => response.sendFile(resolve(directory, "index.html")));
+    }
+    const httpServer = createServer(app);
+    teardown.unshift(async () => {
+      if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
+    });
+    const extensions = options.extensions ?? getPiChatExtensionRegistry();
+    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
+    teardown.push(() => chat.dispose());
+    const transport = new WebSocketTransport(httpServer, chat, options.logger);
+    teardown.unshift(() => transport.close());
+    const releaseSessionHost = extensions.bindSessionHost({ archive: path => transport.archiveSession(path) });
+    teardown.unshift(releaseSessionHost);
+    let closing: Promise<void> | undefined;
+    return { httpServer, close() {
+      return closing ??= (async () => {
+        options.logger?.info("server.shutdown");
+        await cleanup();
+      })();
+    } };
+  } catch (error) {
+    try { await cleanup(); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], "Server startup and cleanup failed."); }
+    throw error;
+  }
 }

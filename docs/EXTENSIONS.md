@@ -8,7 +8,7 @@ const extensions = getPiChatExtensionRegistry();
 extensions.registerButton({
   id: 'example.action', slot: 'composer.right', label: 'Example', actionId: 'example.run',
 });
-const server = createPiServer({ extensions });
+const server = await createPiServer({ extensions });
 server.httpServer.listen(8788, '127.0.0.1');
 // On application shutdown: await server.close();
 ```

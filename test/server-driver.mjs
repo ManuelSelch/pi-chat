@@ -20,7 +20,7 @@ export class ServerDriver {
     const factory = { continueProject: async () => assert.fail('unexpected continue'),
       openSession: async () => assert.fail('unexpected open'),
       newSession: async () => { this.created++; return new FakeRuntimeAdapter('public-runtime'); } };
-    this.server = createPiServer({ runtimeFactory: factory, catalogue: {
+    this.server = await createPiServer({ runtimeFactory: factory, catalogue: {
       lister: { listAll: async () => [] }, sessionsDirectory: join(this.directory, 'sessions'),
       discovery: { forDirectory: async () => undefined }, metadataFile: join(this.directory, 'metadata.json'),
       homeDirectory: null,

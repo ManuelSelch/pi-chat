@@ -19,7 +19,7 @@ afterEach(async () => {
   folder = undefined;
 });
 async function connect(factory = { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(async () => new FakeRuntimeAdapter()) }) {
-  server = createPiServer({ runtimeFactory: factory });
+  server = await createPiServer({ runtimeFactory: factory });
   await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
   client = await v2Socket(server); await client.initialize();
   return factory;

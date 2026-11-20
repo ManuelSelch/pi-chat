@@ -9,7 +9,7 @@ describe("v2 WebSocket transport", () => {
   let server: PiServer;
   afterEach(async () => { if (server) await server.close(); vi.restoreAllMocks(); });
   async function listen(runtime?: FakeRuntimeAdapter) {
-    server = createPiServer({ runtime: runtime }); await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
+    server = await createPiServer({ runtime: runtime }); await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); const initial = await client.initialize(); return { ...client, initial };
   }
   it("initializes with an empty inventory when no runtime is open", async () => {
@@ -53,7 +53,7 @@ describe("v2 WebSocket transport", () => {
     const scan = vi.spyOn(ProjectSessionService.prototype, "catalogue").mockResolvedValueOnce({ projects: [] }).mockImplementation(async () => { await gate; return { projects: [] }; });
     vi.spyOn(ProjectSessionService.prototype, "rememberProject").mockResolvedValue(undefined);
     const next = new FakeRuntimeAdapter("next");
-    server = createPiServer({ runtime: new FakeRuntimeAdapter(), runtimeFactory: { continueProject: async () => next, openSession: async () => next, newSession: async () => next } });
+    server = await createPiServer({ runtime: new FakeRuntimeAdapter(), runtimeFactory: { continueProject: async () => next, openSession: async () => next, newSession: async () => next } });
     await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); await client.initialize();
     try {
@@ -63,7 +63,7 @@ describe("v2 WebSocket transport", () => {
     } finally { release(); }
   });
   it("does not expose optional presentation without capability selection", async () => {
-    server = createPiServer({ runtime: new FakeRuntimeAdapter() }); await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
+    server = await createPiServer({ runtime: new FakeRuntimeAdapter() }); await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); const initial = await client.initialize([]);
     expect(initial.snapshots[0]).not.toHaveProperty("presentation");
     client.send("session.snapshot", "snap", {}, initial.snapshots[0]!.sessionId);
@@ -83,7 +83,7 @@ describe("v2 WebSocket transport", () => {
   });
   it("logs only connection lifecycle metadata", async () => {
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), flush: vi.fn(async () => {}), close: vi.fn(async () => {}) };
-    server = createPiServer({ runtime: new FakeRuntimeAdapter(), logger: logger });
+    server = await createPiServer({ runtime: new FakeRuntimeAdapter(), logger: logger });
     await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); await client.initialize(); client.socket.close(1000, "test close");
     await vi.waitFor(() => expect(logger.info).toHaveBeenCalledWith("websocket.close", expect.objectContaining({ code: 1000, initialized: true, runtimeActive: false })));

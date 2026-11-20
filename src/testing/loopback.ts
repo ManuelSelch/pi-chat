@@ -59,7 +59,7 @@ export async function runLoopbackFixture(): Promise<void> {
     }
     override dispose() { this.cancelled = true; this.observers.clear(); super.dispose(); }
   }
-  const server = createPiServer({ runtimeFactory: {
+  const server = await createPiServer({ runtimeFactory: {
     continueProject: async () => { throw new Error("unsupported"); },
     openSession: async () => { throw new Error("unsupported"); },
     newSession: async path => {

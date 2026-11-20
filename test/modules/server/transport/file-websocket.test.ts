@@ -25,7 +25,7 @@ describe("file WebSocket integration", () => {
     const prompt = vi.spyOn(runtime, "prompt");
     const abort = vi.spyOn(runtime, "abort");
     const opener = { open: vi.fn(async (_path: string) => {}) };
-    server = createPiServer({ runtime: runtime, runtimeFactory: { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() }, files: new FileService(opener) });
+    server = await createPiServer({ runtime: runtime, runtimeFactory: { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() }, files: new FileService(opener) });
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); const initial = await client.initialize(); client.messages.length = 0;
     const send = async (requestId: string, path: string, sessionId = initial.snapshots[0]!.sessionId) => {

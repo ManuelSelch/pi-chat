@@ -4,6 +4,11 @@
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
+                <object label="plugins" concept="plugins" id="box-plugins">
+                    <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#86b891;fontSize=20;fontStyle=1;" vertex="1">
+                        <mxGeometry height="90" width="240" x="60" y="400" as="geometry"/>
+                    </mxCell>
+                </object>
                 <object label="testing" concept="testing" id="box-testing">
                     <mxCell parent="1" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#a78bfa;strokeWidth=2;fontColor=#0f172a;fontSize=20;fontStyle=1;" vertex="1">
                         <mxGeometry height="90" width="240" x="330" y="160" as="geometry"/>
