@@ -34,6 +34,12 @@ or implement authentication/OAuth. `TransportFactory` and `Scheduler` are
 injectable. `CancellationSignal` accepts AbortSignals without exposing DOM or
 Node types in declarations.
 
+## Plugin declarations
+
+- `/plugins` exports framework-neutral plugin/remote-contract definitions and host context types; Pi Server owns activation and cleanup.
+- `/plugins/file-opening` exports the inactive built-in contract separately from core wire schemas.
+- See [plugin contracts](docs/PLUGINS.md); plugin network transport and browser activation are not implemented.
+
 ## State, synchronization and recovery
 
 - Construction is inert. `start()` schedules connection one tick later. Phases:
