@@ -1,17 +1,29 @@
-import { assertIdentifier, type RemoteContract } from "./remote-contract.js";
+import { assertIdentifier, type RemoteContract, type RemoteContractImplementation } from "./remote-contract.js";
 
-/** Entry shape for the declaration MVP; activation contexts are not implemented. */
+export type PluginCleanup = () => void | Promise<void>;
+
+export interface HostPluginContext {
+  readonly signal: AbortSignal;
+  provide<C extends RemoteContract>(contract: C, implementation: RemoteContractImplementation<C>): void;
+  onCleanup(cleanup: PluginCleanup): void;
+}
+
+export interface HostPluginEntry {
+  setup(context: HostPluginContext): void | Promise<void>;
+}
+
+/** Web activation is not implemented by the host runtime. */
 export interface PluginEntry {
   setup(): void | Promise<void>;
 }
 
-export type PluginEntryLoader = () => Promise<PluginEntry>;
+export type PluginEntryLoader<Entry = PluginEntry> = () => Promise<Entry>;
 
 export interface PluginDefinition {
   readonly id: string;
   readonly provides?: readonly RemoteContract[];
   readonly requires?: readonly RemoteContract[];
-  readonly host?: PluginEntryLoader;
+  readonly host?: PluginEntryLoader<HostPluginEntry>;
   readonly web?: PluginEntryLoader;
 }
 

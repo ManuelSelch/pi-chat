@@ -15,11 +15,18 @@ export interface RemoteContract<Methods extends Readonly<Record<string, RemoteMe
   readonly methods: Methods;
 }
 
-/** A future transport-bound client; defining a contract does not implement calls. */
+/** Async contract client shape; defining a contract does not implement calls. */
 export type RemoteContractClient<C extends RemoteContract> = {
   readonly [M in keyof C["methods"]]: (
     input: ReturnType<C["methods"][M]["input"]["parse"]>,
   ) => Promise<ReturnType<C["methods"][M]["output"]["parse"]>>;
+};
+
+/** Host handlers may return a validated result synchronously or asynchronously. */
+export type RemoteContractImplementation<C extends RemoteContract> = {
+  readonly [M in keyof C["methods"]]: (
+    input: ReturnType<C["methods"][M]["input"]["parse"]>,
+  ) => ReturnType<C["methods"][M]["output"]["parse"]> | Promise<ReturnType<C["methods"][M]["output"]["parse"]>>;
 };
 
 export function assertIdentifier(id: string, kind: string): void {
