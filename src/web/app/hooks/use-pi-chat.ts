@@ -1,3 +1,4 @@
+import { createFileOpeningAction } from "../../../plugins/file-opening/index.js";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocalStorage } from "@mantine/hooks";
 import { useInboxLifecycle } from "../../features/sessions/inbox/hooks/use-inbox-lifecycle.js";
@@ -13,11 +14,13 @@ import { sameSessionPath } from "../../features/sessions/utils/session-projectio
 export function usePiChat() {
   const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
   const clientRef = useRef<PiClient | undefined>(undefined);
+  const fileActionRef = useRef<ReturnType<typeof createFileOpeningAction> | undefined>(undefined);
   const [serverEndpoint] = useState(() => loadEndpoint(window.location));
 
   useEffect(() => {
     const client = new PiClient({ endpoint: serverEndpoint.endpoint, transport: browserTransport });
     clientRef.current = client;
+    fileActionRef.current = createFileOpeningAction(client);
     const unbind = bindPiChat(client, dispatch);
     const stopErrors = client.onError((error) => {
       if (error.code === "listenerError") console.warn("[pi-chat] SDK subscriber failed", error);
@@ -25,7 +28,7 @@ export function usePiChat() {
     client.start(); // SDK defers a tick, so StrictMode's probe never opens a socket.
     return () => {
       unbind(); stopErrors();
-      if (clientRef.current === client) clientRef.current = undefined;
+      if (clientRef.current === client) { clientRef.current = undefined; fileActionRef.current = undefined; }
       client.dispose(); // Disconnecting the UI never closes a server runtime.
     };
   }, [serverEndpoint]);
@@ -50,7 +53,12 @@ export function usePiChat() {
     const id = await request((client) => client.createSession(path, { signal })); dispatch({ type: "focusSession", sessionId: id }); return id;
   }, [request]);
   const completeCommandArguments = useCallback((sessionId: string, name: string, prefix: string, signal?: AbortSignal) => request((client) => client.completeCommandArguments(sessionId, name, prefix, { signal })), [request]);
-  const openFile = useCallback((sessionId: string, path: string) => request((client) => client.openFile(sessionId, path)), [request]);
+  const openFile = useCallback((sessionId: string, path: string) => {
+    try {
+      requireClient();
+      return fileActionRef.current!(sessionId, path);
+    } catch (error) { return Promise.reject(error); }
+  }, [requireClient]);
   const archiveSession = useCallback((path: string, archived: boolean) => request((client) => client.archiveSession(path, archived)), [request]);
   const pinProject = useCallback((path: string, pinned: boolean) => request((client) => client.pinProject(path, pinned)), [request]);
   const removeProject = useCallback((path: string) => request((client) => client.removeProject(path)), [request]);

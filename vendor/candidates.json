@@ -8,11 +8,11 @@
     "version": "0.3.0-plugin.1"
   },
   "@manuelselch/pi-server": {
-    "archive": "manuelselch-pi-server-0.4.0-plugin.1.tgz",
+    "archive": "manuelselch-pi-server-0.4.0-plugin.2.tgz",
     "sourceRepository": "https://github.com/ManuelSelch/pi-server",
-    "sourceRevision": "3ad4362560abf7dba7a280acfbbd95146478be04",
-    "sha256": "0785717555b14e5f8aa7b69253b3060c1f6914e525872feb19dcd1256f22d06a",
-    "integrity": "sha512-vzaWiLLo33Ho06z4V+nvb1pxlHAOtTR2VOGDQL0yftGVuRxCubIs7KnP+TndXCNR9zjY/ReAD9AVPa/Ju8NryQ==",
-    "version": "0.4.0-plugin.1"
+    "sourceRevision": "b7f0295d10cad3016ad3eacba959f0b16d911c7d",
+    "sha256": "7d9de18890be2ac4c5091dcb8ee774fec931cb02d28e5ed2305d0e9f4572a5b3",
+    "integrity": "sha512-lyffHFjl//XYJLhuJQ7dTgbgjhRn9l37TpRwJDArYLh4173uYu7YJUfWi1Bs8pUdDFTXUpxB1Fip6IDzyzz4WA==",
+    "version": "0.4.0-plugin.2"
   }
 }

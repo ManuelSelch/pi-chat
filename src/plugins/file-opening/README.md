@@ -1,9 +1,8 @@
-# File-opening web plugin scaffold
+# File-opening plugin
 
-- `index.ts` uses `definePlugin` from `@manuelselch/pi-sdk/plugins`; no per-plugin package or separate manifest.
-- The entry requires the SDK-owned `/plugins/file-opening` contract and lazily exposes only `web.tsx`.
-- Host scaffold/runtime ownership moved to Pi Server; Chat carries no backend entry or copied shared contract.
-- Web setup deliberately throws until implementation; this plugin is not activated.
-- Existing file opening is unchanged: explicit runtime identity, server-local paths and the existing server OS opener.
-- Tests check the installed declaration boundary and explicit non-implementation, not a working web plugin.
-- See [plugin boundaries](../../../docs/plugins.md).
+- [Entry](index.ts) exports the SDK-owned contract and [browser adapter](client.ts); no browser plugin loader is needed.
+- Chat explicitly registers Server's `createFileOpeningPlugin` and allowlists `fileOpeningContract` at [startup](../../host/index.ts).
+- The adapter calls `client.plugin(fileOpeningContract).open({ sessionId, path })` on the existing connection, coalesces pending identical requests and maps structured failures to UI rejections.
+- Confirmed runtime removal ends the local wait; disconnect, disposal and timeout use SDK rejection. No automatic retry or cancellation of server-side OS effects is promised.
+- Server resolves public runtime IDs and server-local paths against the named session, validates readable regular files and opens in the default macOS application. It does not reveal in Finder or change the folder picker.
+- See [plugin boundaries](../../../docs/plugins.md), [adapter integration tests](../../web/app/__test__/use-pi-chat.dom.test.tsx) and [transcript tests](../../web/features/chat/transcript/__test__/file-links.dom.test.tsx).

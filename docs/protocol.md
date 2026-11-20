@@ -53,7 +53,8 @@ Common typed operations used by Chat:
 | `runExtensionAction` | `extension.run` | Extension work admitted |
 | `completeCommandArguments` | `command.complete` | Session-bound suggestions returned; command not executed |
 | `browseDirectories` | `directory.browse` | Server-local directory listing returned |
-| `openFile` | `file.open` | Server OS opener accepted the file; no bytes transferred or display guarantee |
+| Chat file-link action | `plugin.call` with `fileOpeningContract.open` | Structured file result; default server OS application, no bytes transferred or display guarantee |
+| SDK `openFile` | `file.open` | Separate existing protocol operation; Chat file links do not use or fall back to it |
 | `archiveSession` | `session.archive` | Saved-history metadata changed; persistence uncertainty must remain visible |
 | `pinProject`, `removeProject` | `project.pin`, `project.remove` | Catalogue metadata changed, not filesystem deletion |
 | `restartServer` | `server.restart` | Restart attempt admitted, not healthy-successor confirmation |

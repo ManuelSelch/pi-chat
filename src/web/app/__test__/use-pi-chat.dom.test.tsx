@@ -109,8 +109,9 @@ it("keeps focus local and preserves it over reconnect with authoritative snapsho
 it("keeps file requests stable, coalesced and independent of runtime errors", async () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect([snapshotData({ sessionId: "s", runtime: { status: "running", lastError: "Model failed" } })]);
   const open = result.current.openFile; const pending = open("s", "report.pdf"); expect(open("s", "report.pdf")).toBe(pending);
+  expect(socket.requests.at(-1)).toMatchObject({ method: "plugin.call", params: { contractId: "file-opening", contractVersion: 1, method: "open", input: { sessionId: "s", path: "report.pdf" } } });
   act(() => socket.deliver(coreEvent("message.delta", { runId: "r", delta: "token" }, "s", 1))); expect(result.current.openFile).toBe(open);
-  const rejected = expect(pending).rejects.toMatchObject({ code: "notFound" }); await act(async () => socket.reject("notFound", "File not found")); await rejected; expect(result.current.app.sessions.s?.error).toBeUndefined();
+  const rejected = expect(pending).rejects.toMatchObject({ code: "notFound" }); await act(async () => socket.reply({ value: { ok: false, error: { code: "notFound", message: "File not found" } } })); await rejected; expect(result.current.app.sessions.s?.error).toBeUndefined();
 });
 it("cancels file waits on confirmed close and never replays them after reconnect", async () => {
   const { result, unmount } = renderHook(() => usePiChat()); const socket = connect(); const first = result.current.openFile("s", "report.pdf"); const cancelled = expect(first).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" });
@@ -119,6 +120,33 @@ it("cancels file waits on confirmed close and never replays them after reconnect
   act(() => void vi.advanceTimersByTime(250)); const next = Socket.current; act(() => { next.acceptConnection(); next.initialize([]); }); expect(next.requests.map(request => request.method)).toEqual(["server.initialize"]);
   const third = result.current.openFile("other", "report.pdf"); const disposed = expect(third).rejects.toMatchObject({ code: "disposed", outcome: "unknown" }); await act(async () => unmount()); await disposed;
 });
+it("releases completed file waits and never falls back when a plugin is unavailable", async () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect();
+  const pending = result.current.openFile("s", "report.pdf");
+  await act(async () => socket.reply({ value: { ok: true } }));
+  await expect(pending).resolves.toBeUndefined();
+
+  const retry = result.current.openFile("s", "report.pdf");
+  expect(retry).not.toBe(pending);
+  const rejected = expect(retry).rejects.toMatchObject({ code: "contractUnavailable" });
+  await act(async () => socket.reject("contractUnavailable", "Contract is not exposed."));
+  await rejected;
+  expect(socket.requests.slice(1).map(request => request.method)).toEqual(["plugin.call", "plugin.call"]);
+});
+
+it("times out file plugin waits without retrying OS side effects", async () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect();
+  const pending = result.current.openFile("s", "report.pdf");
+  const rejected = expect(pending).rejects.toMatchObject({ code: "timeout", outcome: "unknown" });
+
+  await act(async () => vi.advanceTimersByTime(10_000));
+
+  await rejected;
+  expect(socket.requests.slice(1).map(request => request.method)).toEqual(["plugin.call"]);
+});
+
 it("does not show runtime failure metadata as a dismissible composer popup", () => {
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   render(<MantineProvider><AppControllerProvider><SessionActionsProvider><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} /></SessionActionsProvider></AppControllerProvider></MantineProvider>);

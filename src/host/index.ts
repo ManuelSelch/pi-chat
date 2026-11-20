@@ -5,6 +5,8 @@ import { createRestartService } from "./restart-service.js";
 import { createPiServer, createFileLogger } from "@manuelselch/pi-server";
 import { installVersionRoute } from "./version-route.js";
 import { packageVersion } from "../shared/node/package-version.js";
+import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
+import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 import counterPlugin from "../plugins/counter-demo/index.js";
 import { counterContract } from "../plugins/counter-demo/contract.js";
 
@@ -17,7 +19,8 @@ const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
 const server = await createPiServer({
   staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger,
-  plugins: [counterPlugin], pluginRpcContracts: [counterContract],
+  plugins: services => [counterPlugin, createFileOpeningPlugin({ open: services.openFile })],
+  pluginRpcContracts: [counterContract, fileOpeningContract],
 });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 

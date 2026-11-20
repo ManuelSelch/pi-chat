@@ -1,21 +1,19 @@
 import { expect, test } from "vitest";
-import fileOpening from "../index.js";
+import * as fileOpening from "../index.js";
 import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 
-test("identifies the inactive file-opening plugin", () => {
-  expect(fileOpening.id).toBe("file-opening");
-  expect(fileOpening.requires).toEqual([fileOpeningContract]);
+test("exposes the shared contract and app-composed browser action", () => {
+  expect(fileOpening.fileOpeningContract).toBe(fileOpeningContract);
+  expect(fileOpening.createFileOpeningAction).toBeTypeOf("function");
 });
 
 test("does not carry a host implementation in the browser plugin", () => {
   expect("host" in fileOpening).toBe(false);
 });
 
-test("keeps web setup explicitly unimplemented", async () => {
-  const web = await fileOpening.web();
-
-  expect(() => web.setup()).toThrow("File-opening web plugin is not implemented.");
+test("uses explicit app composition rather than an unimplemented web loader", () => {
+  expect(fileOpening).not.toHaveProperty("web");
 });
 
 test("requires an explicit runtime and validates file-opening results", () => {

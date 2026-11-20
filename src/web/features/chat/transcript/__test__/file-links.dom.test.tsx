@@ -47,7 +47,7 @@ describe("transcript file actions", () => {
     expect(renders.mock.calls.filter(([text]) => text === historicalText)).toHaveLength(1);
     fireEvent.click(screen.getByRole("link", { name: "Historical file" }));
     expect(socket.requests.slice(1)).toHaveLength(1);
-    expect(socket.requests[1]).toMatchObject({ method: "file.open", sessionId: "first", params: { path: "./report.pdf" } });
+    expect(socket.requests[1]).toMatchObject({ method: "plugin.call", params: { contractId: "file-opening", contractVersion: 1, method: "open", input: { sessionId: "first", path: "./report.pdf" } } });
   });
 
   it("opens assistant/thinking/custom/user links without prompt messages and suppresses duplicates", async () => {
@@ -57,18 +57,28 @@ describe("transcript file actions", () => {
       expect(link.getAttribute("href")).not.toBeNull(); // Native anchors retain Enter activation.
       fireEvent.click(link); fireEvent.click(link);
     }
-    expect(socket.requests.slice(1).map((message) => message.method)).toEqual(Array(4).fill("file.open"));
-    expect(socket.requests.slice(1).map((message) => "path" in message.params ? message.params.path : undefined)).toEqual(["./report.pdf", "./thought.md", "./custom.md", "./user.md"]);
+    expect(socket.requests.slice(1).map((message) => message.method)).toEqual(Array(4).fill("plugin.call"));
+    expect(socket.requests.slice(1).map((message) => message.method === "plugin.call" ? message.params.input : undefined)).toEqual(["./report.pdf", "./thought.md", "./custom.md", "./user.md"].map(path => ({ sessionId: "first", path })));
     await act(async () => {
-      for (const request of socket.requests.slice(1)) socket.reply({ state: "completed" }, request.requestId);
+      for (const request of socket.requests.slice(1)) socket.reply({ value: { ok: true } }, request.requestId);
     });
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows structured plugin failures outside chat history", async () => {
+    const socket = start();
+    fireEvent.click(screen.getByRole("link", { name: "Historical file" }));
+
+    await act(async () => socket.reply({ value: { ok: false, error: { code: "notFound", message: "File not found on the server." } } }));
+
+    expect(screen.getByRole("alert").textContent).toContain("File not found on the server.");
+    expect(socket.requests.slice(1).map(request => request.method)).toEqual(["plugin.call"]);
   });
 
   it("captures the new session after switching tabs", () => {
     const socket = start();
     fireEvent.click(screen.getByRole("button", { name: "Focus second" }));
     fireEvent.click(screen.getByRole("link", { name: "Historical file" }));
-    expect(socket.requests[1]).toMatchObject({ method: "file.open", sessionId: "second", params: { path: "./report.pdf" } });
+    expect(socket.requests[1]).toMatchObject({ method: "plugin.call", params: { input: { sessionId: "second", path: "./report.pdf" } } });
   });
 });

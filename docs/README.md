@@ -13,7 +13,7 @@ below do not imply that tests or visual acceptance have just run.
   response meaning, recovery and cancellation.
 - [Extension API](extension-api.md): public registry and native Pi UI contributions.
 - [Plugin primitives](plugins.md), [host runtime/RPC](plugin-runtime.md) and [counter demo](counter-demo.md): declarations,
-  activation/cleanup, typed WebSocket calls and the inactive file-opening scaffold.
+  activation/cleanup, typed WebSocket calls and the file-opening plugin.
 - [Development](development.md): setup, build/test/CI, source organization and
   documentation/scenario workflow.
 - [Application drivers](integration-tests/DRIVERS.md) and

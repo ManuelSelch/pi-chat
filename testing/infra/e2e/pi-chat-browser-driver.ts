@@ -22,6 +22,8 @@ import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
 import { BrowserCounterDriver } from "./browser-counter-driver.js";
+import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
+import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 import counterPlugin from "../../../src/plugins/counter-demo/index.js";
 import { counterContract } from "../../../src/plugins/counter-demo/contract.js";
 
@@ -88,8 +90,8 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: options.counterDemo === false ? [] : [counterPlugin],
-        pluginRpcContracts: options.counterDemo === false ? [] : [counterContract],
+        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), ...(options.counterDemo === false ? [] : [counterPlugin])],
+        pluginRpcContracts: [fileOpeningContract, ...(options.counterDemo === false ? [] : [counterContract])],
         catalogue: {
           lister: { listAll: () => world.listSessions() },
           sessionsDirectory: world.sessionDir,
