@@ -93,6 +93,7 @@ Optional capabilities expose these operations and presentation contributions. Cl
 | `project.pin` | Server; set project pin state |
 | `project.remove` | Server; remove catalogue membership |
 | `file.open` | Session; open a server-local file |
+| `plugin.call` | Server; call an explicitly exposed contract revision/method with JSON input; returns `{ value }`. See [plugin RPC](PLUGINS.md). |
 | `server.restart` | Server; acknowledge before shutdown where supported; disconnect alone does not prove restart succeeded |
 
 Paths refer to the server. `file.open` opens there, not on iOS. Removing a project removes catalogue membership, not files. Archiving rejects busy runtimes, persists metadata, then closes an open runtime; partial success must be reported rather than hidden.

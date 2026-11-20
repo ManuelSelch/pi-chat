@@ -12,7 +12,7 @@ Every arrow means “source imports target”, including type-only imports; it d
 | `application` | Session commands and lifecycle coordination, mutation guards, extension hooks and shared live-runtime registry. |
 | `runtime` | Runtime contracts and the Pi adapter: lazy agent creation, transcript/tool/event mapping, headless theme and web extension UI context. |
 | `projects` | Persisted-session catalogue, project metadata, directory browsing and Git worktree discovery. |
-| `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. |
+| `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. The transport's explicit [RPC allowlist](PLUGINS.md) exposes selected contracts over the existing WebSocket. |
 | `extensions` | In-process extension registrations, session-host binding and UI prompt/status/widget registries. |
 | `bootstrap` | Process restart planning/execution and PID-file publication. |
 | `files` | File-open validation and delegation to the system opener. |

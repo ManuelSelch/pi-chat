@@ -55,7 +55,7 @@ Headless by default: `/health` and `/ws`, no session creation or browser launch.
 ## Public API ownership
 
 - Root: async `createPiServer(options)` (await before listening), `createPiRuntimeAdapter(runtime)`, `createRestartService(options)`, `createFileLogger(options)` and their structural contracts.
-- Server options: explicit host `plugins`, runtime/factory, optional static directory, restart, extensions, structural file-open service, logger and catalogue configuration (lister, session directory, discovery, metadata file, home directory; null suppresses home).
+- Server options: explicit host `plugins`, optional `pluginRpcContracts` allowlist ([RPC guide](docs/PLUGINS.md)), runtime/factory, optional static directory, restart, extensions, structural file-open service, logger and catalogue configuration (lister, session directory, discovery, metadata file, home directory; null suppresses home).
 - Handle: `httpServer` for listen/address/error ownership; idempotent async `close()`. Close disposes transport, plugins and runtimes; callers flush/close injected loggers. Runtime creation stays lazy.
 - `/plugins`: isolated host runtime; [plugin lifecycle](docs/PLUGINS.md) documents startup readiness, rollback and cleanup.
 - `/extensions`: existing registration types and registry functions, retaining `Symbol.for("pi-chat.extension-registry")`, plus the `PiChatSessionHost` that a running server binds for in-process extensions. Test reset is not exported here.

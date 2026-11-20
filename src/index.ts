@@ -1,5 +1,6 @@
 import express from "express";
-import type { PluginDefinition } from "@manuelselch/pi-sdk/plugins";
+import type { PluginDefinition, RemoteContract } from "@manuelselch/pi-sdk/plugins";
+import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
 import { resolve } from "node:path";
@@ -36,6 +37,8 @@ export interface CatalogueOptions {
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
   plugins?: readonly PluginDefinition[];
+  /** Contracts explicitly exposed over the existing WebSocket; none by default. */
+  pluginRpcContracts?: readonly RemoteContract[];
   runtime?: RuntimeAdapter;
   runtimeFactory?: RuntimeAdapterFactory;
   staticDirectory?: string;
@@ -67,6 +70,7 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
   }
 
   try {
+    const pluginRpc = new PluginRpc(plugins, options.pluginRpcContracts ?? []);
     const catalogue = options.catalogue ?? {};
     const projects = new ProjectSessionService(catalogue.lister, catalogue.sessionsDirectory, catalogue.discovery,
       catalogue.metadataFile ? new ProjectMetadataStore(catalogue.metadataFile) : undefined,
@@ -90,7 +94,7 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
     const extensions = options.extensions ?? getPiChatExtensionRegistry();
     const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
     teardown.push(() => chat.dispose());
-    const transport = new WebSocketTransport(httpServer, chat, options.logger);
+    const transport = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);
     teardown.unshift(() => transport.close());
     const releaseSessionHost = extensions.bindSessionHost({ archive: path => transport.archiveSession(path) });
     teardown.unshift(releaseSessionHost);

@@ -4,9 +4,10 @@ import { SessionBusyError, type ChatApplicationService } from "../application/ch
 import type { ServerPublisher } from "./server-publisher.js";
 import { DirectoryOperationError } from "../projects/directory-browser-service.js";
 import { V2OperationError, type V2Execution } from "./v2-connection.js";
+import type { PluginRpc } from "./plugin-rpc.js";
 
 /** Validates/admit synchronously; no admitted work runs before its receipt. */
-export async function executeOperation(command: Exclude<Request, Request<"server.initialize">>, chat: ChatApplicationService, publisher: ServerPublisher): Promise<V2Execution> {
+export async function executeOperation(command: Exclude<Request, Request<"server.initialize">>, chat: ChatApplicationService, publisher: ServerPublisher, pluginRpc?: PluginRpc): Promise<V2Execution> {
   const raw = command.sessionId ? publisher.rawId(command.sessionId, command.method === "session.close") : undefined;
   const completed = (result?: unknown, afterResponse?: () => Promise<void> | void): V2Execution => ({ kind: "completed", result: result === undefined ? { state: "completed" } : result, afterResponse });
   const accepted = (run: () => Promise<void>): V2Execution => ({ kind: "accepted", operationId: randomUUID(), run });
@@ -25,6 +26,10 @@ export async function executeOperation(command: Exclude<Request, Request<"server
     if (raw && ["model.select", "thinking.level"].includes(command.method) && chat.captureSnapshot(raw).isStreaming) throw new V2OperationError("sessionBusy", "Wait for the current run before changing settings.");
     switch (command.method) {
       case "server.ping": return completed();
+      case "plugin.call": {
+        if (!pluginRpc?.enabled) throw new V2OperationError("unsupportedOperation", "Plugin RPC is disabled.");
+        return completed(await pluginRpc.call(command.params));
+      }
       case "session.list": return completed(publisher.inventory());
       case "project.list": await publisher.refreshProjects(); return completed(publisher.projects());
       case "session.snapshot": { const capture = await publisher.prepareSnapshot(command.sessionId); return completed(capture()); }

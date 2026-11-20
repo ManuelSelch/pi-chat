@@ -7,6 +7,7 @@ import { ServerPublisher } from "./server-publisher.js";
 import { executeOperation } from "./command-handler.js";
 import { V2Connection } from "./v2-connection.js";
 import type { FileLogger } from "../logging/file-logger.js";
+import type { PluginRpc } from "./plugin-rpc.js";
 
 const MAX_FRAME_BYTES = 16_777_216;
 const MAX_SEND_BYTES = 16_777_216;
@@ -24,7 +25,7 @@ export class WebSocketTransport {
   private readonly connections = new Map<WebSocket, { connection: V2Connection; capabilities: readonly Capability[] }>();
   private readonly publisher: ServerPublisher;
   private readonly unsubscribe: () => void;
-  constructor(httpServer: Server, private readonly chat: ChatApplicationService, private readonly logger?: FileLogger) {
+  constructor(httpServer: Server, private readonly chat: ChatApplicationService, private readonly logger?: FileLogger, private readonly pluginRpc?: PluginRpc) {
     this.server = new WebSocketServer({ server: httpServer, path: "/ws", maxPayload: MAX_FRAME_BYTES,
       verifyClient: ({ req }, done) => done(validOrigin(req), 403, "Browser origin is not allowed") });
     this.publisher = new ServerPublisher(chat, event => this.publish(event), logger);
@@ -66,7 +67,7 @@ export class WebSocketTransport {
   private connect(socket: WebSocket): void {
     const connectionId = randomUUID(); let selected: Capability[] = [];
     this.logger?.info("websocket.open", { connectionId });
-    const capabilities: Capability[] = ["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
+    const capabilities: Capability[] = ["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", ...(this.pluginRpc?.enabled ? ["plugin.call" as const] : []), ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
     const connection = new V2Connection({
       serverInstanceId: this.publisher.serverInstanceId, connectionId, capabilities,
       isWritable: () => socket.readyState === WebSocket.OPEN,
@@ -74,7 +75,7 @@ export class WebSocketTransport {
       send: message => this.send(socket, message), close: (code, reason) => socket.close(code, reason),
       prepareInitialize: async (_params, selectedCapabilities) => { selected = selectedCapabilities; return this.publisher.prepareInitial(connectionId, selected); },
       execute: async request => {
-        const execution = await executeOperation(request, this.chat, this.publisher);
+        const execution = await executeOperation(request, this.chat, this.publisher, this.pluginRpc);
         if (execution.kind === "completed" && !selected.includes("presentation") && (request.method === "session.snapshot" || request.method === "session.open" || request.method === "session.create")) {
           if (request.method === "session.snapshot") {
             const { presentation: _, ...core } = snapshotSchema.parse(execution.result); return { ...execution, result: core };
