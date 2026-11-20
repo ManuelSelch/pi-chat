@@ -13,19 +13,19 @@ export interface HostPluginEntry {
   setup(context: HostPluginContext): void | Promise<void>;
 }
 
-/** Web activation is not implemented by the host runtime. */
-export interface PluginEntry {
-  setup(): void | Promise<void>;
+/** The embedding web application owns this context and activation. */
+export interface PluginEntry<Context = never> {
+  setup: (context: Context) => void | Promise<void>;
 }
 
 export type PluginEntryLoader<Entry = PluginEntry> = () => Promise<Entry>;
 
-export interface PluginDefinition {
+export interface PluginDefinition<WebContext = never> {
   readonly id: string;
   readonly provides?: readonly RemoteContract[];
   readonly requires?: readonly RemoteContract[];
   readonly host?: PluginEntryLoader<HostPluginEntry>;
-  readonly web?: PluginEntryLoader;
+  readonly web?: PluginEntryLoader<PluginEntry<WebContext>>;
 }
 
 /** Describe a built-in without loading or activating either environment. */

@@ -63,6 +63,18 @@ test("invalid input is rejected before sending", async () => {
   expect(socket.sent).toHaveLength(1);
 });
 
+test("cancels a typed plugin wait locally without replaying its request", async () => {
+  const abort = new AbortController();
+  const result = client.plugin(counterContract).increment(null, { signal: abort.signal });
+  const rejected = expect(result).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" });
+
+  abort.abort();
+  await rejected;
+  reply(1);
+
+  expect(socket.sent).toHaveLength(2);
+});
+
 test("validates plugin-specific output", async () => {
   const result = client.plugin(counterContract).increment(null);
   reply(-1);

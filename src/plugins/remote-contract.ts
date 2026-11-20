@@ -1,3 +1,7 @@
+import type { CancellationSignal } from "../platform.js";
+
+export interface RemoteCallOptions { signal?: CancellationSignal }
+
 /** Structural validator interface; Zod schemas work without a framework dependency. */
 export interface ValueSchema<T = unknown> {
   parse(value: unknown): T;
@@ -19,6 +23,7 @@ export interface RemoteContract<Methods extends Readonly<Record<string, RemoteMe
 export type RemoteContractClient<C extends RemoteContract> = {
   readonly [M in keyof C["methods"]]: (
     input: ReturnType<C["methods"][M]["input"]["parse"]>,
+    options?: RemoteCallOptions,
   ) => Promise<ReturnType<C["methods"][M]["output"]["parse"]>>;
 };
 

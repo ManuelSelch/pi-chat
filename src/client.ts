@@ -123,7 +123,7 @@ export class PiClient {
   }
   /** Typed server-scoped RPC over this connection; never activates or retries a plugin. */
   plugin<C extends RemoteContract>(contract: C): RemoteContractClient<C> {
-    const methods = Object.entries(contract.methods).map(([name, method]) => [name, async (input: unknown) => {
+    const methods = Object.entries(contract.methods).map(([name, method]) => [name, async (input: unknown, options: RequestOptions = {}) => {
       let params: Params<"plugin.call">;
       try {
         params = pluginCallParamsSchema.parse({
@@ -131,7 +131,7 @@ export class PiClient {
         });
       } catch { throw new SDKError("invalidRequest", "Invalid plugin call input.", "notSent"); }
 
-      const result = await this.request("plugin.call", params);
+      const result = await this.request("plugin.call", params, undefined, options);
       try { return method.output.parse(result.value); }
       catch { throw new SDKError("invalidMessage", "Invalid plugin call result.", "unknown"); }
     }]);

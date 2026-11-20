@@ -1,6 +1,6 @@
 {
   "name": "@manuelselch/pi-sdk",
-  "version": "0.3.0-plugin.1",
+  "version": "0.3.0-plugin.2",
   "type": "module",
   "license": "MIT",
   "description": "Pi Server TypeScript SDK and authoritative v2 protocol",
@@ -16,6 +16,10 @@
     "./plugins": {
       "types": "./dist/plugins/index.d.ts",
       "import": "./dist/plugins/index.js"
+    },
+    "./plugins/folder-opening": {
+      "types": "./dist/plugins/folder-opening.d.ts",
+      "import": "./dist/plugins/folder-opening.js"
     },
     "./plugins/file-opening": {
       "types": "./dist/plugins/file-opening.d.ts",

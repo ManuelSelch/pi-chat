@@ -64,6 +64,18 @@ test("allows web-only plugins and contracts required from another plugin", () =>
   expect(plugin.requires[0]?.id).toBe("files.opening");
 });
 
+test("retains an embedding application's typed web context without loading entries", async () => {
+  const register = vi.fn();
+  const web = vi.fn(async () => ({ setup(ctx: { register(name: string): void }) { ctx.register("folder-picker"); } }));
+  const plugin = definePlugin({ id: "folders", web });
+
+  expect(web).not.toHaveBeenCalled();
+  const entry = await plugin.web();
+  expectTypeOf(entry.setup).parameter(0).toEqualTypeOf<{ register(name: string): void }>();
+  entry.setup({ register });
+  expect(register).toHaveBeenCalledExactlyOnceWith("folder-picker");
+});
+
 test("rejects plugins with no entries or invalid identities", () => {
   expect(() => definePlugin({ id: "files" })).toThrow("at least one entry");
   expect(() => definePlugin({ id: "bad id", host: async () => ({ setup() {} }) })).toThrow("Invalid plugin id");
