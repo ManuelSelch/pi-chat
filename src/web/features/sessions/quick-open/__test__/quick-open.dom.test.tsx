@@ -129,6 +129,21 @@ it("keeps mouse hover inactive until pointer movement, and keyboard input clears
   expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
   expect(rows[0]!.closest('[class*="pointerActive"]')).toBeNull();
 });
+it("ignores stationary pointer events after keyboard selection wraps", () => {
+  setup();
+  const input = screen.getByRole("textbox");
+  fireEvent.change(input, { target: { value: "%" } });
+  const rows = screen.getAllByRole("option");
+  fireEvent.pointerMove(rows[0]!, { pointerType: "mouse", clientX: 10, clientY: 10 });
+  fireEvent.keyDown(input, { key: "ArrowUp" });
+  expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+
+  fireEvent.pointerMove(rows[0]!, { pointerType: "mouse", clientX: 10, clientY: 10 });
+  expect(rows[1]!.getAttribute("aria-selected")).toBe("true");
+
+  fireEvent.pointerMove(rows[0]!, { pointerType: "mouse", clientX: 11, clientY: 10 });
+  expect(rows[0]!.getAttribute("aria-selected")).toBe("true");
+});
 it("keeps existing project/session activation with new worktree identity", () => {
   const handlers = setup();
   fireEvent.click(screen.getByRole("option", { name: /Session: feat\/palette.*Improve search/ }));
