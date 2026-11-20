@@ -12,6 +12,7 @@ below do not imply that tests or visual acceptance have just run.
 - [Protocol integration](protocol.md): installed SDK authority, identities,
   response meaning, recovery and cancellation.
 - [Extension API](extension-api.md): public registry and native Pi UI contributions.
+- [Plugin primitives](plugins.md): local declarations and inactive file-opening scaffold.
 - [Development](development.md): setup, build/test/CI, source organization and
   documentation/scenario workflow.
 - [Application drivers](integration-tests/DRIVERS.md) and

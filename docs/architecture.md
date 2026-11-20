@@ -29,6 +29,11 @@ for the installed contract boundary. Public server imports are the
 root, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
+## Plugin declarations
+
+- [Local plugin primitives](plugins.md) define lazy built-ins and typed remote contracts.
+- File opening has an inactive scaffold; no plugin runtime or transport is wired into the application.
+
 ## Browser composition and state
 
 [App](../src/web/app/App.tsx) composes the controller, confirmations, overlay and
