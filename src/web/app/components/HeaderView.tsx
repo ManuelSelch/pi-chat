@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ActionIcon, AppShell, Group, Text } from "@mantine/core";
 import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import type { PiChatBadge, PiChatButton, Tab } from "../../types/view-types.js";
@@ -6,6 +7,7 @@ import { TabBar } from "../../features/sessions/tabs/components/TabBar.js";
 import { MANTINE_COLOR } from "../../config/theme.js";
 
 interface HeaderViewProps {
+  tools?: ReactNode;
   home: boolean;
   title: string;
   tabs: readonly Tab[];
@@ -23,6 +25,7 @@ interface HeaderViewProps {
 }
 
 export function HeaderView({
+  tools,
   home,
   title,
   tabs,
@@ -50,6 +53,7 @@ export function HeaderView({
         <Group gap="sm" wrap="nowrap">
           {home ? null : <Slot name="session.status" buttons={buttons} badges={badges} onAction={onAction} />}
           {home ? null : <Slot name="session.header.right" buttons={buttons} badges={badges} onAction={onAction} />}
+          {tools}
           <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Settings" onClick={onOpenSettings}>
               <IconSettings size={18} />
             </ActionIcon>

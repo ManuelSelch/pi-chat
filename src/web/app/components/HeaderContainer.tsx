@@ -5,6 +5,7 @@ import { focusComposer } from "../../hooks/composer-focus.js";
 import { hasSavedSession } from "../../features/sessions/inbox/utils/inbox-model.js";
 import { InboxHeader } from "../../features/sessions/inbox/components/InboxHeader.js";
 import { HeaderView } from "./HeaderView.js";
+import { CounterDemoContainer } from "../../features/counter-demo/components/CounterDemoContainer.js";
 
 export function HeaderContainer() {
   const chat = useAppController();
@@ -18,7 +19,7 @@ export function HeaderContainer() {
     const selected = visibleTabs(app).find(tab => tab.sessionId === app.activeSessionId);
     const project = app.catalogue.projects.find(project => project.path === selected?.projectPath);
     const headerSession = selected && project ? { ...selected, projectName: project.quickChats ? "Quick Chat" : project.repositoryName ?? selected.projectName } : selected;
-    return <InboxHeader session={headerSession} title={selected?.title ?? (home ? "Home" : undefined)}
+    return <InboxHeader tools={<CounterDemoContainer />} session={headerSession} title={selected?.title ?? (home ? "Home" : undefined)}
       branch={project?.worktree?.primary === false ? project.worktree.branch : undefined}
       opened={overlays.state.projects} disabled={app.connection !== "open"} pending={chat.inbox.pending} saved={hasSavedSession(app.catalogue, selected?.sessionPath)}
       buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction}
@@ -31,6 +32,7 @@ export function HeaderContainer() {
 
   return (
     <HeaderView
+      tools={<CounterDemoContainer />}
       home={home}
       title={title}
       tabs={visibleTabs(app)}

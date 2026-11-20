@@ -5,6 +5,8 @@ import { createRestartService } from "./restart-service.js";
 import { createPiServer, createFileLogger } from "@manuelselch/pi-server";
 import { installVersionRoute } from "./version-route.js";
 import { packageVersion } from "../shared/node/package-version.js";
+import counterPlugin from "../plugins/counter-demo/index.js";
+import { counterContract } from "../plugins/counter-demo/contract.js";
 
 const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
@@ -13,7 +15,10 @@ const cwd = resolve(process.env.PI_CHAT_CWD ?? process.cwd());
 const isDevelopment = process.env.PI_CHAT_DEV === "1";
 const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
-const server = await createPiServer({ staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger });
+const server = await createPiServer({
+  staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger,
+  plugins: [counterPlugin], pluginRpcContracts: [counterContract],
+});
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 
 // Signals do not acquire WebSocket control, so existing browsers can reconnect.

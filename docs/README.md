@@ -12,8 +12,8 @@ below do not imply that tests or visual acceptance have just run.
 - [Protocol integration](protocol.md): installed SDK authority, identities,
   response meaning, recovery and cancellation.
 - [Extension API](extension-api.md): public registry and native Pi UI contributions.
-- [Plugin primitives](plugins.md) and [local host runtime](plugin-runtime.md): declarations,
-  in-process activation/cleanup and inactive file-opening scaffold.
+- [Plugin primitives](plugins.md), [host runtime/RPC](plugin-runtime.md) and [counter demo](counter-demo.md): declarations,
+  activation/cleanup, typed WebSocket calls and the inactive file-opening scaffold.
 - [Development](development.md): setup, build/test/CI, source organization and
   documentation/scenario workflow.
 - [Application drivers](integration-tests/DRIVERS.md) and

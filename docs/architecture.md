@@ -33,7 +33,8 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 - [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
 - [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
-- File opening remains an inactive scaffold. Web activation and plugin network transport are not implemented.
+- The [counter demo](counter-demo.md) is explicitly activated/exposed by Chat's host and called through typed RPC over the existing SDK WebSocket. Its count is server-instance-owned; panel lifecycle/uncertainty is feature-owned.
+- File opening remains an inactive scaffold. Web plugin activation is not implemented.
 
 ## Browser composition and state
 

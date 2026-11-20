@@ -57,6 +57,7 @@ Common typed operations used by Chat:
 | `archiveSession` | `session.archive` | Saved-history metadata changed; persistence uncertainty must remain visible |
 | `pinProject`, `removeProject` | `project.pin`, `project.remove` | Catalogue metadata changed, not filesystem deletion |
 | `restartServer` | `server.restart` | Restart attempt admitted, not healthy-successor confirmation |
+| `plugin(contract)` methods | `plugin.call` | Allowlisted server plugin handler completed and returned validated JSON; no Pi session or operation event |
 
 The generic typed `request` API also exposes inventory/catalogue/snapshot queries
 and liveness checks. Optional methods require capabilities selected during
