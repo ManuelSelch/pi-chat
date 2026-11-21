@@ -1,6 +1,6 @@
 {
   "name": "@manuelselch/pi-server",
-  "version": "0.4.0-plugin.2",
+  "version": "0.4.0-plugin.3",
   "license": "MIT",
   "author": "Manuel Selch",
   "repository": {
@@ -79,7 +79,7 @@
     "@earendil-works/pi-mcp": "1.4.0",
     "@earendil-works/pi-telemetry": "1.4.0",
     "@earendil-works/pi-tui": "1.4.0",
-    "@manuelselch/pi-sdk": "0.3.0-plugin.1",
+    "@manuelselch/pi-sdk": "0.3.0-plugin.2",
     "express": "^5.2.1",
     "ws": "^8.21.3",
     "zod": "^4.6.4"

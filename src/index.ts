@@ -1,6 +1,8 @@
 import express from "express";
 import type { PluginDefinition, RemoteContract } from "@manuelselch/pi-sdk/plugins";
-import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
+import type { DirectoryBrowse, FileOpenResult } from "@manuelselch/pi-sdk/protocol";
+import type { FolderBrowseResult } from "@manuelselch/pi-sdk/plugins/folder-opening";
+import { DirectoryOperationError } from "./projects/directory-browser-service.js";
 import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
@@ -38,6 +40,7 @@ export interface CatalogueOptions {
 export interface ServerPluginServices {
   /** Available to handlers after server readiness, not during plugin setup. */
   openFile(sessionId: string, path: string): Promise<FileOpenResult>;
+  browseDirectories(request: DirectoryBrowse): Promise<FolderBrowseResult>;
 }
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
@@ -62,7 +65,22 @@ export function createPiRuntimeAdapter(runtime: AgentSessionRuntime): RuntimeAda
 }
 export async function createPiServer(options: PiServerOptions = {}): Promise<PiServer> {
   let transport: WebSocketTransport | undefined;
+  let application: ChatApplicationService | undefined;
   const services: ServerPluginServices = {
+    browseDirectories: async request => {
+      if (!application) throw new Error("Server application is not ready.");
+      try {
+        const { parentPath, nextCursor, ...listing } = await application.browseDirectories(request);
+        return { ok: true, listing: { ...listing,
+          ...(parentPath === undefined ? {} : { parentPath }),
+          ...(nextCursor === undefined ? {} : { nextCursor }),
+        } };
+      }
+      catch (error) {
+        if (error instanceof DirectoryOperationError) return { ok: false, error: { code: error.code, message: error.message } };
+        return { ok: false, error: { code: "operationFailed", message: "Unable to read this server folder." } };
+      }
+    },
     openFile: (sessionId, path) => {
       if (!transport) return Promise.reject(new Error("Server application is not ready."));
       return transport.openFile(sessionId, path);
@@ -105,9 +123,10 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
       if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
     });
     const extensions = options.extensions ?? getPiChatExtensionRegistry();
-    const application = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
-    teardown.push(() => application.dispose());
-    const connection = new WebSocketTransport(httpServer, application, options.logger, pluginRpc);
+    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
+    application = chat;
+    teardown.push(() => { application = undefined; return chat.dispose(); });
+    const connection = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);
     transport = connection;
     teardown.unshift(() => { transport = undefined; return connection.close(); });
     const releaseSessionHost = extensions.bindSessionHost({ archive: path => connection.archiveSession(path) });

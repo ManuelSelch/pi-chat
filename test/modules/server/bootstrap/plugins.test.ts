@@ -56,6 +56,7 @@ test("plugin service factories cannot use server actions during setup or after c
     services = provided;
     return [definePlugin({ id: "service-lifetime", host: async () => ({ async setup() {
       await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+      await expect(services.browseDirectories({ path: "~" })).rejects.toThrow("not ready");
       expect(calls.http).not.toHaveBeenCalled();
       expect(calls.chat).not.toHaveBeenCalled();
     } }) })];
@@ -64,6 +65,7 @@ test("plugin service factories cannot use server actions during setup or after c
   await server.close();
 
   await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+  await expect(services.browseDirectories({ path: "~" })).rejects.toThrow("not ready");
 });
 
 test("failed plugin setup rolls back without constructing network or session resources", async () => {
