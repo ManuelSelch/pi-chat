@@ -1,18 +1,18 @@
 {
   "@manuelselch/pi-sdk": {
-    "archive": "manuelselch-pi-sdk-0.3.0-plugin.1.tgz",
+    "archive": "manuelselch-pi-sdk-0.3.0-plugin.2.tgz",
     "sourceRepository": "https://github.com/ManuelSelch/pi-sdk-typescript",
-    "sourceRevision": "dd28130a442368b15b1bf25e3f044e98377480ee",
-    "sha256": "33febc8cebf651b94e15442ab220a239d93e9a6cd1471c8297bb86188bc67884",
-    "integrity": "sha512-AV4c7hGYK+UkeHubOZWARMn1iEtuRrmMFN6GAKP5XKV9G0xpPUtpTkwRSEKbTZ+9MTWbldCsQPG+Puw18uU1Dw==",
-    "version": "0.3.0-plugin.1"
+    "sourceRevision": "b4531f67af247571144723e1d00986eac944cf07",
+    "sha256": "870ee2a23ccc139ae3c0cf7ffe41e9f7dc013ee2922c34c72b0229adee30ab76",
+    "integrity": "sha512-+OUY5iapvrCgP89uNPZJhyNyiNsohXyx68qZJ3db0ozC2tS8GICCTeTmGirFtA2gmmX2HtSmbfvmTQez4G+38Q==",
+    "version": "0.3.0-plugin.2"
   },
   "@manuelselch/pi-server": {
-    "archive": "manuelselch-pi-server-0.4.0-plugin.2.tgz",
+    "archive": "manuelselch-pi-server-0.4.0-plugin.3.tgz",
     "sourceRepository": "https://github.com/ManuelSelch/pi-server",
-    "sourceRevision": "b7f0295d10cad3016ad3eacba959f0b16d911c7d",
-    "sha256": "7d9de18890be2ac4c5091dcb8ee774fec931cb02d28e5ed2305d0e9f4572a5b3",
-    "integrity": "sha512-lyffHFjl//XYJLhuJQ7dTgbgjhRn9l37TpRwJDArYLh4173uYu7YJUfWi1Bs8pUdDFTXUpxB1Fip6IDzyzz4WA==",
-    "version": "0.4.0-plugin.2"
+    "sourceRevision": "5ed800eae3b3f6981ff5acd98cdc2b985ce29738",
+    "sha256": "8e7154c991987a810b3be6df384be097104aca2966c0aa9525faaf48d372e6c8",
+    "integrity": "sha512-DVmFt9yZXIw9e6pCO9citunI7LO9ieWMt28DHKLZNYKK2oBtUHVxzK3Z/+5aOPkZRF/Hmpkyz4wUtVuM1xtf8Q==",
+    "version": "0.4.0-plugin.3"
   }
 }

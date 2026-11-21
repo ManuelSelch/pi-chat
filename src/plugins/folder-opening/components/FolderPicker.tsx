@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Breadcrumbs, Button, Checkbox, Group, Loader, Modal, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
-import { Notice } from "../../../../components/Notice.js";
-import { useComposerFocusReturn } from "../../../../hooks/composer-focus.js";
+import { Notice } from "../../../web/components/Notice.js";
+import { useComposerFocusReturn } from "../../../web/hooks/composer-focus.js";
 import { IconFolder } from "@tabler/icons-react";
-import type { DirectoryBrowse, DirectoryListing } from "../../../../../shared/directories.js";
+import type { DirectoryBrowse, DirectoryListing } from "@manuelselch/pi-sdk/protocol";
 
 interface FolderPickerProps {
   opened: boolean;

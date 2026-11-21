@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocalStorage } from "@mantine/hooks";
 import { useInboxLifecycle } from "../../features/sessions/inbox/hooks/use-inbox-lifecycle.js";
-import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse } from "@manuelselch/pi-sdk";
+import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "../stores/app-state.js";
 import { browserTransport } from "../lib/browser-transport.js";
 import { bindPiChat } from "../lib/sdk-binding.js";
@@ -43,7 +43,6 @@ export function usePiChat() {
     catch (error) { failed(error); }
   }, [requireClient]);
 
-  const browseDirectories = useCallback((query: DirectoryBrowse, signal?: AbortSignal) => request((client) => client.browseDirectories(query, { signal })), [request]);
   const startFolderSession = useCallback(async (path: string, signal?: AbortSignal) => {
     const id = await request((client) => client.createSession(path, { signal })); dispatch({ type: "focusSession", sessionId: id }); return id;
   }, [request]);
@@ -90,7 +89,7 @@ export function usePiChat() {
     closeView: () => {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice" || message.role === "bash")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });
-    }, browseDirectories, startFolderSession, completeCommandArguments,
+    }, startFolderSession, completeCommandArguments,
     archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });

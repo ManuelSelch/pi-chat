@@ -1,6 +1,6 @@
 import { useAppController } from "../../../../app/AppControllerContext.js";
 import { useOverlays } from "../../../../app/overlays/OverlayController.js";
-import { FolderPicker } from "./FolderPicker.js";
+import { FolderPicker } from "../../../../../plugins/folder-opening/index.js";
 
 export function FolderPickerContainer() {
   const chat = useAppController();

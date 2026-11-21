@@ -19,17 +19,19 @@ afterEach(() => {
 });
 
 describe("server host binding", () => {
-  it("registers and exposes only the file-opening plugin", async () => {
+  it("registers and exposes file and folder opening plugins", async () => {
     vi.spyOn(process, "on").mockReturnValue(process);
 
     await import("../index.js");
 
     const options = createServer.mock.calls[0]![0];
-    expect(options.plugins({ openFile: vi.fn() })).toEqual([
+    expect(options.plugins({ openFile: vi.fn(), browseDirectories: vi.fn() })).toEqual([
       expect.objectContaining({ id: "file-opening", host: expect.any(Function) }),
+      expect.objectContaining({ id: "folder-opening", host: expect.any(Function) }),
     ]);
     expect(options.pluginRpcContracts).toEqual([
       expect.objectContaining({ id: "file-opening", version: 1 }),
+      expect.objectContaining({ id: "folder-opening", version: 1 }),
     ]);
   });
 
