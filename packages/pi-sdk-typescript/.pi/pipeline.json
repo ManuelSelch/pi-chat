@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "suites": {
+    "typecheck": {
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "cwd": ".",
+      "timeoutSeconds": 120,
+      "staleAfterMinutes": 30,
+      "auto": "after-agent"
+    },
+    "test": {
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": ".",
+      "timeoutSeconds": 180,
+      "staleAfterMinutes": 30,
+      "auto": "after-agent"
+    },
+    "package": {
+      "command": [
+        "npm",
+        "run",
+        "verify:package"
+      ],
+      "cwd": ".",
+      "timeoutSeconds": 180,
+      "staleAfterMinutes": 30,
+      "auto": "after-agent"
+    },
+    "protocol": {
+      "command": [
+        "bash",
+        "-c",
+        "npm run protocol:generate && npm run probe:swift:generate && git diff --exit-code -- protocol"
+      ],
+      "cwd": ".",
+      "timeoutSeconds": 180,
+      "staleAfterMinutes": 30,
+      "auto": "manual"
+    }
+  },
+  "prepare": {
+    "command": [
+      "npm",
+      "ci",
+      "--ignore-scripts"
+    ],
+    "cwd": ".",
+    "timeoutSeconds": 300
+  }
+}

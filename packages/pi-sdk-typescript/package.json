@@ -1,0 +1,64 @@
+{
+  "name": "@manuelselch/pi-sdk",
+  "version": "0.3.0-plugin.2",
+  "type": "module",
+  "license": "MIT",
+  "description": "Pi Server TypeScript SDK and authoritative v2 protocol",
+  "files": [
+    "dist",
+    "docs/PLUGINS.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins/index.d.ts",
+      "import": "./dist/plugins/index.js"
+    },
+    "./plugins/folder-opening": {
+      "types": "./dist/plugins/folder-opening.d.ts",
+      "import": "./dist/plugins/folder-opening.js"
+    },
+    "./plugins/file-opening": {
+      "types": "./dist/plugins/file-opening.d.ts",
+      "import": "./dist/plugins/file-opening.js"
+    },
+    "./extension-ui": {
+      "types": "./dist/extension-ui.d.ts",
+      "import": "./dist/extension-ui.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol/index.d.ts",
+      "import": "./dist/protocol/index.js"
+    },
+    "./protocol/*": "./dist/protocol/*"
+  },
+  "scripts": {
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json && node scripts/copy-contract-artifacts.mjs",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "pretest": "npm run build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "npm test -- --coverage",
+    "protocol:generate": "tsx scripts/export-v2-contract.ts",
+    "probe:swift:generate": "tsx scripts/generate-swift-probe.ts",
+    "verify:package": "node scripts/verify-package.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "@vitest/coverage-v8": "5.0.5",
+    "ajv": "8.20.0",
+    "quicktype-core": "26.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}
