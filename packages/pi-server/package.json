@@ -1,0 +1,96 @@
+{
+  "name": "@manuelselch/pi-server",
+  "version": "0.4.0-plugin.3",
+  "license": "MIT",
+  "author": "Manuel Selch",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManuelSelch/pi-server.git"
+  },
+  "homepage": "https://github.com/ManuelSelch/pi-server#readme",
+  "bugs": {
+    "url": "https://github.com/ManuelSelch/pi-server/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "description": "Independent local Pi v2 server",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "bin": {
+    "pi-server": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "docs/ARCHITECTURE.md",
+    "docs/architecture.drawio",
+    "docs/CONFIGURATION.md",
+    "docs/EXTENSIONS.md",
+    "docs/PLUGINS.md",
+    "docs/PROTOCOL.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "import": "./dist/plugins.js"
+    },
+    "./extensions": {
+      "types": "./dist/extensions.d.ts",
+      "import": "./dist/extensions.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
+    "./testing/loopback": {
+      "types": "./dist/testing/loopback.d.ts",
+      "import": "./dist/testing/loopback.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run test:unit && npm run test:package",
+    "test:arch": "npx --yes @manuelselch/pi-verify@0.2.7 architecture",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:package": "npm run build && node --test test/*.test.mjs",
+    "measure:server-memory": "npm run build && node scripts/compare-server-memory.mjs",
+    "profile:session-open": "tsx scripts/profile-session-open.ts",
+    "verify:package": "npm run build && node scripts/verify-package.mjs",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.4.0",
+    "@earendil-works/pi-agent-core": "1.4.0",
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-codemode": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@earendil-works/pi-mcp": "1.4.0",
+    "@earendil-works/pi-telemetry": "1.4.0",
+    "@earendil-works/pi-tui": "1.4.0",
+    "@manuelselch/pi-sdk": "0.3.0-plugin.2",
+    "express": "^5.2.1",
+    "ws": "^8.21.3",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  }
+}

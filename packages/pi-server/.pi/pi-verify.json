@@ -1,0 +1,11 @@
+{
+  "architecture": {
+    "diagram": "docs/architecture.drawio",
+    "root": "src",
+    "strict": true,
+    "slices": [
+      "*"
+    ],
+    "transitive": true
+  }
+}

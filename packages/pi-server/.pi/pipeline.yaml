@@ -1,0 +1,30 @@
+prepare:
+  command: [npm, ci, --ignore-scripts]
+  cwd: .
+  timeoutSeconds: 600
+suites:
+  typecheck:
+    command: [npm, run, typecheck]
+    cwd: .
+    timeoutSeconds: 120
+    auto: after-agent
+  build:
+    command: [npm, run, build]
+    cwd: .
+    timeoutSeconds: 120
+    auto: after-agent
+  tests:
+    command: [npm, test]
+    cwd: .
+    timeoutSeconds: 600
+    auto: after-agent
+  coverage:
+    command: [npm, run, test:coverage]
+    cwd: .
+    timeoutSeconds: 600
+    auto: manual
+  package:
+    command: [npm, run, verify:package]
+    cwd: .
+    timeoutSeconds: 600
+    auto: manual
