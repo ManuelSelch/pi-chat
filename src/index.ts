@@ -63,14 +63,17 @@ export interface PiServer {
 export function createPiRuntimeAdapter(runtime: AgentSessionRuntime): RuntimeAdapter {
   return PiRuntimeAdapter.fromRuntime(runtime);
 }
-export async function createPiServer(options: PiServerOptions = {}): Promise<PiServer> {
-  let transport: WebSocketTransport | undefined;
-  let application: ChatApplicationService | undefined;
-  const services: ServerPluginServices = {
+interface ServerResources {
+  transport?: WebSocketTransport;
+  application?: ChatApplicationService;
+}
+
+function createPluginServices(resources: ServerResources): ServerPluginServices {
+  return {
     browseDirectories: async request => {
-      if (!application) throw new Error("Server application is not ready.");
+      if (!resources.application) throw new Error("Server application is not ready.");
       try {
-        const { parentPath, nextCursor, ...listing } = await application.browseDirectories(request);
+        const { parentPath, nextCursor, ...listing } = await resources.application.browseDirectories(request);
         return { ok: true, listing: { ...listing,
           ...(parentPath === undefined ? {} : { parentPath }),
           ...(nextCursor === undefined ? {} : { nextCursor }),
@@ -82,23 +85,40 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
       }
     },
     openFile: (sessionId, path) => {
-      if (!transport) return Promise.reject(new Error("Server application is not ready."));
-      return transport.openFile(sessionId, path);
+      if (!resources.transport) return Promise.reject(new Error("Server application is not ready."));
+      return resources.transport.openFile(sessionId, path);
     },
   };
+}
+
+function createHttpServer(staticDirectory?: string): Server {
+  const app = express();
+  app.get("/health", (_request, response) => response.json({ ok: true }));
+  if (staticDirectory) {
+    const directory = resolve(staticDirectory);
+    app.use(express.static(directory));
+    app.get("/{*path}", (_request, response) => response.sendFile(resolve(directory, "index.html")));
+  }
+  return createServer(app);
+}
+
+async function cleanupResources(teardown: (() => void | Promise<void>)[]): Promise<void> {
+  const errors: unknown[] = [];
+  for (const release of teardown) {
+    try { await release(); }
+    catch (error) { errors.push(error); }
+  }
+  if (errors.length) throw new AggregateError(errors, "Server cleanup failed.");
+}
+
+export async function createPiServer(options: PiServerOptions = {}): Promise<PiServer> {
+  const resources: ServerResources = {};
+  const services = createPluginServices(resources);
   const definitions = typeof options.plugins === "function" ? options.plugins(services) : options.plugins ?? [];
   const plugins = createPluginRuntime(definitions);
   await plugins.start();
 
   const teardown: (() => void | Promise<void>)[] = [() => plugins.dispose()];
-  async function cleanup(): Promise<void> {
-    const errors: unknown[] = [];
-    for (const release of teardown) {
-      try { await release(); }
-      catch (error) { errors.push(error); }
-    }
-    if (errors.length) throw new AggregateError(errors, "Server cleanup failed.");
-  }
 
   try {
     const pluginRpc = new PluginRpc(plugins, options.pluginRpcContracts ?? []);
@@ -111,35 +131,28 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
       openSession: (path: string) => PiRuntimeAdapter.openSession(path),
       newSession: (path: string) => PiRuntimeAdapter.newSession(path),
     };
-    const app = express();
-    app.get("/health", (_request, response) => response.json({ ok: true }));
-    if (options.staticDirectory) {
-      const directory = resolve(options.staticDirectory);
-      app.use(express.static(directory));
-      app.get("/{*path}", (_request, response) => response.sendFile(resolve(directory, "index.html")));
-    }
-    const httpServer = createServer(app);
+    const httpServer = createHttpServer(options.staticDirectory);
     teardown.unshift(async () => {
       if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
     });
     const extensions = options.extensions ?? getPiChatExtensionRegistry();
     const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
-    application = chat;
-    teardown.push(() => { application = undefined; return chat.dispose(); });
+    resources.application = chat;
+    teardown.push(() => { resources.application = undefined; return chat.dispose(); });
     const connection = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);
-    transport = connection;
-    teardown.unshift(() => { transport = undefined; return connection.close(); });
+    resources.transport = connection;
+    teardown.unshift(() => { resources.transport = undefined; return connection.close(); });
     const releaseSessionHost = extensions.bindSessionHost({ archive: path => connection.archiveSession(path) });
     teardown.unshift(releaseSessionHost);
     let closing: Promise<void> | undefined;
     return { httpServer, close() {
       return closing ??= (async () => {
         options.logger?.info("server.shutdown");
-        await cleanup();
+        await cleanupResources(teardown);
       })();
     } };
   } catch (error) {
-    try { await cleanup(); }
+    try { await cleanupResources(teardown); }
     catch (cleanupError) { throw new AggregateError([error, cleanupError], "Server startup and cleanup failed."); }
     throw error;
   }

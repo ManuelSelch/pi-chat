@@ -1,32 +1,42 @@
 # Host plugins and RPC
 
-- [`createPluginRuntime(plugins)`](../src/plugins/runtime.ts), exported from `@manuelselch/pi-server/plugins`, creates an isolated registry. Shared declarations come from `@manuelselch/pi-sdk/plugins`.
-- `start()` loads host entries sequentially in caller order; web entries are ignored. Repeated/concurrent starts share one attempt. Failed/disposed runtimes cannot restart.
+## Getting started
+
+- Await `createPiServer({ plugins })` before listening. Plugins activate once per server, before HTTP and WebSocket construction; no feature plugins are enabled by default.
+- Import the runtime and optional feature factories from `@manuelselch/pi-server/plugins`. Shared plugin declarations and contracts come from `@manuelselch/pi-sdk/plugins`.
+- Plugin activation alone does not expose a contract remotely. Add its contract to `pluginRpcContracts` to opt in.
+- Server plugins are independent of agent sessions. The server ignores web entries; browser activation and UI slots belong to the embedding application. Pi extensions remain session-scoped.
+
+## Lifecycle and local calls
+
+- [`createPluginRuntime(plugins)`](../src/plugins/runtime.ts) creates an isolated registry. `start()` loads host entries sequentially in caller order; concurrent starts share one attempt. A failed or disposed runtime cannot restart.
 - `setup(ctx)` receives `signal`, `provide(contract, implementation)` and `onCleanup(callback)`. Register cleanup before asynchronous work and honor the signal after each await.
-- A provider must match a declared contract ID/revision and implement all its methods. Duplicate providers are rejected; undeclared methods are not exposed.
-- Required contracts on host entries are checked for exact revisions after all setups, before readiness. This does not sort dependencies or allow client calls during setup.
-- `runtime.client(contract)` creates typed async methods without activating anything. Calls require completed startup and a matching active provider revision.
-- Calls use the provider's canonical input/output validators. Contract authors must change the revision when changing shapes; ID/revision matching is not schema-equivalence checking.
-- Calls preserve handler errors; no network error sanitization or serialization boundary is claimed. A result finishing after disposal is rejected, but side effects cannot be undone.
-- `dispose()` immediately withdraws providers and aborts activations, waits for pending loading/setup, then runs cleanups in reverse registration/activation order. Concurrent/repeated disposal shares one promise.
-- Startup failure performs the same withdrawal/cleanup for partial and earlier activations. Every cleanup is attempted; failures are reported with `AggregateError`, preserving startup errors when both fail.
-- Late provider/cleanup registrations throw after activation ends. Cleanups must not register new resources or await their own runtime's disposal.
+- Providers must match a declared contract ID and revision, implement every declared method, and be unique. Undeclared methods are not exposed. Required contracts are checked after all setups, not used to sort dependencies.
+- `runtime.client(contract)` creates typed async methods. Calls require completed startup and a matching provider; the provider's validators check inputs and outputs. Change the revision when shapes change: matching IDs and revisions does not compare schemas.
+- Local calls preserve handler errors. Results completing after disposal are rejected, but side effects cannot be undone.
+- `dispose()` withdraws providers, aborts activations, waits for pending loading and setup, then runs cleanups in reverse order. Repeated disposal shares one promise. Late registrations throw.
+- Startup failure rolls back partial and earlier activations. All cleanups are attempted; `AggregateError` preserves combined failures. Cleanups must not register resources or await their own runtime's disposal.
 - Cancellation is cooperative: unresponsive loading, setup, handlers or cleanup cannot be forcibly stopped. There are no deadlines, per-call cancellation, hot reload or sandboxing.
-- [Unit tests](../test/modules/server/plugins/runtime.test.ts) cover local lifecycle, validation, rollback and disposal races. They do not verify network or UI integration.
-- The test-only [counter fixture](../test/fixtures/plugins/counter/index.ts) declares `test-counter` revision 1 beside its host. Each activation owns an in-memory count; `read(null)` returns zero initially and `increment(null)` returns the incremented value. Both outputs are nonnegative integers.
-- [Counter runtime tests](../test/modules/server/plugins/counter.test.ts) exercise typed calls, validation, independent state and rejection after disposal through the public runtime. [Server lifecycle coverage](../test/modules/server/bootstrap/counter.test.ts) checks activation and disposal separately: the server handle does not expose contract calls. Optional WebSocket RPC is tested separately below.
-- `await createPiServer({ plugins })` starts explicit host plugins before constructing HTTP/WebSocket resources and returns an unbound server only after readiness. CLI/embedders must await it before listening. No default feature plugins are activated.
-- Server close releases the extension binding, terminates transport, closes HTTP, disposes plugins, then sessions. Every teardown is attempted even after failure; injected loggers remain caller-owned.
-- Plugin startup failure constructs no network/session resources. Later bootstrap failure tears down already-owned resources and active plugins; combined startup/cleanup errors are preserved.
-- Enable remote access explicitly with `createPiServer({ plugins: [counterPlugin], pluginRpcContracts: [counterContract] })`. Activation alone exposes nothing. The counter and contract remain test fixtures, not SDK exports or server defaults.
-- `plugin.call` uses the existing initialized `/ws` connection and negotiated `plugin.call` capability. Params carry `contractId`, `contractVersion`, `method` and JSON `input`; a successful response contains `{ value }`. The operation is server-scoped and has no session ID or session event.
-- The [RPC dispatcher](../src/transport/plugin-rpc.ts) restricts contract IDs, exact revisions and method names to the allowlist, then calls the same runtime client used locally. Provider input/output validation remains authoritative; non-JSON outputs are rejected. Handler/validator failures become a sanitized `operationFailed`, never raw exception details.
-- Clients call `client.plugin(counterContract).increment(null)`. RPC shares existing connection/request limits and timeouts. Disconnect, stop, disposal or timeout ends pending waits with an unknown outcome; no automatic replay, rollback or remote cancellation is promised.
-- [Real-socket SDK scenarios](../test/integration/plugin-rpc.test.ts) cover counter calls without Pi sessions, shared server state, independent servers, reconnect, shutdown, initialization, negotiation and restricted dispatch. [Dispatcher tests](../test/modules/server/transport/plugin-rpc.test.ts) cover canonical validation, sanitized errors and JSON boundaries. No browser rendering, subscriptions, contract discovery or per-user authorization is added; existing private-endpoint authentication/origin policy is unchanged.
-- This activation is per server instance, not per agent session. Pi extensions retain session-scoped behavior. Server ignores web entries; browser activation and UI slots belong to the embedding application.
-- Folder browsing is opt-in: `plugins: services => [createFolderOpeningPlugin({ browse: services.browseDirectories })]` from `/plugins`, plus the SDK `folderOpeningContract` allowlist. Browse handlers use the existing directory service without creating a Pi session. Results preserve only classified safe folder failures; unexpected exceptions are sanitized. Optional listing fields are omitted rather than returned as non-JSON `undefined`.
-- The [folder-plugin scenarios](../test/integration/folder-opening-plugin.test.ts) exercise real SDK/WebSocket calls and temporary folders, hidden/relative navigation, safe failures and explicit exposure. Session creation remains a separate application operation.
-- File opening is opt-in: import `createFileOpeningPlugin` from `/plugins`, pass `plugins: services => [createFileOpeningPlugin({ open: services.openFile })]` and allowlist the SDK `fileOpeningContract`. The factory receives only the server action, usable by handlers after readiness; calling it during setup rejects without constructing session/network resources.
-- The provider accepts `{ sessionId, path }`, where `sessionId` is the public runtime incarnation ID. The server resolves it through its publisher before reading the named session project path. Raw adapter IDs, closed/replaced IDs and unknown sessions cannot select a runtime.
-- File results remain structured `{ ok: true }` or `{ ok: false, error }`. Existing canonicalization, readable-regular-file validation, macOS-only bounded OS opening and no-retry semantics remain authoritative. This opens on the server, not the browser device; it does not reveal in Finder or browse folders.
-- [File-plugin scenarios](../test/integration/file-opening-plugin.test.ts) use real SDK/WebSocket RPC, real temporary files and a fake OS opener; they cover explicit exposure, named sessions, missing files, directories, closed sessions and unsupported platforms. The separate `file.open` protocol operation is unchanged; the plugin never falls back to it.
+- Server close releases the extension binding, transport, HTTP listener, plugins and sessions in that order, attempting every step. Bootstrap failure also rolls back owned resources. Injected loggers remain caller-owned.
+- [Runtime tests](../test/modules/server/plugins/runtime.test.ts) and [bootstrap tests](../test/modules/server/bootstrap/plugins.test.ts) cover lifecycle, validation, rollback and disposal races.
+
+## WebSocket RPC
+
+- `plugin.call` uses the existing initialized `/ws` connection and negotiated capability. Its server-scoped parameters are `contractId`, `contractVersion`, `method` and JSON `input`; successful responses contain `{ value }`.
+- The [dispatcher](../src/transport/plugin-rpc.ts) checks the allowlisted ID, exact revision and method, then uses the local runtime client. Provider validation remains authoritative, non-JSON output is rejected, and handler/validator errors become sanitized `operationFailed` responses.
+- SDK clients use `client.plugin(contract)` to call contract methods. Existing connection limits and request timeouts apply. Disconnect, stop, disposal or timeout leaves pending outcomes unknown; there is no replay, rollback or remote cancellation.
+- [Socket scenarios](../test/integration/plugin-rpc.test.ts) cover shared and independent server state, reconnect, shutdown, initialization and restricted dispatch. [Dispatcher tests](../test/modules/server/transport/plugin-rpc.test.ts) cover validation, sanitization and JSON boundaries.
+- No browser rendering, subscriptions, contract discovery or per-user authorization is added. Existing private-endpoint authentication and origin policy are unchanged.
+
+## Folder browsing
+
+- Opt in with `plugins: services => [createFolderOpeningPlugin({ browse: services.browseDirectories })]` and allowlist the SDK `folderOpeningContract`.
+- Browsing uses the existing directory service without creating a session. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
+- [Folder scenarios](../test/integration/folder-opening-plugin.test.ts) cover real SDK/WebSocket calls, navigation, safe failures and explicit exposure. Session creation remains separate.
+
+## File opening
+
+- Opt in with `plugins: services => [createFileOpeningPlugin({ open: services.openFile })]` and allowlist the SDK `fileOpeningContract`. Server actions are usable after readiness, not during setup.
+- The provider accepts `{ sessionId, path }`. The session ID is the public runtime incarnation ID; raw adapter IDs, closed or replaced IDs, and unknown sessions cannot select a runtime.
+- Results are `{ ok: true }` or `{ ok: false, error }`. Existing canonicalization, readable-regular-file validation, bounded macOS opening and no-retry semantics apply. Files open on the server, not the browser; this does not reveal in Finder or browse folders.
+- [File scenarios](../test/integration/file-opening-plugin.test.ts) cover named sessions, failures and explicit exposure with real temporary files and a fake OS opener. The separate `file.open` operation is unchanged; there is no fallback.

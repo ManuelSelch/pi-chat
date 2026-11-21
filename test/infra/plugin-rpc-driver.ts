@@ -3,10 +3,24 @@ import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { expect } from "vitest";
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
-import { definePlugin, type RemoteContract, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, defineRemoteContract, type RemoteContract, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
 import { createPiServer, type PiServer } from "../../src/index.js";
-import counterPlugin from "../fixtures/plugins/counter/index.js";
-import { counterContract } from "../fixtures/plugins/counter/contract.js";
+import { z } from "zod";
+
+const stateContract = defineRemoteContract({
+  id: "test-state", version: 1,
+  methods: {
+    read: { input: z.null(), output: z.string() },
+    write: { input: z.string(), output: z.string() },
+  },
+});
+const statePlugin = definePlugin({
+  id: "test-state", provides: [stateContract],
+  host: async () => ({ setup(ctx) {
+    let value = "initial";
+    ctx.provide(stateContract, { read: () => value, write: next => value = next });
+  } }),
+});
 import { v2Socket } from "./v2-socket.js";
 
 export class PluginRpcDriver {
@@ -14,7 +28,7 @@ export class PluginRpcDriver {
   private clients: PiClient[] = [];
   private pendingEntered?: Promise<void>;
 
-  async start(expose = true, plugin: PluginDefinition = counterPlugin, contract: RemoteContract = counterContract): Promise<void> {
+  async start(expose = true, plugin: PluginDefinition = statePlugin, contract: RemoteContract = stateContract): Promise<void> {
     this.server = await createPiServer({
       plugins: [plugin], pluginRpcContracts: expose ? [contract] : [],
       catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },
@@ -27,14 +41,14 @@ export class PluginRpcDriver {
     let entered!: () => void;
     this.pendingEntered = new Promise<void>(resolve => { entered = resolve; });
     const plugin = definePlugin({
-      ...counterPlugin,
+      ...statePlugin,
       host: async () => ({ setup(ctx) {
         let finish!: () => void;
         const released = new Promise<void>(resolve => { finish = resolve; });
         ctx.onCleanup(finish);
-        ctx.provide(counterContract, {
-          read: () => 0,
-          increment: async () => { entered(); await released; return 1; },
+        ctx.provide(stateContract, {
+          read: () => "initial",
+          write: async value => { entered(); await released; return value; },
         });
       } }),
     });
@@ -45,7 +59,7 @@ export class PluginRpcDriver {
     const remote = await v2Socket(this.server!);
     try {
       await remote.initialize([]);
-      remote.send("plugin.call", "denied", { contractId: counterContract.id, contractVersion: 1, method: "increment", input: null });
+      remote.send("plugin.call", "denied", { contractId: stateContract.id, contractVersion: 1, method: "write", input: "updated" });
       expect(await remote.response("denied")).toMatchObject({ ok: false, error: { code: "unsupportedOperation" } });
     } finally {
       remote.socket.terminate();
@@ -64,17 +78,17 @@ export class PluginRpcDriver {
     return this.clients.length - 1;
   }
 
-  async shouldRead(value: number, connection = 0): Promise<void> {
-    await expect(this.clients[connection]!.plugin(counterContract).read(null)).resolves.toBe(value);
+  async shouldRead(value: string, connection = 0): Promise<void> {
+    await expect(this.clients[connection]!.plugin(stateContract).read(null)).resolves.toBe(value);
   }
 
-  async shouldIncrement(value: number, connection = 0): Promise<void> {
-    await expect(this.clients[connection]!.plugin(counterContract).increment(null)).resolves.toBe(value);
+  async shouldWrite(value: string, connection = 0): Promise<void> {
+    await expect(this.clients[connection]!.plugin(stateContract).write(value)).resolves.toBe(value);
   }
 
   async shouldRejectCall(code: string, overrides: Record<string, unknown> = {}, connection = 0): Promise<void> {
     await expect(this.clients[connection]!.request("plugin.call", {
-      contractId: counterContract.id, contractVersion: counterContract.version, method: "increment", input: null,
+      contractId: stateContract.id, contractVersion: stateContract.version, method: "write", input: "updated",
       ...overrides,
     })).rejects.toMatchObject({ code });
   }
@@ -82,7 +96,7 @@ export class PluginRpcDriver {
   async shouldRejectUninitializedCall(): Promise<void> {
     const remote = await v2Socket(this.server!);
     try {
-      remote.send("plugin.call", "early", { contractId: counterContract.id, contractVersion: 1, method: "increment", input: null });
+      remote.send("plugin.call", "early", { contractId: stateContract.id, contractVersion: 1, method: "write", input: "updated" });
       expect(await remote.response("early")).toMatchObject({ ok: false, error: { code: "notInitialized" } });
     } finally {
       remote.socket.terminate();
@@ -97,7 +111,7 @@ export class PluginRpcDriver {
   }
 
   async shouldRejectPendingOnClose(): Promise<void> {
-    const pending = this.clients[0]!.plugin(counterContract).increment(null);
+    const pending = this.clients[0]!.plugin(stateContract).write("updated");
     const rejection = expect(pending).rejects.toMatchObject({ code: "disconnected", outcome: "unknown" });
     await this.pendingEntered;
     await this.server!.close();
