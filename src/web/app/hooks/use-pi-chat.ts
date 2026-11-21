@@ -1,11 +1,9 @@
-import { createFileOpeningAction } from "../../../plugins/file-opening/index.js";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocalStorage } from "@mantine/hooks";
 import { useInboxLifecycle } from "../../features/sessions/inbox/hooks/use-inbox-lifecycle.js";
 import { PiClient, SDKError, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "../stores/app-state.js";
 import { browserTransport } from "../lib/browser-transport.js";
-import type { RemoteContract, RemoteContractClient } from "@manuelselch/pi-sdk/plugins";
 import { bindPiChat } from "../lib/sdk-binding.js";
 import { loadEndpoint } from "../../features/settings/server/index.js";
 import { sameSessionPath } from "../../features/sessions/utils/session-projection.js";
@@ -14,13 +12,11 @@ import { sameSessionPath } from "../../features/sessions/utils/session-projectio
 export function usePiChat() {
   const [app, dispatch] = useReducer(reduceAppMessage, initialAppState);
   const clientRef = useRef<PiClient | undefined>(undefined);
-  const fileActionRef = useRef<ReturnType<typeof createFileOpeningAction> | undefined>(undefined);
   const [serverEndpoint] = useState(() => loadEndpoint(window.location));
 
   useEffect(() => {
     const client = new PiClient({ endpoint: serverEndpoint.endpoint, transport: browserTransport });
     clientRef.current = client;
-    fileActionRef.current = createFileOpeningAction(client);
     const unbind = bindPiChat(client, dispatch);
     const stopErrors = client.onError((error) => {
       if (error.code === "listenerError") console.warn("[pi-chat] SDK subscriber failed", error);
@@ -28,7 +24,7 @@ export function usePiChat() {
     client.start(); // SDK defers a tick, so StrictMode's probe never opens a socket.
     return () => {
       unbind(); stopErrors();
-      if (clientRef.current === client) { clientRef.current = undefined; fileActionRef.current = undefined; }
+      if (clientRef.current === client) clientRef.current = undefined;
       client.dispose(); // Disconnecting the UI never closes a server runtime.
     };
   }, [serverEndpoint]);
@@ -47,18 +43,11 @@ export function usePiChat() {
     catch (error) { failed(error); }
   }, [requireClient]);
 
-  const plugin = useCallback(<C extends RemoteContract>(contract: C): RemoteContractClient<C> => requireClient().plugin(contract), [requireClient]);
   const browseDirectories = useCallback((query: DirectoryBrowse, signal?: AbortSignal) => request((client) => client.browseDirectories(query, { signal })), [request]);
   const startFolderSession = useCallback(async (path: string, signal?: AbortSignal) => {
     const id = await request((client) => client.createSession(path, { signal })); dispatch({ type: "focusSession", sessionId: id }); return id;
   }, [request]);
   const completeCommandArguments = useCallback((sessionId: string, name: string, prefix: string, signal?: AbortSignal) => request((client) => client.completeCommandArguments(sessionId, name, prefix, { signal })), [request]);
-  const openFile = useCallback((sessionId: string, path: string) => {
-    try {
-      requireClient();
-      return fileActionRef.current!(sessionId, path);
-    } catch (error) { return Promise.reject(error); }
-  }, [requireClient]);
   const archiveSession = useCallback((path: string, archived: boolean) => request((client) => client.archiveSession(path, archived)), [request]);
   const pinProject = useCallback((path: string, pinned: boolean) => request((client) => client.pinProject(path, pinned)), [request]);
   const removeProject = useCallback((path: string) => request((client) => client.removeProject(path)), [request]);
@@ -96,13 +85,13 @@ export function usePiChat() {
   const presentedApp = hidingArchive ? { ...app, activeSessionId: "", viewClosed: true } : app;
   const session = activeSession(presentedApp);
   return {
-    app: presentedApp, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox, plugin,
+    app: presentedApp, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox, request,
     showHome: () => dispatch({ type: "closeView" }),
     closeView: () => {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice" || message.role === "bash")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });
     }, browseDirectories, startFolderSession, completeCommandArguments,
-    openFile, archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
+    archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
       control((client) => client.prompt(id, message));

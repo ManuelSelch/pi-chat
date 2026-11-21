@@ -28,7 +28,7 @@ vendored, and Chat does not run Swift tests. See
 `npm run verify:dependencies` checks the installed public server API and protocol
 version, not every package byte or behavior. `build:host` compiles only Chat's
 process adapter to `dist/host/index.js`; `npm start` and the extension launcher
-use that entry. See [Configuration](configuration.md) for environment variables. The [counter plugin demo](counter-demo.md) is available from the header without extra configuration.
+use that entry. See [Configuration](configuration.md) for environment variables.
 
 ## Verification
 

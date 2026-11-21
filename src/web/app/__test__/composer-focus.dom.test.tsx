@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App.js";
-import type { AppController } from "../AppControllerContext.js";
+import type { usePiChat } from "../hooks/use-pi-chat.js";
 import { initialAppState } from "../stores/app-state.js";
 import { initialChatState, type ChatState } from "../stores/chat-state.js";
 import { finishUiTransitions as finishTransitions } from "../../../../testing/infra/ui/finish-ui-transitions.js";
@@ -12,7 +12,7 @@ import { ComposerFocusDriver } from "../../../../testing/infra/ui/composer-focus
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
 vi.mock("../hooks/use-pi-chat.js", () => ({ usePiChat: () => controller }));
-let controller: Omit<AppController, "promptPresentation">;
+let controller: ReturnType<typeof usePiChat>;
 let view: ReturnType<typeof render>;
 const session = (id = "s1"): ChatState => ({ ...initialChatState, sessionId: id, projectPath: "/project", status: "idle" });
 const tab = (id = "s1", status: "idle" | "running" = "idle") => ({ sessionId: id, title: id, projectPath: "/project", projectName: "project", status });
@@ -49,12 +49,11 @@ beforeEach(() => {
     inbox: { later: [], archivingPaths: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(async () => ({ path: "/project", parentPath: "/", breadcrumbs: [{ name: "project", path: "/project" }], entries: [] })),
     startFolderSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
-    openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
+    request: async () => { throw new Error("SDK requests are not configured in this fixture."); }, prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(async () => {}), pinProject: vi.fn(async () => {}), removeProject: vi.fn(async () => {}),
     setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),
     runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
-    plugin: () => { throw new Error("Plugin calls are not configured in this fixture."); },
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

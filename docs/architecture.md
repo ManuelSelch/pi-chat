@@ -33,7 +33,6 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 - [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
 - [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
-- The [counter demo](counter-demo.md) is explicitly activated/exposed by Chat's host and called through typed RPC over the existing SDK WebSocket. Its count is server-instance-owned; panel lifecycle/uncertainty is feature-owned.
 - File opening is an explicitly registered Server host plugin, called through the SDK contract by an app-composed browser adapter. Web plugin activation is not implemented.
 
 ## Browser composition and state
@@ -213,23 +212,8 @@ stacked.
 
 ### File links and content presentation
 
-Explicit local Markdown-link activation calls the SDK's `fileOpeningContract` through
-`plugin.call`, never a prompt or bash command. The [browser adapter](../src/plugins/file-opening/client.ts)
-coalesces pending identical calls, maps structured file failures to rejected waits
-and ends local waits when the named runtime is removed. SDK owns deadlines and
-connection/disposal rejection; no call is replayed. Chat explicitly registers and
-allowlists the Server host provider; see [plugin integration](plugin-runtime.md). Paths belong to the server and resolve against the
-specified session's project, not the selected tab at response time. The server
-validates readable regular files and uses an injectable, bounded OS opener;
-readable paths outside the project are allowed. This is not a project sandbox,
-security scan, file download or client-device open operation.
-
-[FileActionsProvider](../src/web/features/chat/markdown/stores/FileActions.tsx) supplies a stable
-callback and bounded, dismissible, expiring failures outside chat history.
-Success/cancellation produces no toast. Local cancellation cannot undo an OS
-open already accepted by the server. Markdown/read/write previews and edit
-highlighting are browser presentation of existing tool content, not new file
-access endpoints; raw HTML and remote preview images remain disabled.
+- Local Markdown links use the [file-opening plugin](../src/plugins/file-opening/README.md); the server owns filesystem access and OS effects, while the browser owns transient feedback outside chat history.
+- Markdown/read/write previews and edit highlighting present existing tool content, not new file access endpoints; raw HTML and remote preview images remain disabled.
 
 ## Host lifecycle and security
 

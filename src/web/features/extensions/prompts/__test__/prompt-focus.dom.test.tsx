@@ -36,11 +36,10 @@ beforeEach(() => {
     inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(), showHome: vi.fn(),
     inbox: { later: [], archivingPaths: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(), startFolderSession: vi.fn(), completeCommandArguments: vi.fn(async () => []),
-    openFile: vi.fn(), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn().mockResolvedValue(undefined),
+    request: async () => { throw new Error("SDK requests are not configured in this fixture."); }, prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn().mockResolvedValue(undefined),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(), pinProject: vi.fn(), removeProject: vi.fn(), setModel: vi.fn(), compactSession: vi.fn(),
     setThinkingLevel: vi.fn(), runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
-    plugin: () => { throw new Error("Plugin calls are not configured in this fixture."); },
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

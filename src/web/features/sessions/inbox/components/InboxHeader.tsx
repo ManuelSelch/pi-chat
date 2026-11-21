@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { ActionIcon, AppShell, Group, Text } from "@mantine/core";
 import { IconArchive, IconChevronRight, IconClockPause, IconLayoutSidebar, IconPlus, IconX } from "@tabler/icons-react";
 import type { PiChatBadge, PiChatButton, Tab } from "../../../../types/view-types.js";
@@ -7,7 +6,6 @@ import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
 
 interface InboxHeaderProps {
-  tools?: ReactNode;
   session: Tab | undefined; branch: string | undefined; title: string | undefined;
   opened: boolean; disabled: boolean; pending: boolean; saved: boolean;
   buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[];
@@ -36,7 +34,6 @@ export function InboxHeader(p: InboxHeaderProps) {
           <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Close current session view" onClick={p.onCloseView}><IconX size={17} /></ActionIcon>
         </div>
       </>}
-      {p.tools}
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="New session" disabled={p.disabled} onClick={p.onNew}><IconPlus size={19} /></ActionIcon>
     </Group>
   </AppShell.Header>;

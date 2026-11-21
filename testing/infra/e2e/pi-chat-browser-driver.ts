@@ -21,16 +21,12 @@ import { BrowserThemeDriver } from "./browser-theme-driver.js";
 import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
-import { BrowserCounterDriver } from "./browser-counter-driver.js";
 import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
-import counterPlugin from "../../../src/plugins/counter-demo/index.js";
-import { counterContract } from "../../../src/plugins/counter-demo/contract.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
   readonly browser: BrowserBrowserDriver;
-  readonly counter: BrowserCounterDriver;
   readonly theme: BrowserThemeDriver;
   readonly chat: BrowserChatDriver;
   readonly home: BrowserHomeDriver;
@@ -56,7 +52,6 @@ export class PiChatBrowserDriver {
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
     this.browser = new BrowserBrowserDriver(page);
-    this.counter = new BrowserCounterDriver(page);
     this.theme = new BrowserThemeDriver(page);
     this.chat = new BrowserChatDriver(page, this.composer);
     this.home = new BrowserHomeDriver(page);
@@ -72,7 +67,7 @@ export class PiChatBrowserDriver {
     this.widgets = new BrowserWidgetsDriver(page, this.extensions);
   }
 
-  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; repositoryName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean; counterDemo?: boolean } = {}): Promise<PiChatBrowserDriver> {
+  static async start(page: Page, options: { extensions?: readonly ExtensionFactory[]; restart?: RestartService; projectName?: string; repositoryName?: string; projectBranch?: string; linkedWorktree?: boolean; probeThemeReconnect?: boolean; inboxEnabled?: boolean } = {}): Promise<PiChatBrowserDriver> {
     const widgetFixture = new WidgetExtensionFixture();
     const world = new TestWorld([...(options.extensions ?? []), widgetFixture.extension], true, options.projectName);
     let server: PiServer | undefined;
@@ -90,8 +85,8 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), ...(options.counterDemo === false ? [] : [counterPlugin])],
-        pluginRpcContracts: [fileOpeningContract, ...(options.counterDemo === false ? [] : [counterContract])],
+        plugins: services => [createFileOpeningPlugin({ open: services.openFile })],
+        pluginRpcContracts: [fileOpeningContract],
         catalogue: {
           lister: { listAll: () => world.listSessions() },
           sessionsDirectory: world.sessionDir,

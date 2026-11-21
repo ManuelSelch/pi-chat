@@ -10,7 +10,6 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { PiClient, createWebSocketTransport } from '@manuelselch/pi-sdk';
 import WebSocket from 'ws';
 import { resolveNpmCli } from '../../../dist/shared/node/npm-command.js';
-import { counterContract } from '../../../dist/plugins/counter-demo/contract.js';
 
 async function until(description, check, milliseconds = 15000) {
   const deadline = Date.now() + milliseconds;
@@ -85,22 +84,6 @@ execFileSync(process.execPath, [${JSON.stringify(resolveNpmCli())}, 'run', 'buil
     this.clients.add(client); client.start();
     await until('SDK initialization', () => client.getState().connection.phase === 'ready');
     return client;
-  }
-  async counterShouldRoundTripWithoutSession() {
-    const client = await this.client();
-    try {
-      const counter = client.plugin(counterContract);
-      assert.deepEqual(client.getState().inventory, []);
-      assert.equal(await counter.read(null), 0);
-      assert.equal(await counter.increment(null), 1);
-      assert.equal(await counter.read(null), 1);
-      assert.deepEqual(client.getState().inventory, []);
-    } finally { client.dispose(); this.clients.delete(client); }
-  }
-  async counterShouldRead(expected) {
-    const client = await this.client();
-    try { assert.equal(await client.plugin(counterContract).read(null), expected); }
-    finally { client.dispose(); this.clients.delete(client); }
   }
   async FailedBuildShouldKeepCurrentServer() {
     await writeFile(join(this.directory, 'fail-build'), '1');

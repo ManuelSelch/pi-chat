@@ -3,9 +3,10 @@ import * as fileOpening from "../index.js";
 import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 
-test("exposes the shared contract and app-composed browser action", () => {
-  expect(fileOpening.fileOpeningContract).toBe(fileOpeningContract);
-  expect(fileOpening.createFileOpeningAction).toBeTypeOf("function");
+test("composes a browser plugin with a file-opening action", () => {
+  const plugin = fileOpening.createFileOpeningPlugin(async () => { throw new Error("Not connected"); });
+
+  expect(plugin.openFile).toBeTypeOf("function");
 });
 
 test("does not carry a host implementation in the browser plugin", () => {

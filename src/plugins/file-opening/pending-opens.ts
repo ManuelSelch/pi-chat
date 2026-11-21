@@ -1,8 +1,8 @@
-import { PiClient, SDKError } from "@manuelselch/pi-sdk";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
+import type { OpenFileInput } from "@manuelselch/pi-sdk/plugins/file-opening";
 
-/** App-composed adapter over the existing SDK connection, not a web plugin loader. */
-export function createFileOpeningAction(client: PiClient) {
+/** File-link UI policy, not required plugin/RPC boilerplate. Never retries OS effects. */
+export function createPendingFileOpens(client: PiClient, open: (input: OpenFileInput) => Promise<void>) {
   const waits = new Map<string, Promise<void>>();
   return (sessionId: string, path: string): Promise<void> => {
     const key = JSON.stringify([sessionId, path]);
@@ -18,10 +18,7 @@ export function createFileOpeningAction(client: PiClient) {
           reject(new SDKError("cancelled", "Stopped waiting; the server outcome may be unknown. No retry was sent.", "unknown"));
         known ||= Object.hasOwn(state.sessions, sessionId);
       });
-      client.plugin(fileOpeningContract).open({ sessionId, path }).then(result => {
-        if (!result.ok) reject(new SDKError(result.error.code, result.error.message, "rejected"));
-        else resolve();
-      }, reject);
+      open({ sessionId, path }).then(resolve, reject);
     });
     waits.set(key, pending);
     const release = () => {
