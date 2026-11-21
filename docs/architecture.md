@@ -215,6 +215,11 @@ stacked.
 - Local Markdown links use the [file-opening plugin](../src/plugins/file-opening/README.md); the server owns filesystem access and OS effects, while the browser owns transient feedback outside chat history.
 - Markdown/read/write previews and edit highlighting present existing tool content, not new file access endpoints; raw HTML and remote preview images remain disabled.
 
+- JSX lint rejects explicit native-tooltip `title` attributes.
+- The shared Markdown renderer strips generated `title` properties after its
+  rehype plugins, including in tool-card previews; JSX lint cannot inspect
+  attributes generated from Markdown at runtime.
+
 ## Host lifecycle and security
 
 [The host](../src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,

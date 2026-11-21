@@ -40,6 +40,21 @@ describe("Markdown rendering", () => {
     expect(container.textContent).toContain("$5");
   });
 
+  it("omits generated link and image titles without losing destinations or alt text", () => {
+    const { container } = render(<Markdown onLocalLink={() => {}}>{`[external](https://example.com "External tooltip")
+[local](./README.md "Local tooltip")
+[section](#section "Section tooltip")
+[reference][docs]
+![Diagram](https://example.com/diagram.png "Image tooltip")
+
+[docs]: https://example.com/docs "Reference tooltip"`}</Markdown>);
+
+    expect(container.querySelectorAll("a")).toHaveLength(4);
+    expect(container.querySelector("img")?.getAttribute("alt")).toBe("Diagram");
+    expect(container.querySelector("img")?.getAttribute("src")).toBe("https://example.com/diagram.png");
+    expect(container.querySelector("[title]")).toBeNull();
+  });
+
   it("renders a GFM table", () => {
     const { container } = render(
       <Markdown>{"| A | B |\n|---|---|\n| 1 | 2 |"}</Markdown>,

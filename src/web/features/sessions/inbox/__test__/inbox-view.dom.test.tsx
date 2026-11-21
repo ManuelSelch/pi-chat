@@ -24,6 +24,17 @@ it.each(["sidebar", "drawer"] as const)("omits redundant Home and Inbox destinat
   expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
 });
 
+it.each(["sidebar", "drawer"] as const)("renders session rows without native title tooltips in the %s", presentation => {
+  render(<MantineProvider><InboxView {...props()} presentation={presentation} laterOpen /></MantineProvider>);
+
+  for (const name of ["Open Question", "Open Background", "Open Completed", "Resume Parked"]) {
+    const button = screen.getByRole("button", { name });
+    const row = button.parentElement!;
+    expect(row.closest("[title]")).toBeNull();
+    expect(row.querySelector("[title], svg > title")).toBeNull();
+  }
+});
+
 it("groups sessions by project, with collapsible groups and status dots", () => {
   const p = props();
   render(<MantineProvider><InboxView {...p} /></MantineProvider>);
