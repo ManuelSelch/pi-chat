@@ -26,7 +26,7 @@ contract built from this checkout.
   published to each ready client; each browser retains its own navigation and drafts.
 - Origin validation still applies behind a proxy. The server and SDK do not add
   authentication/OAuth; protect the backend as described in
-  [configuration](configuration.md#private-network-access).
+  [configuration](../packages/pi-chat/docs/configuration.md#private-network-access).
 
 ## Identity and response meaning
 
@@ -91,12 +91,12 @@ Open/create theme metadata is required. Snapshot, reload and initialization do
 not provide replacement palettes. The SDK retains eligible same-server runtime
 cache entries across reconnect, and clears them on runtime removal/replacement
 or server-instance changes. Pi Chat's application theme is independent
-of this cache; see [themes](configuration.md#pi-themes).
+of this cache; see [themes](../packages/pi-chat/docs/configuration.md#pi-themes).
 
 ## Verification ownership
 
-Chat's [contract integration checks](../src/shared/__test__/sdk-contract.test.ts)
-and [application drivers](integration-tests/DRIVERS.md) exercise the installed
+Chat's [contract integration checks](../packages/pi-chat/src/shared/__test__/sdk-contract.test.ts)
+and [application drivers](../packages/pi-chat/docs/integration-tests/DRIVERS.md) exercise the installed
 public SDK/server boundary. Protocol generation, malformed-wire fixtures and
 server-internal lifecycle tests belong to their owning repositories. Swift owns
 its separate imported artifacts and real-server compatibility suite. A passing

@@ -17,7 +17,7 @@ flowchart LR
 
 | Owner | Responsibility |
 |---|---|
-| [Pi Chat](../src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
+| [Pi Chat](../packages/pi-chat/src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
 | [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
 | [pi-sdk-typescript](../packages/pi-sdk-typescript/README.md) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
@@ -36,14 +36,14 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 ## Browser composition and state
 
-[App](../src/web/app/App.tsx) composes the controller, confirmations, overlay and
+[App](../packages/pi-chat/src/web/app/App.tsx) composes the controller, confirmations, overlay and
 session-action providers, global keyboard routing and responsive workspace.
-[Frontend organization](development.md#frontend-organization) describes application composition, feature modules and shared folders.
+[Frontend organization](../packages/pi-chat/docs/development.md#frontend-organization) describes application composition, feature modules and shared folders.
 
-[usePiChat](../src/web/app/hooks/use-pi-chat.ts) creates one `PiClient` per mounted
+[usePiChat](../packages/pi-chat/src/web/app/hooks/use-pi-chat.ts) creates one `PiClient` per mounted
 controller, supplies the selected endpoint and browser transport, exposes typed
 operations and disposes subscriptions/client state on unmount.
-[bindPiChat](../src/web/app/lib/sdk-binding.ts) projects SDK state and
+[bindPiChat](../packages/pi-chat/src/web/app/lib/sdk-binding.ts) projects SDK state and
 notifications into browser-owned views. Chat does not implement another wire
 session reducer or request tracker.
 
@@ -73,7 +73,7 @@ Pi's current context, so compaction can shorten history. Live/final/snapshot
 message identity prevents duplicated history; a reconnect does not promise to
 recover an unobserved partial streaming prefix.
 
-[SessionActionsProvider](../src/web/features/sessions/actions/stores/SessionActionsProvider.tsx)
+[SessionActionsProvider](../packages/pi-chat/src/web/features/sessions/actions/stores/SessionActionsProvider.tsx)
 shares local action definitions and session-scoped errors between composer and
 Quick Switcher. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
@@ -128,7 +128,7 @@ replacement transfers selection, while startup/reconnect retain their existing
 selection fallback. Later reconciliation removes missing/archived/external
 reopens only after authoritative catalogue availability.
 
-[SessionDraftProvider](../src/web/features/sessions/drafts/stores/SessionDraftProvider.tsx)
+[SessionDraftProvider](../packages/pi-chat/src/web/features/sessions/drafts/stores/SessionDraftProvider.tsx)
 owns page-lifetime composer drafts. Unsaved runtime keys transfer to saved paths,
 so parking/reopening can reuse drafts even when the runtime ID changes. Browser
 reload does not persist these drafts.
@@ -159,24 +159,24 @@ labels. This presentation does not modify runtime inventory. Row actions continu
 
 - Opening or switching a session pins the transcript to its latest message.
 - Message updates and delayed Markdown/image layout growth keep following until the reader scrolls up; returning to the bottom resumes following.
-- [Scroll hook](../src/web/features/chat/transcript/hooks/use-auto-scroll.ts) owns follow intent, layout observation and animation-frame cleanup.
-- [Browser scenarios](../testing/e2e/transcript-scroll.spec.ts) verify Home opening, session switching, reload and reader opt-out against actual viewport/composer geometry.
+- [Scroll hook](../packages/pi-chat/src/web/features/chat/transcript/hooks/use-auto-scroll.ts) owns follow intent, layout observation and animation-frame cleanup.
+- [Browser scenarios](../packages/pi-chat/testing/e2e/transcript-scroll.spec.ts) verify Home opening, session switching, reload and reader opt-out against actual viewport/composer geometry.
 
 ### Focus and overlays
 
-[AppOverlays](../src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
+[AppOverlays](../packages/pi-chat/src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
 dialogs, navigation, folders and Settings. Desktop navigation is non-modal;
 phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
 Settings stays mounted while closed so chime playback remains active.
 
-[Composer focus](../src/web/hooks/composer-focus.ts) restores only an enabled,
+[Composer focus](../packages/pi-chat/src/web/hooks/composer-focus.ts) restores only an enabled,
 connected, visible composer when no dialog owns focus. Mantine exit callbacks
 increment a revision; a layout effect consumes it once after React commits DOM
 removal. This is not a polling loop or a promise that an animation frame implies
 a commit. Reopening or a newer/nested dialog prevents stale restoration. A
 minimized pending prompt can receive focus through its Reopen button while the
 composer is disabled. Background stream/snapshot updates do not request focus.
-See [focus test discipline](../testing/README.md#composer-focus-regressions).
+See [focus test discipline](../packages/pi-chat/testing/README.md#composer-focus-regressions).
 
 ### Runtime prompts, widgets and themes
 
@@ -186,7 +186,7 @@ instance, runtime and prompt ID; they survive tab changes/reconnects but not pag
 refresh. Authoritative removal/replacement clears them. Submission guards prevent
 duplicate answers; failures retain drafts for retry. Minimize is local and does
 not answer, cancel, extend expiry or pause the server's disconnect grace.
-[Prompt presentation](../src/web/features/extensions/prompts/hooks/use-prompt-presentation.ts)
+[Prompt presentation](../packages/pi-chat/src/web/features/extensions/prompts/hooks/use-prompt-presentation.ts)
 keeps these drafts out of SDK snapshots. Native `/model` is an immediate select
 with all available references in `options` and a server-resolved
 `modelScope.scoped` subset. Search and scoped/all selection are browser-owned
@@ -207,11 +207,11 @@ stacked.
 
 - `AppThemeProvider` owns the fixed application theme, including portals.
 - Runtime Pi themes only color extension ANSI output, not the interface.
-- See [theme configuration](configuration.md#pi-themes) for setup and lifetime.
+- See [theme configuration](../packages/pi-chat/docs/configuration.md#pi-themes) for setup and lifetime.
 
 ### File links and content presentation
 
-- Local Markdown links use the [file-opening plugin](../src/plugins/file-opening/README.md); the server owns filesystem access and OS effects, while the browser owns transient feedback outside chat history.
+- Local Markdown links use the [file-opening plugin](../packages/pi-chat/src/plugins/file-opening/README.md); the server owns filesystem access and OS effects, while the browser owns transient feedback outside chat history.
 - Markdown/read/write previews and edit highlighting present existing tool content, not new file access endpoints; raw HTML and remote preview images remain disabled.
 
 - JSX lint rejects explicit native-tooltip `title` attributes.
@@ -221,7 +221,7 @@ stacked.
 
 ## Host lifecycle and security
 
-[The host](../src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
+[The host](../packages/pi-chat/src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
 log ownership and idempotent shutdown. Managed PID records are published
 atomically. The `/pi-chat restart` extension resolves npm beside its running Node,
 runs `npm ci` and `npm run build`, and reports failures before signaling the host.
@@ -241,4 +241,4 @@ has no application authentication; bind to loopback/private interfaces and use a
 trusted authenticated TLS proxy/VPN for remote access. Endpoint preferences do
 not bypass origin protections. Logs are bounded/redacted and belong
 to the host/server; connection diagnostics must not log chat frames or secrets.
-See [configuration](configuration.md) and [development](development.md).
+See [configuration](../packages/pi-chat/docs/configuration.md) and [development](development.md).

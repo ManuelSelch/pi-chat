@@ -1,0 +1,95 @@
+{
+  "name": "pi-chat",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A minimal local web chat for Pi",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./extension/pi-chat.ts"
+    ]
+  },
+  "scripts": {
+    "predev": "npm --prefix ../.. run build:packages",
+    "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
+    "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch --include '../pi-server/dist/**/*.js' --include '../pi-sdk-typescript/dist/**/*.js' src/host/index.ts",
+    "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 PI_CHAT_WEB_PORT=5174 vite",
+    "build:harness": "node scripts/compile-test-harness.mjs",
+    "prebuild": "npm --prefix ../.. run build:packages && npm run build:harness",
+    "build": "npm run verify:dependencies && tsc --noEmit && npm run build:host && vite build",
+    "build:host": "tsc -p tsconfig.host.json",
+    "start": "node dist/host/index.js",
+    "pretest": "npm --prefix ../.. run build:packages && npm run build:harness",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
+    "test:e2e:coverage": "PI_CHAT_COVERAGE=1 npm run build && npm run test:e2e:coverage:run",
+    "test:e2e:coverage:run": "node scripts/run-playwright-coverage.mjs",
+    "coverage:e2e:report": "node scripts/report-playwright-coverage.mjs",
+    "test:production-smoke": "npm run build && node scripts/production-server-smoke.mjs",
+    "verify:dependencies": "node scripts/verify-dependencies.mjs",
+    "capture:readme": "tsx scripts/capture-readme.ts",
+    "test:watch": "vitest",
+    "lint": "eslint src testing extension vite.config.ts --max-warnings 0",
+    "test:tooling": "node --test testing/tooling/*.check.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dependencies": {
+    "@mantine/core": "^9.6.1",
+    "@mantine/hooks": "^9.6.1",
+    "@manuelselch/pi-sdk": "0.3.0-plugin.2",
+    "@manuelselch/pi-server": "0.4.0-plugin.3",
+    "@tabler/icons-react": "^3.46.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.1",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitejs/plugin-react": "^6.1.1",
+    "agentation": "^3.1.2",
+    "concurrently": "^10.0.5",
+    "fancy-ansi": "0.2.2",
+    "jsdom": "^30.0.1",
+    "katex": "^0.18.7",
+    "lowlight": "^3.3.0",
+    "postcss-preset-mantine": "^1.18.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-katex": "^7.0.1",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-agent-core": "1.4.0",
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-coding-agent": "1.4.0",
+    "@marcfargas/pi-test-harness": "git+https://github.com/ManuelSelch/pi-test-harness.git#7ade82c6c7de2ae85f69df1c442a515b63c6dadc",
+    "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "5.0.0",
+    "eslint": "^9.39.5",
+    "monocart-coverage-reports": "^3.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.72.1"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManuelSelch/pi-chat.git",
+    "directory": "packages/pi-chat"
+  }
+}

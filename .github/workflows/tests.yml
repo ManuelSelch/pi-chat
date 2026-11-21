@@ -21,50 +21,32 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-      - name: Check naming conventions
-        run: npm run lint && npm run test:tooling
+      - run: npm ci --ignore-scripts
+      - run: npm run lint && npm run test:tooling
 
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      # Typechecking includes the test drivers, which import this source-only
-      # Git dependency. Compile it without enabling lifecycle scripts.
-      - name: Compile test harness
-        run: >-
-          npx --ignore-scripts tsc --ignoreConfig --noCheck
-          --module nodenext --target es2022 --declaration
-          --outDir node_modules/@marcfargas/pi-test-harness/dist
-          node_modules/@marcfargas/pi-test-harness/src/*.ts
-
-      - name: Typecheck and build with browser source maps
+      - run: npm ci --ignore-scripts
+      - name: Build workspace with browser source maps
         run: npm run build
         env:
           PI_CHAT_COVERAGE: '1'
-
-      - name: Verify isolated production launcher and restart lifecycle
+      - name: Verify production launcher and restart lifecycle
+        working-directory: packages/pi-chat
         run: node scripts/production-server-smoke.mjs
         env:
-          # The real restart rebuilds assets; retain maps for the downstream E2E job.
           PI_CHAT_COVERAGE: '1'
-
-      - name: Upload production assets
-        uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6
         with:
           name: build
-          path: dist/
+          path: packages/pi-chat/dist/
           if-no-files-found: error
           retention-days: 7
 
@@ -84,8 +66,6 @@ jobs:
       - run: npm run test:packages:coverage
       - run: npm run verify:packages
       - run: npm run verify:protocol
-      - name: Collect workspace coverage
-        run: node scripts/report-package-coverage.mjs
       - uses: actions/upload-artifact@v6
         with:
           name: coverage-packages
@@ -98,32 +78,16 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      # The pinned Git dependency ships source only. Transpile it explicitly
-      # instead of enabling automatic dependency lifecycle scripts.
-      - name: Compile test harness
-        run: >-
-          npx --ignore-scripts tsc --ignoreConfig --noCheck
-          --module nodenext --target es2022 --declaration
-          --outDir node_modules/@marcfargas/pi-test-harness/dist
-          node_modules/@marcfargas/pi-test-harness/src/*.ts
-
-      - name: Run Vitest tests with coverage
-        run: npm test -- --coverage
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v6
+      - run: npm ci --ignore-scripts
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v6
         with:
           name: coverage
-          path: coverage/
+          path: coverage/lcov.info
           if-no-files-found: error
           retention-days: 7
 
@@ -132,7 +96,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
-      # Keep this version aligned with Playwright in package-lock.json.
+      # Keep aligned with Playwright in package-lock.json.
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --ipc=host
     defaults:
@@ -140,56 +104,35 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Compile test harness
-        run: >-
-          npx --ignore-scripts tsc --ignoreConfig --noCheck
-          --module nodenext --target es2022 --declaration
-          --outDir node_modules/@marcfargas/pi-test-harness/dist
-          node_modules/@marcfargas/pi-test-harness/src/*.ts
-
-      - name: Build workspace dependencies
-        run: npm run build:packages
-
-      - name: Download production assets
-        uses: actions/download-artifact@v8
+      - run: npm ci --ignore-scripts
+      - run: npm run build:packages && npm run build:harness -w pi-chat
+      - uses: actions/download-artifact@v8
         with:
           name: build
-          path: dist/
-
-      # Use the existing build rather than test:e2e, which rebuilds it.
-      - name: Run Playwright browser tests with browser and backend coverage
+          path: packages/pi-chat/dist/
+      - name: Run browser and Chat-worker coverage against downloaded assets
         run: npm run test:e2e:coverage:run
-
-      - name: Upload E2E coverage report
-        uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6
         with:
           name: coverage-e2e
           path: coverage-e2e/lcov.info
           if-no-files-found: error
           retention-days: 7
-
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: playwright-test-results
-          path: test-results/
+          path: packages/pi-chat/test-results/
           if-no-files-found: ignore
           retention-days: 7
 
   sonar:
     needs: [unit, e2e, packages]
-    # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
-    # Fork pull requests cannot access the analysis token.
     if: >-
       vars.SONAR_PROJECT_KEY != '' && vars.SONAR_ORGANIZATION != '' &&
       (github.event_name != 'pull_request' ||
@@ -200,25 +143,18 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Download coverage report
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: coverage
           path: coverage
-
-      - name: Download E2E coverage report
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: coverage-e2e
           path: coverage-e2e
-
-      - name: Download workspace coverage
-        uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8
         with:
           name: coverage-packages
           path: coverage-packages
-
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7
         env:

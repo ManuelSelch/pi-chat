@@ -19,7 +19,7 @@ suites:
     timeoutSeconds: 300
     auto: after-agent
   unit:
-    command: [npm, test]
+    command: [npm, run, test:coverage]
     cwd: .
     timeoutSeconds: 300
     auto: after-agent
@@ -41,7 +41,7 @@ suites:
       protocol:
         command: [npm, run, verify:protocol]
   e2e:
-    command: [npm, run, test:e2e]
+    command: [npm, run, test:e2e:coverage]
     cwd: .
     timeoutSeconds: 600
     auto: manual

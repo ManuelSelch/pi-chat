@@ -4,9 +4,9 @@ dist/
 test-results/
 playwright-report/
 coverage/
-/coverage-e2e/
+coverage-e2e/
 /coverage-packages/
 .scannerwork/
 *.log
 .DS_Store
-/docs/images/showcase/preview.html
+/packages/pi-chat/docs/images/showcase/preview.html

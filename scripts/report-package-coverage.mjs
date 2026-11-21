@@ -23,4 +23,17 @@ export async function collectPackageCoverage() {
   await writeFile(resolve(root, 'coverage-packages/lcov.info'), reports.join('\n'));
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await collectPackageCoverage();
+export async function collectChatCoverage(kind) {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const workspace = 'packages/pi-chat';
+  const directory = kind === 'unit' ? 'coverage' : 'coverage-e2e';
+  const report = await readFile(resolve(root, workspace, directory, 'lcov.info'), 'utf8');
+  await mkdir(resolve(root, directory), { recursive: true });
+  await writeFile(resolve(root, directory, 'lcov.info'), workspaceLcov(report, workspace, root));
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes('--chat-unit')) await collectChatCoverage('unit');
+  else if (process.argv.includes('--chat-e2e')) await collectChatCoverage('e2e');
+  else await collectPackageCoverage();
+}
