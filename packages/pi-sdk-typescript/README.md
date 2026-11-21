@@ -171,16 +171,17 @@ Clients filter locally; answers remain ordinary `prompt.answer` strings.
 not a legacy envelope. Regenerate schemas and examples:
 
 ```sh
+# From the monorepo root:
 npm ci --ignore-scripts
-npm run protocol:generate
-npm test
-npm run typecheck
-npm run verify:package
+npm run protocol:generate -w @manuelselch/pi-sdk
+npm test -w @manuelselch/pi-sdk
+npm run typecheck -w @manuelselch/pi-sdk
+npm run verify:package -w @manuelselch/pi-sdk
 ```
 
-`@manuelselch/pi-sdk/protocol` imports no client state/transport. Generated artifacts remain available at `/protocol/schema/v2/*.schema.json` and `/protocol/fixtures/v2/*.json`. The old `/contract` entry is intentionally not exported. Runtime dependencies contain only Zod; this repository builds/tests without Pi Chat or Swift sources.
+`@manuelselch/pi-sdk/protocol` imports no client state/transport. Generated artifacts remain available at `/protocol/schema/v2/*.schema.json` and `/protocol/fixtures/v2/*.json`. The old `/contract` entry is intentionally not exported. Runtime dependencies contain only Zod; this package builds/tests without importing Chat or Swift sources. Source and history now live in the [Pi Chat monorepo](../../docs/monorepo.md), with one root lockfile.
 
-`npm run probe:swift:generate` writes a portable probe to `protocol/swift/GeneratedModels.swift`, never into a sibling repository. Swift imports pinned artifacts explicitly using its own synchronization script; TypeScript remains the sole protocol authority. Swift client/probe tests live in the separate `pi-sdk-swift` repository. Real-server cross-language tests remain in Pi Chat until server extraction.
+`npm run probe:swift:generate` writes a portable probe to `protocol/swift/GeneratedModels.swift`, never into a sibling repository. Swift imports pinned artifacts explicitly using its own synchronization script; TypeScript remains the sole protocol authority. Swift client/probe tests live in the separate `pi-sdk-swift` repository. Real-server cross-language compatibility tests also belong to the separate Swift repository.
 
 ## SonarQube Cloud
 
@@ -188,23 +189,6 @@ npm run verify:package
 plus `coverage/lcov.info`. Coverage includes all `src/**/*.ts` files, including
 unexecuted source files. Ordinary `npm test` runs without coverage.
 
-GitHub Actions uploads LCOV after all TypeScript checks pass. The dependent
-`sonar` job scans the repository and waits for the quality gate; a failed gate
-fails the job. Fork pull requests skip scanning because they cannot access the
-token. Analysis scope uses `sonar.exclusions`, not explicit source/test roots;
-excluded tests are not analyzed but still contribute source coverage.
-
-To enable scanning:
-
-1. Import `ManuelSelch/pi-sdk-typescript` into SonarQube Cloud under organization
-   `manuelselch`, with project key `ManuelSelch_pi-sdk-typescript`.
-2. Select CI-based analysis and disable automatic analysis for the project.
-3. Add the GitHub Actions repository secret `SONAR_TOKEN` with an analysis token
-   authorized for this Cloud project.
-4. Set repository variables `SONAR_ORGANIZATION=manuelselch` and
-   `SONAR_PROJECT_KEY=ManuelSelch_pi-sdk-typescript`. Without both variables, the
-   scan job is skipped.
-5. Push the changes and verify the `sonar` job. If required, configure GitHub
-   branch protection separately to require this check.
-
-Use `npm pack --pack-destination <directory>` to build a local consumer artifact. Nothing is published. See [PROTOCOL.md](PROTOCOL.md) and [SOURCE.md](SOURCE.md).
+- The root [workflow](../../.github/workflows/tests.yml) runs SDK/Server verification and normalizes their coverage into `coverage-packages/lcov.info`.
+- Root Sonar analysis imports package coverage alongside Chat unit/browser reports. Configuration belongs to the [root development guide](../../docs/development.md#ci-and-static-analysis).
+- Use `npm pack -w @manuelselch/pi-sdk --pack-destination <directory>` from the root to build a local consumer artifact. Nothing is published. See [PROTOCOL.md](PROTOCOL.md) and [workspace source history](../../docs/monorepo.md#imported-history).

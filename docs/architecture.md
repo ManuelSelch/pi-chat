@@ -1,7 +1,7 @@
 # Architecture
 
-Pi Chat is a browser application and a thin Node host for the independently
-packaged Pi server. The server runs Pi sessions; the TypeScript SDK owns the v2
+Pi Chat is a browser application and a thin Node host for the Pi server.
+Chat, Server and the TypeScript SDK share this [npm workspace](monorepo.md), while retaining separate package APIs. The server runs Pi sessions; the TypeScript SDK owns the v2
 wire contract, transport and synchronized session projections. The browser owns
 navigation, drafts, focus and presentation. There is no v1 compatibility path.
 
@@ -18,14 +18,13 @@ flowchart LR
 | Owner | Responsibility |
 |---|---|
 | [Pi Chat](../src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
-| [pi-server](https://github.com/ManuelSelch/pi-server) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
-| [pi-sdk-typescript](https://github.com/ManuelSelch/pi-sdk-typescript) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
+| [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
+| [pi-sdk-typescript](../packages/pi-sdk-typescript/README.md) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
 
-Chat consumes compiled packages, not sibling sources or a package workspace.
-See the [manifest](../package.json) and [lockfile](../package-lock.json) for
-SDK/server dependency versions and [dependency provenance](../vendor/README.md)
-for the installed contract boundary. Public server imports are the
+Chat consumes compiled public exports from local workspace packages, not private source paths.
+See the [manifest](../package.json), [lockfile](../package-lock.json) and
+[monorepo guide](monorepo.md) for dependency resolution, builds and imported history. Public server imports are the
 root, `/plugins`, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
@@ -234,8 +233,8 @@ the host's original Node executable; if it is unavailable, stop and start again.
 The server owns Pi runtime construction, including upstream codemode, tool-search
 and MCP extension registration. Credentials, subprocesses, discovery/trust and
 resource lifecycle remain server/Pi-owned, not browser settings or SDK work.
-Server implementation details and profiling diagnostics belong to pi-server;
-Chat does not carry a second source inventory or runnable server profiler.
+Server implementation details and profiling diagnostics live in `packages/pi-server`;
+the Chat application does not carry a second implementation.
 
 The server can execute tools and access files with its user's permissions. It
 has no application authentication; bind to loopback/private interfaces and use a

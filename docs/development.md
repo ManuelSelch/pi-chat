@@ -6,25 +6,23 @@ Use Node.js 22.19 or newer. From the repository checkout:
 
 ```sh
 npm ci --ignore-scripts
-# Compile the pinned source-only test harness before build/test:
-npx --ignore-scripts tsc --ignoreConfig --noCheck --module nodenext --target es2022 --declaration --outDir node_modules/@marcfargas/pi-test-harness/dist node_modules/@marcfargas/pi-test-harness/src/*.ts
 npm run dev
 ```
 
-The development command runs the backend with `tsx watch` and the frontend with
-Vite. For a production build and compiled backend:
+The development command builds SDK → Server, then watches workspace compilation,
+the backend with `tsx watch`, and the frontend with Vite. For a production build and compiled backend:
 
 ```sh
 npm run build
 npm start
 ```
 
-Generated application `dist/` artifacts are local and are not committed. The
-server and TypeScript SDK are independent, precompiled packages; no sibling
-checkout, server source tree or package workspace is required. This branch uses
-committed SDK/server candidate archives with source/integrity receipts rather than published releases. No Swift SDK is
-vendored, and Chat does not run Swift tests. See
-[dependency provenance](../vendor/README.md) for installed-package ownership.
+- Generated `dist/` artifacts are local and uncommitted.
+- Server and TypeScript SDK live in `packages/`, with one root lockfile and public compiled package exports.
+- `build` and Chat's `pretest` compile the source-only test harness and workspace dependencies first.
+- No sibling checkout, vendored candidate archive or Swift toolchain is required.
+- See the [monorepo guide](monorepo.md) for package commands, CI and imported history.
+
 `npm run verify:dependencies` checks the installed public server API and protocol
 version, not every package byte or behavior. `build:host` compiles only Chat's
 process adapter to `dist/host/index.js`; `npm start` and the extension launcher
@@ -39,6 +37,11 @@ npm test
 npx tsc --noEmit
 npm run test:e2e
 npm run test:production-smoke
+npm run typecheck:packages
+npm run test:packages
+npm run test:packages:coverage
+npm run verify:packages
+npm run verify:protocol
 ```
 
 ESLint checks TypeScript naming in `src/`, `testing/`, `extension/` and Vite config:
@@ -71,20 +74,20 @@ Regenerate the report from retained raw data with `npm run coverage:e2e:report`.
 Ordinary `test:e2e` runs do not collect coverage. The coverage runner clears only
 `coverage-e2e/`; Vitest's `coverage/` is independent. Vitest includes `src/` and
 the E2E converter accepts Chat's `src/web/`, `src/host/` and `src/shared/`;
-independent server/SDK coverage belongs to those repositories. Sonar analysis
+Server/SDK coverage comes from their package suites and is normalized into `coverage-packages/lcov.info`. Sonar analysis
 uses the exclusions in `sonar-project.properties`, not an explicit source-root
-setting. CI waits for unit and E2E success before importing both LCOV reports.
+setting. CI waits for Chat unit/E2E and package success before importing all three LCOV reports.
 Vitest supplies unexecuted source files so they remain uncovered in combined
 analysis.
 
 Coverage uses the exact Playwright transform cache and Node source maps for the
-Chat-owned worker code. Server internals are covered by the independent server CI, not copied into Chat coverage. Browser execution is mandatory; external server execution does not satisfy Chat coverage. Upgrading Playwright requires rerunning the reload regression
+Chat-owned worker code. Server internals are covered by the workspace package CI job, not copied into Chat's coverage report. Browser execution is mandatory; external server execution does not satisfy Chat coverage. Upgrading Playwright requires rerunning the reload regression
 and checking worker mappings; missing/mismatched maps or transformed sources fail
 report generation. New page navigations must checkpoint collection through the
 browser driver, as reload does. Popups/additional browser pages are not supported.
 Raw data contains source code and stays local; CI uploads only LCOV.
 
-Server memory and session-open profiling diagnostics now live in the independent `pi-server` repository. They are not rebuilt or copied by Chat.
+Server memory and session-open profiling diagnostics live in `packages/pi-server/scripts/`.
 
 To regenerate the README showcase, run `npm run capture:readme`. See the
 [capture guide](readme-showcase/CAPTURE.md) for isolation, output files, and options.
@@ -100,7 +103,8 @@ LCOV. Only E2E runs in the official Playwright container; keep its image version
 aligned with the lockfile. The container avoids per-run browser/system-library
 installation; Node setup and Bash remain explicit.
 
-Sonar waits for unit/E2E, imports both reports and waits for the quality gate.
+The packages job verifies SDK/Server typing, behavior, coverage, isolated tarballs and protocol artifacts.
+Sonar waits for unit/E2E/packages, imports all three reports and waits for the quality gate.
 It requires `SONAR_PROJECT_KEY`, `SONAR_ORGANIZATION` and `SONAR_TOKEN`; fork PRs
 without access to the token are not scanned. Mockups are excluded from analysis;
 coverage exclusions are separate. Source fixes or a local green suite do not
@@ -131,8 +135,8 @@ Consumers use only public root, `/plugins`, `/extensions`, `/testing` and `/test
 Chat keeps browser/domain drivers, UI tests, host/build/extension boundary tests
 and production lifecycle smoke. Fakes come from compiled server testing exports.
 Plain-Node loopback package checks retain workspace isolation and cleanup-file
-safety coverage without a Swift harness; server internals and Swift compatibility
-suites belong to their respective package repositories. See the
+safety coverage without a Swift harness; Server internals are tested in `packages/pi-server`,
+while Swift compatibility stays in its separate repository. See the
 [driver guide](integration-tests/DRIVERS.md), [testing guide](../testing/README.md)
 and [package ownership](architecture.md#package-boundaries).
 

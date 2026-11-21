@@ -1,27 +1,15 @@
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, it } from "vitest";
 
-it("pins local SDK/server candidates to source revisions and archive integrity", async () => {
+it("consumes the SDK and Server from version-matched workspaces without a private SDK copy", async () => {
   const manifest = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
   const lock = JSON.parse(await readFile(new URL("../../package-lock.json", import.meta.url), "utf8"));
-  const candidates = JSON.parse(await readFile(new URL("../../vendor/candidates.json", import.meta.url), "utf8"));
-  for (const [name, candidate] of Object.entries(candidates) as [string, { archive: string; version: string; sourceRevision: string; sha256: string; integrity: string }][]) {
-    const spec = "file:vendor/" + candidate.archive;
-    const archive = await readFile(new URL("../../vendor/" + candidate.archive, import.meta.url));
-
-    expect(candidate.sourceRevision).toMatch(/^[a-f0-9]{40}$/);
-    expect(createHash("sha256").update(archive).digest("hex")).toBe(candidate.sha256);
-    expect("sha512-" + createHash("sha512").update(archive).digest("base64")).toBe(candidate.integrity);
-    expect(manifest.dependencies[name]).toBe(spec);
-    expect(lock.packages[""].dependencies[name]).toBe(spec);
-    expect(lock.packages[`node_modules/${name}`]).toMatchObject({
-      version: candidate.version, resolved: spec, integrity: candidate.integrity,
-    });
+  for (const [name, path] of [["@manuelselch/pi-sdk", "packages/pi-sdk-typescript"], ["@manuelselch/pi-server", "packages/pi-server"]] as const) {
+    expect(lock.packages[`node_modules/${name}`]).toEqual({ resolved: path, link: true });
+    expect(lock.packages[path].version).toBe(manifest.dependencies[name]);
   }
-  expect(Object.keys(candidates).sort()).toEqual(["@manuelselch/pi-sdk", "@manuelselch/pi-server"]);
-  expect(lock.packages["node_modules/@manuelselch/pi-server/node_modules/@manuelselch/pi-sdk"]).toBeUndefined();
-  expect(lock.packages["node_modules/@manuelselch/pi-server"].dependencies["@manuelselch/pi-sdk"]).toBe(candidates["@manuelselch/pi-sdk"].version);
+  expect(lock.packages["packages/pi-server/node_modules/@manuelselch/pi-sdk"]).toBeUndefined();
+  expect(lock.packages["packages/pi-server"].dependencies["@manuelselch/pi-sdk"]).toBe(manifest.dependencies["@manuelselch/pi-sdk"]);
 });
 
 it("consumes installed public server, plugin and protocol APIs", async () => {

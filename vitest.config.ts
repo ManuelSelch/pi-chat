@@ -4,6 +4,9 @@ export default defineConfig({
   define: { __PI_CHAT_BUILD__: JSON.stringify({ chat: "dev", sdk: "test-sdk" }) },
   test: {
     setupFiles: ["testing/setup.ts"],
+    // Workspace symlinks must retain the installed-package boundary: Chat's
+    // module mocks must not rewrite SDK/Server implementation dependencies.
+    server: { deps: { external: [/\/packages\/pi-server\/dist\//, /\/packages\/pi-sdk-typescript\/dist\//] } },
     exclude: ["**/node_modules/**", "testing/e2e/**", "packages/**"],
     coverage: {
       provider: "v8",

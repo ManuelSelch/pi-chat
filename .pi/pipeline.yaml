@@ -1,5 +1,5 @@
 prepare:
-  command: [npm, ci]
+  command: [npm, ci, --ignore-scripts]
   cwd: .
   timeoutSeconds: 300
 suites:
@@ -23,6 +23,23 @@ suites:
     cwd: .
     timeoutSeconds: 300
     auto: after-agent
+  packages:
+    cwd: .
+    timeoutSeconds: 600
+    auto: after-agent
+    jobs:
+      build:
+        command: [npm, run, build:packages]
+      typecheck:
+        command: [npm, run, typecheck:packages]
+      tests:
+        command: [npm, run, test:packages]
+      coverage:
+        command: [npm, run, test:packages:coverage]
+      artifacts:
+        command: [npm, run, verify:packages]
+      protocol:
+        command: [npm, run, verify:protocol]
   e2e:
     command: [npm, run, test:e2e]
     cwd: .

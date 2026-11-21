@@ -1,17 +1,16 @@
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { realpath, readFile } from "node:fs/promises";
 import { expect, it } from "vitest";
 
-it("installs the integrity-pinned candidate SDK without bundling a private copy", async () => {
+it("links the workspace SDK without bundling a private copy", async () => {
   const manifest = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
-  const lock = JSON.parse(await readFile(new URL("../../package-lock.json", import.meta.url), "utf8"));
-  const sdk = lock.packages["node_modules/@manuelselch/pi-sdk"];
+  const sdk = JSON.parse(await readFile(new URL("../../../pi-sdk-typescript/package.json", import.meta.url), "utf8"));
+  const lock = JSON.parse(await readFile(new URL("../../../../package-lock.json", import.meta.url), "utf8"));
 
   expect(manifest.bundleDependencies ?? []).not.toContain("@manuelselch/pi-sdk");
   expect(manifest.bundledDependencies ?? []).not.toContain("@manuelselch/pi-sdk");
-  expect(lock.packages[""].dependencies["@manuelselch/pi-sdk"]).toBe(manifest.dependencies["@manuelselch/pi-sdk"]);
-  expect(sdk.version).toBe(manifest.dependencies["@manuelselch/pi-sdk"]);
-  expect(sdk.resolved).toMatch(/^file:vendor\/manuelselch-pi-sdk-[^/]+\.tgz$/);
-  const archive = await readFile(new URL("../../" + sdk.resolved.slice(5), import.meta.url));
-  expect(sdk.integrity).toBe("sha512-" + createHash("sha512").update(archive).digest("base64"));
+  expect(manifest.dependencies["@manuelselch/pi-sdk"]).toBe(sdk.version);
+  expect(lock.packages["node_modules/@manuelselch/pi-sdk"]).toEqual({ resolved: "packages/pi-sdk-typescript", link: true });
+  expect(lock.packages["packages/pi-server/node_modules/@manuelselch/pi-sdk"]).toBeUndefined();
+  expect(await realpath(new URL("../../../../node_modules/@manuelselch/pi-sdk", import.meta.url)))
+    .toBe(await realpath(new URL("../../../pi-sdk-typescript", import.meta.url)));
 });

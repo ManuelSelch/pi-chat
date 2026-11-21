@@ -56,7 +56,7 @@ The diagram is uncompressed, single-page Draw.io XML:
 - `strict: true` rejects unused allowed arrows as well as missing dependencies/boxes.
 - `transitive: true` permits imports reachable through a chain of arrows: `A → B → C` also allows `A → C`. The diagram shows only essential arrows (the transitive reduction), not every direct import. This checks allowed reachability rather than an exact direct-import allow-list.
 
-From the repository root, check the current working tree with:
+From this package directory, check the current working tree with:
 
 ```sh
 npm run test:arch

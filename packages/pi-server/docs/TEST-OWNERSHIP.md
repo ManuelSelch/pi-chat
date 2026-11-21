@@ -2,7 +2,7 @@
 
 | Owner | Responsibility | Local verification |
 |---|---|---|
-| pi-server | Server behavior, public exports/CLI, compiled loopback fixture, isolation and shutdown receipt | `npm test`, `npm run typecheck`, `npm run verify:package` |
+| pi-server workspace | Server behavior, public exports/CLI, compiled loopback fixture, isolation and shutdown receipt | `npm test`, `npm run typecheck`, `npm run verify:package` |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift/tree/main/integration) | Swift unit/probe tests and real URLSession compatibility against its locked published npm server | Root `swift build` / `swift test`; separate integration npm install/test |
 | Pi Chat | Web/Node application and installed-dependency acceptance | Chat unit, browser, build and lifecycle suites; no Swift harness or SDK bundle |
 
@@ -20,7 +20,7 @@ an isolated packed consumer without Chat, frontend dependencies or tsx.
 Chat also retains plain-Node installed-fixture acceptance checks, including refusal
 to overwrite an existing cleanup file or symlink. Those two checks are **not**
 duplicated by this repository's current fixture suite. They remain covered in Chat,
-not dropped or represented as server-owned regressions. None uses Swift tooling.
+not dropped or represented as server-owned regressions. Both suites now run in the same monorepo, with their package ownership unchanged. None uses Swift tooling.
 Cross-language compatibility itself belongs solely to the Swift repository.
 
 ## S3 verification — 2026-10-25

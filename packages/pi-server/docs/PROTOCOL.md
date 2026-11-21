@@ -2,7 +2,7 @@
 
 **Implemented wire version: `2`. The coordinated server, TypeScript SDK and Pi Chat cutover is complete; v1 is unsupported.**
 
-The authoritative Zod protocol, domain schemas, generated JSON Schemas and fixtures now live in the independent `pi-sdk-typescript` repository. Chat consumes its public `@manuelselch/pi-sdk/protocol` entry and `/protocol/schema/**` and `/protocol/fixtures/**` artifacts. This document retains the server-side v2 protocol reference; no v1 negotiation or compatibility path exists. The historical cutover verification remains in Pi Chat's Git history.
+The authoritative Zod protocol, domain schemas, generated JSON Schemas and fixtures live in the `packages/pi-sdk-typescript` workspace. Chat consumes its public `@manuelselch/pi-sdk/protocol` entry and `/protocol/schema/**` and `/protocol/fixtures/**` artifacts. This document retains the server-side v2 protocol reference; no v1 negotiation or compatibility path exists. The historical cutover verification remains in Pi Chat's Git history.
 
 ## 1. Boundaries
 

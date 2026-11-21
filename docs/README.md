@@ -18,7 +18,7 @@ below do not imply that tests or visual acceptance have just run.
   documentation/scenario workflow.
 - [Application drivers](integration-tests/DRIVERS.md) and
   [test guide](../testing/README.md): faithful test boundaries and permanent contracts.
-- [Dependency provenance](../vendor/README.md): pinned releases and source ownership.
+- [Monorepo packages](monorepo.md): workspace dependencies, imported history and verification.
 - [Classic themes](../themes/README.md): shipped palette files and installation.
 - [Showcase assets](readme-showcase/CAPTURE.md): capture arguments, isolation and
   current limitations; retained images are not current visual verification.

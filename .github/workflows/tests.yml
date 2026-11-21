@@ -68,6 +68,31 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  packages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build:packages
+      - run: npm run typecheck:packages
+      - run: npm run test:packages
+      - run: npm run test:packages:coverage
+      - run: npm run verify:packages
+      - run: npm run verify:protocol
+      - name: Collect workspace coverage
+        run: node scripts/report-package-coverage.mjs
+      - uses: actions/upload-artifact@v6
+        with:
+          name: coverage-packages
+          path: coverage-packages/lcov.info
+          if-no-files-found: error
+          retention-days: 7
+
   unit:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -131,6 +156,9 @@ jobs:
           --outDir node_modules/@marcfargas/pi-test-harness/dist
           node_modules/@marcfargas/pi-test-harness/src/*.ts
 
+      - name: Build workspace dependencies
+        run: npm run build:packages
+
       - name: Download production assets
         uses: actions/download-artifact@v8
         with:
@@ -159,7 +187,7 @@ jobs:
           retention-days: 7
 
   sonar:
-    needs: [unit, e2e]
+    needs: [unit, e2e, packages]
     # Configure these variables and SONAR_TOKEN to enable CI-based analysis.
     # Fork pull requests cannot access the analysis token.
     if: >-
@@ -184,6 +212,12 @@ jobs:
         with:
           name: coverage-e2e
           path: coverage-e2e
+
+      - name: Download workspace coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-packages
+          path: coverage-packages
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@c7ee0f9df90b7aa20e8dcf9695dcfe2e7da5b4f2 # v7

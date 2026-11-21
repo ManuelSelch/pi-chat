@@ -74,7 +74,7 @@ async function sample(label, command, args, port) {
 
 try {
   const port = await freePort();
-  await sample("tsx", join(root, "node_modules/.bin/tsx"), ["src/cli.ts"], port);
+  await sample("tsx", process.execPath, ["--import", "tsx", "src/cli.ts"], port);
   await sample("compiled-node", process.execPath, [join(root, "dist/cli.js")], port);
   console.log(JSON.stringify({ node: process.version, executable: process.execPath, holdMs, openSessions: 0 }));
 } finally {

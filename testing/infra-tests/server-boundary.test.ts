@@ -17,15 +17,16 @@ it("leaves Swift SDK testing and artifacts outside Chat", () => {
   expect(workflow).not.toContain("macos-");
 });
 
-it("keeps only the Chat-owned host and consumes the server without copied sources", () => {
-  for (const path of ["src/server", "packages/pi-server", "tsconfig.server.json"]) expect(existsSync(path), path).toBe(false);
+it("keeps the Chat host separate and consumes Server/SDK only through public package exports", () => {
+  for (const path of ["src/server", "tsconfig.server.json"]) expect(existsSync(path), path).toBe(false);
+  for (const path of ["packages/pi-server/src", "packages/pi-sdk-typescript/src"]) expect(existsSync(path), path).toBe(true);
   function scan(directory: string): void {
     for (const file of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, file.name);
       if (file.isDirectory()) { if (!file.name.startsWith(".") && file.name !== "node_modules") scan(path); }
       else if (/\.(ts|tsx|js|mjs)$/.test(path)) {
         const source = readFileSync(path, "utf8");
-        expect(source, path).not.toMatch(/(?:from|import\s*\()\s*["\x27][^"\x27]*(?:src\/server\/|pi-server\/dist\/)/);
+        expect(source, path).not.toMatch(/(?:from|import\s*\()\s*["\x27][^"\x27]*(?:src\/server\/|pi-server\/dist\/|packages\/(?:pi-server|pi-sdk-typescript)\/src\/)/);
         expect(source, path).not.toContain("dist/server/" + "server/index.js");
       }
     }

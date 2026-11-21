@@ -25,6 +25,12 @@ Run `/pi-chat start`, then open [localhost:8788](http://localhost:8788).
 Use `/pi-chat stop` to stop the server, `/pi-chat restart` to rebuild and restart,
 or `/pi-chat` to check its status.
 
+## Development
+
+- Chat, [Server](packages/pi-server/README.md) and [TypeScript SDK](packages/pi-sdk-typescript/README.md) share one npm workspace.
+- Run `npm ci --ignore-scripts`, then `npm run dev` or `npm run build` from the root.
+- See [monorepo development and verification](docs/monorepo.md). Workspace migration does not publish the current SDK/Server candidate versions; external package installation requires matching published versions or explicit tarballs.
+
 ## Documentation
 
 - [Usage](docs/usage.md): shortcuts, sessions, steering, commands, and file previews.
@@ -33,4 +39,4 @@ or `/pi-chat` to check its status.
 - [Architecture](docs/architecture.md): components and data flow.
 - [Protocol integration](docs/protocol.md): SDK ownership, operation outcomes, and recovery.
 - [Extension API](docs/extension-api.md): experimental web UI extension integration.
-- [All system guides](docs/README.md): drivers, dependency provenance, themes, and capture limitations.
+- [All system guides](docs/README.md): drivers, workspace ownership, themes, and capture limitations.

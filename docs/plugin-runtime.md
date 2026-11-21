@@ -5,7 +5,7 @@
 - Startup precedes HTTP/WebSocket construction; failure rolls back rather than exposing a partially ready server. Server actions are available after readiness, not during setup.
 - Server close owns transport, plugin and session teardown; Chat owns its injected logger, signals and PID records.
 - Session-level Pi extensions remain distinct from server-scoped plugin activation.
-- Host runtime implementation/tests belong to [Pi Server](https://github.com/ManuelSelch/pi-server), not Chat. See its installed [lifecycle guide](../node_modules/@manuelselch/pi-server/docs/PLUGINS.md) after `npm ci`.
+- Host runtime implementation/tests belong to [Pi Server](../packages/pi-server/README.md), not Chat. See its [lifecycle guide](../packages/pi-server/docs/PLUGINS.md).
 - Chat passes `fileOpeningContract` and `folderOpeningContract` in `pluginRpcContracts`. Negotiated, server-scoped `plugin.call` uses `/ws`; only allowlisted contracts/revisions/methods are callable. Provider validation and sanitized RPC errors remain Server-owned.
 - `AppControllerProvider` composes the browser [file-opening entry](../src/plugins/file-opening/index.ts) with the generic request boundary from `usePiChat`. File policies and OS behavior are documented [with the feature](../src/plugins/file-opening/README.md).
 - Folder browsing uses the [folder-opening entry](../src/plugins/folder-opening/index.ts) and its allowlisted provider; Chat owns session creation and picker overlay state. Browsing errors remain actionable and requests can be cancelled locally.

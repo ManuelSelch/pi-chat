@@ -2,12 +2,12 @@
 
 Pi Chat consumes **wire version 2 only** through `PiClient` and
 `@manuelselch/pi-sdk/protocol`. Package versions and wire versions are different.
-The [TypeScript SDK](https://github.com/ManuelSelch/pi-sdk-typescript) owns the
+The [TypeScript SDK](../packages/pi-sdk-typescript/README.md) owns the
 Zod schemas, domain models, generated JSON Schemas and fixtures. Its public
 `/protocol/schema/v2/` and `/protocol/fixtures/v2/` artifacts describe exact
 payloads. This page explains Chat's integration, not a duplicate wire schema.
-Use the [manifest/lockfile and artifact provenance](../vendor/README.md) for the
-contract installed by this checkout; upstream main may be newer.
+Use the [workspace guide](monorepo.md) and root lockfile for the
+contract built from this checkout.
 
 ## Ownership and connection
 

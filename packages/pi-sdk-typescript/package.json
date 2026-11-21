@@ -3,6 +3,11 @@
   "version": "0.3.0-plugin.2",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManuelSelch/pi-chat.git",
+    "directory": "packages/pi-sdk-typescript"
+  },
   "description": "Pi Server TypeScript SDK and authoritative v2 protocol",
   "files": [
     "dist",

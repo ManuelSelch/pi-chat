@@ -5,11 +5,12 @@
   "author": "Manuel Selch",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ManuelSelch/pi-server.git"
+    "url": "git+https://github.com/ManuelSelch/pi-chat.git",
+    "directory": "packages/pi-server"
   },
-  "homepage": "https://github.com/ManuelSelch/pi-server#readme",
+  "homepage": "https://github.com/ManuelSelch/pi-chat/tree/main/packages/pi-server#readme",
   "bugs": {
-    "url": "https://github.com/ManuelSelch/pi-server/issues"
+    "url": "https://github.com/ManuelSelch/pi-chat/issues"
   },
   "publishConfig": {
     "access": "public",

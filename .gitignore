@@ -3,8 +3,9 @@ dist/
 .vite/
 test-results/
 playwright-report/
-/coverage/
+coverage/
 /coverage-e2e/
+/coverage-packages/
 .scannerwork/
 *.log
 .DS_Store
