@@ -1,5 +1,5 @@
 import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
-import type { OpenFileInput } from "@manuelselch/pi-sdk/plugins/file-opening";
+import type { OpenFileInput } from "../contract.js";
 
 /** File-link UI policy, not required plugin/RPC boilerplate. Never retries OS effects. */
 export function createPendingFileOpens(client: PiClient, open: (input: OpenFileInput) => Promise<void>) {

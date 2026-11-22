@@ -3,11 +3,11 @@ import { mkdtemp, mkdir, writeFile, symlink, realpath, chmod, rm } from "node:fs
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FileService } from "../../../../src/files/file-service.js";
-import { SystemFileOpener } from "../../../../src/files/system-file-opener.js";
+import { FileService } from "../file-service.js";
+import { SystemFileOpener } from "../system-file-opener.js";
 
 let folder: string;
-const opener = { open: vi.fn(async (_path: string) => {}) };
+const opener = { open: vi.fn<(path: string) => Promise<void>>().mockResolvedValue(undefined) };
 beforeEach(async () => {
   folder = await mkdtemp(join(tmpdir(), "pi-file-service-"));
   await mkdir(join(folder, "project"));

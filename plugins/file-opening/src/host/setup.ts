@@ -1,5 +1,5 @@
 import type { HostPluginContext } from "@manuelselch/pi-sdk/plugins";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "../contract.js";
 import type { FileOpeningServices } from "./index.js";
 
 export function setup(ctx: HostPluginContext, services: FileOpeningServices): void {

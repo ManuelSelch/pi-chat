@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { execFile } from "node:child_process";
-import { SystemFileOpener } from "../../../../src/files/system-file-opener.js";
+import { SystemFileOpener } from "../system-file-opener.js";
 vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
 afterEach(() => vi.resetAllMocks());
 

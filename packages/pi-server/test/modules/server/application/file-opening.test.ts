@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../../../../src/application/chat-application-service.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
-import { FileService } from "../../../../src/files/file-service.js";
+import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
 
 function fixture() {
   const first = new FakeRuntimeAdapter("first");

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { createPiServer, type PiServer } from "../../../../src/index.js";
-import { FileService } from "../../../../src/files/file-service.js";
+import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 let server: PiServer | undefined;

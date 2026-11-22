@@ -15,7 +15,7 @@ import type { ProjectSessionLister } from "./projects/catalogue-types.js";
 import type { WorktreeRepository } from "./projects/worktree-discovery.js";
 import { WebSocketTransport } from "./transport/websocket-transport.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory } from "./runtime/contracts.js";
-import type { FileService } from "./files/file-service.js";
+import type { FileService } from "@manuelselch/pi-plugin-file-opening/host";
 import type { FileLogger } from "./logging/file-logger.js";
 import type { RestartService } from "./bootstrap/restart-service.js";
 

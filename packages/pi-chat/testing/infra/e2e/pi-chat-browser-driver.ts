@@ -21,10 +21,10 @@ import { BrowserThemeDriver } from "./browser-theme-driver.js";
 import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
-import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
+import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/host";
 import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {

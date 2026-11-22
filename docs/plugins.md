@@ -41,6 +41,6 @@ flowchart TD
 
 - [Folder opening](../plugins/folder-opening/docs/architecture.md) registers `folder-opening.open`. [FolderOpeningProvider](../plugins/folder-opening/src/web/stores/FolderOpeningProvider.tsx) owns dialog state; the command and picker read the same private context.
 - The plugin owns its container, browsing client and error handling. Chat has no picker import, feature overlay field or folder RPC methods.
-- [File opening](../packages/pi-chat/src/plugins/file-opening/index.ts) retains its existing app-composed browser actions.
+- [File opening](../plugins/file-opening/README.md) owns its contract, browser actions and host/filesystem implementation in a standalone workspace; Chat retains explicit action composition.
 - Host plugins and RPC allowlists are configured separately. Browser composition does not activate or disable server capabilities.
 - Pi runtime extensions and server-sent buttons/badges, prompts and widgets remain separate mechanisms.

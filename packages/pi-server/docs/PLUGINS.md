@@ -3,7 +3,7 @@
 ## Getting started
 
 - Await `createPiServer({ plugins })` before listening. Plugins activate once per server, before HTTP and WebSocket construction; no feature plugins are enabled by default.
-- Import the runtime and optional feature factories from `@manuelselch/pi-server/plugins`. Shared plugin declarations and contracts come from `@manuelselch/pi-sdk/plugins`.
+- Import the runtime from `@manuelselch/pi-server/plugins`; feature factories and contracts belong to separate plugin packages. Shared declaration/contract primitives come from `@manuelselch/pi-sdk/plugins`.
 - Plugin activation alone does not expose a contract remotely. Add its contract to `pluginRpcContracts` to opt in.
 - Server plugins are independent of agent sessions. The server ignores web entries; browser activation and UI slots belong to the embedding application. Pi extensions remain session-scoped.
 
@@ -37,7 +37,8 @@
 
 ## File opening
 
-- Opt in with `plugins: services => [createFileOpeningPlugin({ open: services.openFile })]` and allowlist the SDK `fileOpeningContract`. Server actions are usable after readiness, not during setup.
+- Import `createFileOpeningPlugin` from `@manuelselch/pi-plugin-file-opening/host` and `fileOpeningContract` from `@manuelselch/pi-plugin-file-opening`. Opt in with `plugins: services => [createFileOpeningPlugin({ open: services.openFile })]` and allowlist the contract. Server actions are usable after readiness, not during setup.
 - The provider accepts `{ sessionId, path }`. The session ID is the public runtime incarnation ID; raw adapter IDs, closed or replaced IDs, and unknown sessions cannot select a runtime.
+- The plugin owns `FileService`, filesystem validation and OS opening; Server supplies session lookup and reuses that service for `file.open`.
 - Results are `{ ok: true }` or `{ ok: false, error }`. Existing canonicalization, readable-regular-file validation, bounded macOS opening and no-retry semantics apply. Files open on the server, not the browser; this does not reveal in Finder or browse folders.
 - [File scenarios](../test/integration/file-opening-plugin.test.ts) cover named sessions, failures and explicit exposure with real temporary files and a fake OS opener. The separate `file.open` operation is unchanged; there is no fallback.

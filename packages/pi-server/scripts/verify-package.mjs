@@ -31,11 +31,14 @@ try {
   const sdk = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', directory], sourceSdk, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];
   const pluginRoot = fileURLToPath(new URL('../../../plugins/folder-opening/', import.meta.url));
   const plugin = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', directory], pluginRoot, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];
+  const filePluginRoot = fileURLToPath(new URL('../../../plugins/file-opening/', import.meta.url));
+  const filePlugin = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', directory], filePluginRoot, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];
   const sdkFilename = sdk.filename;
   await writeFile(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: {
     '@manuelselch/pi-server': './' + result.filename,
     '@manuelselch/pi-sdk': './' + sdkFilename,
     '@manuelselch/pi-plugin-folder-opening': './' + plugin.filename,
+    '@manuelselch/pi-plugin-file-opening': './' + filePlugin.filename,
   } }));
   run([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund'], directory);
   const installedServer = JSON.parse(await readFile(join(directory, 'node_modules/@manuelselch/pi-server/package.json'), 'utf8'));
@@ -54,7 +57,7 @@ try {
   const installedSdk = JSON.parse(await readFile(join(sdkRoot, 'package.json'), 'utf8'));
   assert.equal(installedSdk.version, sourceManifest.version);
   assert.deepEqual(installedSdk.exports, sourceManifest.exports);
-  for (const file of ['dist/extension-ui.js', 'dist/protocol/models.js', 'dist/protocol/v2.js', 'dist/protocol/prompt-presentation.js', 'dist/plugins/index.js', 'dist/plugins/plugin.js', 'dist/plugins/remote-contract.js', 'dist/plugins/file-opening.js']) {
+  for (const file of ['dist/extension-ui.js', 'dist/protocol/models.js', 'dist/protocol/v2.js', 'dist/protocol/prompt-presentation.js', 'dist/plugins/index.js', 'dist/plugins/plugin.js', 'dist/plugins/remote-contract.js']) {
     assert.deepEqual(await readFile(join(sdkRoot, file)), await readFile(join(sourceSdk, file)), file);
   }
   run([npm, 'ls', '@manuelselch/pi-sdk', '--all'], directory);
@@ -66,9 +69,11 @@ try {
     import { createPiServer } from '@manuelselch/pi-server';
     import { FakeRuntimeAdapter } from '@manuelselch/pi-server/testing';
     import { folderOpeningPlugin, folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
+    import { createFileOpeningPlugin, fileOpeningContract } from '@manuelselch/pi-plugin-file-opening/host';
     const server = await createPiServer({
       runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null },
-      plugins: [folderOpeningPlugin], pluginRpcContracts: [folderOpeningContract],
+      plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
+      pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
     });
     await server.close();
   `], directory);
@@ -88,10 +93,10 @@ try {
   run(['--test', ...((await readdir(directory)).filter(file => file.endsWith('.test.mjs')))], directory);
   await writeFile(join(directory, 'consumer.ts'), `import { createPiServer, createPiRuntimeAdapter, createRestartService, type PiServerOptions, type RuntimeAdapter, type FileLogger } from '@manuelselch/pi-server';
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from '@manuelselch/pi-server/extensions';
-import { createFileOpeningPlugin } from '@manuelselch/pi-server/plugins';
+import { createFileOpeningPlugin } from '@manuelselch/pi-plugin-file-opening/host';
 import { folderOpeningPlugin } from '@manuelselch/pi-plugin-folder-opening';
 import { folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
-import { fileOpeningContract } from '@manuelselch/pi-sdk/plugins/file-opening';
+import { fileOpeningContract } from '@manuelselch/pi-plugin-file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
 const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };

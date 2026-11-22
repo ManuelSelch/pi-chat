@@ -4,6 +4,7 @@
 - `packages/pi-server`: HTTP/WebSocket hosting, Pi runtimes, persistence and host plugin activation.
 - `packages/pi-sdk-typescript`: authoritative protocol/artifacts, client transport and synchronized projections.
 - Root: private workspace composition, one lockfile, CI, Pi pipeline, coverage aggregation, system architecture and development docs.
+- `plugins/file-opening`: independent contract, browser file-link actions, host provider, filesystem validation and OS opening. Chat composes its public exports; Server reuses its file service for existing `file.open` behavior.
 - `plugins/folder-opening`: independent folder contract, browser client/state/UI, host provider and filesystem browsing, with colocated `__tests__` folders. Chat composes its public exports; Server reuses its directory service for existing directory operations and path validation.
 
 ## Boundaries and commands

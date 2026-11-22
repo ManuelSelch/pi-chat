@@ -1,7 +1,7 @@
 import { expect, test, vi } from "vitest";
-import { createFileOpeningPlugin } from "../../../../src/plugins/file-opening/index.js";
+import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/host";
 import { createPluginRuntime } from "../../../../src/plugins/runtime.js";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
 
 test("provides file opening through the injected server action", async () => {
   const open = vi.fn().mockResolvedValue({ ok: true });

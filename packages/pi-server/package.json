@@ -59,7 +59,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run test:unit && npm run test:package",
     "test:arch": "npx --yes @manuelselch/pi-verify@0.2.7 architecture",
@@ -84,7 +84,8 @@
     "express": "^5.2.1",
     "ws": "^8.21.3",
     "zod": "^4.6.4",
-    "@manuelselch/pi-plugin-folder-opening": "0.1.0"
+    "@manuelselch/pi-plugin-folder-opening": "0.1.0",
+    "@manuelselch/pi-plugin-file-opening": "0.1.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

@@ -1,5 +1,5 @@
 import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "../contract.js";
 import { createPendingFileOpens } from "./pending-opens.js";
 
 type ClientRequest = <T>(invoke: (client: PiClient) => Promise<T>) => Promise<T>;

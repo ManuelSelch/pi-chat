@@ -6,12 +6,12 @@ import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { expect } from "vitest";
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
 import { createPiServer, type PiServer } from "../../src/index.js";
-import { createFileOpeningPlugin } from "../../src/plugins.js";
+import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/host";
 import { FakeRuntimeAdapter } from "../../src/testing/fake-runtime-adapter.js";
-import { FileService } from "../../src/files/file-service.js";
-import { FileOpenError } from "../../src/files/file-open-error.js";
+import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
+import { FileOpenError } from "@manuelselch/pi-plugin-file-opening/host";
 
 class FileRuntime extends FakeRuntimeAdapter {
   constructor(id: string, private readonly directory: string) { super(id); }

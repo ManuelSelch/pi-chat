@@ -1,5 +1,5 @@
 import { expect, expectTypeOf, test } from "vitest";
-import { fileOpeningContract, type FileOpeningContract, type OpenFileInput } from "../../src/plugins/file-opening.js";
+import { fileOpeningContract, type FileOpeningContract, type OpenFileInput } from "../contract.js";
 
 test("requires explicit runtime identity and validates server-local paths/results", () => {
   const { input, output } = fileOpeningContract.methods.open;

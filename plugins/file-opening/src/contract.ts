@@ -1,9 +1,9 @@
-import { idSchema, operationSchemas, fileOpenResultSchema } from "../protocol/index.js";
-import { defineRemoteContract, type RemoteContractClient } from "./index.js";
+import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+import { defineRemoteContract, type RemoteContractClient } from "@manuelselch/pi-sdk/plugins";
 
 // Reuse existing validators; no new wire route is registered.
-export { filePathSchema, fileOpenErrorCodeSchema, fileOpenResultSchema } from "../protocol/index.js";
-export type { FileOpenErrorCode, FileOpenResult } from "../protocol/index.js";
+export { filePathSchema, fileOpenErrorCodeSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+export type { FileOpenErrorCode, FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 
 /** Declarative only. Success means OS acceptance, not a displayed window. */
 export const fileOpeningContract = defineRemoteContract({

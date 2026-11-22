@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import * as fileOpening from "../index.js";
 import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { fileOpeningContract } from "../../contract.js";
 
 test("composes a browser plugin with a file-opening action", () => {
   const plugin = fileOpening.createFileOpeningPlugin(async () => { throw new Error("Not connected"); });

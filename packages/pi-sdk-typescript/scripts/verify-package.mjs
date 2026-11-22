@@ -34,9 +34,12 @@ ui.id;
 const view: string = ui.Overlay();
 // @ts-expect-error Web entries declare UI contributions, not imperative setup.
 const imperative: Plugin = { id: "folders", web: async () => ({ setup() {} }) };
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+const fileOpeningContract = defineRemoteContract({ id: "consumer", version: 1, methods: {
+  open: { input: operationSchemas["file.open"].params.extend({ sessionId: idSchema }), output: fileOpenResultSchema },
+} });
 const plugin = definePlugin({
-  id: "file-opening", provides: [fileOpeningContract],
+  id: "consumer", provides: [fileOpeningContract],
   host: async () => ({ setup(ctx) {
     const aborted: boolean = ctx.signal.aborted;
     ctx.provide(fileOpeningContract, { open: async input => { const path: string = input.path; return { ok: true as const }; } });
@@ -83,11 +86,14 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import * as sdk from "@manuelselch/pi-sdk";
 import * as plugins from "@manuelselch/pi-sdk/plugins";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+const fileOpeningContract = plugins.defineRemoteContract({ id: "consumer", version: 1, methods: {
+  open: { input: operationSchemas["file.open"].params.extend({ sessionId: idSchema }), output: fileOpenResultSchema },
+} });
 assert.equal(typeof plugins.definePlugin, "function");
 assert.equal(typeof plugins.defineRemoteContract, "function");
 assert.equal(plugins.createPluginRuntime, undefined);
-assert.equal(fileOpeningContract.id, "file-opening");
+assert.equal(fileOpeningContract.id, "consumer");
 fileOpeningContract.methods.open.input.parse({ sessionId: "runtime", path: "readme.md" });
 assert.throws(() => fileOpeningContract.methods.open.input.parse({ path: "readme.md" }));
 

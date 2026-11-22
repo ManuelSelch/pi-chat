@@ -5,8 +5,8 @@ import { createRestartService } from "./restart-service.js";
 import { createPiServer, createFileLogger } from "@manuelselch/pi-server";
 import { installVersionRoute } from "./version-route.js";
 import { packageVersion } from "../shared/node/package-version.js";
-import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
-import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
+import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/host";
+import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
 import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 

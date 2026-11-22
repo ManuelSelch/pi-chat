@@ -10,7 +10,7 @@ test('links SDK and Server workspaces through public compiled package entries', 
   const manifest = await json('package.json');
   const lock = await json('package-lock.json');
   assert.equal(manifest.private, true);
-  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/folder-opening', 'packages/pi-server', 'packages/pi-chat']);
+  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/file-opening', 'plugins/folder-opening', 'packages/pi-server', 'packages/pi-chat']);
   assert.equal(manifest.pi, undefined);
   // Ignored build caches may survive migration; application sources must be package-owned.
   const oldRoots = ['src', 'extension', 'testing', 'public', 'themes', 'mockups', 'plans', 'index.html'];
@@ -22,6 +22,7 @@ test('links SDK and Server workspaces through public compiled package entries', 
   for (const [name, directory] of [
     ['@manuelselch/pi-sdk', 'packages/pi-sdk-typescript'],
     ['@manuelselch/pi-server', 'packages/pi-server'],
+    ['@manuelselch/pi-plugin-file-opening', 'plugins/file-opening'],
     ['@manuelselch/pi-plugin-folder-opening', 'plugins/folder-opening'],
   ]) {
     const workspace = await json(`${directory}/package.json`);
@@ -29,7 +30,9 @@ test('links SDK and Server workspaces through public compiled package entries', 
     assert.deepEqual(lock.packages[`node_modules/${name}`], { resolved: directory, link: true });
     assert.equal(await realpath(new URL(`node_modules/${name}`, root)), await realpath(new URL(directory, root)));
     const entry = workspace.exports['.'];
-    if (name === '@manuelselch/pi-plugin-folder-opening')
+    if (name === '@manuelselch/pi-plugin-file-opening')
+      assert.equal(entry.import, './dist/contract.js');
+    else if (name === '@manuelselch/pi-plugin-folder-opening')
       assert.equal(entry.node.default, './dist/host/index.js');
     else
       assert.equal(entry.import, './dist/index.js');

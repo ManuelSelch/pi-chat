@@ -22,10 +22,6 @@
       "types": "./dist/plugins/index.d.ts",
       "import": "./dist/plugins/index.js"
     },
-    "./plugins/file-opening": {
-      "types": "./dist/plugins/file-opening.d.ts",
-      "import": "./dist/plugins/file-opening.js"
-    },
     "./extension-ui": {
       "types": "./dist/extension-ui.d.ts",
       "import": "./dist/extension-ui.js"

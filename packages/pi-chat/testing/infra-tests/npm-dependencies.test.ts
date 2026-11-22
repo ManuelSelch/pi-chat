@@ -16,7 +16,7 @@ it("consumes installed public server, plugin and protocol APIs", async () => {
   const { createPiServer } = await import("@manuelselch/pi-server");
   const { FakeRuntimeAdapter } = await import("@manuelselch/pi-server/testing");
   const { definePlugin } = await import("@manuelselch/pi-sdk/plugins");
-  const { fileOpeningContract } = await import("@manuelselch/pi-sdk/plugins/file-opening");
+  const { fileOpeningContract } = await import("@manuelselch/pi-plugin-file-opening");
   const { PROTOCOL_VERSION } = await import("@manuelselch/pi-sdk/protocol");
   expect(PROTOCOL_VERSION).toBe(2);
   expect(fileOpeningContract.id).toBe("file-opening");
