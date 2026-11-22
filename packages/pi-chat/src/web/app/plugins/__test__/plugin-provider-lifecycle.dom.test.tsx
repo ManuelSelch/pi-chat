@@ -1,81 +1,66 @@
 // @vitest-environment jsdom
-import { StrictMode, useEffect, useState, type ReactNode } from "react";
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
-import type { WebPlugin, WebPluginHost } from "@manuelselch/pi-sdk/plugins";
-import { PluginProvider, usePluginCommands, usePluginOverlays } from "../PluginProvider.js";
+import { StrictMode } from "react";
+import { act, cleanup, renderHook, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it } from "vitest";
+import { PluginProvider, PluginOverlayOutlet, usePluginCommands, usePluginOverlayOpen } from "../PluginProvider.js";
+import { examplePlugin, host } from "./plugin-fixture.js";
 
-const host: WebPluginHost = {
-  connected: true, request: vi.fn(), createSession: vi.fn(),
-  useOverlayFocus: () => ({ returnFocus: false, onExitTransitionEnd: vi.fn() }),
-};
+let example: ReturnType<typeof examplePlugin>;
+beforeEach(() => { example = examplePlugin(); });
 afterEach(cleanup);
 
-it("releases plugin effects and withdraws stale command handlers on unmount", () => {
-  const dispose = vi.fn();
-  const run = vi.fn();
-  const plugin: WebPlugin<ReactNode> = { id: "example", useContributions() {
-    useEffect(() => dispose, []);
-    return { commands: [{ id: "example.run", name: "Run", description: "", placements: ["menus"], run }] };
-  } };
+it("unmounts plugin providers and overlays with ordinary React cleanup", () => {
   const { result, unmount } = renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[plugin]} host={host}>{children}</PluginProvider>,
+    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin]} host={host}>{children}<PluginOverlayOutlet /></PluginProvider>,
   });
-  const command = result.current[0]!;
+  act(() => result.current[0]!.run());
+  expect(screen.getByText("example overlay")).toBeTruthy();
 
   unmount();
-  command.run();
 
-  expect(dispose).toHaveBeenCalledOnce();
-  expect(run).not.toHaveBeenCalled();
+  expect(example.dispose).toHaveBeenCalledOnce();
+  expect(screen.queryByText("example overlay")).toBeNull();
 });
 
-it("preserves remaining plugin state when another plugin is unregistered", () => {
-  const first: WebPlugin<ReactNode> = { id: "first", useContributions: () => ({ commands: [] }) };
-  const second: WebPlugin<ReactNode> = { id: "second", useContributions() {
-    const [opened, setOpened] = useState(false);
-    return { blocking: opened, commands: [{ id: "second.open", name: "Open", description: "", placements: ["menus"], run: () => setOpened(true) }] };
-  } };
-  let plugins = [first, second];
-  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), overlays: usePluginOverlays() }), {
+it("keeps outer provider state when an inner plugin is unmounted", () => {
+  const inner = examplePlugin("inner");
+  let plugins = [example.plugin, inner.plugin];
+  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), blocking: usePluginOverlayOpen() }), {
     wrapper: ({ children }) => <PluginProvider plugins={plugins} host={host}>{children}</PluginProvider>,
   });
   act(() => result.current.commands[0]!.run());
 
-  plugins = [second];
+  plugins = [example.plugin];
   rerender();
 
-  expect(result.current.overlays.blocking).toBe(true);
+  expect(result.current.blocking).toBe(true);
   expect(result.current.commands).toHaveLength(1);
+  expect(inner.dispose).toHaveBeenCalledOnce();
 });
 
-it("registers one live command under StrictMode probing", () => {
-  const run = vi.fn();
-  const plugin: WebPlugin<ReactNode> = { id: "example", useContributions: () => ({
-    commands: [{ id: "example.run", name: "Run", description: "", placements: ["menus"], run }],
-  }) };
+it("binds one live command under StrictMode probing", () => {
   const { result } = renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <StrictMode><PluginProvider plugins={[plugin]} host={host}>{children}</PluginProvider></StrictMode>,
+    wrapper: ({ children }) => <StrictMode><PluginProvider plugins={[example.plugin]} host={host}>{children}</PluginProvider></StrictMode>,
   });
 
   act(() => result.current[0]!.run());
 
   expect(result.current).toHaveLength(1);
-  expect(run).toHaveBeenCalledOnce();
+  expect(example.run).toHaveBeenCalledOnce();
 });
 
 it("rejects command collisions across nested plugin namespaces", () => {
-  const command = { id: "example.nested.run", name: "Run", description: "", placements: ["menus"] as const, run: vi.fn() };
-  const plugins = ["example", "example.nested"].map(id => ({ id, useContributions: () => ({ commands: [command] }) }));
+  const nested = examplePlugin("example.nested");
+  const outer = { ...example.plugin, commands: nested.plugin.commands };
 
   expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={plugins} host={host}>{children}</PluginProvider>,
-  })).toThrow("Duplicate command: example.nested.run");
+    wrapper: ({ children }) => <PluginProvider plugins={[outer, nested.plugin]} host={host}>{children}</PluginProvider>,
+  })).toThrow("Duplicate command: example.nested.open");
 });
 
 it.each(["outside", "duplicate"])("rejects %s command IDs", kind => {
-  const command = { id: kind === "outside" ? "other.run" : "example.run", name: "Run", description: "", placements: ["menus"] as const, run: vi.fn() };
-  const plugin: WebPlugin<ReactNode> = { id: "example", useContributions: () => ({ commands: kind === "outside" ? [command] : [command, command] }) };
+  const command = { ...example.plugin.commands[0]!, id: kind === "outside" ? "other.run" : "example.run" };
+  const plugin = { ...example.plugin, commands: kind === "outside" ? [command] : [command, command] };
 
   expect(() => renderHook(() => usePluginCommands("menus"), {
     wrapper: ({ children }) => <PluginProvider plugins={[plugin]} host={host}>{children}</PluginProvider>,

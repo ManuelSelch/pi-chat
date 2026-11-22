@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { useMediaQuery } from "@mantine/hooks";
-import { usePluginOverlays } from "../plugins/PluginProvider.js";
+import { usePluginOverlayOpen } from "../plugins/PluginProvider.js";
 import type { Tab } from "../../types/view-types.js";
 
 export type OverlayName = "projects" | "settings" | "quickOpen" | "closingTab";
@@ -51,7 +51,7 @@ interface OverlayControllerValue {
 const OverlayContext = createContext<OverlayControllerValue | undefined>(undefined);
 
 export function OverlayController({ children }: { children: ReactNode }) {
-  const { blocking } = usePluginOverlays();
+  const blocking = usePluginOverlayOpen();
   const [state, dispatch] = useReducer(reduce, initialState);
   const desktop = useMediaQuery("(min-width: 640px)", undefined, { getInitialValueInEffect: false });
   const value = useMemo<OverlayControllerValue>(() => ({

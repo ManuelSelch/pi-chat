@@ -1,76 +1,75 @@
 // @vitest-environment jsdom
-import { useState, type ReactNode } from "react";
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
-import type { WebPlugin, WebPluginHost } from "@manuelselch/pi-sdk/plugins";
-import { PluginProvider, usePluginCommands, usePluginOverlays } from "../PluginProvider.js";
+import { useLayoutEffect } from "react";
+import { act, cleanup, renderHook, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it } from "vitest";
+import { PluginProvider, PluginOverlayOutlet, usePluginCommands, usePluginOverlayOpen } from "../PluginProvider.js";
+import { examplePlugin, host } from "./plugin-fixture.js";
 
-const host: WebPluginHost = {
-  connected: true, projectPath: "/project", request: vi.fn(), createSession: vi.fn(),
-  useOverlayFocus: () => ({ returnFocus: false, onExitTransitionEnd: vi.fn() }),
-};
-const example: WebPlugin<ReactNode> = {
-  id: "example",
-  useContributions(current) {
-    const [opened, setOpened] = useState(false);
-    return {
-      commands: [{ id: "example.open", name: "Open example", description: "Example", placements: ["menus", "projects"], disabled: !current.connected, run: () => setOpened(true) }],
-      overlay: opened ? <div>Example overlay</div> : null,
-      blocking: opened,
-    };
-  },
-};
+let example: ReturnType<typeof examplePlugin>;
+beforeEach(() => { example = examplePlugin(); });
 afterEach(cleanup);
 
-it("collects contributions and keeps plugin state across host updates", () => {
+it("shares provider state between commands and overlays across host updates", () => {
   let currentHost = host;
-  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), overlays: usePluginOverlays() }), {
-    wrapper: ({ children }) => <PluginProvider plugins={[example]} host={currentHost}>{children}</PluginProvider>,
+  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), blocking: usePluginOverlayOpen() }), {
+    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin]} host={currentHost}>{children}<PluginOverlayOutlet /></PluginProvider>,
   });
 
   expect(result.current.commands.map(command => command.id)).toEqual(["example.open"]);
   act(() => result.current.commands[0]!.run());
 
-  expect(result.current.overlays.blocking).toBe(true);
-  expect(result.current.overlays.items).toHaveLength(1);
+  expect(result.current.blocking).toBe(true);
+  expect(screen.getByText("example overlay")).toBeTruthy();
   currentHost = { ...host, connected: false };
   rerender();
   expect(result.current.commands[0]!.disabled).toBe(true);
-  expect(result.current.overlays.blocking).toBe(true);
+  expect(result.current.blocking).toBe(true);
 });
 
-it("rechecks current command availability and withdraws unregistered commands", () => {
+it("updates availability through context and removes unregistered UI", () => {
   let connected = true;
-  let plugins = [example];
-  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), overlays: usePluginOverlays() }), {
-    wrapper: ({ children }) => <PluginProvider plugins={plugins} host={{ ...host, connected }}>{children}</PluginProvider>,
+  let plugins = [example.plugin];
+  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), blocking: usePluginOverlayOpen() }), {
+    wrapper: ({ children }) => <PluginProvider plugins={plugins} host={{ ...host, connected }}>{children}<PluginOverlayOutlet /></PluginProvider>,
   });
-  const staleCommand = result.current.commands[0]!;
   connected = false;
   rerender();
 
-  act(() => staleCommand.run());
+  act(() => result.current.commands[0]!.run());
 
   expect(result.current.commands[0]!.disabled).toBe(true);
-  expect(result.current.overlays.blocking).toBe(false);
+  expect(example.run).not.toHaveBeenCalled();
+  expect(result.current.blocking).toBe(false);
   plugins = [];
   rerender();
-  act(() => staleCommand.run());
   expect(result.current.commands).toEqual([]);
-  expect(result.current.overlays.items).toEqual([]);
+  expect(screen.queryByText("example overlay")).toBeNull();
 });
 
-it("collects multiple plugins and filters command placements", () => {
-  const other: WebPlugin<ReactNode> = { id: "other", useContributions: () => ({ commands: [{ id: "other.run", name: "Other", description: "Other", placements: ["projects"], run: vi.fn() }] }) };
-  const { result } = renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[example, other]} host={host}>{children}</PluginProvider>,
+it("collects multiple plugins and filters static command placements", () => {
+  const other = examplePlugin("other", ["projects"]);
+  const { result } = renderHook(() => ({ menus: usePluginCommands("menus"), projects: usePluginCommands("projects") }), {
+    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin, other.plugin]} host={host}>{children}</PluginProvider>,
   });
 
-  expect(result.current.map(command => command.id)).toEqual(["example.open"]);
+  expect(result.current.menus.map(command => command.id)).toEqual(["example.open"]);
+  expect(result.current.projects.map(command => command.id)).toEqual(["example.open", "other.open"]);
+});
+
+it("provides commands on the first commit without publishing them from effects", () => {
+  const observed: string[][] = [];
+  renderHook(() => {
+    const commands = usePluginCommands("menus");
+    useLayoutEffect(() => { observed.push(commands.map(command => command.id)); });
+  }, {
+    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin]} host={host}>{children}</PluginProvider>,
+  });
+
+  expect(observed).toEqual([["example.open"]]);
 });
 
 it("rejects duplicate plugin IDs instead of mounting duplicate state", () => {
   expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[example, example]} host={host}>{children}</PluginProvider>,
+    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin, example.plugin]} host={host}>{children}</PluginProvider>,
   })).toThrow("Duplicate plugin: example");
 });

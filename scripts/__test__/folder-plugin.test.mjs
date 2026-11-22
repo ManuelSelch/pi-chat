@@ -27,7 +27,8 @@ test('Chat registers folder UI once and renders only generic contributions', asy
     if (file !== 'app/plugins/RegisteredPlugins.tsx')
       assert.doesNotMatch(source, /pi-plugin-folder-opening|FolderPickerContainer|folderPicker|browseDirectories/, file);
   }
-  const entry = await readFile(new URL('plugins/folder-opening/src/web/hooks/use-folder-contributions.tsx', root), 'utf8');
-  assert.match(entry, /useState\(false\)/);
+  const provider = await readFile(new URL('plugins/folder-opening/src/web/stores/FolderOpeningProvider.tsx', root), 'utf8');
+  const entry = await readFile(new URL('plugins/folder-opening/src/web/index.ts', root), 'utf8');
+  assert.match(provider, /useState\(false\)/);
   assert.match(entry, /folder-opening\.open/);
 });

@@ -25,16 +25,21 @@ export interface WebPluginHost {
   };
 }
 
-export interface WebPluginContributions<Overlay = unknown> {
-  readonly commands: readonly PluginCommand[];
-  readonly overlay?: Overlay;
-  readonly blocking?: boolean;
+/** Static metadata plus an action hook that reads the plugin's own context. */
+export interface PluginCommandDefinition extends Omit<PluginCommand, "run" | "disabled"> {
+  useAction(): Pick<PluginCommand, "run" | "disabled">;
 }
 
-/** The browser calls this hook inside a stable, plugin-owned React scope.
- * Overlay stays generic so SDK declarations have no React dependency.
- */
-export interface WebPlugin<Overlay = unknown> {
+export interface WebPluginProviderProps<View> {
+  readonly host: WebPluginHost;
+  readonly children: View;
+}
+
+/** Plain UI composition. View stays generic to keep the SDK React-free. */
+export interface WebPlugin<View = unknown> {
   readonly id: string;
-  useContributions(host: WebPluginHost): WebPluginContributions<Overlay>;
+  Provider(props: WebPluginProviderProps<View>): View;
+  readonly commands: readonly PluginCommandDefinition[];
+  Overlay(): View;
+  useOverlayOpen(): boolean;
 }

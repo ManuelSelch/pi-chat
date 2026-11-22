@@ -4,6 +4,7 @@ import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppControllerProvider } from "../../../../app/AppControllerContext.js";
+import { RegisteredPlugins } from "../../../../app/plugins/RegisteredPlugins.js";
 import { OverlayController, useOverlays } from "../../../../app/overlays/OverlayController.js";
 import { ProjectSessionContainer } from "../components/ProjectSessionContainer.js";
 import type { ProjectCatalogue } from "../../../../../shared/protocol.js";
@@ -29,7 +30,7 @@ function Panel() {
 beforeEach(() => { vi.useFakeTimers(); Socket.instances = []; vi.stubGlobal("WebSocket", Socket); rowRenders.mockClear(); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 function start(initialCatalogue = catalogue) {
-  render(<MantineProvider><AppControllerProvider><OverlayController><Panel /></OverlayController></AppControllerProvider></MantineProvider>);
+  render(<MantineProvider><AppControllerProvider><RegisteredPlugins><OverlayController><Panel /></OverlayController></RegisteredPlugins></AppControllerProvider></MantineProvider>);
   act(() => void vi.advanceTimersByTime(0));
   const socket = Socket.current;
   act(() => { socket.acceptConnection(); socket.initialize([snapshotData({ sessionId: "runtime-0", sessionPath: "/session-0-0.jsonl", projectPath: "/project-0", runtime: { status: "running" } })], initialCatalogue); });

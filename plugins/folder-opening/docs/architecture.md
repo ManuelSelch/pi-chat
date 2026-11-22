@@ -6,8 +6,8 @@
 ## Browser ownership
 
 - Chat registers `folderOpeningWebPlugin` once in its browser plugin list. It supplies only the generic SDK request, connection/project context, session creation/navigation and modal-focus capabilities.
-- The plugin's `useFolderContributions` owns open state and contributes `folder-opening.open` to menus/Projects plus its picker overlay.
-- Plugin-owned `FolderPickerContainer` constructs the browsing client, applies host focus handling and binds `FolderPicker`; its hook owns listing/navigation, errors and cancellation. The view receives values/callbacks.
+- `FolderOpeningProvider` owns open state and host capabilities in a private React context. The static `folder-opening.open` command binds its action from that context; the Overlay component reads the same state.
+- Plugin-owned `FolderPickerContainer` reads its provider context, constructs the browsing client, applies host focus handling and binds `FolderPicker`; its hook owns listing/navigation, errors and cancellation. The view receives values/callbacks.
 - Chat's generic outlet renders the overlay. No picker import, feature overlay field or browsing method is required in Chat's controller.
 - Picking a folder calls host session creation/navigation, not the browsing RPC. Success closes the picker; failure stays inline.
 - Connection/project updates preserve plugin state. Disconnect disables browsing/creation; reconnect refreshes through the current client.
