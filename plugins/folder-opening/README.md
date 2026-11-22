@@ -1,5 +1,6 @@
 # Folder opening plugin
 
+- [Architecture diagrams](docs/architecture.md): UI composition, dependency injection and the RPC browsing flow.
 - Independent npm workspace: `@manuelselch/pi-plugin-folder-opening`.
 - Root export owns the read-only `folder-opening` contract and inferred types; reuses SDK directory schemas.
 - `/host` owns the provider, path validation, canonicalization, hidden-folder filtering, pagination and safe errors. No Chat, Server or React imports.
