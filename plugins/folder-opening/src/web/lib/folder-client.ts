@@ -1,5 +1,5 @@
 import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
-import { folderOpeningContract } from "../../index.js";
+import { folderOpeningContract } from "../../contract.js";
 import type { DirectoryBrowse } from "@manuelselch/pi-sdk/protocol";
 
 type ClientRequest = <T>(invoke: (client: PiClient) => Promise<T>) => Promise<T>;

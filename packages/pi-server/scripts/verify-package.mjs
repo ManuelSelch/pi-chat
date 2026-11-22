@@ -61,7 +61,7 @@ try {
   // Test helpers and server share the same explicitly packed workspace SDK.
   const sdkEntry = JSON.stringify(pathToFileURL(join(sdkRoot, 'dist/index.js')).href);
   for (const name of ['react', '@mantine/core', 'vite', 'tsx']) assert.throws(() => require.resolve(name), name + ' unexpectedly installed');
-  // The canonical declaration activates its lazy host entry without browser peers installed.
+  // The Node-selected declaration activates its synchronous host entry without browser peers installed.
   run(['--input-type=module', '--eval', `
     import { createPiServer } from '@manuelselch/pi-server';
     import { FakeRuntimeAdapter } from '@manuelselch/pi-server/testing';

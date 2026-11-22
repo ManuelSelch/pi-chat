@@ -14,7 +14,7 @@ export interface HostPluginEntry {
   setup(context: HostPluginContext): void | Promise<void>;
 }
 
-export type PluginEntryLoader<Entry> = () => Promise<Entry>;
+export type PluginEntryLoader<Entry> = () => Entry | Promise<Entry>;
 
 export interface Plugin<View = unknown> {
   readonly id: string;

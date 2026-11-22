@@ -28,7 +28,8 @@ test('links SDK and Server workspaces through public compiled package entries', 
     assert.equal(chat.dependencies[name], workspace.version);
     assert.deepEqual(lock.packages[`node_modules/${name}`], { resolved: directory, link: true });
     assert.equal(await realpath(new URL(`node_modules/${name}`, root)), await realpath(new URL(directory, root)));
-    assert.equal(workspace.exports['.'].import, './dist/index.js');
+    const entry = workspace.exports['.'];
+    assert.equal(name === '@manuelselch/pi-plugin-folder-opening' ? entry.node.default : entry.import, './dist/index.js');
     assert.equal(lock.packages[`${directory}/node_modules/@manuelselch/pi-sdk`], undefined);
   }
   const server = await json('packages/pi-server/package.json');

@@ -1,5 +1,5 @@
 import type { HostPluginEntry } from "@manuelselch/pi-sdk/plugins";
-import { folderOpeningContract, type FolderBrowseResult } from "../index.js";
+import { folderOpeningContract, type FolderBrowseResult } from "../contract.js";
 import { DirectoryBrowserService, DirectoryOperationError } from "./directory-browser-service.js";
 
 export { DirectoryBrowserService, DirectoryOperationError } from "./directory-browser-service.js";

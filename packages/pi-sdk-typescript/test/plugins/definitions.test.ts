@@ -65,6 +65,23 @@ test("defines a plugin without loading its entries", () => {
   expect(Object.isFrozen(plugin.provides)).toBe(true);
 });
 
+test("accepts synchronous entry loaders without invoking them during definition", async () => {
+  const entry = { setup: vi.fn() };
+  const host = vi.fn(() => entry);
+  const web = vi.fn(() => ui);
+
+  const plugin = definePlugin({ id: "folders", host, web });
+  const declaration: Plugin<string> = plugin;
+
+  expect(host).not.toHaveBeenCalled();
+  expect(web).not.toHaveBeenCalled();
+  expect(plugin.host()).toBe(entry);
+  expect(plugin.web()).toBe(ui);
+  expect(await declaration.host!()).toBe(entry);
+  expect(await declaration.web!()).toBe(ui);
+  expect(entry.setup).not.toHaveBeenCalled();
+});
+
 test("allows web-only plugins and contracts required from another plugin", () => {
   const plugin = definePlugin({ id: "viewer", requires: [defineFiles()], web: async () => ui });
 

@@ -52,6 +52,26 @@ test("starts once and provides a typed validated local client", async () => {
   await runtime.dispose();
 });
 
+test("activates a synchronous host loader and cleans up normally", async () => {
+  const setup = vi.fn((ctx: HostPluginContext) => {
+    ctx.provide(greeting, { hello: handler });
+    ctx.onCleanup(cleanup);
+  });
+  const load = vi.fn(() => ({ setup }));
+  const runtime = createPluginRuntime([definePlugin({ id: "greeting", provides: [greeting], host: load })]);
+
+  expect(load).not.toHaveBeenCalled();
+  await runtime.start();
+
+  await expect(runtime.client(greeting).hello("Ada")).resolves.toBe("Hello Ada");
+  expect(load).toHaveBeenCalledOnce();
+  expect(setup).toHaveBeenCalledOnce();
+
+  await runtime.dispose();
+
+  expect(cleanup).toHaveBeenCalledOnce();
+});
+
 test("rejects duplicate plugin IDs before loading any entry", () => {
   const load = vi.fn(plugin.host!);
 

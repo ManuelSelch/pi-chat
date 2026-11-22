@@ -16,7 +16,7 @@ assert.equal(typeof createPluginRuntime, "function");
 assert.equal(typeof createFileOpeningPlugin, "function");
 assert.equal(folderOpeningPlugin.id, folderOpeningContract.id);
 assert.equal(typeof folderOpeningPlugin.host, "function");
-assert.equal(typeof folderOpeningPlugin.web, "function");
+assert.equal("web" in folderOpeningPlugin, false);
 assert.equal(fileOpeningContract.id, "file-opening");
 assert.equal(folderOpeningContract.id, "folder-opening");
 assert.equal(typeof PiClient.prototype.plugin, "function");

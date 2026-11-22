@@ -14,6 +14,18 @@ it("loads UI under the declaration identity without activating host logic", asyn
   expect(host).not.toHaveBeenCalled();
 });
 
+it("loads synchronous UI contributions alongside asynchronous ones", async () => {
+  const first = examplePlugin("first").plugin;
+  const second = examplePlugin("second").plugin;
+
+  const loaded = await loadPluginUIs([
+    { id: first.id, web: () => first.ui },
+    { id: second.id, web: async () => second.ui },
+  ]);
+
+  expect(loaded).toEqual([first, second]);
+});
+
 it("omits host-only plugins and retains declaration order", async () => {
   const first = examplePlugin("first").plugin;
   const second = examplePlugin("second").plugin;

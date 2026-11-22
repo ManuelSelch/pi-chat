@@ -8,6 +8,25 @@ export default defineConfig({
     // module mocks must not rewrite SDK/Server implementation dependencies.
     server: { deps: { external: [/\/packages\/pi-server\/dist\//, /\/packages\/pi-sdk-typescript\/dist\//] } },
     exclude: ["**/node_modules/**", "testing/e2e/**", "mockups/**"],
+    projects: [
+      {
+        extends: true,
+        resolve: { conditions: ["browser"] },
+        ssr: { resolve: { conditions: ["browser"] } },
+        test: {
+          name: "web",
+          include: ["src/web/**/*.test.{ts,tsx}"],
+          server: { deps: { inline: [/@manuelselch\/pi-plugin-folder-opening/] } },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node",
+          exclude: ["**/node_modules/**", "testing/e2e/**", "mockups/**", "src/web/**"],
+        },
+      },
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

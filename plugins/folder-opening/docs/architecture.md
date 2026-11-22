@@ -1,6 +1,6 @@
 # Folder-opening architecture
 
-- Package entries: root = canonical plugin declaration + contract/types, `/web` = browser contributions/client/picker, `/host` = provider/filesystem service.
+- Package entries: root = runtime-selected plugin declaration + shared contract/types, `/web` = browser contributions/client/picker, `/host` = provider/filesystem service.
 - [General boundaries](../../../docs/plugins.md) and [host lifecycle](../../../docs/plugin-runtime.md) describe shared infrastructure.
 
 ## Browser ownership
@@ -15,9 +15,10 @@
 
 ## Loading and injection
 
-- The root declaration lazily imports both entries. Its host import uses `@vite-ignore` so Vite never traverses Node-only dependencies into browser chunks; it is only invoked on Node.
+- Root conditional exports select `browser` → `browser.ts` or `node` → `index.ts`, each statically importing only its own implementation. Both share `contract.ts`, the plugin ID and contract exports; their loaders return entries synchronously. Importing a definition does not activate its host or mount its UI.
+- Vite selects `browser`; browser TypeScript consumers use `customConditions: ["browser"]`. Node uses the host definition without loading browser peers. Implementations import the shared contract directly, never the runtime-selected root.
 - `/host` exports `createFolderOpeningHost(directories)` returning a host entry, not a second plugin. Tests inject a browsing service directly; an embedding can override the canonical declaration's host loader with that entry when needed.
-- `createFolderClient(request)` is a browser RPC helper, not a plugin definition. Server activation does not load React; packed headless verification runs without browser peers installed.
+- `createFolderClient(request)` is a browser RPC helper, not a plugin definition. Node imports and Server activation do not load React; packed headless verification runs without browser peers installed.
 
 ## Browsing over RPC
 

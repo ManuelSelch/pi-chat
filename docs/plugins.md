@@ -6,7 +6,7 @@
 
 ## Browser contributions
 
-- [Plugin](../packages/pi-sdk-typescript/src/plugins/plugin.ts) is the SDK declaration for lazy host and UI entries. Its web loader returns UI contributions without a second ID, rather than imperative setup.
+- [Plugin](../packages/pi-sdk-typescript/src/plugins/plugin.ts) is the SDK declaration for host and UI entry loaders, which may return values or promises. Defining a plugin does not invoke its loaders. Its web loader returns UI contributions without a second ID, rather than imperative setup.
 - [PluginUI](../packages/pi-sdk-typescript/src/plugins/plugin-ui.ts) declares a **Provider**, static **commands**, an **Overlay** component and an overlay-open hook. It has no identity of its own.
 - [loadPluginUIs](../packages/pi-chat/src/web/app/plugins/load-plugin-ui.ts) loads explicit declarations before the first app render, retaining `{ id, ui }` for composition. It skips host-only entries, preserves order and rejects duplicate IDs before loading. Load failures reject startup rather than silently dropping contributions.
 
