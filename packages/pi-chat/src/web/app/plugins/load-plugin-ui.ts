@@ -32,7 +32,10 @@ function validatePluginUIs(plugins: readonly LoadedPluginUI[]): void {
       if (!contribution.id.startsWith(`${plugin.id}.`)) throw new Error(`Contribution ${contribution.id} must use the ${plugin.id} namespace.`);
       if (contributionIds.has(contribution.id)) throw new Error(`Duplicate contribution: ${contribution.id}`);
       contributionIds.add(contribution.id);
-      if (contribution.placement !== "settings.feature-toggles") throw new Error(`Unknown UI placement: ${contribution.placement}`);
+      const placement: string = contribution.placement;
+      if (placement !== "settings.feature-toggles" && placement !== "side-panel") throw new Error(`Unknown UI placement: ${placement}`);
+      if (contribution.placement === "side-panel" && (!contribution.label?.trim() || typeof contribution.Icon !== "function"))
+        throw new Error(`Side-panel contribution ${contribution.id} needs a label and icon.`);
     }
     for (const command of plugin.ui.commands ?? []) {
       if (!command.id.startsWith(`${plugin.id}.`)) throw new Error(`Command ${command.id} must use the ${plugin.id} namespace.`);

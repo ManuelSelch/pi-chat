@@ -2,7 +2,7 @@ import type { PiClient } from "../client.js";
 import type { CancellationSignal } from "../platform.js";
 
 export type CommandPlacement = "menus" | "projects";
-export type PluginUIPlacement = "settings.feature-toggles";
+export type PluginUIPlacement = "settings.feature-toggles" | "side-panel";
 
 /** Minimal browser session projection; no application navigation or transcript state. */
 export interface PluginSessionSummary {
@@ -10,11 +10,16 @@ export interface PluginSessionSummary {
   readonly status: "idle" | "running" | "blocked";
 }
 
-export interface PluginUIContribution<View> {
+export type PluginUIContribution<View> = {
   readonly id: string;
-  readonly placement: PluginUIPlacement;
   Component(): View;
-}
+} & ({
+  readonly placement: "settings.feature-toggles";
+} | {
+  readonly placement: "side-panel";
+  readonly label: string;
+  Icon(): View;
+});
 
 export interface PluginCommand {
   readonly id: string;

@@ -25,10 +25,13 @@ import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/hos
 import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
+import { diffViewerPlugin, diffViewerContract } from "@manuelselch/pi-plugin-diff-viewer";
+import { BrowserDiffDriver } from "./browser-diff-driver.js";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
 export class PiChatBrowserDriver {
   readonly browser: BrowserBrowserDriver;
+  readonly changes: BrowserDiffDriver;
   readonly theme: BrowserThemeDriver;
   readonly chat: BrowserChatDriver;
   readonly home: BrowserHomeDriver;
@@ -54,6 +57,7 @@ export class PiChatBrowserDriver {
   ) {
     this.composer = page.getByRole("textbox", { name: "Message Pi" });
     this.browser = new BrowserBrowserDriver(page);
+    this.changes = new BrowserDiffDriver(page,world.projectPath);
     this.theme = new BrowserThemeDriver(page);
     this.chat = new BrowserChatDriver(page, this.composer);
     this.home = new BrowserHomeDriver(page);
@@ -87,8 +91,8 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin],
-        pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
+        plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin, diffViewerPlugin],
+        pluginRpcContracts: [fileOpeningContract, folderOpeningContract, diffViewerContract],
         catalogue: {
           lister: { listAll: () => world.listSessions() },
           sessionsDirectory: world.sessionDir,

@@ -9,6 +9,7 @@ import { createFileOpeningPlugin } from "@manuelselch/pi-plugin-file-opening/hos
 import { fileOpeningContract } from "@manuelselch/pi-plugin-file-opening";
 import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
+import { diffViewerPlugin, diffViewerContract } from "@manuelselch/pi-plugin-diff-viewer";
 
 const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
 const port = Number(process.env.PI_CHAT_PORT ?? 8788);
@@ -19,8 +20,8 @@ const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
 const server = await createPiServer({
   staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger,
-  plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin],
-  pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
+  plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin, diffViewerPlugin],
+  pluginRpcContracts: [fileOpeningContract, folderOpeningContract, diffViewerContract],
 });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));
 

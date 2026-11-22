@@ -38,9 +38,9 @@ export function WidgetDock({ widgets }: { widgets: readonly Widget[] }) {
       aria-label="Extension panels"
       pos="fixed"
       top="calc(var(--pi-header-height, 96px) + 12px)"
-      right={16}
+      right="calc(var(--pi-workspace-right, 0px) + 16px)"
       style={{
-        width: `clamp(200px, calc((100vw - var(--pi-workspace-left, 0px) - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
+        width: `clamp(200px, calc((100vw - var(--pi-workspace-left, 0px) - var(--pi-workspace-right, 0px) - ${TRANSCRIPT_COLUMN}) / 2 - 32px), ${WIDGET_DOCK_MAX_WIDTH})`,
         maxHeight: "calc(100vh - var(--pi-header-height, 96px) - 28px)",
         overflowY: "auto",
         zIndex: 100,

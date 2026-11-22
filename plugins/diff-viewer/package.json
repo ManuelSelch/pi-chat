@@ -1,0 +1,74 @@
+{
+  "name": "@manuelselch/pi-plugin-diff-viewer",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Read-only Git comparisons and continuous unified diff viewer",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/web/index.d.ts",
+        "default": "./dist/web/index.js"
+      },
+      "node": {
+        "types": "./dist/host/index.d.ts",
+        "default": "./dist/host/index.js"
+      }
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "import": "./dist/web/index.js"
+    },
+    "./host": {
+      "types": "./dist/host/index.d.ts",
+      "import": "./dist/host/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "verify:package": "node scripts/verify-package.mjs",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --max-warnings 0",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@manuelselch/pi-sdk": "0.3.0-plugin.2",
+    "zod": "^4.6.4"
+  },
+  "peerDependencies": {
+    "@mantine/core": "^9.6.1",
+    "@mantine/hooks": "^9.6.1",
+    "@tabler/icons-react": "^3.46.0",
+    "react": "^19.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@mantine/core": {
+      "optional": true
+    },
+    "@mantine/hooks": {
+      "optional": true
+    },
+    "@tabler/icons-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0",
+    "@vitest/coverage-v8": "5.0.0",
+    "@testing-library/react": "^16.3.3",
+    "jsdom": "^30.0.1",
+    "eslint": "^9.39.5",
+    "typescript-eslint": "^8.72.1"
+  }
+}

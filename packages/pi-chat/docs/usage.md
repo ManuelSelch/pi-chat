@@ -109,6 +109,16 @@ Later is also accessible from the sidebar while viewing a conversation.
   membership. Use Quick Switcher for projects and history, or disable Inbox
   to use Projects browsing and its Archived sections.
 
+## Changes panel
+
+- Toggle the right side panel using the header’s sidebar icon, then select **Changes**. Chat and its composer stay usable alongside the panel.
+- **Uncommitted** shows staged, unstaged and non-ignored untracked changes.
+- **Branch** selects any local or available remote-tracking branch and compares from its merge-base with HEAD. No parent branch is guessed or fetched.
+- **Commit** selects a baseline by commit message; search history or use Older/Newer. The comparison includes everything from that commit to the current working tree, not only the selected commit’s patch.
+- Scroll through all unified diffs, or click a filename to jump. Binary files and metadata-only changes show placeholders.
+- Use Refresh to reread Git. There is no editing, staging, reverting or automatic polling. Large comparisons fail with an actionable limit message.
+- Comparison choices survive panel toggling and project switching during the page lifetime, but not browser reloads.
+
 ## UI feedback
 
 - Enable **Settings → Feature Toggles → Agentation UI feedback** to show the annotation toolbar. It is off by default and remembered in this browser.

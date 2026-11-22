@@ -3,6 +3,7 @@ import { IconArchive, IconChevronRight, IconClockPause, IconLayoutSidebar, IconP
 import type { Tab } from "../../../../types/view-types.js";
 import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
+import { SidePanelToggle } from "../../../../app/plugins/SidePanelProvider.js";
 
 interface InboxHeaderProps {
   session: Tab | undefined; branch: string | undefined; title: string | undefined;
@@ -28,6 +29,7 @@ export function InboxHeader(p: InboxHeaderProps) {
           <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Close current session view" onClick={p.onCloseView}><IconX size={17} /></ActionIcon>
         </div>
       </>}
+      <SidePanelToggle />
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="New session" disabled={p.disabled} onClick={p.onNew}><IconPlus size={19} /></ActionIcon>
     </Group>
   </AppShell.Header>;

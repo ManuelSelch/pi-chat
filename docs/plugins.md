@@ -40,10 +40,18 @@ flowchart TD
 
 ## Settings contributions
 
-- `PluginUI.contributions` declares `{ id, placement, Component }`. IDs belong to the plugin namespace; placement names belong to the host. The only current placement is `settings.feature-toggles`.
+- `PluginUI.contributions` declares `{ id, placement, Component }`. IDs belong to the plugin namespace; placement names belong to the host. Settings uses `settings.feature-toggles`; side-panel tabs use the separate placement below.
 - `loadPluginUIs` rejects duplicate/out-of-namespace contribution IDs and unsupported placements before mounting. `PluginUIOutlet` renders matching components in declaration order beneath the same plugin providers, with host-owned spacing.
 - Settings passes the generic outlet into the existing Feature Toggles section; it has no plugin-specific props, state, labels or persistence. Omitting a plugin removes its controls. No imperative registration or effect-synchronized registry is involved.
 - Providers own page-lifetime effects and preferences independently of contributed controls mounting/unmounting. Plugins may persist their own preferences; no generic settings database or server setting is introduced.
+
+## Side-panel contributions
+
+- `PluginUI.contributions` with `placement: "side-panel"` requires a label and an `Icon` component as well as ID/content. IDs remain plugin-namespaced; startup validates required metadata.
+- [SidePanelProvider](../packages/pi-chat/src/web/app/plugins/SidePanelProvider.tsx) owns a neutral header toggle, open state and active tab. Tabs render under plugin providers; closing removes tab content but preserves provider-owned preferences. No modal focus trap or global keyboard blocker is added.
+- Chat reserves panel width for the transcript, fixed composer and widget gutters. The panel uses 46% of the available workspace; when navigation leaves less than 760px, it stacks in document flow without hiding existing navigation or chat.
+- The shell knows no Git methods or diff state. Omitting all panel contributions removes the toggle; adding another tab needs no feature-specific shell button.
+- Browser consumers must scan contributed Tailwind classes; Chat explicitly scans the diff-viewer’s compiled web entry in its stylesheet, after the plugin build.
 
 ## Features
 
@@ -51,5 +59,6 @@ flowchart TD
 - The plugin owns its container, browsing client and error handling. Chat has no picker import, feature overlay field or folder RPC methods.
 - [File opening](../plugins/file-opening/README.md) owns its contract, browser actions and host/filesystem implementation in a standalone workspace; Chat explicitly composes `createFileOpeningActions(request)` rather than registering an empty browser provider.
 - [Chimes](../plugins/chimes/README.md) contributes `chimes.enabled` at `settings.feature-toggles`; its provider owns browser-local preferences, transition tracking and audio cleanup independently of Settings visibility.
+- [Diff viewer](../plugins/diff-viewer/README.md) contributes `diff-viewer.changes` at `side-panel`; its package owns Git reads, comparison selection and the continuous diff/file navigation. [Browser scenario](../packages/pi-chat/testing/e2e/diff-viewer.spec.ts) exercises real Git/RPC alongside chat.
 - Host plugins and RPC allowlists are configured separately. Browser composition does not activate or disable server capabilities.
 - Native Pi prompts, widgets and footer status remain separate from browser plugin contributions.

@@ -3,6 +3,7 @@
 - [Pi Chat](packages/pi-chat/README.md): browser application and Pi launcher extension.
 - [Pi Server](packages/pi-server/README.md): HTTP/WebSocket hosting and Pi runtime integration.
 - [TypeScript SDK](packages/pi-sdk-typescript/README.md): protocol, client transport and synchronized state.
+- [Diff viewer plugin](plugins/diff-viewer/README.md): read-only Git comparisons in the optional right side panel.
 - [Folder opening plugin](plugins/folder-opening/README.md): isolated contract, browser UI and host logic.
 - One npm workspace and lockfile; the root owns composition, CI and shared verification only.
 

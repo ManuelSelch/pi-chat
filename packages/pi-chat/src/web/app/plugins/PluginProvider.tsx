@@ -44,6 +44,11 @@ function CommandBinding({ command, children }: { command: PluginCommandDefinitio
   return <PluginContext.Provider value={{ ...parent, commands: [...parent.commands, bound] }}>{children}</PluginContext.Provider>;
 }
 
+export function usePluginSidePanels() {
+  const { plugins } = useContext(PluginContext);
+  return useMemo(() => plugins.flatMap(plugin => plugin.ui.contributions ?? []).filter(item => item.placement === "side-panel"), [plugins]);
+}
+
 export function usePluginCommands(placement: CommandPlacement): readonly PluginCommand[] {
   const { commands } = useContext(PluginContext);
   return useMemo(() => commands.filter(command => command.placements.includes(placement)), [commands, placement]);

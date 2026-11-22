@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 describe("server host binding", () => {
-  it("registers and exposes file and folder opening plugins", async () => {
+  it("registers and exposes file, folder and diff-viewer plugins", async () => {
     vi.spyOn(process, "on").mockReturnValue(process);
 
     await import("../index.js");
@@ -28,10 +28,12 @@ describe("server host binding", () => {
     expect(options.plugins({ getSession: vi.fn() })).toEqual([
       expect.objectContaining({ id: "file-opening", host: expect.any(Function) }),
       expect.objectContaining({ id: "folder-opening", host: expect.any(Function) }),
+      expect.objectContaining({ id: "diff-viewer", host: expect.any(Function) }),
     ]);
     expect(options.pluginRpcContracts).toEqual([
       expect.objectContaining({ id: "file-opening", version: 1 }),
       expect.objectContaining({ id: "folder-opening", version: 1 }),
+      expect.objectContaining({ id: "diff-viewer", version: 1 }),
     ]);
   });
 

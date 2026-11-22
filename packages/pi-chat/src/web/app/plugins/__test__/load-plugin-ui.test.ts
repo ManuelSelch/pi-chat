@@ -55,6 +55,22 @@ it("propagates UI loading failures rather than silently omitting a plugin", asyn
   await expect(loadPluginUIs([{ id: "example", web }])).rejects.toThrow("UI unavailable");
 });
 
+it("rejects side-panel contributions without a label or icon", async () => {
+  const { plugin } = examplePlugin();
+  const contributions = [{ id: "example.panel", placement: "side-panel" as const, label: "", Icon: () => null, Component: () => null }];
+
+  await expect(loadComposition([{ ...plugin, ui: { ...plugin.ui, contributions } }])).rejects.toThrow("needs a label and icon");
+});
+
+it("accepts labeled generic side-panel contributions", async () => {
+  const { plugin } = examplePlugin();
+  const contributions = [{ id: "example.panel", placement: "side-panel" as PluginUIPlacement, label: "Example", Icon: () => null, Component: () => null }];
+
+  const loaded = await loadComposition([{ ...plugin, ui: { ...plugin.ui, contributions } }]);
+
+  expect(loaded[0]?.ui.contributions).toEqual(contributions);
+});
+
 function loadComposition(plugins: readonly LoadedPluginUI[]) {
   return loadPluginUIs(plugins.map(({ id, ui }) => ({ id, web: () => ui })));
 }
@@ -92,6 +108,7 @@ it.each(["outside", "duplicate", "unknown placement"])("rejects %s UI contributi
     id: kind === "outside" ? "other.toggle" : "example.toggle",
     placement: (kind === "unknown placement" ? "settings.unknown" : "settings.feature-toggles") as PluginUIPlacement,
     Component: () => null,
+    label: "Example", Icon: () => null,
   };
   const ui = { ...plugin.ui, contributions: kind === "duplicate" ? [contribution, contribution] : [contribution] };
 

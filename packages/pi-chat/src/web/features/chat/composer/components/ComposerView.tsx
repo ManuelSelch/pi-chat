@@ -61,7 +61,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
       pos="fixed"
       bottom={0}
       left="var(--pi-workspace-left, 0px)"
-      right={0}
+      right="var(--pi-workspace-right, 0px)"
       pb="md"
       style={{ background: `linear-gradient(transparent, ${THEME.surface.page} 30%)`, pointerEvents: "none" }}
     >

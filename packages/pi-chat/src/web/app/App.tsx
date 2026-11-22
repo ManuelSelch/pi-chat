@@ -21,6 +21,7 @@ import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js
 import { InboxNoticeContainer } from "../features/sessions/inbox/components/InboxNoticeContainer.js";
 import { RegisteredPlugins } from "./plugins/RegisteredPlugins.js";
 import { workspaceLayout } from "./utils/workspace-layout.js";
+import { SidePanelProvider, PluginSidePanel, useSidePanel } from "./plugins/SidePanelProvider.js";
 
 /** Breathing room between the last message and the composer. */
 const FOOTER_GAP = 24;
@@ -33,7 +34,7 @@ export function App() {
           <OverlayController>
             <SessionActionsProvider>
               <GlobalKeyboardController />
-              <WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider>
+              <SidePanelProvider><WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider></SidePanelProvider>
             </SessionActionsProvider>
           </OverlayController>
         </ConfirmDialogProvider>
@@ -50,14 +51,19 @@ function AppContent() {
   const home = atHome(app);
   const headerHeight = chat.inboxEnabled ? 58 : 96;
   const { width } = useViewportSize();
-  const layout = workspaceLayout(width, overlays.state.projects);
-  const { docked: widgetsDocked } = placeWidgets(state.widgets, layout.widgetsDocked);
+  const panel = useSidePanel();
+  const layout = workspaceLayout(width, overlays.state.projects, panel.opened);
+  const panelWidth = layout.right;
+  const widgetsCanDock = layout.widgetsDocked;
+  const { docked: widgetsDocked } = placeWidgets(state.widgets, widgetsCanDock);
   const workspaceLeft = typeof layout.left === "number" ? `${layout.left}px` : layout.left;
 
   return (
     <AppShell header={{ height: headerHeight }} padding={0} style={{
       "--pi-header-height": `${headerHeight}px`,
       "--pi-workspace-left": workspaceLeft,
+      "--pi-workspace-right": `${panelWidth}px`,
+      "--pi-side-panel-bottom-gap": `${footerHeight + FOOTER_GAP}px`,
       "--pi-projects-width": layout.sidebarWidth,
     } as CSSProperties}>
       <AgentationFeedback />
@@ -67,7 +73,7 @@ function AppContent() {
 
       <AppOverlays />
 
-      <AppShell.Main ml={workspaceLeft} w={`calc(100% - ${workspaceLeft})`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
+      <AppShell.Main ml={workspaceLeft} w={`calc(100% - ${workspaceLeft} - ${panelWidth}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
         {home ? (
           <Home search={<QuickOpenContainer inline />}>
@@ -78,7 +84,8 @@ function AppContent() {
         )}
       </AppShell.Main>
 
-      <ComposerContainer onHeightChange={setFooterHeight} widgetsDocked={layout.widgetsDocked} />
+      <ComposerContainer onHeightChange={setFooterHeight} widgetsDocked={widgetsCanDock} />
+      <PluginSidePanel stacked={layout.panelStacked} />
     </AppShell>
   );
 }

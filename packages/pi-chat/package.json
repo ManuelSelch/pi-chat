@@ -73,7 +73,8 @@
     "ws": "^8.21.3",
     "@manuelselch/pi-plugin-folder-opening": "0.1.0",
     "@manuelselch/pi-plugin-chimes": "0.1.0",
-    "@manuelselch/pi-plugin-file-opening": "0.1.0"
+    "@manuelselch/pi-plugin-file-opening": "0.1.0",
+    "@manuelselch/pi-plugin-diff-viewer": "0.1.0"
   },
   "devDependencies": {
     "@earendil-works/pi-agent-core": "1.4.0",

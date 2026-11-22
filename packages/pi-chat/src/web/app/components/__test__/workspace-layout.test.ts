@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { workspaceLayout } from "../../utils/workspace-layout.js";
 
 describe("workspaceLayout", () => {
+  it("stacks the plugin panel when navigation leaves too little room for parallel columns", () => {
+    expect(workspaceLayout(1000, true, true)).toMatchObject({ right: 0, panelStacked: true, widgetsDocked: false });
+    expect(workspaceLayout(1000, false, true)).toMatchObject({ right: 460, panelStacked: false, widgetsDocked: false });
+  });
+  it("keeps the composer and widgets in the remaining transcript width", () => {
+    expect(workspaceLayout(1800, false, true)).toMatchObject({ right: 828, panelStacked: false, widgetsDocked: false });
+  });
   it.each([
     [390, true, 0, false],
     [639, true, 0, false],

@@ -2,6 +2,7 @@ import { ActionIcon, AppShell, Group, Text } from "@mantine/core";
 import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
 import type { Tab } from "../../types/view-types.js";
 import { TabBar } from "../../features/sessions/tabs/components/TabBar.js";
+import { SidePanelToggle } from "../plugins/SidePanelProvider.js";
 import { MANTINE_COLOR } from "../../config/theme.js";
 
 interface HeaderViewProps {
@@ -41,6 +42,7 @@ export function HeaderView({
           {home ? null : <Text c="dimmed" size="xs" truncate>{title}</Text>}
         </Group>
         <Group gap="sm" wrap="nowrap">
+          <SidePanelToggle />
           <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Settings" onClick={onOpenSettings}>
               <IconSettings size={18} />
             </ActionIcon>

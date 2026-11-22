@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { diffViewerPlugin } from "@manuelselch/pi-plugin-diff-viewer";
 import { chimesPlugin } from "@manuelselch/pi-plugin-chimes";
 import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import type { PluginUIHost } from "@manuelselch/pi-sdk/plugins";
@@ -8,7 +9,7 @@ import { PluginProvider } from "./PluginProvider.js";
 
 import { loadPluginUIs } from "./load-plugin-ui.js";
 
-const plugins = await loadPluginUIs([folderOpeningPlugin, chimesPlugin]);
+const plugins = await loadPluginUIs([folderOpeningPlugin, chimesPlugin, diffViewerPlugin]);
 
 /** Explicit browser registration and implementations of the shell capabilities. */
 export function RegisteredPlugins({ children }: { children: ReactNode }) {

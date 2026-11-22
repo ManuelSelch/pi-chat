@@ -214,7 +214,7 @@ describe("WidgetDock", () => {
     expect(panel.style.position).toBe("fixed");
     // Both navigation modes position widgets below their actual header height.
     expect(panel.style.top).toBe(`calc(var(--pi-header-height, ${WIDGET_DOCK_TOP - 12}px) + 12px)`);
-    expect(panel.style.right).toContain("1rem");
+    expect(panel.style.right).toBe("calc(var(--pi-workspace-right, 0px) + 16px)");
   });
 
   it("takes its width from the gutter beside the transcript", () => {
@@ -225,6 +225,7 @@ describe("WidgetDock", () => {
     // narrow that the terminal rows are unreadable.
     expect(width).toContain("clamp(200px");
     expect(width).toContain("45rem");
+    expect(width).toContain("var(--pi-workspace-right, 0px)");
     expect(width).toContain(WIDGET_DOCK_MAX_WIDTH);
   });
 

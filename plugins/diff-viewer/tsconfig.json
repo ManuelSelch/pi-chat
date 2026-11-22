@@ -1,0 +1,9 @@
+{
+  "extends": "../../config/plugins/tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "react"
+    ]
+  }
+}
