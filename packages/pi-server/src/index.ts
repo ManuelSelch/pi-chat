@@ -1,5 +1,5 @@
 import express from "express";
-import type { PluginDefinition, RemoteContract } from "@manuelselch/pi-sdk/plugins";
+import type { Plugin, RemoteContract } from "@manuelselch/pi-sdk/plugins";
 import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
@@ -41,7 +41,7 @@ export interface ServerPluginServices {
 }
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
-  plugins?: readonly PluginDefinition[] | ((services: ServerPluginServices) => readonly PluginDefinition[]);
+  plugins?: readonly Plugin[] | ((services: ServerPluginServices) => readonly Plugin[]);
   /** Contracts explicitly exposed over the existing WebSocket; none by default. */
   pluginRpcContracts?: readonly RemoteContract[];
   runtime?: RuntimeAdapter;

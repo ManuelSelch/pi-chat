@@ -1,7 +1,7 @@
 import { beforeEach, expect, expectTypeOf, test, vi } from "vitest";
 import {
   definePlugin, defineRemoteContract,
-  type HostPluginContext, type HostPluginEntry, type PluginDefinition,
+  type HostPluginContext, type HostPluginEntry, type Plugin,
 } from "@manuelselch/pi-sdk/plugins";
 import { createPluginRuntime } from "../../../../src/plugins/runtime.js";
 
@@ -15,9 +15,9 @@ const greeting = defineRemoteContract({ id: "greeting", version: 1, methods: { h
 let handler: ReturnType<typeof vi.fn<(name: string) => string>>;
 let cleanup: ReturnType<typeof vi.fn<() => void>>;
 let context: HostPluginContext;
-let plugin: PluginDefinition;
+let plugin: Plugin;
 
-function host(setup: HostPluginEntry["setup"], id = "greeting", provides = [greeting]): PluginDefinition {
+function host(setup: HostPluginEntry["setup"], id = "greeting", provides = [greeting]): Plugin {
   return definePlugin({ id, provides, host: async () => ({ setup }) });
 }
 
@@ -61,7 +61,12 @@ test("rejects duplicate plugin IDs before loading any entry", () => {
 
 test("starts host entries sequentially and does not load web entries", async () => {
   const order: string[] = [];
-  const web = vi.fn(async () => ({ setup() {} }));
+  const web = vi.fn(async () => ({
+    Provider: ({ children }: { children: unknown }) => children,
+    commands: [],
+    Overlay: () => null,
+    useOverlayOpen: () => false,
+  }));
   const first = host(async () => { order.push("first"); await Promise.resolve(); order.push("first ready"); }, "first", []);
   const second = host(() => { order.push("second"); }, "second", []);
   const runtime = createPluginRuntime([first, definePlugin({ id: "web-only", web }), second]);

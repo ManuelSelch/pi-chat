@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { expect } from "vitest";
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
-import { definePlugin, defineRemoteContract, type RemoteContract, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, defineRemoteContract, type RemoteContract, type Plugin } from "@manuelselch/pi-sdk/plugins";
 import { createPiServer, type PiServer } from "../../src/index.js";
 import { z } from "zod";
 
@@ -28,7 +28,7 @@ export class PluginRpcDriver {
   private clients: PiClient[] = [];
   private pendingEntered?: Promise<void>;
 
-  async start(expose = true, plugin: PluginDefinition = statePlugin, contract: RemoteContract = stateContract): Promise<void> {
+  async start(expose = true, plugin: Plugin = statePlugin, contract: RemoteContract = stateContract): Promise<void> {
     this.server = await createPiServer({
       plugins: [plugin], pluginRpcContracts: expose ? [contract] : [],
       catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },

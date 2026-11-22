@@ -18,8 +18,20 @@ try {
   const modules = await readdir(join(temporary, "node_modules")); assert(!modules.some(name => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
   await writeFile(join(temporary, "consumer.ts"), `
 import { PiClient, PROTOCOL_VERSION, type Request, type TransportFactory, type Result } from "@manuelselch/pi-sdk";
-import { definePlugin, defineRemoteContract, type RemoteContractClient, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
-const web: PluginDefinition<{ register(name: string): void }> = definePlugin({ id: "folders", web: async () => ({ setup(ctx: { register(name: string): void }) { ctx.register("folder-picker"); } }) });
+import { definePlugin, defineRemoteContract, type RemoteContractClient, type Plugin } from "@manuelselch/pi-sdk/plugins";
+const web: Plugin<string> = definePlugin({
+  id: "folders",
+  web: async () => ({
+    Provider: ({ children }: { children: string }) => children,
+    commands: [],
+    Overlay: () => "folder-picker",
+    useOverlayOpen: () => false,
+  }),
+});
+const ui = await web.web!();
+const view: string = ui.Overlay();
+// @ts-expect-error Web entries declare UI contributions, not imperative setup.
+const imperative: Plugin = { id: "folders", web: async () => ({ setup() {} }) };
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 const plugin = definePlugin({
   id: "file-opening", provides: [fileOpeningContract],

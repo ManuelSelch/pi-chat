@@ -6,7 +6,8 @@
 
 ## Browser contributions
 
-A [WebPlugin](../packages/pi-sdk-typescript/src/plugins/web-plugin.ts) declares a **Provider**, static **commands**, an **Overlay** component and an overlay-open hook.
+- [Plugin](../packages/pi-sdk-typescript/src/plugins/plugin.ts) is the SDK declaration for lazy host and UI entries. Its web loader returns UI contributions without a second ID, rather than imperative setup.
+- Chat still directly composes [WebPlugin](../packages/pi-sdk-typescript/src/plugins/web-plugin.ts) objects declaring a **Provider**, static **commands**, an **Overlay** component and an overlay-open hook. Loading those contributions through `Plugin.web` is not wired yet.
 
 ```mermaid
 flowchart TD

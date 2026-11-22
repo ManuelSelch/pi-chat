@@ -1,6 +1,13 @@
 import { expect, expectTypeOf, test, vi } from "vitest";
 import { filePathSchema, fileOpenResultSchema } from "../../src/protocol/index.js";
-import { definePlugin, defineRemoteContract, type RemoteContractClient } from "../../src/plugins/index.js";
+import { definePlugin, defineRemoteContract, type Plugin, type RemoteContractClient, type WebPlugin } from "../../src/plugins/index.js";
+
+const ui: Omit<WebPlugin<string>, "id"> = {
+  Provider: ({ children }) => children,
+  commands: [],
+  Overlay: () => "folder-picker",
+  useOverlayOpen: () => false,
+};
 
 const defineFiles = () => defineRemoteContract({
   id: "files.opening",
@@ -59,21 +66,31 @@ test("defines a plugin without loading its entries", () => {
 });
 
 test("allows web-only plugins and contracts required from another plugin", () => {
-  const plugin = definePlugin({ id: "viewer", requires: [defineFiles()], web: async () => ({ setup() {} }) });
+  const plugin = definePlugin({ id: "viewer", requires: [defineFiles()], web: async () => ui });
 
   expect(plugin.requires[0]?.id).toBe("files.opening");
 });
 
-test("retains an embedding application's typed web context without loading entries", async () => {
-  const register = vi.fn();
-  const web = vi.fn(async () => ({ setup(ctx: { register(name: string): void }) { ctx.register("folder-picker"); } }));
+test("loads typed UI contributions without activating them during definition", async () => {
+  const web = vi.fn(async () => ui);
   const plugin = definePlugin({ id: "folders", web });
+  const declaration: Plugin<string> = plugin;
 
   expect(web).not.toHaveBeenCalled();
-  const entry = await plugin.web();
-  expectTypeOf(entry.setup).parameter(0).toEqualTypeOf<{ register(name: string): void }>();
-  entry.setup({ register });
-  expect(register).toHaveBeenCalledExactlyOnceWith("folder-picker");
+
+  const entry = await declaration.web!();
+
+  expect(entry).toBe(ui);
+  expectTypeOf(entry.Overlay).returns.toEqualTypeOf<string>();
+  expect(entry.Overlay()).toBe("folder-picker");
+  expect(entry.commands).toEqual([]);
+});
+
+test("web entries require UI contributions rather than imperative setup", () => {
+  // @ts-expect-error Web entries no longer accept an application-owned setup context.
+  const plugin: Plugin = { id: "folders", web: async () => ({ setup() {} }) };
+
+  expect(plugin.id).toBe("folders");
 });
 
 test("rejects plugins with no entries or invalid identities", () => {
@@ -82,7 +99,7 @@ test("rejects plugins with no entries or invalid identities", () => {
 });
 
 test("rejects provided contracts outside the plugin namespace", () => {
-  expect(() => definePlugin({ id: "viewer", provides: [defineFiles()], web: async () => ({ setup() {} }) })).toThrow("namespace");
+  expect(() => definePlugin({ id: "viewer", provides: [defineFiles()], web: async () => ui })).toThrow("namespace");
 });
 
 test("rejects duplicate contract declarations", () => {

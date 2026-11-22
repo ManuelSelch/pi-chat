@@ -1,4 +1,4 @@
-import { definePlugin, type HostPluginContext, type PluginCleanup, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, type HostPluginContext, type PluginCleanup, type Plugin } from "@manuelselch/pi-sdk/plugins";
 import type { RemoteContract, RemoteContractClient } from "@manuelselch/pi-sdk/plugins";
 
 export interface PluginRuntime {
@@ -18,7 +18,7 @@ interface Provider {
 }
 
 /** An isolated, one-shot host runtime. No network, web activation or global registry. */
-export function createPluginRuntime(definitions: readonly PluginDefinition[]): PluginRuntime {
+export function createPluginRuntime(definitions: readonly Plugin[]): PluginRuntime {
   const plugins = definitions.map(definition => definePlugin(definition));
   const ids = new Set<string>();
   for (const plugin of plugins) {
@@ -51,7 +51,7 @@ export function createPluginRuntime(definitions: readonly PluginDefinition[]): P
     });
   }
 
-  function contextFor(plugin: PluginDefinition, activation: Activation): HostPluginContext {
+  function contextFor(plugin: Plugin, activation: Activation): HostPluginContext {
     const assertAlive = () => {
       if (activation.controller.signal.aborted) throw new Error(`Plugin activation ended: ${plugin.id}`);
     };

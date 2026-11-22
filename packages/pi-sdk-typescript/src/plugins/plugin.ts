@@ -1,4 +1,5 @@
 import type { CancellationSignal } from "../platform.js";
+import type { WebPlugin } from "./web-plugin.js";
 import { assertIdentifier, type RemoteContract, type RemoteContractImplementation } from "./remote-contract.js";
 
 export type PluginCleanup = () => void | Promise<void>;
@@ -13,23 +14,19 @@ export interface HostPluginEntry {
   setup(context: HostPluginContext): void | Promise<void>;
 }
 
-/** The embedding web application owns this context and activation. */
-export interface PluginEntry<Context = never> {
-  setup: (context: Context) => void | Promise<void>;
-}
+export type PluginEntryLoader<Entry> = () => Promise<Entry>;
 
-export type PluginEntryLoader<Entry = PluginEntry> = () => Promise<Entry>;
-
-export interface PluginDefinition<WebContext = never> {
+export interface Plugin<View = unknown> {
   readonly id: string;
   readonly provides?: readonly RemoteContract[];
   readonly requires?: readonly RemoteContract[];
   readonly host?: PluginEntryLoader<HostPluginEntry>;
-  readonly web?: PluginEntryLoader<PluginEntry<WebContext>>;
+  /** UI contributions share the plugin identity; the application owns composition. */
+  readonly web?: PluginEntryLoader<Omit<WebPlugin<View>, "id">>;
 }
 
 /** Describe a built-in without loading or activating either environment. */
-export function definePlugin<const P extends PluginDefinition>(definition: P): P {
+export function definePlugin<View, const P extends Plugin<View>>(definition: P & Plugin<View>): P {
   assertIdentifier(definition.id, "plugin");
   if (!definition.host && !definition.web) throw new Error("A plugin needs at least one entry.");
 
