@@ -4,7 +4,7 @@ import { PromptModal } from "../../features/extensions/prompts/components/Prompt
 import { CloseSessionDialog } from "../../features/sessions/dialogs/components/CloseSessionDialog.js";
 import { QuickOpenContainer } from "../../features/sessions/quick-open/components/QuickOpenContainer.js";
 import { ProjectSessionContainer } from "../../features/sessions/projects/components/ProjectSessionContainer.js";
-import { FolderPickerContainer } from "../../features/sessions/folders/components/FolderPickerContainer.js";
+import { PluginOverlayOutlet } from "../plugins/PluginProvider.js";
 import { SettingsContainer } from "../../features/settings/components/SettingsContainer.js";
 import { useOverlays } from "./OverlayController.js";
 
@@ -25,7 +25,7 @@ export function AppOverlays() {
       />
       <QuickOpenContainer />
       {chat.inboxEnabled ? <InboxContainer /> : <ProjectSessionContainer />}
-      <FolderPickerContainer />
+      <PluginOverlayOutlet />
       <SettingsContainer />
     </>
   );

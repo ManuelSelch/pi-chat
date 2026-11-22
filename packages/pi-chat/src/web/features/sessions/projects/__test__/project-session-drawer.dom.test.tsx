@@ -53,7 +53,7 @@ function show(options: { busy?: boolean; data?: ProjectCatalogue; currentPath?: 
       <ProjectSessionDrawer
         opened presentation={options.presentation ?? "drawer"} onClose={onClose} currentSessionPath={options.currentSessionPath ?? "/sessions/current.jsonl"} currentProjectPath={options.currentPath ?? "/work/current"}
         catalogue={data} busy={options.busy ?? false} showDisplayPath hideArchivedSessions={options.hideArchivedSessions ?? false}
-        openSession={openSession} newSession={newSession} onOpenFolder={onOpenFolder}
+        openSession={openSession} newSession={newSession} commands={[{ id: "folder-opening.open", name: "Open folder…", description: "Choose a folder", run: onOpenFolder }]}
         archiveSession={archiveSession} pinProject={pinProject} removeProject={removeProject}
       />
     </MantineProvider>

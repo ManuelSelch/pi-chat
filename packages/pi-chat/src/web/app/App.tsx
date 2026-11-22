@@ -19,6 +19,7 @@ import { OverlayController, useOverlays } from "./overlays/OverlayController.js"
 import { SessionActionsProvider } from "../features/sessions/actions/stores/SessionActionsProvider.js";
 import { GlobalKeyboardController } from "./keyboard/GlobalKeyboardController.js";
 import { InboxNoticeContainer } from "../features/sessions/inbox/components/InboxNoticeContainer.js";
+import { RegisteredPlugins } from "./plugins/RegisteredPlugins.js";
 import { workspaceLayout } from "./utils/workspace-layout.js";
 
 /** Breathing room between the last message and the composer. */
@@ -27,14 +28,16 @@ const FOOTER_GAP = 24;
 export function App() {
   return (
     <AppControllerProvider>
-      <ConfirmDialogProvider>
-        <OverlayController>
-          <SessionActionsProvider>
-            <GlobalKeyboardController />
-            <WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider>
-          </SessionActionsProvider>
-        </OverlayController>
-      </ConfirmDialogProvider>
+      <RegisteredPlugins>
+        <ConfirmDialogProvider>
+          <OverlayController>
+            <SessionActionsProvider>
+              <GlobalKeyboardController />
+              <WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider>
+            </SessionActionsProvider>
+          </OverlayController>
+        </ConfirmDialogProvider>
+      </RegisteredPlugins>
     </AppControllerProvider>
   );
 }

@@ -19,3 +19,15 @@ test('folder opening is an independent vertical plugin with runtime-specific pub
   const sdk = await json('packages/pi-sdk-typescript/package.json');
   assert.equal(sdk.exports['./plugins/folder-opening'], undefined);
 });
+
+test('Chat registers folder UI once and renders only generic contributions', async () => {
+  for (const file of await readdir(new URL('packages/pi-chat/src/web/', root), { recursive: true })) {
+    if (!/\.(ts|tsx)$/.test(file) || file.includes('__test__')) continue;
+    const source = await readFile(new URL(`packages/pi-chat/src/web/${file}`, root), 'utf8');
+    if (file !== 'app/plugins/RegisteredPlugins.tsx')
+      assert.doesNotMatch(source, /pi-plugin-folder-opening|FolderPickerContainer|folderPicker|browseDirectories/, file);
+  }
+  const entry = await readFile(new URL('plugins/folder-opening/src/web/hooks/use-folder-contributions.tsx', root), 'utf8');
+  assert.match(entry, /useState\(false\)/);
+  assert.match(entry, /folder-opening\.open/);
+});

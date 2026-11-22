@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useAppController } from "../../../../app/AppControllerContext.js";
 import { useDisplayPath } from "../../../settings/preferences/hooks/use-display-path.js";
 import { useHideArchivedSessions } from "../../../settings/preferences/hooks/use-hide-archived-sessions.js";
+import { usePluginCommands } from "../../../../app/plugins/PluginProvider.js";
 import { useOverlays } from "../../../../app/overlays/OverlayController.js";
 import { ProjectSessionDrawer } from "./ProjectSessionDrawer.js";
 
@@ -14,7 +15,7 @@ export function ProjectSessionContainer() {
   const busy = state.status === "running" || state.status === "aborting";
   const busySessionPaths = useMemo(() => app.tabs.filter(tab => tab.status !== "idle").flatMap(tab => tab.sessionPath ? [tab.sessionPath] : []), [app.tabs]);
   const onClose = useCallback(() => overlays.close("projects"), [overlays.close]);
-  const onOpenFolder = useCallback(() => overlays.open("folderPicker"), [overlays.open]);
+  const commands = usePluginCommands("projects");
 
   return (
     <ProjectSessionDrawer
@@ -33,7 +34,7 @@ export function ProjectSessionContainer() {
       pinProject={chat.pinProject}
       removeProject={chat.removeProject}
       busySessionPaths={busySessionPaths}
-      onOpenFolder={onOpenFolder}
+      commands={commands}
     />
   );
 }

@@ -4,12 +4,12 @@ import { buildSessionActions, type SessionActionState } from "../utils/session-a
 function setup(overrides: Partial<SessionActionState> = {}) {
   let state: SessionActionState = { sessionId: "one", projectPath: "/repo", sessionPath: "/sessions/one", connected: true, busy: false, navigation: "tabs", ...overrides };
   const operations = { newSession: vi.fn(), closeSession: vi.fn(), parkSession: vi.fn(), archiveSession: vi.fn(), openFolder: vi.fn(), openSettings: vi.fn() };
-  const actions = buildSessionActions(state, operations, () => state);
+  const actions = buildSessionActions(state, operations, () => state, [{ id: "folder-opening.open", name: "Open folder…", description: "Choose a folder", run: operations.openFolder }]);
   return { actions, operations, update: (changes: Partial<SessionActionState>) => { state = { ...state, ...changes }; } };
 }
 it("defines the stable session actions and invokes existing operations", () => {
   const { actions, operations } = setup();
-  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "archive-session", "open-folder", "settings"]);
+  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "archive-session", "folder-opening.open", "settings"]);
   for (const action of actions) action.run();
   expect(operations.newSession).toHaveBeenCalledWith("/repo");
   expect(operations.closeSession).toHaveBeenCalledWith("one");
@@ -19,13 +19,13 @@ it("defines the stable session actions and invokes existing operations", () => {
 });
 it("only offers New session and UI actions on Home", () => {
   const { actions, operations } = setup({ sessionId: "", sessionPath: undefined });
-  expect(actions.map(action => action.id)).toEqual(["new-session", "open-folder", "settings"]);
+  expect(actions.map(action => action.id)).toEqual(["new-session", "folder-opening.open", "settings"]);
   actions[0]!.run();
   expect(operations.newSession).toHaveBeenCalledWith(undefined);
 });
 it("labels the three Inbox-mode actions Close Session, Later and Archive Session", () => {
   const { actions } = setup({ navigation: "inbox" });
-  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "later-session", "archive-session", "open-folder", "settings"]);
+  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "later-session", "archive-session", "folder-opening.open", "settings"]);
   expect(actions.find(action => action.id === "close-session")!.name).toBe("Close Session");
   expect(actions.find(action => action.id === "later-session")!.name).toBe("Later");
   expect(actions.find(action => action.id === "archive-session")!.name).toBe("Archive Session");
@@ -66,5 +66,5 @@ it("guards stale session targets and live busy/connection changes", () => {
   expect(operations.parkSession).not.toHaveBeenCalled();
 });
 it("hides server mutations while disconnected", () => {
-  expect(setup({ connected: false }).actions.map(action => action.id)).toEqual(["open-folder", "settings"]);
+  expect(setup({ connected: false }).actions.map(action => action.id)).toEqual(["folder-opening.open", "settings"]);
 });

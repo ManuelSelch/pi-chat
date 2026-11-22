@@ -12,8 +12,8 @@ import { ComposerFocusDriver } from "../../../../testing/infra/ui/composer-focus
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
 vi.mock("../hooks/use-pi-chat.js", () => ({ usePiChat: () => controller }));
-vi.mock("@manuelselch/pi-plugin-folder-opening/web", async importOriginal => ({ ...await importOriginal<object>(), createFolderOpeningPlugin: () => ({ browseDirectories: controller.browseDirectories }) }));
-let controller: ReturnType<typeof usePiChat> & { browseDirectories: ReturnType<typeof vi.fn> };
+
+let controller: ReturnType<typeof usePiChat> & { browseDirectories: () => Promise<import("@manuelselch/pi-sdk/protocol").DirectoryListing> };
 let view: ReturnType<typeof render>;
 const session = (id = "s1"): ChatState => ({ ...initialChatState, sessionId: id, projectPath: "/project", status: "idle" });
 const tab = (id = "s1", status: "idle" | "running" = "idle") => ({ sessionId: id, title: id, projectPath: "/project", projectName: "project", status });
@@ -49,8 +49,8 @@ beforeEach(() => {
     inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(), showHome: vi.fn(),
     inbox: { later: [], archivingPaths: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(async () => ({ path: "/project", parentPath: "/", breadcrumbs: [{ name: "project", path: "/project" }], entries: [] })),
-    startFolderSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
-    request: async () => { throw new Error("SDK requests are not configured in this fixture."); }, prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
+    createAndFocusSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
+    request: async invoke => invoke({ plugin: () => ({ browse: async () => ({ ok: true, listing: await controller.browseDirectories() }) }) } as unknown as import("@manuelselch/pi-sdk").PiClient), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(async () => {}), pinProject: vi.fn(async () => {}), removeProject: vi.fn(async () => {}),
     setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),

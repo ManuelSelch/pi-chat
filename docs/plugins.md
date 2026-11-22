@@ -1,44 +1,24 @@
 # Plugin boundaries
 
-## Runtime boundaries
+- SDK owns generic declarations and typed client transport; Server owns host activation and RPC dispatch.
+- Feature packages own contracts, browser UI/client and host handlers. Chat supplies shell capabilities, not feature state.
+- [Host integration](plugin-runtime.md), [SDK contracts](../packages/pi-sdk-typescript/docs/PLUGINS.md) and [Server lifecycle](../packages/pi-server/docs/PLUGINS.md) describe the non-UI boundaries.
 
-```mermaid
-flowchart LR
-    Contract["Plugin contract<br/>ID, version, method schemas"]
+## Browser contributions
 
-    subgraph Browser["Browser process"]
-        App["Chat composition<br/>AppControllerProvider"]
-        Web["Plugin web adapter and UI"]
-        Client["SDK PiClient"]
-        App -->|supplies request boundary| Web
-        Web -->|typed plugin call| Client
-    end
+- [RegisteredPlugins](../packages/pi-chat/src/web/app/plugins/RegisteredPlugins.tsx) is Chat's explicit browser registration list and host adapter.
+- [PluginProvider](../packages/pi-chat/src/web/app/plugins/PluginProvider.tsx) mounts a keyed React hook scope per plugin. Its contributions are commands, an optional overlay and blocking-focus state.
+- Plugin hooks own feature state; removing a registration unmounts its scope, runs React cleanup and withdraws its commands/overlay.
+- Command IDs use the plugin namespace. Menus and Projects consume placement-filtered contributions; execution resolves the current command and rechecks its disabled state.
+- The generic overlay outlet renders contributed React nodes. Dialogs use host-provided focus-return handling; blocking contributions participate in Chat's overlay/keyboard guard. Exiting dialogs retain DOM focus ownership until removal.
+- Host capabilities expose reactive connection/project context, a request boundary resolving the current SDK client, session creation/navigation and a stable modal-focus hook. Plugins never resolve Chat's controller or stores.
+- Contributions are published after each plugin commit. Definitions and host hook implementations remain stable for a registration's lifetime; hooks run only in their mounted React scopes.
+- No dynamic loader, installation, arbitrary UI slots or browser event-hook framework is implemented. Pi runtime extensions remain separate.
 
-    subgraph Host["Node host process"]
-        Bootstrap["Chat host<br/>explicit plugin list and RPC allowlist"]
-        Server["Pi Server<br/>RPC dispatcher and plugin runtime"]
-        Provider["Plugin host provider"]
-        Bootstrap -->|configures| Server
-        Server -->|loads and invokes| Provider
-    end
+## Features
 
-    Client <-->|"plugin.call over existing /ws"| Server
-    Web -.->|imports| Contract
-    Provider -.->|imports| Contract
-```
-
-- Solid arrows show composition or runtime calls; dotted arrows show shared contract imports.
-- SDK owns generic declarations/client transport; Server owns host activation and dispatch. Feature code owns its contract and handlers.
-- Browser adapters are still explicitly composed by Chat, not activated by a generic web registry. [Folder-opening wiring](../plugins/folder-opening/docs/architecture.md) shows the concrete path.
-
-## Ownership
-
-- Shared declarations come from `@manuelselch/pi-sdk/plugins`; Chat owns no copy of the primitives or host runtime.
-- The SDK's `/plugins/file-opening` entry owns the file contract. The independent [folder-opening workspace](../plugins/folder-opening/README.md) owns its contract, browser UI/client and host filesystem logic.
-- Pi Server owns `createPluginRuntime` under `@manuelselch/pi-server/plugins` and manages it through async server creation/close.
-- Chat explicitly activates and allowlists Server's file-opening provider and the standalone folder-opening provider. Typed `plugin.call` RPC uses the existing WebSocket.
-- The [file-opening entry](../packages/pi-chat/src/plugins/file-opening/index.ts) composes browser actions in `AppControllerProvider`; `usePiChat` owns only the generic SDK connection/request boundary. Feature-specific duplicate-click and runtime-removal policies are not required plugin boilerplate.
-- [Host integration](plugin-runtime.md) covers Chat's startup boundary; detailed contracts/lifecycle live in the [SDK guide](../packages/pi-sdk-typescript/docs/PLUGINS.md) and [Server guide](../packages/pi-server/docs/PLUGINS.md).
-- Package ownership, local linking and imported history are recorded in the [monorepo guide](monorepo.md).
-- The [folder-opening entry](../plugins/folder-opening/src/web/index.ts) owns the picker and browsing client; Chat supplies the session-creation action and overlay state. The picker retains its existing layout and behavior.
-- Web plugin activation and dynamic installation remain unimplemented; browser entries are app-composed.
+- [Folder opening](../plugins/folder-opening/docs/architecture.md) registers `folder-opening.open` in menus and Projects and contributes its complete picker. Dialog state, container, browsing client and error handling stay in the plugin.
+- Chat has no folder picker overlay field or folder RPC methods in its controller. Session creation remains a generic shell action.
+- [File opening](../packages/pi-chat/src/plugins/file-opening/index.ts) retains its existing app-composed browser actions; it is not migrated to the UI contribution API by this change.
+- Host plugins and RPC allowlists remain explicitly configured separately from browser registrations. Removing browser UI does not disable server capabilities.
+- Server-sent declarative buttons/badges and Pi prompts/widgets are separate presentation mechanisms, not executable browser plugins.

@@ -4,6 +4,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { initialAppState, type AppState } from "../../../../app/stores/app-state.js";
 import { initialChatState, type ChatState } from "../../../../app/stores/chat-state.js";
+import { RegisteredPlugins } from "../../../../app/plugins/RegisteredPlugins.js";
+import { PluginOverlayOutlet } from "../../../../app/plugins/PluginProvider.js";
 import { OverlayController, useOverlays } from "../../../../app/overlays/OverlayController.js";
 import { ConfirmDialogProvider } from "../../../../components/confirm/ConfirmDialogProvider.js";
 import { SessionActionsProvider } from "../stores/SessionActionsProvider.js";
@@ -37,12 +39,12 @@ function Contents() {
   const overlays = useOverlays();
   return <SessionDraftProvider><SessionActionsProvider>
     <button onClick={() => overlays.open("quickOpen")}>Open palette</button>
-    <QuickOpenContainer /><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} />
+    <PluginOverlayOutlet /><QuickOpenContainer /><ComposerContainer widgetsDocked={false} onHeightChange={() => {}} />
     <output>{JSON.stringify(overlays.state)}</output>
   </SessionActionsProvider></SessionDraftProvider>;
 }
 function mount() {
-  return render(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
+  return render(<MantineProvider><ConfirmDialogProvider><RegisteredPlugins><OverlayController><Contents /></OverlayController></RegisteredPlugins></ConfirmDialogProvider></MantineProvider>);
 }
 async function select(menu: "composer" | "palette", name: string) {
   if (menu === "composer") fireEvent.change(screen.getByRole("textbox", { name: "Message Pi" }), { target: { value: "/" } });
@@ -61,7 +63,7 @@ for (const menu of ["composer", "palette"] as const) {
     if (name === "New session") expect(chat.newSession).toHaveBeenCalledExactlyOnceWith("/repo");
     if (name === "Close Session") expect(chat.closeTab).toHaveBeenCalledExactlyOnceWith("one");
     if (name === "Archive Session") await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledExactlyOnceWith("/sessions/one", true));
-    if (name === "Open folder…") expect(screen.getByRole("status").textContent).toContain('"folderPicker":true');
+    if (name === "Open folder…") expect(await screen.findByRole("dialog", { name: "Open server folder" })).toBeTruthy();
     if (name === "Settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
     else expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
@@ -98,7 +100,7 @@ it("keeps palette archive errors session-scoped across catalogue/state refreshes
   const view = mount();
   await select("palette", "Archive Session");
   await screen.findByRole("alert");
-  const refresh = () => view.rerender(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
+  const refresh = () => view.rerender(<MantineProvider><ConfirmDialogProvider><RegisteredPlugins><OverlayController><Contents /></OverlayController></RegisteredPlugins></ConfirmDialogProvider></MantineProvider>);
   chat.app = { ...chat.app, catalogue: { projects: [] } };
   refresh();
   expect(screen.getByRole("alert").textContent).toBe("Archive failed");
@@ -117,7 +119,7 @@ it("keeps Archive Session listed but disabled when the active session starts run
   fireEvent.click(await screen.findByRole("button", { name: "/ Actions" }));
   expect(screen.getByRole("option", { name: /Action: Archive Session/ })).toBeTruthy();
   chat.state = { ...chat.state, status: "running" };
-  view.rerender(<MantineProvider><ConfirmDialogProvider><OverlayController><Contents /></OverlayController></ConfirmDialogProvider></MantineProvider>);
+  view.rerender(<MantineProvider><ConfirmDialogProvider><RegisteredPlugins><OverlayController><Contents /></OverlayController></RegisteredPlugins></ConfirmDialogProvider></MantineProvider>);
   const archive = screen.getByRole("option", { name: /Action: Archive Session/ });
   expect(archive.getAttribute("disabled")).not.toBeNull();
   expect(screen.getByRole("option", { name: /Action: New session/ })).toBeTruthy();

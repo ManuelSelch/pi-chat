@@ -32,7 +32,7 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 - [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
 - [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
-- File opening is an explicitly registered Server host plugin. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Web plugin activation is not implemented.
+- File opening is an explicitly registered Server host plugin. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Folder opening contributes its browser command and overlay through the [explicit web registry](plugins.md#browser-contributions).
 
 ## Browser composition and state
 
@@ -165,7 +165,7 @@ labels. This presentation does not modify runtime inventory. Row actions continu
 ### Focus and overlays
 
 [AppOverlays](../packages/pi-chat/src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
-dialogs, navigation, folders and Settings. Desktop navigation is non-modal;
+dialogs, navigation, a generic plugin overlay outlet and Settings. Desktop navigation is non-modal;
 phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
 Settings stays mounted while closed so chime playback remains active.
 

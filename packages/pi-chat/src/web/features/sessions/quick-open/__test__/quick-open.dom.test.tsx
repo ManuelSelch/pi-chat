@@ -20,8 +20,8 @@ function setup(data = catalogue, tabs: Tab[] = [], laterPaths?: ReadonlySet<stri
   const handlers = { onClose: vi.fn(), onFocusSession: vi.fn(), onOpenSession: vi.fn(), onOpenProject: vi.fn(), onNewSession: vi.fn(), onOpenFolder: vi.fn(), onOpenSettings: vi.fn() };
   const actions = buildSessionActions({ sessionId: "", connected: true, busy: false, navigation: "tabs" }, {
     newSession: handlers.onNewSession, closeSession: vi.fn(), parkSession: vi.fn(), archiveSession: vi.fn(),
-    openFolder: handlers.onOpenFolder, openSettings: handlers.onOpenSettings,
-  });
+    openSettings: handlers.onOpenSettings,
+  }, undefined, [{ id: "folder-opening.open", name: "Open folder…", description: "Choose a folder", run: handlers.onOpenFolder }]);
   render(<MantineProvider><QuickOpen opened catalogue={data} tabs={tabs} actions={actions} laterPaths={laterPaths} {...handlers} /></MantineProvider>);
   return handlers;
 }

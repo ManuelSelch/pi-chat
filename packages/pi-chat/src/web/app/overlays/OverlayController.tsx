@@ -1,12 +1,12 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { useMediaQuery } from "@mantine/hooks";
+import { usePluginOverlays } from "../plugins/PluginProvider.js";
 import type { Tab } from "../../types/view-types.js";
 
-export type OverlayName = "projects" | "folderPicker" | "settings" | "quickOpen" | "closingTab";
+export type OverlayName = "projects" | "settings" | "quickOpen" | "closingTab";
 
 export interface OverlayState {
   projects: boolean;
-  folderPicker: boolean;
   settings: boolean;
   quickOpen: boolean;
   closingTab?: Tab;
@@ -20,7 +20,6 @@ interface OverlayAction {
 
 const initialState: OverlayState = {
   projects: false,
-  folderPicker: false,
   settings: false,
   quickOpen: false,
 };
@@ -52,18 +51,19 @@ interface OverlayControllerValue {
 const OverlayContext = createContext<OverlayControllerValue | undefined>(undefined);
 
 export function OverlayController({ children }: { children: ReactNode }) {
+  const { blocking } = usePluginOverlays();
   const [state, dispatch] = useReducer(reduce, initialState);
   const desktop = useMediaQuery("(min-width: 640px)", undefined, { getInitialValueInEffect: false });
   const value = useMemo<OverlayControllerValue>(() => ({
     state,
     projectsPresentation: desktop ? "sidebar" : "drawer",
-    anyOpen: (!desktop && state.projects) || state.folderPicker || state.settings || state.quickOpen || state.closingTab !== undefined,
+    anyOpen: (!desktop && state.projects) || blocking || state.settings || state.quickOpen || state.closingTab !== undefined,
     open: (name) => dispatch({ type: "open", name }),
     close: (name) => dispatch({ type: "close", name }),
     toggle: (name) => dispatch({ type: "toggle", name }),
     requestCloseTab: (tab) => dispatch({ type: "requestCloseTab", tab }),
     closeAll: () => dispatch({ type: "closeAll" }),
-  }), [state, desktop]);
+  }), [state, desktop, blocking]);
 
   return <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>;
 }

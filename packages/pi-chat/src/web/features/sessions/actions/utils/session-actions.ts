@@ -21,12 +21,11 @@ export interface SessionActionOperations {
   closeSession(sessionId: string): void;
   parkSession(sessionId: string): void;
   archiveSession(sessionId: string, path: string): void;
-  openFolder(): void;
   openSettings(): void;
 }
 
 /** Local UI operations only: extension commands keep their native Pi path. */
-export function buildSessionActions(state: SessionActionState, operations: SessionActionOperations, current = () => state): SessionAction[] {
+export function buildSessionActions(state: SessionActionState, operations: SessionActionOperations, current = () => state, contributions: readonly SessionAction[] = []): SessionAction[] {
   const actions: SessionAction[] = [];
   const sessionCurrent = () => current().connected && current().sessionId === state.sessionId;
   if (state.connected) {
@@ -60,7 +59,7 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
     }
   }
   actions.push(
-    { id: "open-folder", name: "Open folder…", description: "Choose a folder to start a session", run: operations.openFolder },
+    ...contributions,
     { id: "settings", name: "Settings", description: "Models, appearance and preferences", run: operations.openSettings },
   );
   return actions;

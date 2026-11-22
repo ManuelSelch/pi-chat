@@ -3,6 +3,7 @@ import { ActionIcon, Alert, Box, Button, Divider, Drawer, Group, ScrollArea, Sta
 import { IconChevronRight, IconFolder, IconFolderOff, IconMessage, IconPin, IconPinnedOff, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import { MANTINE_COLOR } from "../../../../config/theme.js";
 import { StatusBadge } from "../../../../components/StatusBadge.js";
+import type { PluginCommand } from "@manuelselch/pi-sdk/plugins";
 import type { ProjectCatalogue } from "../../../../types/view-types.js";
 import { buildPanelGroups, type PanelGroup, type PanelSession } from "../utils/project-panel-model.js";
 import { SessionRow } from "./SessionRow.js";
@@ -24,7 +25,7 @@ interface ProjectSessionDrawerProps {
   hideArchivedSessions?: boolean;
   openSession: (path: string) => void;
   newSession: (path?: string) => void;
-  onOpenFolder: () => void;
+  commands?: readonly Omit<PluginCommand, "placements">[];
   archiveSession?: (path: string, archived: boolean) => Promise<void>;
   pinProject?: (path: string, pinned: boolean) => Promise<void>;
   removeProject?: (path: string) => Promise<void>;
@@ -37,7 +38,7 @@ function groupKeyForPath(catalogue: ProjectCatalogue, path: string): string | un
   return project ? project.repositoryPath ?? project.path : undefined;
 }
 
-export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, presentation, onClose, currentSessionPath, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, onOpenFolder, archiveSession, pinProject, removeProject, busySessionPaths = [] }: ProjectSessionDrawerProps) {
+export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened, presentation, onClose, currentSessionPath, currentProjectPath, catalogue, busy, showDisplayPath, hideArchivedSessions = true, openSession, newSession, commands = [], archiveSession, pinProject, removeProject, busySessionPaths = [] }: ProjectSessionDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened && presentation === "drawer");
   const sidebarRef = useRef<HTMLElement>(null);
   const sidebarHadFocus = useRef(false);
@@ -176,7 +177,8 @@ export const ProjectSessionDrawer = memo(function ProjectSessionDrawer({ opened,
           {!groups.length ? <div className={styles.empty}>No sessions found yet.</div> : null}
         </Stack>
       </ScrollArea>
-      <Button variant="default" leftSection={<IconFolder size={16} />} mt="sm" onClick={() => { onClose(); onOpenFolder(); }}>Open folder</Button>
+      {commands.map(command => <Button key={command.id} variant="default" leftSection={<IconFolder size={16} />} mt="sm" disabled={command.disabled}
+        onClick={() => { onClose(); command.run(); }}>{command.name.replace(/…$/, "")}</Button>)}
   </>;
 
   if (presentation === "sidebar") {

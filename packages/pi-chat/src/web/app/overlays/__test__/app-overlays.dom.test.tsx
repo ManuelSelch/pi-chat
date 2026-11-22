@@ -39,7 +39,7 @@ vi.mock("../../../features/sessions/dialogs/components/CloseSessionDialog.js", (
 }));
 vi.mock("../../../features/sessions/quick-open/components/QuickOpenContainer.js", () => ({ QuickOpenContainer: () => <div data-overlay="quick-open" /> }));
 vi.mock("../../../features/sessions/projects/components/ProjectSessionContainer.js", () => ({ ProjectSessionContainer: () => <div data-overlay="projects" /> }));
-vi.mock("../../../features/sessions/folders/components/FolderPickerContainer.js", () => ({ FolderPickerContainer: () => <div data-overlay="folders" /> }));
+vi.mock("../../plugins/PluginProvider.js", () => ({ PluginOverlayOutlet: () => <div data-overlay="plugin" /> }));
 vi.mock("../../../features/settings/components/SettingsContainer.js", () => ({
   SettingsContainer: () => {
     useEffect(() => {
@@ -57,7 +57,7 @@ describe("AppOverlays composition", () => {
   it("assembles every overlay in the existing relative order", () => {
     const { container } = render(<AppOverlays />);
     expect([...container.querySelectorAll("[data-overlay]")].map((node) => node.getAttribute("data-overlay")))
-      .toEqual(["prompt", "close", "quick-open", "projects", "folders", "settings"]);
+      .toEqual(["prompt", "close", "quick-open", "projects", "plugin", "settings"]);
   });
 
   it("keeps Settings mounted across rerenders so its chime hook remains active", () => {

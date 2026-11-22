@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/web";
 import { MantineProvider } from "@mantine/core";
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { StrictMode } from "react";
@@ -22,7 +23,7 @@ it("uses one PiClient, atomic ready state and disposal on unmount", () => {
   expect(start).toHaveBeenCalledOnce(); unmount(); expect(dispose).toHaveBeenCalledOnce(); expect(vi.getTimerCount()).toBe(0);
 });
 it("uses SDK deadlines instead of keeping folder waits indefinitely", async () => {
-  const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); connect([]); const pending = result.current.browseDirectories({ path: "/p" }); const rejected = expect(pending).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); await act(async () => vi.advanceTimersByTime(10_000)); await rejected;
+  const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); connect([]); const pending = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "/p" }); const rejected = expect(pending).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); await act(async () => vi.advanceTimersByTime(10_000)); await rejected;
 });
 it("routes typed controls and rejects creation without leaking a navigation placeholder", async () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => { result.current.prompt("hello", "background"); result.current.setModel("provider/model"); result.current.newSession("/new"); });
@@ -201,20 +202,20 @@ it("does not show runtime failure metadata as a dismissible composer popup", () 
 });
 it("correlates completion and folder requests and rejects them on disconnect", async () => {
   const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); const socket = connect(); const completion = result.current.completeCommandArguments("s", "deploy", "st"); const completionId = socket.requests.at(-1)!.requestId;
-  const browse = result.current.browseDirectories({ path: "~" }); expect(socket.requests.at(-1)).toMatchObject({ method: "plugin.call", params: { contractId: "folder-opening", method: "browse", input: { path: "~" } } }); await act(async () => { socket.reply({ value: { ok: true, listing: { path: "/home", entries: [], breadcrumbs: [] } } }); socket.reply({ items: [{ value: "staging", label: "Staging" }] }, completionId); });
+  const browse = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "~" }); expect(socket.requests.at(-1)).toMatchObject({ method: "plugin.call", params: { contractId: "folder-opening", method: "browse", input: { path: "~" } } }); await act(async () => { socket.reply({ value: { ok: true, listing: { path: "/home", entries: [], breadcrumbs: [] } } }); socket.reply({ items: [{ value: "staging", label: "Staging" }] }, completionId); });
   await expect(completion).resolves.toMatchObject([{ value: "staging" }]); await expect(browse).resolves.toMatchObject({ path: "/home" });
-  const pending = result.current.browseDirectories({ path: "/" }); const rejected = expect(pending).rejects.toMatchObject({ code: "disconnected" }); await act(async () => socket.close()); await rejected;
+  const pending = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "/" }); const rejected = expect(pending).rejects.toMatchObject({ code: "disconnected" }); await act(async () => socket.close()); await rejected;
 });
 it("propagates folder browsing failures and cancellation without falling back", async () => {
   const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider });
   const socket = connect([]);
-  const failed = result.current.browseDirectories({ path: "/missing" });
+  const failed = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "/missing" });
   const rejected = expect(failed).rejects.toMatchObject({ code: "notFound", message: "Folder not found" });
 
   await act(async () => socket.reply({ value: { ok: false, error: { code: "notFound", message: "Folder not found" } } }));
   await rejected;
   const abort = new AbortController();
-  const pending = result.current.browseDirectories({ path: "/" }, abort.signal);
+  const pending = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "/" }, abort.signal);
   const cancelled = expect(pending).rejects.toMatchObject({ code: "cancelled" });
   act(() => abort.abort());
   await cancelled;
@@ -223,7 +224,7 @@ it("propagates folder browsing failures and cancellation without falling back", 
 
 it("does not let a disposed socket's late close cancel requests on its replacement", async () => {
   const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); const old = connect(); const close = vi.spyOn(old, "close").mockImplementation(() => {}); act(() => result.current.takeControl());
-  const next = connect(); const pending = result.current.browseDirectories({ path: "/" }); close.mockRestore(); await act(async () => { old.close(); next.reply({ value: { ok: true, listing: { path: "/new", entries: [], breadcrumbs: [] } } }); }); await expect(pending).resolves.toMatchObject({ path: "/new" });
+  const next = connect(); const pending = createFolderOpeningPlugin(result.current.request).browseDirectories({ path: "/" }); close.mockRestore(); await act(async () => { old.close(); next.reply({ value: { ok: true, listing: { path: "/new", entries: [], breadcrumbs: [] } } }); }); await expect(pending).resolves.toMatchObject({ path: "/new" });
 });
 it("selects project history in the app, not through a wire-level continuation method", () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect([]);

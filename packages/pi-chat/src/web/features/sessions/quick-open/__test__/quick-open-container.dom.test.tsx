@@ -2,6 +2,8 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { RegisteredPlugins } from "../../../../app/plugins/RegisteredPlugins.js";
+import { PluginOverlayOutlet } from "../../../../app/plugins/PluginProvider.js";
 import { OverlayController, useOverlays } from "../../../../app/overlays/OverlayController.js";
 import type { ProjectCatalogue, Tab } from "../../../../types/view-types.js";
 import { SessionActionsProvider } from "../../actions/stores/SessionActionsProvider.js";
@@ -49,18 +51,22 @@ it("focuses and expands the inline switcher on Home via Cmd+O", () => {
 });
 
 function Harness() {
+  return <RegisteredPlugins><HarnessContent /></RegisteredPlugins>;
+}
+function HarnessContent() {
   const overlays = useOverlays();
   return <><button onClick={() => overlays.open("quickOpen")}>Open palette</button><ConfirmDialogProvider><SessionActionsProvider><QuickOpenContainer /></SessionActionsProvider></ConfirmDialogProvider>
-    <output>{JSON.stringify(overlays.state)}</output></>;
+    <PluginOverlayOutlet /><output>{JSON.stringify(overlays.state)}</output></>;
 }
 it.each([
-  ["Settings", '"settings":true'], ["Open folder…", '"folderPicker":true'],
+  ["Settings", '"settings":true'], ["Open folder…", "folder"],
 ] as const)("opens the existing overlay for %s and closes the palette", async (title, state) => {
   render(<MantineProvider><OverlayController><Harness /></OverlayController></MantineProvider>);
   fireEvent.click(screen.getByText("Open palette"));
   fireEvent.click(await screen.findByRole("button", { name: "/ Actions" }));
   fireEvent.click(screen.getByRole("option", { name: new RegExp(`Action: ${title}`) }));
-  expect(screen.getByRole("status").textContent).toContain(state);
+  if (state === "folder") expect(await screen.findByRole("dialog", { name: "Open server folder" })).toBeTruthy();
+  else expect(screen.getByRole("status").textContent).toContain(state);
   expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
 });
 it("opens matching sessions and creates a new session from the project row", async () => {

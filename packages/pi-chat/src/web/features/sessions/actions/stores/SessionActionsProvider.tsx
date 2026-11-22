@@ -1,6 +1,7 @@
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { useAppController } from "../../../../app/AppControllerContext.js";
 import { atHome } from "../../../../app/stores/app-state.js";
+import { usePluginCommands } from "../../../../app/plugins/PluginProvider.js";
 import { useOverlays } from "../../../../app/overlays/OverlayController.js";
 import { hasSavedSession } from "../../inbox/utils/inbox-model.js";
 import { buildSessionActions, type SessionAction, type SessionActionState } from "../utils/session-actions.js";
@@ -16,6 +17,7 @@ const SessionActionsContext = createContext<SessionActionsValue | undefined>(und
 export function SessionActionsProvider({ children }: { children: ReactNode }) {
   const chat = useAppController();
   const overlays = useOverlays();
+  const commands = usePluginCommands("menus");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const state: SessionActionState = {
     sessionId: atHome(chat.app) ? "" : chat.app.activeSessionId,
@@ -41,9 +43,8 @@ export function SessionActionsProvider({ children }: { children: ReactNode }) {
         setErrors(current => ({ ...current, [sessionId]: error instanceof Error ? error.message : String(error) }));
       });
     },
-    openFolder: () => overlays.open("folderPicker"),
     openSettings: () => { if (chat.inboxEnabled && overlays.projectsPresentation === "drawer") overlays.close("projects"); overlays.open("settings"); },
-  }, () => latest.current);
+  }, () => latest.current, commands);
   return <SessionActionsContext.Provider value={{ actions, error: errors[state.sessionId], clearError }}>{children}</SessionActionsContext.Provider>;
 }
 
