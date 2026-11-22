@@ -1,7 +1,7 @@
 # Architecture
 
 Pi Chat is a browser application and a thin Node host for the Pi server.
-Chat, Server and the TypeScript SDK share this [npm workspace](monorepo.md), while retaining separate package APIs. The server runs Pi sessions; the TypeScript SDK owns the v2
+Chat, Server, feature plugins and the TypeScript SDK share this [npm workspace](monorepo.md), while retaining separate package APIs. The server runs Pi sessions; the TypeScript SDK owns the v2
 wire contract, transport and synchronized session projections. The browser owns
 navigation, drafts, focus and presentation. There is no v1 compatibility path.
 
@@ -32,7 +32,7 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 - [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
 - [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
-- File opening is an explicitly registered Server host plugin, called through the SDK contract by an app-composed browser adapter. Web plugin activation is not implemented.
+- File opening is an explicitly registered Server host plugin. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Web plugin activation is not implemented.
 
 ## Browser composition and state
 

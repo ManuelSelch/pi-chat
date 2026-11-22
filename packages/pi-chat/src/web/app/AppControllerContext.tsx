@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { createFileOpeningPlugin } from "../../plugins/file-opening/index.js";
-import { createFolderOpeningPlugin } from "../../plugins/folder-opening/index.js";
+import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/web";
 import { usePromptPresentation } from "../features/extensions/prompts/hooks/use-prompt-presentation.js";
 import { usePiChat } from "./hooks/use-pi-chat.js";
 import { AppThemeProvider } from "../lib/theme/AppThemeProvider.js";

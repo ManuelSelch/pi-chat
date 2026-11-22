@@ -19,10 +19,7 @@ try {
   await writeFile(join(temporary, "consumer.ts"), `
 import { PiClient, PROTOCOL_VERSION, type Request, type TransportFactory, type Result } from "@manuelselch/pi-sdk";
 import { definePlugin, defineRemoteContract, type RemoteContractClient, type PluginDefinition } from "@manuelselch/pi-sdk/plugins";
-import { folderOpeningContract } from "@manuelselch/pi-sdk/plugins/folder-opening";
 const web: PluginDefinition<{ register(name: string): void }> = definePlugin({ id: "folders", web: async () => ({ setup(ctx: { register(name: string): void }) { ctx.register("folder-picker"); } }) });
-const folders = new PiClient({ endpoint: "ws://example/ws", transport: (_url, _handlers) => ({ send(_text) {}, close() {}, dispose() {} }) }).plugin(folderOpeningContract);
-const listing = folders.browse({ path: "~" }, { signal: { aborted: false, addEventListener() {}, removeEventListener() {} } });
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 const plugin = definePlugin({
   id: "file-opening", provides: [fileOpeningContract],
@@ -77,8 +74,6 @@ assert.equal(typeof plugins.definePlugin, "function");
 assert.equal(typeof plugins.defineRemoteContract, "function");
 assert.equal(plugins.createPluginRuntime, undefined);
 assert.equal(fileOpeningContract.id, "file-opening");
-const { folderOpeningContract } = await import("@manuelselch/pi-sdk/plugins/folder-opening");
-assert.equal(folderOpeningContract.id, "folder-opening");
 fileOpeningContract.methods.open.input.parse({ sessionId: "runtime", path: "readme.md" });
 assert.throws(() => fileOpeningContract.methods.open.input.parse({ path: "readme.md" }));
 

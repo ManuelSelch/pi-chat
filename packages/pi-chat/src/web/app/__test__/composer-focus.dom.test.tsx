@@ -12,7 +12,7 @@ import { ComposerFocusDriver } from "../../../../testing/infra/ui/composer-focus
 // Only the transport/controller boundary is replaced. App, providers, composer,
 // dialogs, drawers, portals and Mantine focus/transition behavior are real.
 vi.mock("../hooks/use-pi-chat.js", () => ({ usePiChat: () => controller }));
-vi.mock("../../../plugins/folder-opening/index.js", async importOriginal => ({ ...await importOriginal<object>(), createFolderOpeningPlugin: () => ({ browseDirectories: controller.browseDirectories }) }));
+vi.mock("@manuelselch/pi-plugin-folder-opening/web", async importOriginal => ({ ...await importOriginal<object>(), createFolderOpeningPlugin: () => ({ browseDirectories: controller.browseDirectories }) }));
 let controller: ReturnType<typeof usePiChat> & { browseDirectories: ReturnType<typeof vi.fn> };
 let view: ReturnType<typeof render>;
 const session = (id = "s1"): ChatState => ({ ...initialChatState, sessionId: id, projectPath: "/project", status: "idle" });

@@ -14,7 +14,7 @@
   "scripts": {
     "predev": "npm --prefix ../.. run build:packages",
     "dev": "concurrently -k -n server,web 'npm:dev:server' 'npm:dev:web'",
-    "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch --include '../pi-server/dist/**/*.js' --include '../pi-sdk-typescript/dist/**/*.js' src/host/index.ts",
+    "dev:server": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 tsx watch --include '../../plugins/folder-opening/dist/**/*.js' --include '../pi-server/dist/**/*.js' --include '../pi-sdk-typescript/dist/**/*.js' src/host/index.ts",
     "dev:web": "PI_CHAT_DEV=1 PI_CHAT_PORT=8787 PI_CHAT_WEB_PORT=5174 vite",
     "build:harness": "node scripts/compile-test-harness.mjs",
     "prebuild": "npm --prefix ../.. run build:packages && npm run build:harness",
@@ -70,7 +70,8 @@
     "tsx": "^4.23.13",
     "vite": "^8.3.0",
     "vitest": "^5.0.0",
-    "ws": "^8.21.3"
+    "ws": "^8.21.3",
+    "@manuelselch/pi-plugin-folder-opening": "0.1.0"
   },
   "devDependencies": {
     "@earendil-works/pi-agent-core": "1.4.0",

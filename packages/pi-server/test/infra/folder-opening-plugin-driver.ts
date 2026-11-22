@@ -6,9 +6,9 @@ import type { AddressInfo } from "node:net";
 import WebSocket from "ws";
 import { expect } from "vitest";
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
-import { folderOpeningContract } from "@manuelselch/pi-sdk/plugins/folder-opening";
+import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import { createPiServer, type PiServer } from "../../src/index.js";
-import { createFolderOpeningPlugin } from "../../src/plugins.js";
+import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
 
 export class FolderOpeningPluginDriver {
   private server?: PiServer;
@@ -20,7 +20,7 @@ export class FolderOpeningPluginDriver {
     await Promise.all(["visible", ".hidden"].map(name => mkdir(join(this.folder!, name))));
     this.folder = await realpath(this.folder);
     this.server = await createPiServer({
-      plugins: services => [createFolderOpeningPlugin({ browse: services.browseDirectories })],
+      plugins: [createFolderOpeningPlugin()],
       pluginRpcContracts: expose ? [folderOpeningContract] : [],
       catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },
     });

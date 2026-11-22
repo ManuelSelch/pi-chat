@@ -30,8 +30,8 @@
 
 ## Folder browsing
 
-- Opt in with `plugins: services => [createFolderOpeningPlugin({ browse: services.browseDirectories })]` and allowlist the SDK `folderOpeningContract`.
-- Browsing uses the existing directory service without creating a session. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
+- Import `createFolderOpeningPlugin` from `@manuelselch/pi-plugin-folder-opening/host` and `folderOpeningContract` from `@manuelselch/pi-plugin-folder-opening`. Opt in with `plugins: [createFolderOpeningPlugin()]` and allowlist that contract.
+- The plugin owns filesystem browsing without creating a session. Server also reuses its public directory service for existing `directory.browse` and session-path validation. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
 - [Folder scenarios](../test/integration/folder-opening-plugin.test.ts) cover real SDK/WebSocket calls, navigation, safe failures and explicit exposure. Session creation remains separate.
 
 ## File opening

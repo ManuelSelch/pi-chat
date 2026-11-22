@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { directoryBrowseSchema, directoryListingSchema } from "../protocol/directories.js";
-import { defineRemoteContract, type RemoteContractClient } from "./index.js";
+import { directoryBrowseSchema, directoryListingSchema } from "@manuelselch/pi-sdk/protocol";
+import { defineRemoteContract, type RemoteContractClient } from "@manuelselch/pi-sdk/plugins";
 
 export const folderBrowseResultSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), listing: directoryListingSchema }),

@@ -1,8 +1,6 @@
 import express from "express";
 import type { PluginDefinition, RemoteContract } from "@manuelselch/pi-sdk/plugins";
-import type { DirectoryBrowse, FileOpenResult } from "@manuelselch/pi-sdk/protocol";
-import type { FolderBrowseResult } from "@manuelselch/pi-sdk/plugins/folder-opening";
-import { DirectoryOperationError } from "./projects/directory-browser-service.js";
+import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
@@ -40,7 +38,6 @@ export interface CatalogueOptions {
 export interface ServerPluginServices {
   /** Available to handlers after server readiness, not during plugin setup. */
   openFile(sessionId: string, path: string): Promise<FileOpenResult>;
-  browseDirectories(request: DirectoryBrowse): Promise<FolderBrowseResult>;
 }
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
@@ -70,20 +67,6 @@ interface ServerResources {
 
 function createPluginServices(resources: ServerResources): ServerPluginServices {
   return {
-    browseDirectories: async request => {
-      if (!resources.application) throw new Error("Server application is not ready.");
-      try {
-        const { parentPath, nextCursor, ...listing } = await resources.application.browseDirectories(request);
-        return { ok: true, listing: { ...listing,
-          ...(parentPath === undefined ? {} : { parentPath }),
-          ...(nextCursor === undefined ? {} : { nextCursor }),
-        } };
-      }
-      catch (error) {
-        if (error instanceof DirectoryOperationError) return { ok: false, error: { code: error.code, message: error.message } };
-        return { ok: false, error: { code: "operationFailed", message: "Unable to read this server folder." } };
-      }
-    },
     openFile: (sessionId, path) => {
       if (!resources.transport) return Promise.reject(new Error("Server application is not ready."));
       return resources.transport.openFile(sessionId, path);

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { access, readFile, realpath } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import { test } from 'node:test';
+import { execFileSync } from 'node:child_process';
 
 const root = new URL('../../', import.meta.url);
 const json = async path => JSON.parse(await readFile(new URL(path, root), 'utf8'));
@@ -9,10 +10,11 @@ test('links SDK and Server workspaces through public compiled package entries', 
   const manifest = await json('package.json');
   const lock = await json('package-lock.json');
   assert.equal(manifest.private, true);
-  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'packages/pi-server', 'packages/pi-chat']);
+  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/folder-opening', 'packages/pi-server', 'packages/pi-chat']);
   assert.equal(manifest.pi, undefined);
-  for (const path of ['src', 'extension', 'testing', 'public', 'themes', 'mockups', 'plans', 'index.html'])
-    await assert.rejects(access(new URL(path, root)), { code: 'ENOENT' });
+  // Ignored build caches may survive migration; application sources must be package-owned.
+  const oldRoots = ['src', 'extension', 'testing', 'public', 'themes', 'mockups', 'plans', 'index.html'];
+  assert.equal(execFileSync('git', ['ls-files', '--', ...oldRoots], { cwd: root, encoding: 'utf8' }), '');
   const chat = await json('packages/pi-chat/package.json');
   assert.equal(chat.name, 'pi-chat');
   assert.deepEqual(chat.pi.extensions, ['./extension/pi-chat.ts']);
@@ -20,6 +22,7 @@ test('links SDK and Server workspaces through public compiled package entries', 
   for (const [name, directory] of [
     ['@manuelselch/pi-sdk', 'packages/pi-sdk-typescript'],
     ['@manuelselch/pi-server', 'packages/pi-server'],
+    ['@manuelselch/pi-plugin-folder-opening', 'plugins/folder-opening'],
   ]) {
     const workspace = await json(`${directory}/package.json`);
     assert.equal(chat.dependencies[name], workspace.version);

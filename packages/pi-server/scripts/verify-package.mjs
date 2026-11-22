@@ -29,10 +29,13 @@ try {
     assert.ok(!file.path.includes('node_modules/@manuelselch/pi-sdk/'), 'Bundled SDK files leaked into compiled artifact');
   }
   const sdk = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', directory], sourceSdk, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];
+  const pluginRoot = fileURLToPath(new URL('../../../plugins/folder-opening/', import.meta.url));
+  const plugin = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', directory], pluginRoot, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }))[0];
   const sdkFilename = sdk.filename;
   await writeFile(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module', dependencies: {
     '@manuelselch/pi-server': './' + result.filename,
     '@manuelselch/pi-sdk': './' + sdkFilename,
+    '@manuelselch/pi-plugin-folder-opening': './' + plugin.filename,
   } }));
   run([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund'], directory);
   const installedServer = JSON.parse(await readFile(join(directory, 'node_modules/@manuelselch/pi-server/package.json'), 'utf8'));
@@ -57,7 +60,7 @@ try {
   run([npm, 'ls', '@manuelselch/pi-sdk', '--all'], directory);
   // Test helpers and server share the same explicitly packed workspace SDK.
   const sdkEntry = JSON.stringify(pathToFileURL(join(sdkRoot, 'dist/index.js')).href);
-  for (const name of ['react', 'vite', 'tsx']) assert.throws(() => require.resolve(name), name + ' unexpectedly installed');
+  for (const name of ['react', '@mantine/core', 'vite', 'tsx']) assert.throws(() => require.resolve(name), name + ' unexpectedly installed');
   // These are the same behavioral scenarios, now using only documented installed exports/bin.
   for (const file of await readdir(join(root, 'test'))) {
     if (!file.endsWith('.mjs')) continue;
@@ -74,12 +77,13 @@ try {
   run(['--test', ...((await readdir(directory)).filter(file => file.endsWith('.test.mjs')))], directory);
   await writeFile(join(directory, 'consumer.ts'), `import { createPiServer, createPiRuntimeAdapter, createRestartService, type PiServerOptions, type RuntimeAdapter, type FileLogger } from '@manuelselch/pi-server';
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from '@manuelselch/pi-server/extensions';
-import { createFileOpeningPlugin, createFolderOpeningPlugin } from '@manuelselch/pi-server/plugins';
-import { folderOpeningContract } from '@manuelselch/pi-sdk/plugins/folder-opening';
+import { createFileOpeningPlugin } from '@manuelselch/pi-server/plugins';
+import { createFolderOpeningPlugin } from '@manuelselch/pi-plugin-folder-opening/host';
+import { folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
 import { fileOpeningContract } from '@manuelselch/pi-sdk/plugins/file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
-const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin({ browse: services.browseDirectories })], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
+const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin()], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
 const server = await createPiServer(options); void server.httpServer; void server.close;
 void createPiRuntimeAdapter; void createRestartService; void snapshotData; void runLoopbackFixture;
 `);

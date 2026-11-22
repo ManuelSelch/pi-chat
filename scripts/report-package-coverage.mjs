@@ -15,7 +15,7 @@ export function workspaceLcov(report, workspace, root) {
 export async function collectPackageCoverage() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const reports = [];
-  for (const workspace of ['packages/pi-sdk-typescript', 'packages/pi-server']) {
+  for (const workspace of ['packages/pi-sdk-typescript', 'plugins/folder-opening', 'packages/pi-server']) {
     const report = await readFile(resolve(root, workspace, 'coverage/lcov.info'), 'utf8');
     reports.push(workspaceLcov(report, workspace, root));
   }

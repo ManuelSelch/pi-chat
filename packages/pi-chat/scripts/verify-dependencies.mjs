@@ -4,8 +4,10 @@ import { PROTOCOL_VERSION, operationSchemas } from "@manuelselch/pi-sdk/protocol
 import { PiClient } from "@manuelselch/pi-sdk";
 import { definePlugin, defineRemoteContract } from "@manuelselch/pi-sdk/plugins";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
-import { folderOpeningContract } from "@manuelselch/pi-sdk/plugins/folder-opening";
-import { createPluginRuntime, createFileOpeningPlugin, createFolderOpeningPlugin } from "@manuelselch/pi-server/plugins";
+import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
+import { createPluginRuntime, createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
+
+import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
 
 assert.equal(typeof createPiServer, "function");
 assert.equal(PROTOCOL_VERSION, 2);

@@ -21,8 +21,9 @@ import { BrowserThemeDriver } from "./browser-theme-driver.js";
 import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
-import { createFileOpeningPlugin, createFolderOpeningPlugin } from "@manuelselch/pi-server/plugins";
-import { folderOpeningContract } from "@manuelselch/pi-sdk/plugins/folder-opening";
+import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
+import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
+import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 
 /** Visible-browser application driver. Playwright types and selectors stay behind this API. */
@@ -86,7 +87,7 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin({ browse: services.browseDirectories })],
+        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin()],
         pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
         catalogue: {
           lister: { listAll: () => world.listSessions() },

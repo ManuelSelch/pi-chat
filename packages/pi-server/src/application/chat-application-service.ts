@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { realpathSync } from "node:fs";
 import type { DirectoryBrowse, DirectoryListing } from "@manuelselch/pi-sdk/protocol";
-import { DirectoryBrowserService } from "../projects/directory-browser-service.js";
+import { DirectoryBrowserService } from "@manuelselch/pi-plugin-folder-opening/host";
 import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { FileService } from "../files/file-service.js";
 import { fileOpenFailure } from "../files/file-open-error.js";

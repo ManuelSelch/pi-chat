@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Request } from "@manuelselch/pi-sdk/protocol";
 import { SessionBusyError, type ChatApplicationService } from "../application/chat-application-service.js";
 import type { ServerPublisher } from "./server-publisher.js";
-import { DirectoryOperationError } from "../projects/directory-browser-service.js";
+import { DirectoryOperationError } from "@manuelselch/pi-plugin-folder-opening/host";
 import { V2OperationError, type V2Execution } from "./v2-connection.js";
 import type { PluginRpc } from "./plugin-rpc.js";
 

@@ -1,5 +1,5 @@
 import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
-import { folderOpeningContract } from "@manuelselch/pi-sdk/plugins/folder-opening";
+import { folderOpeningContract } from "../index.js";
 import type { DirectoryBrowse } from "@manuelselch/pi-sdk/protocol";
 
 export { FolderPicker } from "./components/FolderPicker.js";
