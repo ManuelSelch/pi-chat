@@ -6,6 +6,37 @@
 
 ## Browser contributions
 
+```mermaid
+flowchart TD
+    Registration["Chat: RegisteredPlugins"]
+    Plugin["folderOpeningWebPlugin<br/>implements WebPlugin"]
+    Host["WebPluginHost<br/>implemented by Chat"]
+    Provider["Generic PluginProvider"]
+    Hook["useFolderContributions(host)<br/>plugin-owned React state"]
+    Contributions["WebPluginContributions"]
+    Menus["Existing menus / Projects"]
+    Outlet["Generic PluginOverlayOutlet"]
+    Picker["Plugin-owned FolderPickerContainer"]
+    Guards["Chat overlay / keyboard guards"]
+
+    Registration -->|registers| Plugin
+    Registration -->|supplies| Host
+    Registration --> Provider
+    Provider -->|mounts plugin hook scope| Hook
+    Plugin -->|useContributions implementation| Hook
+    Host -->|capabilities| Hook
+    Hook -->|returns| Contributions
+    Contributions -->|commands| Menus
+    Contributions -->|overlay| Outlet
+    Contributions -->|blocking state| Guards
+    Menus -->|execute Open folder command| Hook
+    Outlet -->|renders| Picker
+    Picker -->|SDK requests, session creation, focus| Host
+```
+
+- [WebPlugin](../packages/pi-sdk-typescript/src/plugins/web-plugin.ts) defines the plugin ID and contribution hook; `WebPluginHost` defines capabilities supplied by Chat, not access to its controller.
+- [useFolderContributions](../plugins/folder-opening/src/web/hooks/use-folder-contributions.tsx) implements that hook and owns `opened` state. Its `WebPluginContributions<ReactNode>` result contains commands, the picker overlay and blocking state.
+
 - [RegisteredPlugins](../packages/pi-chat/src/web/app/plugins/RegisteredPlugins.tsx) is Chat's explicit browser registration list and host adapter.
 - [PluginProvider](../packages/pi-chat/src/web/app/plugins/PluginProvider.tsx) mounts a keyed React hook scope per plugin. Its contributions are commands, an optional overlay and blocking-focus state.
 - Plugin hooks own feature state; removing a registration unmounts its scope, runs React cleanup and withdraws its commands/overlay.
