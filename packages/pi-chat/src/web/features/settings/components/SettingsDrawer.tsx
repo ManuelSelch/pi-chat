@@ -22,9 +22,7 @@ interface SettingsDrawerProps {
   setAgentationEnabled: (value: boolean) => void;
   inboxEnabled: boolean;
   setInboxEnabled: (value: boolean) => void;
-  chimesEnabled: boolean;
-  setChimesEnabled: (value: boolean) => void;
-  chimesAvailable: boolean;
+  pluginFeatureToggles: ReactNode;
   displayPathShow: boolean;
   setDisplayPathShow: (value: boolean) => void;
   hideArchivedSessions: boolean;
@@ -34,7 +32,7 @@ interface SettingsDrawerProps {
   runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, chimesEnabled, setChimesEnabled, chimesAvailable, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, pluginFeatureToggles, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -88,13 +86,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, v
             <SectionHeader icon={<IconAdjustments size={16} />}>Feature Toggles</SectionHeader>
             <Switch label="Agentation UI feedback" checked={agentationEnabled} onChange={(event) => setAgentationEnabled(event.currentTarget.checked)} />
             <Switch mt="sm" label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
-            <Switch
-              mt="sm"
-              checked={chimesEnabled}
-              onChange={(event) => setChimesEnabled(event.currentTarget.checked)}
-              disabled={!chimesAvailable}
-              label="Chime when a run finishes or needs an answer"
-            />
+            {pluginFeatureToggles}
             <Switch
               mt="sm"
               checked={displayPathShow}

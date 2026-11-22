@@ -12,5 +12,5 @@ test("web declaration provides synchronous ID-free UI under the shared identity"
 
   expect(folderOpeningPlugin.web()).toBe(folderOpeningUI);
   expect(folderOpeningUI).not.toHaveProperty("id");
-  expect(folderOpeningUI.commands[0]?.id).toBe("folder-opening.open");
+  expect(folderOpeningUI.commands![0]?.id).toBe("folder-opening.open");
 });

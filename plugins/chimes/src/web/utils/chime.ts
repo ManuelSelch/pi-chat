@@ -1,4 +1,5 @@
-import type { Tab, TabStatus } from "../../../../types/view-types.js";
+import type { PluginSessionSummary as Tab } from "@manuelselch/pi-sdk/plugins";
+type TabStatus = Tab["status"];
 
 /**
  * Two beeps do not justify a dependency. Howler and friends exist to schedule

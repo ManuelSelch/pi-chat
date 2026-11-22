@@ -167,7 +167,7 @@ labels. This presentation does not modify runtime inventory. Row actions continu
 [AppOverlays](../packages/pi-chat/src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
 dialogs, navigation, a generic plugin overlay outlet and Settings. Desktop navigation is non-modal;
 phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
-Settings stays mounted while closed so chime playback remains active.
+Settings remains mounted while closed, but no longer owns audio lifetime. The [chimes plugin](../plugins/chimes/README.md) owns playback/preferences in its app-lifetime provider and contributes its existing switch to `settings.feature-toggles`.
 
 [Composer focus](../packages/pi-chat/src/web/hooks/composer-focus.ts) restores only an enabled,
 connected, visible composer when no dialog owns focus. Mantine exit callbacks

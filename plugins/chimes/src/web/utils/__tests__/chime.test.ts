@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Tab, TabStatus } from "../../../../types/view-types.js";
-import { ChimePlayer, chimesFor, statusMap } from "../utils/chime.js";
+import type { PluginSessionSummary as Tab } from "@manuelselch/pi-sdk/plugins";
+type TabStatus = Tab["status"];
+import { ChimePlayer, chimesFor, statusMap } from "../chime.js";
 
 const tab = (sessionId: string, status: TabStatus): Tab => ({
   sessionId,
-  title: sessionId,
-  projectPath: "/p",
-  projectName: "p",
   status,
 });
 

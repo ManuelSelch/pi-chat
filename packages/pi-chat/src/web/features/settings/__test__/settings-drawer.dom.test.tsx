@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { ComponentProps } from "react";
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, Switch } from "@mantine/core";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { initialChatState } from "../../../app/stores/chat-state.js";
@@ -27,9 +27,7 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         setInboxEnabled={noop}
         agentationEnabled={false}
         setAgentationEnabled={noop}
-        chimesEnabled={false}
-        setChimesEnabled={noop}
-        chimesAvailable
+        pluginFeatureToggles={<Switch label="Example plugin" />}
         displayPathShow={true}
         setDisplayPathShow={noop}
         hideArchivedSessions={true}
@@ -51,12 +49,22 @@ const sessionFeatures: typeof initialChatState.actions.features = [
 ];
 
 describe("SettingsDrawer groups", () => {
+  it("renders plugin controls inside Feature Toggles without owning their state", () => {
+    const toggle = vi.fn();
+    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
+      pluginFeatureToggles: <Switch label="Example plugin" onChange={event => toggle(event.currentTarget.checked)} />,
+    });
+
+    fireEvent.click(within(screen.getByRole("group", { name: "Feature Toggles" })).getByRole("switch", { name: "Example plugin" }));
+
+    expect(toggle).toHaveBeenCalledExactlyOnceWith(true);
+  });
   it("has no custom name editor and retains other settings", () => {
     renderDrawer(initialChatState.extensions);
     expect(screen.queryByRole("textbox", { name: "Session name" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
     expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
-    expect(screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "Example plugin" })).toBeTruthy();
   });
 
   it("groups all switches under Feature Toggles including Agentation", () => {
@@ -64,7 +72,7 @@ describe("SettingsDrawer groups", () => {
     const group = screen.getByRole("group", { name: "Feature Toggles" });
 
     expect(within(group).getAllByRole("switch")).toHaveLength(6);
-    for (const name of ["Show open sessions in sidebar", "Chime when a run finishes or needs an answer", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript", "Agentation UI feedback"]) {
+    for (const name of ["Show open sessions in sidebar", "Example plugin", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript", "Agentation UI feedback"]) {
       expect(within(group).getByRole("switch", { name })).toBeTruthy();
     }
     for (const name of ["Sessions", "Sounds", "Projects"]) {
@@ -131,10 +139,10 @@ describe("SettingsDrawer groups", () => {
     expect(within(screen.getByRole("group", { name: "Backend server" })).queryByRole("button", { name: "Restart" })).toBeNull();
   });
 
-  it("keeps session controls disabled while busy and chimes disabled when unavailable", () => {
+  it("keeps session controls disabled while busy", () => {
     const compactSession = vi.fn();
     renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
-      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } }, busy: true, chimesAvailable: false, compactSession,
+      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } }, busy: true, compactSession,
     });
     const session = screen.getByRole("group", { name: "Session" });
 
@@ -142,7 +150,6 @@ describe("SettingsDrawer groups", () => {
     expect((within(session).getByLabelText("Model") as HTMLInputElement).disabled).toBe(true);
     fireEvent.click(within(session).getByRole("button", { name: "Compact" }));
     expect(compactSession).not.toHaveBeenCalled();
-    expect((screen.getByRole("switch", { name: "Chime when a run finishes or needs an answer" }) as HTMLInputElement).disabled).toBe(true);
   });
 
   it("shows the enabled archive visibility switch and dispatches changes", () => {

@@ -2,6 +2,19 @@ import type { PiClient } from "../client.js";
 import type { CancellationSignal } from "../platform.js";
 
 export type CommandPlacement = "menus" | "projects";
+export type PluginUIPlacement = "settings.feature-toggles";
+
+/** Minimal browser session projection; no application navigation or transcript state. */
+export interface PluginSessionSummary {
+  readonly sessionId: string;
+  readonly status: "idle" | "running" | "blocked";
+}
+
+export interface PluginUIContribution<View> {
+  readonly id: string;
+  readonly placement: PluginUIPlacement;
+  Component(): View;
+}
 
 export interface PluginCommand {
   readonly id: string;
@@ -15,6 +28,7 @@ export interface PluginCommand {
 /** Browser shell capabilities, not access to its controller or feature stores. */
 export interface PluginUIHost {
   readonly connected: boolean;
+  readonly sessions: readonly PluginSessionSummary[];
   readonly projectPath?: string;
   request<T>(invoke: (client: PiClient) => Promise<T>): Promise<T>;
   /** Creates a session and navigates to it; rejection leaves navigation unchanged. */
@@ -38,7 +52,8 @@ export interface PluginUIProviderProps<View> {
 /** Plain UI composition. View stays generic to keep the SDK React-free. */
 export interface PluginUI<View = unknown> {
   Provider(props: PluginUIProviderProps<View>): View;
-  readonly commands: readonly PluginCommandDefinition[];
-  Overlay(): View;
-  useOverlayOpen(): boolean;
+  readonly commands?: readonly PluginCommandDefinition[];
+  readonly contributions?: readonly PluginUIContribution<View>[];
+  Overlay?(): View;
+  useOverlayOpen?(): boolean;
 }

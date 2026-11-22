@@ -72,6 +72,7 @@
     "vitest": "^5.0.0",
     "ws": "^8.21.3",
     "@manuelselch/pi-plugin-folder-opening": "0.1.0",
+    "@manuelselch/pi-plugin-chimes": "0.1.0",
     "@manuelselch/pi-plugin-file-opening": "0.1.0"
   },
   "devDependencies": {

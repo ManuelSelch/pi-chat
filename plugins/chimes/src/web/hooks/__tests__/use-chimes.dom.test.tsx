@@ -1,21 +1,19 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, act, cleanup } from "@testing-library/react";
-import type { Tab, TabStatus } from "../../../../types/view-types.js";
-import { CHIME_STORAGE_KEY, useChimes } from "../hooks/use-chimes.js";
+import type { PluginSessionSummary as Tab } from "@manuelselch/pi-sdk/plugins";
+type TabStatus = Tab["status"];
+import { CHIME_STORAGE_KEY, useChimes } from "../use-chimes.js";
 
 const tab = (sessionId: string, status: TabStatus): Tab => ({
   sessionId,
-  title: sessionId,
-  projectPath: "/p",
-  projectName: "p",
   status,
 });
 
 /** Records every note the hook actually schedules through Web Audio. */
-function installAudio(initialState = "running"): { notes: number[]; resumes: number } {
+function installAudio(initialState = "running"): { notes: number[]; resumes: number; closes: number } {
   const notes: number[] = [];
-  const counters = { notes, resumes: 0 };
+  const counters = { notes, resumes: 0, closes: 0 };
   class FakeAudioContext {
     state = initialState;
     currentTime = 0;
@@ -24,7 +22,7 @@ function installAudio(initialState = "running"): { notes: number[]; resumes: num
       counters.resumes++;
       this.state = "running";
     }
-    async close(): Promise<void> {}
+    async close(): Promise<void> { counters.closes++; }
     createOscillator() {
       return {
         type: "",
@@ -171,6 +169,38 @@ describe("switching chimes on", () => {
       view.rerender(<Harness tabs={[tab("a", "idle")]} />);
     });
     expect(audio.notes).toHaveLength(2);
+  });
+
+  it("unlocks on pointer gestures and when returning to a visible page", async () => {
+    window.localStorage.setItem(CHIME_STORAGE_KEY, JSON.stringify(true));
+    const audio = installAudio("suspended");
+    render(<Harness tabs={[tab("a", "running")]} />);
+
+    await act(async () => { window.dispatchEvent(new Event("pointerdown")); });
+
+    expect(audio.resumes).toBe(1);
+    // Once running, additional gestures do not reopen or resume the context.
+    await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
+    expect(audio.resumes).toBe(1);
+    expect(audio.notes).toHaveLength(0);
+  });
+
+  it("closes audio and removes gesture listeners when its owner unmounts", async () => {
+    window.localStorage.setItem(CHIME_STORAGE_KEY, JSON.stringify(true));
+    const audio = installAudio("suspended");
+    const view = render(<Harness tabs={[tab("a", "idle")]} />);
+    await act(async () => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "h" })); });
+
+    view.unmount();
+    await act(async () => {
+      window.dispatchEvent(new Event("pointerdown"));
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "h" }));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(audio.closes).toBe(1);
+    expect(audio.resumes).toBe(1);
+    expect(audio.notes).toHaveLength(0);
   });
 
   it("leaves audio alone while chimes are switched off", async () => {

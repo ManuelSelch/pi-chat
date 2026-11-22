@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, test, vi } from "vitest";
 import { filePathSchema, fileOpenResultSchema } from "../../src/protocol/index.js";
-import { definePlugin, defineRemoteContract, type Plugin, type RemoteContractClient, type PluginUI } from "../../src/plugins/index.js";
+import { definePlugin, defineRemoteContract, type Plugin, type RemoteContractClient, type PluginUI, type PluginUIContribution, type PluginUIHost } from "../../src/plugins/index.js";
 
 const ui: PluginUI<string> = {
   Provider: ({ children }) => children,
@@ -98,9 +98,23 @@ test("loads typed UI contributions without activating them during definition", a
   const entry = await declaration.web!();
 
   expect(entry).toBe(ui);
-  expectTypeOf(entry.Overlay).returns.toEqualTypeOf<string>();
-  expect(entry.Overlay()).toBe("folder-picker");
+  expectTypeOf(entry.Overlay!).returns.toEqualTypeOf<string>();
+  expect(entry.Overlay!()).toBe("folder-picker");
   expect(entry.commands).toEqual([]);
+});
+
+test("accepts settings-only UI with host-defined placements and readonly session summaries", async () => {
+  const contribution: PluginUIContribution<string> = { id: "settings.toggle", placement: "settings.feature-toggles", Component: () => "toggle" };
+  const settings: PluginUI<string> = { Provider: ({ children }) => children, contributions: [contribution] };
+  const plugin = definePlugin({ id: "settings", web: () => settings });
+
+  expect((await plugin.web()).contributions?.[0]?.Component()).toBe("toggle");
+  expect(settings).not.toHaveProperty("commands");
+  expect(settings).not.toHaveProperty("Overlay");
+  // @ts-expect-error Placements are defined by the shell, not arbitrary plugin strings.
+  const invalid: PluginUIContribution<string> = { ...contribution, placement: "feature-toggles" };
+  void invalid;
+  expectTypeOf<PluginUIHost["sessions"][number]["status"]>().toEqualTypeOf<"idle" | "running" | "blocked">();
 });
 
 test("UI contributions have no independent plugin identity", () => {

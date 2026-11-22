@@ -1,5 +1,6 @@
 import { createContext, memo, useContext, useMemo, type ReactNode } from "react";
-import type { CommandPlacement, PluginCommand, PluginCommandDefinition, PluginUIHost } from "@manuelselch/pi-sdk/plugins";
+import { Stack } from "@mantine/core";
+import type { CommandPlacement, PluginCommand, PluginCommandDefinition, PluginUIHost, PluginUIPlacement } from "@manuelselch/pi-sdk/plugins";
 
 import type { LoadedPluginUI } from "./load-plugin-ui.js";
 
@@ -16,10 +17,17 @@ const PluginContext = createContext<PluginContextValue>({ plugins: [], commands:
 export const PluginProvider = memo(function PluginProvider({ plugins, host, children }: { plugins: readonly LoadedPluginUI[]; host: PluginUIHost; children: ReactNode }) {
   const ids = new Set<string>();
   const commandIds = new Set<string>();
+  const contributionIds = new Set<string>();
   for (const plugin of plugins) {
     if (ids.has(plugin.id)) throw new Error(`Duplicate plugin: ${plugin.id}`);
     ids.add(plugin.id);
-    for (const command of plugin.ui.commands) {
+    for (const contribution of plugin.ui.contributions ?? []) {
+      if (!contribution.id.startsWith(`${plugin.id}.`)) throw new Error(`Contribution ${contribution.id} must use the ${plugin.id} namespace.`);
+      if (contributionIds.has(contribution.id)) throw new Error(`Duplicate contribution: ${contribution.id}`);
+      contributionIds.add(contribution.id);
+      if (contribution.placement !== "settings.feature-toggles") throw new Error(`Unknown UI placement: ${contribution.placement}`);
+    }
+    for (const command of plugin.ui.commands ?? []) {
       if (!command.id.startsWith(`${plugin.id}.`)) throw new Error(`Command ${command.id} must use the ${plugin.id} namespace.`);
       if (commandIds.has(command.id)) throw new Error(`Duplicate command: ${command.id}`);
       commandIds.add(command.id);
@@ -33,12 +41,17 @@ export const PluginProvider = memo(function PluginProvider({ plugins, host, chil
 });
 
 function PluginBindings({ plugin, children }: { plugin: LoadedPluginUI; children: ReactNode }) {
+  const bound = (plugin.ui.commands ?? []).reduceRight<ReactNode>((content, command) =>
+    <CommandBinding key={command.id} command={command}>{content}</CommandBinding>, children);
+  return plugin.ui.useOverlayOpen
+    ? <OverlayBinding useOverlayOpen={plugin.ui.useOverlayOpen}>{bound}</OverlayBinding>
+    : bound;
+}
+
+function OverlayBinding({ useOverlayOpen, children }: { useOverlayOpen: () => boolean; children: ReactNode }) {
   const parent = useContext(PluginContext);
-  const opened = plugin.ui.useOverlayOpen();
-  return <PluginContext.Provider value={{ ...parent, blocking: parent.blocking || opened }}>
-    {plugin.ui.commands.reduceRight<ReactNode>((content, command) =>
-      <CommandBinding key={command.id} command={command}>{content}</CommandBinding>, children)}
-  </PluginContext.Provider>;
+  const opened = useOverlayOpen();
+  return <PluginContext.Provider value={{ ...parent, blocking: parent.blocking || opened }}>{children}</PluginContext.Provider>;
 }
 
 function CommandBinding({ command, children }: { command: PluginCommandDefinition; children: ReactNode }) {
@@ -59,5 +72,13 @@ export function usePluginOverlayOpen(): boolean {
 }
 
 export function PluginOverlayOutlet() {
-  return <>{useContext(PluginContext).plugins.map(plugin => <plugin.ui.Overlay key={plugin.id} />)}</>;
+  return <>{useContext(PluginContext).plugins.map(plugin => plugin.ui.Overlay ? <plugin.ui.Overlay key={plugin.id} /> : null)}</>;
+}
+
+/** The shell owns feature-toggle spacing; contributed controls own their state. */
+export function PluginUIOutlet({ placement }: { placement: PluginUIPlacement }) {
+  const { plugins } = useContext(PluginContext);
+  const contributions = plugins.flatMap(plugin => plugin.ui.contributions ?? []).filter(item => item.placement === placement);
+  if (!contributions.length) return null;
+  return <Stack gap="sm" mt="sm">{contributions.map(item => <item.Component key={item.id} />)}</Stack>;
 }

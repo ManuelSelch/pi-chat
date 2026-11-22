@@ -18,7 +18,7 @@ try {
   const modules = await readdir(join(temporary, "node_modules")); assert(!modules.some(name => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
   await writeFile(join(temporary, "consumer.ts"), `
 import { PiClient, PROTOCOL_VERSION, type Request, type TransportFactory, type Result } from "@manuelselch/pi-sdk";
-import { definePlugin, defineRemoteContract, type RemoteContractClient, type Plugin, type PluginUI } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, defineRemoteContract, type RemoteContractClient, type Plugin, type PluginUI, type PluginUIContribution, type PluginUIHost } from "@manuelselch/pi-sdk/plugins";
 const web: Plugin<string> = definePlugin({
   id: "folders",
   web: async () => ({
@@ -31,7 +31,15 @@ const web: Plugin<string> = definePlugin({
 const ui: PluginUI<string> = await web.web!();
 // @ts-expect-error UI contributions have no independent identity.
 ui.id;
-const view: string = ui.Overlay();
+const view: string = ui.Overlay!();
+const toggle: PluginUIContribution<string> = { id: "settings.toggle", placement: "settings.feature-toggles", Component: () => "switch" };
+const settingsOnly: PluginUI<string> = { Provider: ({ children }) => children, contributions: [toggle] };
+declare const uiHost: PluginUIHost;
+const status: "idle" | "running" | "blocked" = uiHost.sessions[0].status;
+// @ts-expect-error Session summaries are read-only host projections.
+uiHost.sessions[0].status = "idle";
+// @ts-expect-error The host defines supported UI placements.
+const badPlacement: PluginUIContribution<string> = { ...toggle, placement: "feature-toggles" };
 // @ts-expect-error Web entries declare UI contributions, not imperative setup.
 const imperative: Plugin = { id: "folders", web: async () => ({ setup() {} }) };
 import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";

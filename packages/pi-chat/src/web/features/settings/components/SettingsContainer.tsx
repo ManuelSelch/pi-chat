@@ -1,7 +1,7 @@
 import { useAppController } from "../../../app/AppControllerContext.js";
 import { useOverlays } from "../../../app/overlays/OverlayController.js";
 import { useAgentation } from "../preferences/hooks/use-agentation.js";
-import { useChimes } from "../preferences/hooks/use-chimes.js";
+import { PluginUIOutlet } from "../../../app/plugins/PluginProvider.js";
 import { useDisplayPath } from "../preferences/hooks/use-display-path.js";
 import { useHideArchivedSessions } from "../preferences/hooks/use-hide-archived-sessions.js";
 import { useTranscriptDensity } from "../preferences/hooks/use-transcript-density.js";
@@ -15,7 +15,6 @@ export function SettingsContainer() {
   const { app, state } = chat;
   const busy = state.status === "running" || state.status === "aborting";
   const agentation = useAgentation();
-  const chimes = useChimes(app.tabs);
   const displayPath = useDisplayPath();
   const archivedSessions = useHideArchivedSessions();
   const transcript = useTranscriptDensity();
@@ -35,9 +34,7 @@ export function SettingsContainer() {
       setThinkingLevel={chat.setThinkingLevel}
       setModel={chat.setModel}
       compactSession={chat.compactSession}
-      chimesEnabled={chimes.enabled}
-      setChimesEnabled={chimes.setEnabled}
-      chimesAvailable={chimes.available}
+      pluginFeatureToggles={<PluginUIOutlet placement="settings.feature-toggles" />}
       displayPathShow={displayPath.show}
       setDisplayPathShow={displayPath.setShow}
       hideArchivedSessions={archivedSessions.hide}

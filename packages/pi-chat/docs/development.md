@@ -18,7 +18,7 @@
 - Module tests and local fixtures live in `__test__/` inside their module, for example `features/chat/composer/__test__/`. Cross-feature scenarios, reusable drivers and runner setup live in this package's `testing/`.
 - Prefer direct file imports. Server settings retains its existing entry at `features/settings/server/index.ts`; no new barrel files or cross-feature import restrictions are introduced.
 - Existing composition remains explicit: `usePiChat` coordinates Inbox lifecycle and endpoint loading; `AppControllerProvider` composes prompt presentation, theme, drafts and file actions. Feature containers still consume app context, and rich prompts still reuse chat’s lazy Markdown renderer.
-- `AppOverlays` assembles prompts, session dialogs, navigation, folders and Settings. Settings stays mounted while closed to preserve chime playback. App owns Home/transcript selection, responsive workspace geometry and composer height.
+- `AppOverlays` assembles prompts, session dialogs, navigation, folders and Settings. Settings stays mounted while closed; chime playback now belongs to the independent [chimes plugin provider](../../../plugins/chimes/README.md), not the drawer lifetime. App owns Home/transcript selection, responsive workspace geometry and composer height.
 - Global layer order, Markdown styles, widget container queries and shared animations remain in `app/styles.css`; widget rendering, geometry and placement remain separate modules under `features/extensions/widgets/`.
 
 See the [architecture overview](../../../docs/architecture.md) for state ownership and runtime flow, and the [testing guide](../testing/README.md) for placement and workflow coverage.

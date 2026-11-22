@@ -59,7 +59,7 @@ it("rejects command collisions across nested plugin namespaces", () => {
 });
 
 it.each(["outside", "duplicate"])("rejects %s command IDs", kind => {
-  const command = { ...example.plugin.ui.commands[0]!, id: kind === "outside" ? "other.run" : "example.run" };
+  const command = { ...example.plugin.ui.commands![0]!, id: kind === "outside" ? "other.run" : "example.run" };
   const plugin = { ...example.plugin, ui: { ...example.plugin.ui, commands: kind === "outside" ? [command] : [command, command] } };
 
   expect(() => renderHook(() => usePluginCommands("menus"), {

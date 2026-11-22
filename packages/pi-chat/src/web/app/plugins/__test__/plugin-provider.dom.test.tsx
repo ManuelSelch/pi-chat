@@ -1,13 +1,52 @@
 // @vitest-environment jsdom
-import { useLayoutEffect } from "react";
-import { act, cleanup, renderHook, screen } from "@testing-library/react";
+import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
+import { act, cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { PluginProvider, PluginOverlayOutlet, usePluginCommands, usePluginOverlayOpen } from "../PluginProvider.js";
+import { PluginProvider, PluginOverlayOutlet, PluginUIOutlet, usePluginCommands, usePluginOverlayOpen } from "../PluginProvider.js";
 import { examplePlugin, host } from "./plugin-fixture.js";
+
+import { MantineProvider } from "@mantine/core";
+import type { PluginUI } from "@manuelselch/pi-sdk/plugins";
+
+const SettingsState = createContext({ count: 0, increment: () => {} });
+const settingsUI: PluginUI<ReactNode> = {
+  Provider({ children }) {
+    const [count, setCount] = useState(0);
+    return <SettingsState.Provider value={{ count, increment: () => setCount(value => value + 1) }}>{children}</SettingsState.Provider>;
+  },
+  contributions: [{ id: "settings.example", placement: "settings.feature-toggles", Component() {
+    const state = useContext(SettingsState);
+    return <button onClick={state.increment}>Setting {state.count}</button>;
+  } }],
+};
 
 let example: ReturnType<typeof examplePlugin>;
 beforeEach(() => { example = examplePlugin(); });
 afterEach(cleanup);
+
+it("renders settings-only contributions beneath their provider and removes them with the plugin", () => {
+  let plugins = [{ id: "settings", ui: settingsUI }];
+  const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), blocking: usePluginOverlayOpen() }), {
+    wrapper: ({ children }) => <MantineProvider><PluginProvider plugins={plugins} host={host}>{children}<PluginUIOutlet placement="settings.feature-toggles" /><PluginOverlayOutlet /></PluginProvider></MantineProvider>,
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: "Setting 0" }));
+
+  expect(screen.getByRole("button", { name: "Setting 1" })).toBeTruthy();
+  expect(result.current).toEqual({ commands: [], blocking: false });
+  plugins = [];
+  rerender();
+  expect(screen.queryByRole("button", { name: "Setting 1" })).toBeNull();
+});
+
+it.each(["outside", "duplicate", "unknown placement"])("rejects %s UI contributions", kind => {
+  const contribution = { ...settingsUI.contributions![0]!, ...(kind === "outside" ? { id: "other.toggle" } : {}), ...(kind === "unknown placement" ? { placement: "settings.unknown" as "settings.feature-toggles" } : {}) };
+  const ui = { ...settingsUI, contributions: kind === "duplicate" ? [contribution, contribution] : [contribution] };
+
+  expect(() => renderHook(() => usePluginCommands("menus"), {
+    wrapper: ({ children }) => <PluginProvider plugins={[{ id: "settings", ui }]} host={host}>{children}</PluginProvider>,
+  })).toThrow(kind === "outside" ? "must use the settings namespace" : kind === "duplicate" ? "Duplicate contribution" : "Unknown UI placement");
+});
 
 it("shares provider state between commands and overlays across host updates", () => {
   let currentHost = host;

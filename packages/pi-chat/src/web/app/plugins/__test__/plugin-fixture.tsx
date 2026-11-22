@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import type { CommandPlacement, PluginUI, PluginUIHost } from "@manuelselch/pi-sdk/plugins";
 
 export const host: PluginUIHost = {
-  connected: true, projectPath: "/project", request: vi.fn(), createSession: vi.fn(),
+  sessions: [], connected: true, projectPath: "/project", request: vi.fn(), createSession: vi.fn(),
   useOverlayFocus: () => ({ returnFocus: false, onExitTransitionEnd: vi.fn() }),
 };
 

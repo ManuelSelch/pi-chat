@@ -16,7 +16,7 @@ export default defineConfig({
         test: {
           name: "web",
           include: ["src/web/**/*.test.{ts,tsx}"],
-          server: { deps: { inline: [/@manuelselch\/pi-plugin-folder-opening/] } },
+          server: { deps: { inline: [/@manuelselch\/pi-plugin-(folder-opening|chimes)/] } },
         },
       },
       {
