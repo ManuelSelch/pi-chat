@@ -1,6 +1,6 @@
 # Monorepo packages
 
-- `packages/pi-chat`: browser shell, Node host, launcher extension, application tests/assets/configs/docs, examples, mockups and retained plans.
+- `packages/pi-chat`: browser shell, Chat backend, launcher extension, application tests/assets/configs/docs, examples, mockups and retained plans.
 - `packages/pi-server`: HTTP/WebSocket hosting, Pi runtimes, persistence and host plugin activation.
 - `packages/pi-sdk-typescript`: authoritative protocol/artifacts, client transport and synchronized projections.
 - Root: private workspace composition, one lockfile, CI, Pi pipeline, coverage aggregation, system architecture and development docs.

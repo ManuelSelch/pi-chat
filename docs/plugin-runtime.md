@@ -4,7 +4,7 @@
 
 ```mermaid
 sequenceDiagram
-    participant Chat as Chat Node host
+    participant Chat as Chat backend
     participant Server as createPiServer
     participant Runtime as Plugin runtime
     participant Plugin as Host plugin entry
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## Integration details
 
-- [Chat's Node host](../packages/pi-chat/src/host/index.ts) awaits `createPiServer` before installing routes or listening.
+- [Chat backend](../packages/pi-chat/src/host/index.ts) awaits `createPiServer` before installing routes or listening.
 - Pi Server accepts explicit `plugins`, activates host entries once per server instance and resolves after readiness. It activates no defaults; Chat registers the file-opening and folder-opening providers.
 - Startup precedes HTTP/WebSocket construction; failure rolls back rather than exposing a partially ready server. Server actions are available after readiness, not during setup.
 - Server close owns transport, plugin and session teardown; Chat owns its injected logger, signals and PID records.

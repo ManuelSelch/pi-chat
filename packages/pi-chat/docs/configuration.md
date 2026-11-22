@@ -36,7 +36,7 @@ frontend build, otherwise **dev** (no commit hash). Tag detection uses system Gi
 at `/usr/bin/git` on macOS/Linux, never `PATH`; unavailable Git also yields **dev**.
 Pi SDK is the installed SDK
 version captured when that frontend was built, not the server’s separate SDK copy.
-Pi Server is captured once when the connected Chat host starts, so changing
+Pi Server is captured once when the connected Chat backend starts, so changing
 `node_modules` does not change the displayed running version until restart.
 
 The browser requests `/api/pi-chat/version` from the configured backend over

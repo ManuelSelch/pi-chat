@@ -4,7 +4,7 @@
 
 - Requires Node >=22.19; CI uses Node 24.
 - Install once at the root with `npm ci --ignore-scripts`.
-- `npm run dev` builds dependencies and watches SDK/plugin/Server compilation, Chat's host and Vite.
+- `npm run dev` builds dependencies and watches SDK/plugin/Server compilation, the Chat backend and Vite.
 - `npm run build` builds SDK → folder plugin → Server → Chat and compiles the source-only test harness explicitly. `npm start` runs Chat from its package directory.
 - Chat's package-local build/test hooks use root composition for dependency builds. No sibling checkout, candidate archive or Swift toolchain is required.
 - The root manifest is private and contains orchestration only. Runtime dependencies, the Pi extension declaration, configs, assets, examples, mockups, retained plans and application tests belong to `packages/pi-chat`.
@@ -30,7 +30,7 @@
 
 ## Runtime and extension development
 
-- Chat's host owns `PI_CHAT_*` settings, assets, PID/log/signal lifecycle and the version route. Server owns execution, sessions, persistence and host plugins; SDK owns protocol and client projections.
+- The Chat backend owns `PI_CHAT_*` settings, assets, PID/log/signal lifecycle and the version route. Server owns execution, sessions, persistence and host plugins; SDK owns protocol and client projections.
 - Register the Pi extension from `packages/pi-chat` rather than the private workspace root. `PI_CHAT_HOME`, when set, points to that package directory.
 - Chat's managed restart still installs dependencies and builds before signaling replacement. Failed builds leave the current server running; install changes have no rollback guarantee.
 - Consumers use compiled public package exports, never private source aliases. Chat's Vitest externalization preserves this boundary for workspace symlinks.

@@ -31,7 +31,7 @@ node packages/pi-server/dist/cli.js --host 127.0.0.1 --port 8788 --project /path
 
 - Headless by default: `/health` and `/ws`, no session creation or browser launch. Static assets are explicitly supplied.
 - Standalone restart re-executes compiled JS without a build. `--no-restart` supports external supervisors; SIGINT/SIGTERM dispose listeners/runtimes and flush logs.
-- The Chat host owns `PI_CHAT_*` configuration and build-before-restart behavior. See [configuration](docs/CONFIGURATION.md).
+- The Chat backend owns `PI_CHAT_*` configuration and build-before-restart behavior. See [configuration](docs/CONFIGURATION.md).
 - Await root `createPiServer(options)` before listening; the handle exposes `httpServer` and idempotent async `close()`. Callers own injected logger flush/close.
 - `/plugins` exports the host runtime and opt-in feature factories; `/extensions` exports in-process registration contracts.
 - `/testing` exports compiled fakes; `/testing/loopback` exports the isolated fixture. Concrete application/transport internals are not public APIs.

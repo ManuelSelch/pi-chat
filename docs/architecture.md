@@ -1,6 +1,6 @@
 # Architecture
 
-Pi Chat is a browser application and a thin Node host for the Pi server.
+Pi Chat consists of a browser application and the Chat backend, a thin Node.js wrapper around Pi Server.
 Chat, Server, feature plugins and the TypeScript SDK share this [npm workspace](monorepo.md), while retaining separate package APIs. The server runs Pi sessions; the TypeScript SDK owns the v2
 wire contract, transport and synchronized session projections. The browser owns
 navigation, drafts, focus and presentation. There is no v1 compatibility path.
@@ -8,7 +8,7 @@ navigation, drafts, focus and presentation. There is no v1 compatibility path.
 ```mermaid
 flowchart LR
     Browser[React browser app] <-->|PiClient / WebSocket| Server[pi-server]
-    Host[Chat Node host] --> Server
+    Backend[Chat backend] --> Server
     Server --> Pi[Pi runtime and extensions]
     Server --> History[Session files and catalogue metadata]
 ```
@@ -17,7 +17,7 @@ flowchart LR
 
 | Owner | Responsibility |
 |---|---|
-| [Pi Chat](../packages/pi-chat/src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
+| [Chat backend](../packages/pi-chat/src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
 | [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
 | [pi-sdk-typescript](../packages/pi-sdk-typescript/README.md) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
@@ -78,7 +78,7 @@ shares local action definitions and session-scoped errors between composer and
 Quick Switcher. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
 Extension commands keep their native Pi path. Restart is available through
-the `/pi-chat restart` host command.
+the `/pi-chat restart` backend command.
 
 Argument-completion state is composer-local. Requests capture session, draft and
 caret context; changing that context aborts/invalidates the local wait. Late
@@ -219,16 +219,16 @@ stacked.
   rehype plugins, including in tool-card previews; JSX lint cannot inspect
   attributes generated from Markdown at runtime.
 
-## Host lifecycle and security
+## Chat backend lifecycle and security
 
-[The host](../packages/pi-chat/src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
+[The Chat backend](../packages/pi-chat/src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
 log ownership and idempotent shutdown. Managed PID records are published
 atomically. The `/pi-chat restart` extension resolves npm beside its running Node,
-runs `npm ci` and `npm run build`, and reports failures before signaling the host.
+runs `npm ci` and `npm run build`, and reports failures before signaling the Chat backend.
 SIGUSR2 invokes guarded process replacement without acquiring a WebSocket
 controller. The extension observes a healthy successor with a deadline; a
 disconnect or timeout alone is not proof of restart success. The successor uses
-the host's original Node executable; if it is unavailable, stop and start again.
+the Chat backend's original Node executable; if it is unavailable, stop and start again.
 
 The server owns Pi runtime construction, including upstream codemode, tool-search
 and MCP extension registration. Credentials, subprocesses, discovery/trust and
@@ -240,5 +240,5 @@ The server can execute tools and access files with its user's permissions. It
 has no application authentication; bind to loopback/private interfaces and use a
 trusted authenticated TLS proxy/VPN for remote access. Endpoint preferences do
 not bypass origin protections. Logs are bounded/redacted and belong
-to the host/server; connection diagnostics must not log chat frames or secrets.
+to the Chat backend/Pi Server; connection diagnostics must not log chat frames or secrets.
 See [configuration](../packages/pi-chat/docs/configuration.md) and [development](development.md).
