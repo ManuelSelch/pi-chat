@@ -9,4 +9,4 @@
 - Readable regular files outside the project are allowed. This is not a project sandbox, security scan, download or client-device open. Success means OS acceptance, not a displayed window.
 - Separate contract/web/host exports keep Node filesystem and process code out of browser imports; no new UI loader or contribution API is introduced.
 - Colocated tests cover contracts, browser waits, path validation and OS invocation. [Server scenarios](../../packages/pi-server/test/integration/file-opening-plugin.test.ts) cover RPC/session integration; [Chat scenarios](../../packages/pi-chat/src/web/features/chat/transcript/__test__/file-links.dom.test.tsx) cover link presentation.
-- Root build/dev, lint, package tests/typechecks/coverage and artifact checks include this workspace. See [plugin boundaries](../../docs/plugins.md).
+- Root build/dev, lint, package tests/typechecks/coverage and artifact checks include this workspace. See [plugin boundaries](../../docs/plugins.md). Shared configuration and adding plugins are documented in [development tooling](../../docs/plugin-development.md).

@@ -1,13 +1,6 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig, mergeConfig } from "vitest/config";
+import defaults from "../../config/plugins/vitest.js";
 
-export default defineConfig({
-  test: {
-    setupFiles: ["src/web/components/__tests__/setup.ts"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "lcov"],
-      include: ["src/**/*.{ts,tsx}"],
-      exclude: ["**/__tests__/**"],
-    },
-  },
-});
+export default mergeConfig(defaults, defineConfig({
+  test: { setupFiles: ["src/web/components/__tests__/setup.ts"] },
+}));

@@ -13,6 +13,7 @@
 - Public exports stay compiled `dist/` entries. Chat's Vitest externalizes SDK/Server compiled entries to keep Chat mocks out of their internals.
 - Root `npm run build`, `npm run dev`, `npm start`, `npm test` and browser/lifecycle commands delegate to the owning packages. Forward test filters with `npm test -- <filter>`.
 - `test:packages`, `typecheck:packages`, `test:packages:coverage`, `verify:packages` and `verify:protocol` cover SDK/plugin/Server verification. The root Pi pipeline runs all suites.
+- Plugins share [development tooling](plugin-development.md); `plugins/*` discovery keeps root commands and coverage aggregation independent of individual plugin names.
 - Package-local generated artifacts stay local. Root coverage aggregation only rewrites LCOV paths for combined analysis.
 - Register the Chat extension from `packages/pi-chat`. Swift remains external and owns its compatibility tests.
 - SDK/Server remain separately packable; isolated consumer verification installs local SDK, plugin and Server artifacts. External installation needs published matching versions or explicit tarballs. Nothing here publishes candidates or verifies Git-package distribution.

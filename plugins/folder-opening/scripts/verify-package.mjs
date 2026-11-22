@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { verifyPluginPackage } from '../../../scripts/verify-plugin-package.mjs';
 
-const npm = process.env.npm_execpath;
-assert.ok(npm, 'Run through npm run verify:package');
-const [artifact] = JSON.parse(execFileSync(process.execPath, [npm, 'pack', '--dry-run', '--ignore-scripts', '--json'], { encoding: 'utf8' }));
-for (const path of ['dist/contract.js', 'dist/contract.d.ts', 'dist/web/index.js', 'dist/web/index.d.ts', 'dist/host/index.js', 'dist/host/index.d.ts'])
+const artifact = await verifyPluginPackage();
+for (const path of ["dist/contract.js","dist/contract.d.ts"])
   assert.ok(artifact.files.some(file => file.path === path), path);
 for (const file of artifact.files)
-  assert.doesNotMatch(file.path, /(^src\/|__tests__|\.test\.|^dist\/(index|browser)\.)/);
+  assert.doesNotMatch(file.path, /^dist\/(index|browser)\./);
 const { folderOpeningContract, folderOpeningPlugin } = await import('@manuelselch/pi-plugin-folder-opening');
 assert.equal(folderOpeningPlugin.id, folderOpeningContract.id);
 const hostEntry = await import('@manuelselch/pi-plugin-folder-opening/host');

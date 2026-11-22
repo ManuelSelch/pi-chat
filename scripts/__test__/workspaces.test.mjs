@@ -10,7 +10,7 @@ test('links SDK and Server workspaces through public compiled package entries', 
   const manifest = await json('package.json');
   const lock = await json('package-lock.json');
   assert.equal(manifest.private, true);
-  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/file-opening', 'plugins/folder-opening', 'packages/pi-server', 'packages/pi-chat']);
+  assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/*', 'packages/pi-server', 'packages/pi-chat']);
   assert.equal(manifest.pi, undefined);
   // Ignored build caches may survive migration; application sources must be package-owned.
   const oldRoots = ['src', 'extension', 'testing', 'public', 'themes', 'mockups', 'plans', 'index.html'];

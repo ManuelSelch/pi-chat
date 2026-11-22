@@ -2,6 +2,7 @@
 
 - SDK owns declarations and typed client transport; Server owns host activation and RPC dispatch.
 - Feature packages own contracts, UI and host handlers. Chat supplies shell capabilities, not feature state.
+- [Plugin development tooling](plugin-development.md) shares build/test defaults while preserving package-local dependencies, exports and behavioral tests.
 - [Host integration](plugin-runtime.md), [SDK contracts](../packages/pi-sdk-typescript/docs/PLUGINS.md) and [Server lifecycle](../packages/pi-server/docs/PLUGINS.md) cover the non-UI boundaries.
 
 ## Browser contributions

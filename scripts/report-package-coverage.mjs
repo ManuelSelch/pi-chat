@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { relative, resolve, isAbsolute } from 'node:path';
+import { pluginWorkspaces } from './plugin-workspaces.mjs';
 
 export function workspaceLcov(report, workspace, root) {
   const directory = resolve(root, workspace);
@@ -15,7 +16,8 @@ export function workspaceLcov(report, workspace, root) {
 export async function collectPackageCoverage() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const reports = [];
-  for (const workspace of ['packages/pi-sdk-typescript', 'plugins/file-opening', 'plugins/folder-opening', 'packages/pi-server']) {
+  const plugins = await pluginWorkspaces();
+  for (const workspace of ['packages/pi-sdk-typescript', ...plugins.map(plugin => plugin.directory), 'packages/pi-server']) {
     const report = await readFile(resolve(root, workspace, 'coverage/lcov.info'), 'utf8');
     reports.push(workspaceLcov(report, workspace, root));
   }

@@ -9,5 +9,5 @@
 - Chat registers the same package import and plugin identity in its host and browser and explicitly allowlists the contract. Server also reuses the exported `DirectoryBrowserService` and `DirectoryOperationError` for its existing directory protocol and session-path validation; this does not activate the plugin.
 - Browser peers are optional for host-only installations. Browser consumers supply React, Mantine and Tabler icons and enable TypeScript `customConditions: ["browser"]`.
 - Tests are colocated in small `__tests__` folders beside the contract, host and picker. Run `npm test -w @manuelselch/pi-plugin-folder-opening`.
-- Root build/dev, lint, package typechecks/tests/coverage and artifact verification include this workspace. See [plugin composition](../../docs/plugins.md).
+- Root build/dev, lint, package typechecks/tests/coverage and artifact verification include this workspace. See [plugin composition](../../docs/plugins.md). Shared configuration and adding plugins are documented in [development tooling](../../docs/plugin-development.md).
 - Web entries load from the explicit list before rendering; no automatic installation or fallback to `directory.browse` is added.
