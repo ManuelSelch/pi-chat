@@ -61,6 +61,17 @@ try {
   // Test helpers and server share the same explicitly packed workspace SDK.
   const sdkEntry = JSON.stringify(pathToFileURL(join(sdkRoot, 'dist/index.js')).href);
   for (const name of ['react', '@mantine/core', 'vite', 'tsx']) assert.throws(() => require.resolve(name), name + ' unexpectedly installed');
+  // The canonical declaration activates its lazy host entry without browser peers installed.
+  run(['--input-type=module', '--eval', `
+    import { createPiServer } from '@manuelselch/pi-server';
+    import { FakeRuntimeAdapter } from '@manuelselch/pi-server/testing';
+    import { folderOpeningPlugin, folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
+    const server = await createPiServer({
+      runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null },
+      plugins: [folderOpeningPlugin], pluginRpcContracts: [folderOpeningContract],
+    });
+    await server.close();
+  `], directory);
   // These are the same behavioral scenarios, now using only documented installed exports/bin.
   for (const file of await readdir(join(root, 'test'))) {
     if (!file.endsWith('.mjs')) continue;
@@ -78,12 +89,12 @@ try {
   await writeFile(join(directory, 'consumer.ts'), `import { createPiServer, createPiRuntimeAdapter, createRestartService, type PiServerOptions, type RuntimeAdapter, type FileLogger } from '@manuelselch/pi-server';
 import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from '@manuelselch/pi-server/extensions';
 import { createFileOpeningPlugin } from '@manuelselch/pi-server/plugins';
-import { createFolderOpeningPlugin } from '@manuelselch/pi-plugin-folder-opening/host';
+import { folderOpeningPlugin } from '@manuelselch/pi-plugin-folder-opening';
 import { folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
 import { fileOpeningContract } from '@manuelselch/pi-sdk/plugins/file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
-const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin()], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
+const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
 const server = await createPiServer(options); void server.httpServer; void server.close;
 void createPiRuntimeAdapter; void createRestartService; void snapshotData; void runLoopbackFixture;
 `);

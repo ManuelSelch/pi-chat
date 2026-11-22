@@ -13,7 +13,7 @@ export interface PluginCommand {
 }
 
 /** Browser shell capabilities, not access to its controller or feature stores. */
-export interface WebPluginHost {
+export interface PluginUIHost {
   readonly connected: boolean;
   readonly projectPath?: string;
   request<T>(invoke: (client: PiClient) => Promise<T>): Promise<T>;
@@ -30,15 +30,14 @@ export interface PluginCommandDefinition extends Omit<PluginCommand, "run" | "di
   useAction(): Pick<PluginCommand, "run" | "disabled">;
 }
 
-export interface WebPluginProviderProps<View> {
-  readonly host: WebPluginHost;
+export interface PluginUIProviderProps<View> {
+  readonly host: PluginUIHost;
   readonly children: View;
 }
 
 /** Plain UI composition. View stays generic to keep the SDK React-free. */
-export interface WebPlugin<View = unknown> {
-  readonly id: string;
-  Provider(props: WebPluginProviderProps<View>): View;
+export interface PluginUI<View = unknown> {
+  Provider(props: PluginUIProviderProps<View>): View;
   readonly commands: readonly PluginCommandDefinition[];
   Overlay(): View;
   useOverlayOpen(): boolean;

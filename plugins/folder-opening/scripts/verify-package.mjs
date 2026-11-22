@@ -8,7 +8,7 @@ for (const path of ['dist/index.js', 'dist/index.d.ts', 'dist/web/index.js', 'di
   assert.ok(artifact.files.some(file => file.path === path), path);
 for (const file of artifact.files)
   assert.doesNotMatch(file.path, /(^src\/|__tests__|\.test\.)/);
-const { createFolderOpeningPlugin } = await import('../dist/host/index.js');
-const { folderOpeningContract } = await import('../dist/index.js');
-assert.equal(createFolderOpeningPlugin().id, folderOpeningContract.id);
+const { folderOpeningContract, folderOpeningPlugin } = await import('../dist/index.js');
+assert.equal(folderOpeningPlugin.id, folderOpeningContract.id);
+assert.equal(typeof (await folderOpeningPlugin.host()).setup, 'function');
 console.log('Verified compiled plugin entries and test-free package contents; isolated host consumer is covered by Server artifact verification.');

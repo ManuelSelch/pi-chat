@@ -18,7 +18,7 @@ try {
   const modules = await readdir(join(temporary, "node_modules")); assert(!modules.some(name => ["react", "@mantine", "@earendil-works", "ws"].includes(name)));
   await writeFile(join(temporary, "consumer.ts"), `
 import { PiClient, PROTOCOL_VERSION, type Request, type TransportFactory, type Result } from "@manuelselch/pi-sdk";
-import { definePlugin, defineRemoteContract, type RemoteContractClient, type Plugin } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, defineRemoteContract, type RemoteContractClient, type Plugin, type PluginUI } from "@manuelselch/pi-sdk/plugins";
 const web: Plugin<string> = definePlugin({
   id: "folders",
   web: async () => ({
@@ -28,7 +28,9 @@ const web: Plugin<string> = definePlugin({
     useOverlayOpen: () => false,
   }),
 });
-const ui = await web.web!();
+const ui: PluginUI<string> = await web.web!();
+// @ts-expect-error UI contributions have no independent identity.
+ui.id;
 const view: string = ui.Overlay();
 // @ts-expect-error Web entries declare UI contributions, not imperative setup.
 const imperative: Plugin = { id: "folders", web: async () => ({ setup() {} }) };

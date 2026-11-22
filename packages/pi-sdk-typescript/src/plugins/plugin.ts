@@ -1,5 +1,5 @@
 import type { CancellationSignal } from "../platform.js";
-import type { WebPlugin } from "./web-plugin.js";
+import type { PluginUI } from "./plugin-ui.js";
 import { assertIdentifier, type RemoteContract, type RemoteContractImplementation } from "./remote-contract.js";
 
 export type PluginCleanup = () => void | Promise<void>;
@@ -22,7 +22,7 @@ export interface Plugin<View = unknown> {
   readonly requires?: readonly RemoteContract[];
   readonly host?: PluginEntryLoader<HostPluginEntry>;
   /** UI contributions share the plugin identity; the application owns composition. */
-  readonly web?: PluginEntryLoader<Omit<WebPlugin<View>, "id">>;
+  readonly web?: PluginEntryLoader<PluginUI<View>>;
 }
 
 /** Describe a built-in without loading or activating either environment. */

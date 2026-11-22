@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import type { WebPluginHost, WebPluginProviderProps } from "@manuelselch/pi-sdk/plugins";
+import type { PluginUIHost, PluginUIProviderProps } from "@manuelselch/pi-sdk/plugins";
 
 const FolderOpeningContext = createContext<{
-  host: WebPluginHost;
+  host: PluginUIHost;
   opened: boolean;
   open(): void;
   close(): void;
 } | undefined>(undefined);
 
-export function FolderOpeningProvider({ host, children }: WebPluginProviderProps<ReactNode>) {
+export function FolderOpeningProvider({ host, children }: PluginUIProviderProps<ReactNode>) {
   const [opened, setOpened] = useState(false);
   return <FolderOpeningContext.Provider value={{ host, opened, open: () => setOpened(true), close: () => setOpened(false) }}>
     {children}

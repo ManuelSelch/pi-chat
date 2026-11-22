@@ -5,7 +5,7 @@ import type { DirectoryBrowse } from "@manuelselch/pi-sdk/protocol";
 type ClientRequest = <T>(invoke: (client: PiClient) => Promise<T>) => Promise<T>;
 
 /** Resolve the current SDK client on every request, never capture a connection. */
-export function createFolderOpeningPlugin(request: ClientRequest) {
+export function createFolderClient(request: ClientRequest) {
   return {
     browseDirectories: (query: DirectoryBrowse, signal?: AbortSignal) => request(async client => {
       const result = await client.plugin(folderOpeningContract).browse(query, { signal });

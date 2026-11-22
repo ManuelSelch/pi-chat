@@ -22,7 +22,7 @@ import { BrowserWidgetsDriver } from "./browser-widgets-driver.js";
 import { BrowserExtensionsDriver } from "./browser-extensions-driver.js";
 import { WidgetExtensionFixture } from "../pi-chat/fixtures/widget-extension-fixture.js";
 import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
-import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
+import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
 
@@ -87,7 +87,7 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin()],
+        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
         pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
         catalogue: {
           lister: { listAll: () => world.listSessions() },

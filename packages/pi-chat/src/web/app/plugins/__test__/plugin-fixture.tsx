@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { vi } from "vitest";
-import type { CommandPlacement, WebPlugin, WebPluginHost } from "@manuelselch/pi-sdk/plugins";
+import type { CommandPlacement, PluginUI, PluginUIHost } from "@manuelselch/pi-sdk/plugins";
 
-export const host: WebPluginHost = {
+export const host: PluginUIHost = {
   connected: true, projectPath: "/project", request: vi.fn(), createSession: vi.fn(),
   useOverlayFocus: () => ({ returnFocus: false, onExitTransitionEnd: vi.fn() }),
 };
@@ -16,8 +16,7 @@ export function examplePlugin(id = "example", placements: readonly CommandPlacem
     if (!value) throw new Error("Missing example provider");
     return value;
   }
-  const plugin: WebPlugin<ReactNode> = {
-    id,
+  const ui: PluginUI<ReactNode> = {
     Provider({ host, children }) {
       const [opened, setOpened] = useState(false);
       useEffect(() => dispose, []);
@@ -32,5 +31,5 @@ export function examplePlugin(id = "example", placements: readonly CommandPlacem
     Overlay() { return useStateContext().opened ? <div>{id} overlay</div> : null; },
     useOverlayOpen() { return useStateContext().opened; },
   };
-  return { plugin, run, dispose };
+  return { plugin: { id, ui }, run, dispose };
 }

@@ -7,7 +7,7 @@ import { installVersionRoute } from "./version-route.js";
 import { packageVersion } from "../shared/node/package-version.js";
 import { createFileOpeningPlugin } from "@manuelselch/pi-server/plugins";
 import { fileOpeningContract } from "@manuelselch/pi-sdk/plugins/file-opening";
-import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
+import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 
 const host = process.env.PI_CHAT_HOST ?? "127.0.0.1";
@@ -19,7 +19,7 @@ const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
 const server = await createPiServer({
   staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger,
-  plugins: services => [createFileOpeningPlugin({ open: services.openFile }), createFolderOpeningPlugin()],
+  plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
   pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
 });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));

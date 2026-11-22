@@ -8,7 +8,7 @@ import { expect } from "vitest";
 import { PiClient, createWebSocketTransport } from "@manuelselch/pi-sdk";
 import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import { createPiServer, type PiServer } from "../../src/index.js";
-import { createFolderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening/host";
+import { folderOpeningPlugin } from "@manuelselch/pi-plugin-folder-opening";
 
 export class FolderOpeningPluginDriver {
   private server?: PiServer;
@@ -20,7 +20,7 @@ export class FolderOpeningPluginDriver {
     await Promise.all(["visible", ".hidden"].map(name => mkdir(join(this.folder!, name))));
     this.folder = await realpath(this.folder);
     this.server = await createPiServer({
-      plugins: [createFolderOpeningPlugin()],
+      plugins: [folderOpeningPlugin],
       pluginRpcContracts: expose ? [folderOpeningContract] : [],
       catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },
     });

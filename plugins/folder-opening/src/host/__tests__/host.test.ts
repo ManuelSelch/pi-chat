@@ -1,15 +1,14 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import type { RemoteContractImplementation } from "@manuelselch/pi-sdk/plugins";
 import { folderOpeningContract } from "../../index.js";
-import { createFolderOpeningPlugin, DirectoryOperationError, type DirectoryBrowserService } from "../index.js";
+import { createFolderOpeningHost, DirectoryOperationError, type DirectoryBrowserService } from "../index.js";
 
 let browse: ReturnType<typeof vi.fn<DirectoryBrowserService["browse"]>>;
 let provider: RemoteContractImplementation<typeof folderOpeningContract>;
 
 beforeEach(async () => {
   browse = vi.fn();
-  const plugin = createFolderOpeningPlugin({ browse });
-  const entry = await plugin.host();
+  const entry = createFolderOpeningHost({ browse });
   await entry.setup({
     signal: new AbortController().signal,
     onCleanup: vi.fn(),

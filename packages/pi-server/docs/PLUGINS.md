@@ -30,7 +30,8 @@
 
 ## Folder browsing
 
-- Import `createFolderOpeningPlugin` from `@manuelselch/pi-plugin-folder-opening/host` and `folderOpeningContract` from `@manuelselch/pi-plugin-folder-opening`. Opt in with `plugins: [createFolderOpeningPlugin()]` and allowlist that contract.
+- Import `folderOpeningPlugin` and `folderOpeningContract` from `@manuelselch/pi-plugin-folder-opening`. Opt in with `plugins: [folderOpeningPlugin]` and allowlist that contract. Server loads only the host entry; browser peers are not required.
+- `/host` exports `createFolderOpeningHost(directories)` for injected browsing services. It returns a host entry; override the canonical declaration's host loader for custom dependencies rather than defining a second identity.
 - The plugin owns filesystem browsing without creating a session. Server also reuses its public directory service for existing `directory.browse` and session-path validation. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
 - [Folder scenarios](../test/integration/folder-opening-plugin.test.ts) cover real SDK/WebSocket calls, navigation, safe failures and explicit exposure. Session creation remains separate.
 

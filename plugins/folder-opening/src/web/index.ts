@@ -1,10 +1,9 @@
-import type { WebPlugin } from "@manuelselch/pi-sdk/plugins";
+import type { PluginUI } from "@manuelselch/pi-sdk/plugins";
 import type { ReactNode } from "react";
 import { FolderOpeningProvider, useOpenFolderAction, useFolderPickerOpen } from "./stores/FolderOpeningProvider.js";
 import { FolderPickerContainer } from "./components/FolderPickerContainer.js";
 
-export const folderOpeningWebPlugin: WebPlugin<ReactNode> = {
-  id: "folder-opening",
+export const folderOpeningUI: PluginUI<ReactNode> = {
   Provider: FolderOpeningProvider,
   commands: [{
     id: "folder-opening.open",
@@ -18,4 +17,4 @@ export const folderOpeningWebPlugin: WebPlugin<ReactNode> = {
 };
 
 export { FolderPicker } from "./components/FolderPicker.js";
-export { createFolderOpeningPlugin } from "./lib/folder-client.js";
+export { createFolderClient } from "./lib/folder-client.js";

@@ -1,8 +1,8 @@
 import { expect, expectTypeOf, test, vi } from "vitest";
 import { filePathSchema, fileOpenResultSchema } from "../../src/protocol/index.js";
-import { definePlugin, defineRemoteContract, type Plugin, type RemoteContractClient, type WebPlugin } from "../../src/plugins/index.js";
+import { definePlugin, defineRemoteContract, type Plugin, type RemoteContractClient, type PluginUI } from "../../src/plugins/index.js";
 
-const ui: Omit<WebPlugin<string>, "id"> = {
+const ui: PluginUI<string> = {
   Provider: ({ children }) => children,
   commands: [],
   Overlay: () => "folder-picker",
@@ -84,6 +84,12 @@ test("loads typed UI contributions without activating them during definition", a
   expectTypeOf(entry.Overlay).returns.toEqualTypeOf<string>();
   expect(entry.Overlay()).toBe("folder-picker");
   expect(entry.commands).toEqual([]);
+});
+
+test("UI contributions have no independent plugin identity", () => {
+  expectTypeOf<PluginUI<string>>().not.toHaveProperty("id");
+
+  expect(ui).not.toHaveProperty("id");
 });
 
 test("web entries require UI contributions rather than imperative setup", () => {
