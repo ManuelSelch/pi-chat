@@ -10,12 +10,12 @@
   "exports": {
     ".": {
       "browser": {
-        "types": "./dist/browser.d.ts",
-        "default": "./dist/browser.js"
+        "types": "./dist/web/index.d.ts",
+        "default": "./dist/web/index.js"
       },
       "node": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/host/index.d.ts",
+        "default": "./dist/host/index.js"
       }
     },
     "./web": {
@@ -28,7 +28,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.test.json",
     "verify:package": "node scripts/verify-package.mjs",
     "test": "vitest run",

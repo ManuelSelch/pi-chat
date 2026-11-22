@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { folderBrowseResultSchema, folderOpeningContract } from "../index.js";
+import { folderBrowseResultSchema, folderOpeningContract } from "../contract.js";
 
 test("validates server folder browsing and safe domain failures", () => {
   const { input, output } = folderOpeningContract.methods.browse;

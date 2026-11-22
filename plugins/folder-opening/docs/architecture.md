@@ -1,6 +1,6 @@
 # Folder-opening architecture
 
-- Package entries: root = runtime-selected plugin declaration + shared contract/types, `/web` = browser contributions/client/picker, `/host` = provider/filesystem service.
+- Package entries: root = runtime-selected plugin declaration + shared contract/types, `/web` = web plugin definition + browser contributions/client/picker, `/host` = host plugin definition + provider/filesystem service.
 - [General boundaries](../../../docs/plugins.md) and [host lifecycle](../../../docs/plugin-runtime.md) describe shared infrastructure.
 
 ## Browser ownership
@@ -15,9 +15,10 @@
 
 ## Loading and injection
 
-- Root conditional exports select `browser` → `browser.ts` or `node` → `index.ts`, each statically importing only its own implementation. Both share `contract.ts`, the plugin ID and contract exports; their loaders return entries synchronously. Importing a definition does not activate its host or mount its UI.
+- Root conditional exports select `browser` → `web/index.ts` or `node` → `host/index.ts`, each statically importing only its own implementation. Both share `contract.ts`, the plugin ID and contract exports; their loaders return entries synchronously. Importing a definition does not activate its host or mount its UI.
 - Vite selects `browser`; browser TypeScript consumers use `customConditions: ["browser"]`. Node uses the host definition without loading browser peers. Implementations import the shared contract directly, never the runtime-selected root.
-- `/host` exports `createFolderOpeningHost(directories)` returning a host entry, not a second plugin. Tests inject a browsing service directly; an embedding can override the canonical declaration's host loader with that entry when needed.
+- Public `host/index.ts` and `web/index.ts` keep each plugin definition beside its host factory or UI contribution object and re-export shared contracts/types. The host factory remains injectable; filesystem services and UI components/state stay in their existing modules.
+- `/host` also exports `createFolderOpeningHost(directories)` returning an injectable host entry, not a second plugin. Tests inject a browsing service directly; an embedding can override the canonical declaration's host loader with that entry when needed.
 - `createFolderClient(request)` is a browser RPC helper, not a plugin definition. Node imports and Server activation do not load React; packed headless verification runs without browser peers installed.
 
 ## Browsing over RPC

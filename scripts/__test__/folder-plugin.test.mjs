@@ -10,8 +10,8 @@ test('folder opening is an independent vertical plugin with runtime-specific pub
   assert.equal(plugin.name, '@manuelselch/pi-plugin-folder-opening');
   assert.deepEqual(Object.keys(plugin.exports), ['.', './web', './host']);
   assert.deepEqual(plugin.exports['.'], {
-    browser: { types: './dist/browser.d.ts', default: './dist/browser.js' },
-    node: { types: './dist/index.d.ts', default: './dist/index.js' },
+    browser: { types: './dist/web/index.d.ts', default: './dist/web/index.js' },
+    node: { types: './dist/host/index.d.ts', default: './dist/host/index.js' },
   });
   assert.equal(plugin.dependencies['@manuelselch/pi-server'], undefined);
   assert.equal(plugin.dependencies['pi-chat'], undefined);

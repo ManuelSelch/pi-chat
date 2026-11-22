@@ -1,6 +1,6 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import type { RemoteContractImplementation } from "@manuelselch/pi-sdk/plugins";
-import { folderOpeningContract } from "../../index.js";
+import { folderOpeningContract } from "../../contract.js";
 import { createFolderOpeningHost, DirectoryOperationError, type DirectoryBrowserService } from "../index.js";
 
 let browse: ReturnType<typeof vi.fn<DirectoryBrowserService["browse"]>>;

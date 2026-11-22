@@ -1,8 +1,6 @@
-import type { HostPluginEntry } from "@manuelselch/pi-sdk/plugins";
+import { definePlugin, type HostPluginEntry } from "@manuelselch/pi-sdk/plugins";
 import { folderOpeningContract, type FolderBrowseResult } from "../contract.js";
 import { DirectoryBrowserService, DirectoryOperationError } from "./directory-browser-service.js";
-
-export { DirectoryBrowserService, DirectoryOperationError } from "./directory-browser-service.js";
 
 /** Owns browsing independently of Pi sessions and server application state. */
 export function createFolderOpeningHost(directories: Pick<DirectoryBrowserService, "browse"> = new DirectoryBrowserService()): HostPluginEntry {
@@ -21,3 +19,13 @@ export function createFolderOpeningHost(directories: Pick<DirectoryBrowserServic
     } });
   } };
 }
+
+export * from "../contract.js";
+export { DirectoryBrowserService, DirectoryOperationError } from "./directory-browser-service.js";
+
+/** Host definition; importing it does not activate the provider. */
+export const folderOpeningPlugin = definePlugin({
+  id: "folder-opening",
+  provides: [folderOpeningContract],
+  host: () => createFolderOpeningHost(),
+});
