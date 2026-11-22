@@ -10,14 +10,15 @@ const host = await import('@manuelselch/pi-plugin-file-opening/host');
 assert.equal(contract.fileOpeningContract, host.fileOpeningContract);
 assert.equal(host.createFileOpeningPlugin({ getSession: async () => ({ projectPath: "/project" }) }).id, contract.fileOpeningContract.id);
 const web = await import('@manuelselch/pi-plugin-file-opening/web');
-assert.equal(typeof web.createFileOpeningPlugin, 'function');
+assert.equal(typeof web.createFileOpeningActions, 'function');
+assert.equal('createFileOpeningPlugin' in web, false);
 assert.equal('FileService' in web, false);
 assert.equal('createFileOpeningPlugin' in contract, false);
 execFileSync(process.execPath, ['--conditions=browser', '--input-type=module', '-e', `
   import assert from 'node:assert/strict';
   import { fileOpeningContract } from '@manuelselch/pi-plugin-file-opening';
-  import { createFileOpeningPlugin } from '@manuelselch/pi-plugin-file-opening/web';
+  import { createFileOpeningActions } from '@manuelselch/pi-plugin-file-opening/web';
   assert.equal(fileOpeningContract.id, 'file-opening');
-  assert.equal(typeof createFileOpeningPlugin, 'function');
+  assert.equal(typeof createFileOpeningActions, 'function');
 `], { stdio: 'pipe' });
 console.log('Verified compiled contract/web/host entries and test-free contents; isolated host consumer is covered by Server artifact verification.');

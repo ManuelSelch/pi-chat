@@ -2,7 +2,7 @@
 
 - Independent workspace: `@manuelselch/pi-plugin-file-opening`; no Chat or Server imports.
 - Root export owns `fileOpeningContract` and inferred types, reusing SDK protocol validators. Calls require an explicit runtime ID and server-local path.
-- `/web` exports `createFileOpeningPlugin(request)`: typed RPC, duplicate-click coalescing and local-wait cancellation on confirmed runtime removal. SDK owns deadlines and disconnect/disposal rejection; calls never replay OS effects.
+- `/web` exports `createFileOpeningActions(request)`, not a plugin declaration: typed RPC, duplicate-click coalescing and local-wait cancellation on confirmed runtime removal. SDK owns deadlines and disconnect/disposal rejection; calls never replay OS effects.
 - `/host` exports `createFileOpeningPlugin({ getSession }, files?)`, `FileService`, `FileOpenError` and `SystemFileOpener`. The embedding server supplies runtime lookup; the plugin owns filesystem validation and bounded macOS default-application opening.
 - Chat [registers the host provider and allowlists its contract](../../packages/pi-chat/src/host/index.ts), then [composes the browser action](../../packages/pi-chat/src/web/app/AppControllerContext.tsx) into Markdown links. File-link feedback remains outside chat history.
 - The host plugin constructs `FileService`; an optional injected service supports tests/custom openers. Server only resolves public session IDs to `{ projectPath }` after readiness. Lookup failures become safe `sessionUnavailable` results inside the plugin.

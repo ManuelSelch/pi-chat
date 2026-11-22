@@ -1,7 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { SDKError, type PiClient } from "@manuelselch/pi-sdk";
 import { fileOpeningContract } from "../../contract.js";
-import { createFileOpeningPlugin } from "../index.js";
+import { createFileOpeningActions } from "../index.js";
 
 let resolveOpen: (result: { ok: true }) => void;
 let open: ReturnType<typeof vi.fn>;
@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 test("coalesces identical clicks, uses explicit runtime identity and releases completed waits", async () => {
-  const actions = createFileOpeningPlugin(invoke => invoke(client));
+  const actions = createFileOpeningActions(invoke => invoke(client));
 
   const first = actions.openFile("runtime", "report.pdf");
   const repeated = actions.openFile("runtime", "report.pdf");
@@ -40,7 +40,7 @@ test("coalesces identical clicks, uses explicit runtime identity and releases co
 
 test("maps structured host failures to rejected UI waits without retry", async () => {
   open.mockResolvedValue({ ok: false, error: { code: "notFound", message: "File not found on the server." } });
-  const actions = createFileOpeningPlugin(invoke => invoke(client));
+  const actions = createFileOpeningActions(invoke => invoke(client));
 
   await expect(actions.openFile("runtime", "missing.pdf")).rejects.toMatchObject({ code: "notFound", outcome: "rejected" });
   expect(open).toHaveBeenCalledOnce();
@@ -48,7 +48,7 @@ test("maps structured host failures to rejected UI waits without retry", async (
 });
 
 test("ends the local wait on confirmed runtime removal without replaying the OS effect", async () => {
-  const actions = createFileOpeningPlugin(invoke => invoke(client));
+  const actions = createFileOpeningActions(invoke => invoke(client));
   const pending = actions.openFile("runtime", "report.pdf");
 
   notify({ connection: { phase: "ready" }, sessions: {} });
@@ -63,7 +63,7 @@ test("ends the local wait on confirmed runtime removal without replaying the OS 
 test("ignores non-authoritative disconnected inventory and lets SDK rejection settle the wait", async () => {
   const failure = new SDKError("disconnected", "Disconnected", "unknown");
   open.mockRejectedValue(failure);
-  const actions = createFileOpeningPlugin(invoke => invoke(client));
+  const actions = createFileOpeningActions(invoke => invoke(client));
   const pending = actions.openFile("runtime", "report.pdf");
 
   notify({ connection: { phase: "reconnecting" }, sessions: {} });
@@ -75,7 +75,7 @@ test("ignores non-authoritative disconnected inventory and lets SDK rejection se
 
 test("does not reuse another client's pending wait after reconnect", async () => {
   let current = client;
-  const actions = createFileOpeningPlugin(invoke => invoke(current));
+  const actions = createFileOpeningActions(invoke => invoke(current));
   const first = actions.openFile("runtime", "report.pdf");
   const completeFirst = resolveOpen;
   current = { ...client } as PiClient;

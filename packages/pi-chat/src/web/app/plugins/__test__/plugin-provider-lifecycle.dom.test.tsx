@@ -48,21 +48,3 @@ it("binds one live command under StrictMode probing", () => {
   expect(result.current).toHaveLength(1);
   expect(example.run).toHaveBeenCalledOnce();
 });
-
-it("rejects command collisions across nested plugin namespaces", () => {
-  const nested = examplePlugin("example.nested");
-  const outer = { ...example.plugin, ui: { ...example.plugin.ui, commands: nested.plugin.ui.commands } };
-
-  expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[outer, nested.plugin]} host={host}>{children}</PluginProvider>,
-  })).toThrow("Duplicate command: example.nested.open");
-});
-
-it.each(["outside", "duplicate"])("rejects %s command IDs", kind => {
-  const command = { ...example.plugin.ui.commands![0]!, id: kind === "outside" ? "other.run" : "example.run" };
-  const plugin = { ...example.plugin, ui: { ...example.plugin.ui, commands: kind === "outside" ? [command] : [command, command] } };
-
-  expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[plugin]} host={host}>{children}</PluginProvider>,
-  })).toThrow(kind === "outside" ? "must use the example namespace" : "Duplicate command");
-});

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from "react";
 import { act, cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { loadPluginUIs } from "../load-plugin-ui.js";
 import { PluginProvider, PluginOverlayOutlet, PluginUIOutlet, usePluginCommands, usePluginOverlayOpen } from "../PluginProvider.js";
 import { examplePlugin, host } from "./plugin-fixture.js";
 
@@ -39,19 +40,14 @@ it("renders settings-only contributions beneath their provider and removes them 
   expect(screen.queryByRole("button", { name: "Setting 1" })).toBeNull();
 });
 
-it.each(["outside", "duplicate", "unknown placement"])("rejects %s UI contributions", kind => {
-  const contribution = { ...settingsUI.contributions![0]!, ...(kind === "outside" ? { id: "other.toggle" } : {}), ...(kind === "unknown placement" ? { placement: "settings.unknown" as "settings.feature-toggles" } : {}) };
-  const ui = { ...settingsUI, contributions: kind === "duplicate" ? [contribution, contribution] : [contribution] };
-
-  expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[{ id: "settings", ui }]} host={host}>{children}</PluginProvider>,
-  })).toThrow(kind === "outside" ? "must use the settings namespace" : kind === "duplicate" ? "Duplicate contribution" : "Unknown UI placement");
-});
-
-it("shares provider state between commands and overlays across host updates", () => {
+it("shares provider state between commands and overlays across host updates without revalidating placements", async () => {
+  const placements = [...example.plugin.ui.commands![0]!.placements];
+  const iteratePlacements = vi.spyOn(placements, Symbol.iterator);
+  const ui = { ...example.plugin.ui, commands: [{ ...example.plugin.ui.commands![0]!, placements }] };
+  const plugins = await loadPluginUIs([{ id: example.plugin.id, web: () => ui }]);
   let currentHost = host;
   const { result, rerender } = renderHook(() => ({ commands: usePluginCommands("menus"), blocking: usePluginOverlayOpen() }), {
-    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin]} host={currentHost}>{children}<PluginOverlayOutlet /></PluginProvider>,
+    wrapper: ({ children }) => <PluginProvider plugins={plugins} host={currentHost}>{children}<PluginOverlayOutlet /></PluginProvider>,
   });
 
   expect(result.current.commands.map(command => command.id)).toEqual(["example.open"]);
@@ -63,6 +59,7 @@ it("shares provider state between commands and overlays across host updates", ()
   rerender();
   expect(result.current.commands[0]!.disabled).toBe(true);
   expect(result.current.blocking).toBe(true);
+  expect(iteratePlacements).toHaveBeenCalledOnce();
 });
 
 it("updates availability through context and removes unregistered UI", () => {
@@ -105,10 +102,4 @@ it("provides commands on the first commit without publishing them from effects",
   });
 
   expect(observed).toEqual([["example.open"]]);
-});
-
-it("rejects duplicate plugin IDs instead of mounting duplicate state", () => {
-  expect(() => renderHook(() => usePluginCommands("menus"), {
-    wrapper: ({ children }) => <PluginProvider plugins={[example.plugin, example.plugin]} host={host}>{children}</PluginProvider>,
-  })).toThrow("Duplicate plugin: example");
 });

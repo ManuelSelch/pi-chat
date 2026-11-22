@@ -3,13 +3,15 @@ import * as fileOpening from "../index.js";
 import { filePathSchema } from "@manuelselch/pi-sdk/protocol";
 import { fileOpeningContract } from "../../contract.js";
 
-test("composes a browser plugin with a file-opening action", () => {
-  const plugin = fileOpening.createFileOpeningPlugin(async () => { throw new Error("Not connected"); });
+test("composes browser actions without declaring a plugin", () => {
+  const actions = fileOpening.createFileOpeningActions(async () => { throw new Error("Not connected"); });
 
-  expect(plugin.openFile).toBeTypeOf("function");
+  expect(actions.openFile).toBeTypeOf("function");
+  expect(fileOpening).not.toHaveProperty("createFileOpeningPlugin");
+  expect(actions).not.toHaveProperty("id");
 });
 
-test("does not carry a host implementation in the browser plugin", () => {
+test("does not carry a host implementation in the browser entry", () => {
   expect("host" in fileOpening).toBe(false);
 });
 

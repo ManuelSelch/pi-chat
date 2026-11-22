@@ -11,28 +11,10 @@ interface PluginContextValue {
 }
 const PluginContext = createContext<PluginContextValue>({ plugins: [], commands: [], blocking: false });
 
-/** Compose React providers before reading their command/overlay context.
+/** Compose UIs validated by loadPluginUIs before reading their command/overlay context.
  * Memoization only skips unrelated shell renders; it is not needed for correctness.
  */
 export const PluginProvider = memo(function PluginProvider({ plugins, host, children }: { plugins: readonly LoadedPluginUI[]; host: PluginUIHost; children: ReactNode }) {
-  const ids = new Set<string>();
-  const commandIds = new Set<string>();
-  const contributionIds = new Set<string>();
-  for (const plugin of plugins) {
-    if (ids.has(plugin.id)) throw new Error(`Duplicate plugin: ${plugin.id}`);
-    ids.add(plugin.id);
-    for (const contribution of plugin.ui.contributions ?? []) {
-      if (!contribution.id.startsWith(`${plugin.id}.`)) throw new Error(`Contribution ${contribution.id} must use the ${plugin.id} namespace.`);
-      if (contributionIds.has(contribution.id)) throw new Error(`Duplicate contribution: ${contribution.id}`);
-      contributionIds.add(contribution.id);
-      if (contribution.placement !== "settings.feature-toggles") throw new Error(`Unknown UI placement: ${contribution.placement}`);
-    }
-    for (const command of plugin.ui.commands ?? []) {
-      if (!command.id.startsWith(`${plugin.id}.`)) throw new Error(`Command ${command.id} must use the ${plugin.id} namespace.`);
-      if (commandIds.has(command.id)) throw new Error(`Duplicate command: ${command.id}`);
-      commandIds.add(command.id);
-    }
-  }
   const bound = plugins.reduceRight<ReactNode>((content, plugin) =>
     <PluginBindings key={plugin.id} plugin={plugin}>{content}</PluginBindings>, children);
   const provided = plugins.reduceRight<ReactNode>((content, plugin) =>

@@ -4,8 +4,8 @@ import { createPendingFileOpens } from "./pending-opens.js";
 
 type ClientRequest = <T>(invoke: (client: PiClient) => Promise<T>) => Promise<T>;
 
-/** App-composed browser entry; Server owns host activation. */
-export function createFileOpeningPlugin(request: ClientRequest) {
+/** App-composed browser actions, not a plugin declaration; Server owns host activation. */
+export function createFileOpeningActions(request: ClientRequest) {
   const actions = new WeakMap<PiClient, ReturnType<typeof createPendingFileOpens>>();
 
   return {
