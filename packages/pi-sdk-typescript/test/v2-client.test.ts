@@ -54,8 +54,8 @@ it("rejects pending work as unknown on disconnect and initializes again without 
 it("keeps local cancellation/timeouts uncertain and preserves structured server rejection", async () => {
   const t = setup({ requestTimeoutMs: 20 }); t.ready();
   const wait = t.client.pinProject("/project", true); const timed = expect(wait).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); vi.advanceTimersByTime(20); await timed;
-  const abort = new AbortController(); const pending = t.client.browseDirectories({ path: "/" }, { signal: abort.signal }); const cancelled = expect(pending).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }); abort.abort(); await cancelled;
-  const denied = t.client.openFile("s", "x"); const result = expect(denied).rejects.toMatchObject({ code: "notFound", outcome: "rejected", details: { reason: "missing" } });
+  const abort = new AbortController(); const pending = t.client.request("project.list", {}, undefined, { signal: abort.signal }); const cancelled = expect(pending).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }); abort.abort(); await cancelled;
+  const denied = t.client.completeCommandArguments("s", "example", "x"); const result = expect(denied).rejects.toMatchObject({ code: "notFound", outcome: "rejected", details: { reason: "missing" } });
   t.socket.message({ version: 2, type: "response", requestId: t.requests().at(-1).requestId, ok: false, error: { code: "notFound", message: "Missing", details: { reason: "missing" } } }); await result; t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
 });
 it("rejects invalid initialization inventories instead of becoming partially ready", () => {
@@ -74,13 +74,6 @@ it("accepts additive data and unknown optional rendering hints without corruptin
 it("bounds pending requests and rejects unsent work locally", async () => {
   const t = setup({ maxPendingRequests: 1 }); t.ready(); const first = t.client.prompt("s", "one"); const ended = expect(first).rejects.toMatchObject({ outcome: "unknown" });
   await expect(t.client.prompt("s", "two")).rejects.toMatchObject({ code: "limitExceeded", outcome: "notSent" }); t.client.dispose(); await ended;
-});
-it("coalesces identical file activations but keeps independently cancellable waits separate", async () => {
-  const t = setup(); t.ready(); const first = t.client.openFile("s", "a.pdf"); expect(t.client.openFile("s", "a.pdf")).toBe(first);
-  const independent = t.client.openFile("s", "a.pdf", { signal: new AbortController().signal }); expect(independent).not.toBe(first);
-  const requests = t.requests().slice(1); expect(requests).toHaveLength(2);
-  for (const request of requests) t.reply({ state: "completed" }, request.requestId);
-  await Promise.all([first, independent]); t.client.dispose();
 });
 it("rejects events before the initialization barrier", () => {
   const t = setup(); t.socket.message(event("message.delta", { runId: "r", delta: "early" }, 1)); expect(t.client.getState().connection.phase).toBe("failed"); t.client.dispose();

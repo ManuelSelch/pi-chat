@@ -1,11 +1,7 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { realpathSync } from "node:fs";
-import type { DirectoryBrowse, DirectoryListing } from "@manuelselch/pi-sdk/protocol";
-import { DirectoryBrowserService } from "@manuelselch/pi-plugin-folder-opening/host";
-import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
-import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
-import { fileOpenFailure } from "@manuelselch/pi-plugin-file-opening/host";
+import { validateProjectPath } from "../projects/project-path.js";
 import type { UiPromptResult, WebFeature } from "@manuelselch/pi-sdk/protocol";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import { ProjectSessionService } from "../projects/project-session-service.js";
@@ -42,8 +38,6 @@ export class ChatApplicationService {
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
     private readonly restartService?: RestartService,
-    private readonly directories = new DirectoryBrowserService(),
-    private readonly files: Pick<FileService, "open"> = new FileService(),
   ) {
     this.sessions = new SessionRegistry((sessionId, event) => this.emit(sessionId, event));
     if (initialRuntime) this.sessions.add(initialRuntime);
@@ -176,15 +170,9 @@ export class ChatApplicationService {
     return this.sessions.get(sessionId).completeCommandArguments(commandName, argumentPrefix);
   }
 
-  async openFile(sessionId: string, path: string): Promise<FileOpenResult> {
-    let projectPath: string;
-    try {
-      // Read the named session only; do not invoke the app snapshot/catalogue path.
-      projectPath = this.sessions.get(sessionId).snapshot().projectPath;
-    } catch {
-      return fileOpenFailure("sessionUnavailable", "This session is no longer available on the server.");
-    }
-    return this.files.open(projectPath, path);
+  /** Read only the named runtime; never scan the catalogue or mutate a session. */
+  getSession(sessionId: string): { projectPath: string } {
+    return { projectPath: this.sessions.get(sessionId).snapshot().projectPath };
   }
 
   abort(sessionId: string): Promise<void> {
@@ -193,10 +181,6 @@ export class ChatApplicationService {
 
   respondToPrompt(sessionId: string, promptId: string, result: UiPromptResult): void {
     this.sessions.get(sessionId).respondToPrompt(promptId, result);
-  }
-
-  browseDirectories(request: DirectoryBrowse): Promise<DirectoryListing> {
-    return this.directories.browse(request);
   }
 
   /** Opening an already-open saved runtime converges to its existing identity. */
@@ -215,7 +199,7 @@ export class ChatApplicationService {
   }
 
   async newSession(path?: string): Promise<string> {
-    const target = await this.directories.validate(path ?? homedir());
+    const target = await validateProjectPath(path ?? homedir());
     await this.projectSessions.rememberProject(target);
     return this.openTab(() => this.factory.newSession(target));
   }
@@ -227,7 +211,7 @@ export class ChatApplicationService {
   }
 
   async pinProject(path: string, pinned: boolean): Promise<void> {
-    const target = pinned ? await this.directories.validate(path) : path;
+    const target = pinned ? await validateProjectPath(path) : path;
     await this.projectSessions.pin(target, pinned);
   }
 

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening";
 import type { DirectoryListing } from "../../../src/shared/directories.js";
 import { check, type DriverContext } from "./driver-context.js";
 
@@ -8,7 +9,9 @@ export class ProjectDriver {
 
   async browse(path = this.context.projectPath): Promise<DirectoryListing> {
     const { client } = this.context;
-    return client.sdk.browseDirectories({ path });
+    const result = await client.sdk.plugin(folderOpeningContract).browse({ path });
+    if (!result.ok) throw new Error(result.error.message);
+    return result.listing;
   }
 
   async open(path = this.context.projectPath): Promise<void> {

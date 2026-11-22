@@ -32,13 +32,13 @@
 
 - Import `folderOpeningPlugin` and `folderOpeningContract` from `@manuelselch/pi-plugin-folder-opening`. Opt in with `plugins: [folderOpeningPlugin]` and allowlist that contract. Server loads only the host entry; browser peers are not required.
 - `/host` exports `createFolderOpeningHost(directories)` for injected browsing services. It returns a host entry; override the canonical declaration's host loader for custom dependencies rather than defining a second identity.
-- The plugin owns filesystem browsing without creating a session. Server also reuses its public directory service for existing `directory.browse` and session-path validation. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
+- The plugin owns filesystem browsing without creating a session. Server owns independent core project-path validation; it does not import the browser service. The original `directory.browse` wire operation is removed. Classified safe failures are preserved; unexpected exceptions are sanitized. Optional listing fields are omitted instead of returned as non-JSON `undefined`.
 - [Folder scenarios](../test/integration/folder-opening-plugin.test.ts) cover real SDK/WebSocket calls, navigation, safe failures and explicit exposure. Session creation remains separate.
 
 ## File opening
 
-- Import `createFileOpeningPlugin` from `@manuelselch/pi-plugin-file-opening/host` and `fileOpeningContract` from `@manuelselch/pi-plugin-file-opening`. Opt in with `plugins: services => [createFileOpeningPlugin({ open: services.openFile })]` and allowlist the contract. Server actions are usable after readiness, not during setup.
+- Import `createFileOpeningPlugin` from `@manuelselch/pi-plugin-file-opening/host` and `fileOpeningContract` from `@manuelselch/pi-plugin-file-opening`. Opt in with `plugins: services => [createFileOpeningPlugin(services)]` and allowlist the contract. Server actions are usable after readiness, not during setup.
 - The provider accepts `{ sessionId, path }`. The session ID is the public runtime incarnation ID; raw adapter IDs, closed or replaced IDs, and unknown sessions cannot select a runtime.
-- The plugin owns `FileService`, filesystem validation and OS opening; Server supplies session lookup and reuses that service for `file.open`.
+- The plugin owns `FileService`, filesystem validation and OS opening; Server supplies only `getSession(publicSessionId): Promise<{ projectPath }>` after readiness. The plugin constructs its service (or accepts an injected service as the factory’s second argument) and classifies lookup failures as `sessionUnavailable`.
 - Results are `{ ok: true }` or `{ ok: false, error }`. Existing canonicalization, readable-regular-file validation, bounded macOS opening and no-retry semantics apply. Files open on the server, not the browser; this does not reveal in Finder or browse folders.
-- [File scenarios](../test/integration/file-opening-plugin.test.ts) cover named sessions, failures and explicit exposure with real temporary files and a fake OS opener. The separate `file.open` operation is unchanged; there is no fallback.
+- [File scenarios](../test/integration/file-opening-plugin.test.ts) cover named sessions, failures and explicit exposure with real temporary files and a fake OS opener. The original `file.open` wire operation and SDK convenience method are removed; there is no fallback. Omitting the plugin removes the capability.

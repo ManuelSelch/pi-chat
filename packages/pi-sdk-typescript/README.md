@@ -93,9 +93,7 @@ close/reopen; in-place resource reload and reconnect retain it.
 | `respondToPrompt(id, promptId, result)` | `prompt.answer` | Completed prompt answer submission; valid kind/options checked server-side |
 | `selectModel(id, model)`, `setThinkingLevel(id, level)` | `model.select`, `thinking.level` | Completed structured settings update |
 | `restartServer()` | `server.restart` | Accepted restart attempt; disconnect is not proof of success |
-| `browseDirectories(query)` | `directory.browse` | Server-local paginated directory listing |
 | `completeCommandArguments(id, name, prefix)` | `command.complete` | Session-scoped completion items |
-| `openFile(id, path)` | `file.open` | Server OS accepted opening; does not transfer or display file contents |
 | `archiveSession(path, archived)` | `session.archive` | Completed saved-history metadata mutation; may report persistence uncertainty |
 | `pinProject(path, pinned)`, `removeProject(path)` | `project.pin`, `project.remove` | Completed project metadata mutations |
 | `request("server.ping", {})` | `server.ping` | Explicit liveness operation; no automatic heartbeat |
@@ -155,9 +153,9 @@ The transport bounds outgoing buffering (`maxBufferedBytes`, 4 MiB by default).
 The client reconnects with exponential 250 ms–5 s backoff after failures. It caps
 per-connection unique request IDs and reconnects before the server's 4,096-ID
 budget is exhausted. No hidden queue, replay journal, offline submission,
-automatic heartbeat or cancellation of server work exists. Unsignalled duplicate
-file opens for the same runtime/path share one promise; signalled waits remain
-independent.
+automatic heartbeat or cancellation of server work exists. File/folder operations use
+separately installed plugins through `plugin.call`, not built-in SDK methods.
+The file plugin, rather than the SDK core, coalesces duplicate activations.
 
 ## Protocol and package checks
 

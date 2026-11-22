@@ -32,7 +32,7 @@ Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 - [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
 - [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
-- [File opening](../plugins/file-opening/README.md) is a standalone package with contract, web and host exports; the server supplies session lookup and explicitly registers its host provider. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Folder opening contributes its browser command and overlay through the [explicit web composition](plugins.md#browser-contributions).
+- [File opening](../plugins/file-opening/README.md) is a standalone package with contract, web and host exports; Server supplies generic session lookup; Chat explicitly registers its host provider. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Folder opening contributes its browser command and overlay through the [explicit web composition](plugins.md#browser-contributions).
 
 ## Browser composition and state
 

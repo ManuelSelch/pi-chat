@@ -5,8 +5,8 @@
 - `packages/pi-sdk-typescript`: authoritative protocol/artifacts, client transport and synchronized projections.
 - Root: private workspace composition, one lockfile, CI, Pi pipeline, coverage aggregation, system architecture and development docs.
 - `plugins/chimes`: browser-only audio/preferences and a contributed Feature Toggles control; no Server dependency or RPC.
-- `plugins/file-opening`: independent contract, browser file-link actions, host provider, filesystem validation and OS opening. Chat composes its public exports; Server reuses its file service for existing `file.open` behavior.
-- `plugins/folder-opening`: independent folder contract, browser client/state/UI, host provider and filesystem browsing, with colocated `__tests__` folders. Chat composes its public exports; Server reuses its directory service for existing directory operations and path validation.
+- `plugins/file-opening`: independent contract, browser file-link actions, host provider, filesystem validation and OS opening. Chat composes its public exports; Server supplies only generic session lookup.
+- `plugins/folder-opening`: independent folder contract, browser client/state/UI, host provider and filesystem browsing, with colocated `__tests__` folders. Chat composes its public exports; core project-path validation remains independently owned by Server.
 
 ## Boundaries and commands
 

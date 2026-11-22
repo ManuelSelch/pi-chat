@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Request } from "@manuelselch/pi-sdk/protocol";
 import { SessionBusyError, type ChatApplicationService } from "../application/chat-application-service.js";
 import type { ServerPublisher } from "./server-publisher.js";
-import { DirectoryOperationError } from "@manuelselch/pi-plugin-folder-opening/host";
+import { ProjectPathError } from "../projects/project-path.js";
 import { V2OperationError, type V2Execution } from "./v2-connection.js";
 import type { PluginRpc } from "./plugin-rpc.js";
 
@@ -22,7 +22,7 @@ export async function executeOperation(command: Exclude<Request, Request<"server
     } catch { /* Work succeeded; failed nonessential publication cannot reject it. */ }
   };
   try {
-    if (raw && !["session.snapshot", "prompt.answer", "run.abort", "command.complete", "file.open"].includes(command.method)) chat.assertMutable(raw);
+    if (raw && !["session.snapshot", "prompt.answer", "run.abort", "command.complete"].includes(command.method)) chat.assertMutable(raw);
     if (raw && ["model.select", "thinking.level"].includes(command.method) && chat.captureSnapshot(raw).isStreaming) throw new V2OperationError("sessionBusy", "Wait for the current run before changing settings.");
     switch (command.method) {
       case "server.ping": return completed();
@@ -41,13 +41,7 @@ export async function executeOperation(command: Exclude<Request, Request<"server
         catch { throw new V2OperationError("operationFailed", "Runtime teardown failed; the runtime may be partially closed. Retry close explicitly.", { partial: true }); }
         publisher.closed(raw!, "requested"); return completed(undefined, refresh);
       }
-      case "directory.browse": return completed(await chat.browseDirectories(command.params));
       case "command.complete": return completed({ items: await chat.completeCommandArguments(raw!, command.params.commandName, command.params.argumentPrefix) });
-      case "file.open": {
-        const result = await chat.openFile(raw!, command.params.path);
-        if (!result.ok) throw new V2OperationError(result.error.code, result.error.message);
-        return completed();
-      }
       case "project.pin": await chat.pinProject(command.params.path, command.params.pinned); return completed(undefined, () => refresh(true));
       case "project.remove": await chat.removeProject(command.params.path); return completed(undefined, () => refresh(true));
       case "session.archive":
@@ -89,7 +83,7 @@ export async function executeOperation(command: Exclude<Request, Request<"server
     }
   } catch (error) {
     if (error instanceof V2OperationError) throw error;
-    if (error instanceof DirectoryOperationError || error instanceof SessionBusyError) throw new V2OperationError(error.code, error.message);
+    if (error instanceof ProjectPathError || error instanceof SessionBusyError) throw new V2OperationError(error.code, error.message);
     if (command.method === "session.open" && (error as { code?: string })?.code === "ENOENT") throw new V2OperationError("notFound", "Saved session not found on the server.");
     throw new V2OperationError("operationFailed", "The server operation failed.");
   }

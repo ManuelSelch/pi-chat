@@ -8,7 +8,7 @@ for (const path of ["dist/contract.js","dist/contract.d.ts","dist/host/file-serv
 const contract = await import('@manuelselch/pi-plugin-file-opening');
 const host = await import('@manuelselch/pi-plugin-file-opening/host');
 assert.equal(contract.fileOpeningContract, host.fileOpeningContract);
-assert.equal(host.createFileOpeningPlugin({ open: async () => ({ ok: true }) }).id, contract.fileOpeningContract.id);
+assert.equal(host.createFileOpeningPlugin({ getSession: async () => ({ projectPath: "/project" }) }).id, contract.fileOpeningContract.id);
 const web = await import('@manuelselch/pi-plugin-file-opening/web');
 assert.equal(typeof web.createFileOpeningPlugin, 'function');
 assert.equal('FileService' in web, false);

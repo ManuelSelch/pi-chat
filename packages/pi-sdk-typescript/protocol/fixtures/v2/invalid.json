@@ -1,5 +1,32 @@
 [
   {
+    "name": "removed directory.browse operation",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "removed",
+      "method": "directory.browse",
+      "params": {
+        "path": "/project"
+      }
+    }
+  },
+  {
+    "name": "removed file.open operation",
+    "schema": "Request",
+    "input": {
+      "version": 2,
+      "type": "request",
+      "requestId": "removed",
+      "method": "file.open",
+      "params": {
+        "path": "/project"
+      },
+      "sessionId": "runtime"
+    }
+  },
+  {
     "name": "open result missing required theme",
     "schema": "result.session.open",
     "input": {

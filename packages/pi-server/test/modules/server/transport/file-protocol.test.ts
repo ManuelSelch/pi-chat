@@ -1,36 +1,34 @@
-import { describe, expect, it, vi } from "vitest";
-import { ChatApplicationService } from "../../../../src/application/chat-application-service.js";
-import { executeOperation } from "../../../../src/transport/command-handler.js";
-import { ServerPublisher } from "../../../../src/transport/server-publisher.js";
-import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
+import { afterEach, expect, it } from "vitest";
+import { createPiServer, type PiServer } from "../../../../src/index.js";
+import { createFileOpeningPlugin, fileOpeningContract } from "@manuelselch/pi-plugin-file-opening/host";
+import { folderOpeningPlugin, folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening/host";
+import { v2Socket } from "../../../infra/v2-socket.js";
 
-function fixture() {
-  const chat = new ChatApplicationService(new FakeRuntimeAdapter(), { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() });
-  const send = vi.fn(); const publisher = new ServerPublisher(chat, send);
-  const request = { version: 2 as const, type: "request" as const, method: "file.open" as const, sessionId: publisher.wireId("fake-session"), requestId: "file-1", params: { path: "report.pdf" } };
-  return { chat, publisher, send, request };
-}
-describe("v2 file command dispatch", () => {
-  it("returns completion without publishing transcript or inventory", async () => {
-    const { chat, publisher, send, request } = fixture();
-    const open = vi.spyOn(chat, "openFile").mockResolvedValue({ ok: true });
-    expect(await executeOperation(request, chat, publisher)).toMatchObject({ kind: "completed", result: { state: "completed" } });
-    expect(open).toHaveBeenCalledWith("fake-session", "report.pdf"); expect(send).not.toHaveBeenCalled(); await chat.dispose();
+let server: PiServer | undefined;
+afterEach(async () => { await server?.close(); });
+
+it.each([false, true])("rejects removed wire operations even when plugins are installed (%s)", async installed => {
+  server = await createPiServer({
+    plugins: installed ? services => [createFileOpeningPlugin(services), folderOpeningPlugin] : [],
+    pluginRpcContracts: installed ? [fileOpeningContract, folderOpeningContract] : [],
+    catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },
   });
-  it("preserves structured file failures without publishing runtime errors", async () => {
-    const { chat, publisher, send, request } = fixture();
-    vi.spyOn(chat, "openFile").mockResolvedValue({ ok: false, error: { code: "notFound", message: "File not found on the server." } });
-    await expect(executeOperation(request, chat, publisher)).rejects.toMatchObject({ code: "notFound" });
-    expect(send).not.toHaveBeenCalled(); await chat.dispose();
-  });
-  it("rejects stale identity before file access", async () => {
-    const { chat, publisher, request } = fixture(); const open = vi.spyOn(chat, "openFile");
-    await expect(executeOperation({ ...request, sessionId: "stale" }, chat, publisher)).rejects.toMatchObject({ code: "sessionNotFound" });
-    expect(open).not.toHaveBeenCalled(); await chat.dispose();
-  });
-  it("sanitizes unexpected file exceptions", async () => {
-    const { chat, publisher, request } = fixture();
-    vi.spyOn(chat, "openFile").mockRejectedValue(new Error("private internals"));
-    await expect(executeOperation(request, chat, publisher)).rejects.toMatchObject({ code: "operationFailed", message: "The server operation failed." }); await chat.dispose();
-  });
+  await new Promise<void>(resolve => server!.httpServer.listen(0, "127.0.0.1", resolve));
+  const client = await v2Socket(server);
+  const initial = await client.initialize();
+  expect(initial.capabilities).not.toContain("file.open");
+  expect(initial.capabilities).not.toContain("directory.browse");
+
+  for (const method of ["file.open", "directory.browse"]) {
+    client.send(method, method, { path: "/" });
+    expect(await client.response(method)).toMatchObject({ ok: false, error: { code: "unsupportedOperation" } });
+  }
+  if (!installed) {
+    for (const contract of [fileOpeningContract, folderOpeningContract]) {
+      client.send("plugin.call", contract.id, { contractId: contract.id, contractVersion: 1, method: contract.id === "file-opening" ? "open" : "browse", input: {} });
+      expect(await client.response(contract.id)).toMatchObject({ ok: false, error: { code: "unsupportedOperation" } });
+    }
+  }
+  client.send("server.ping", "ping");
+  expect(await client.response("ping")).toMatchObject({ ok: true });
 });

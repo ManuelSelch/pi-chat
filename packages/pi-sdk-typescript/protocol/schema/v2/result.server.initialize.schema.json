@@ -28,12 +28,10 @@
         "type": "string",
         "enum": [
           "presentation",
-          "directory.browse",
           "command.complete",
           "session.archive",
           "project.pin",
           "project.remove",
-          "file.open",
           "server.restart",
           "plugin.call"
         ]

@@ -19,7 +19,7 @@ const logger = createFileLogger();
 const restart = createRestartService({ build: async () => undefined, shutdown: () => void shutdown() });
 const server = await createPiServer({
   staticDirectory: isDevelopment ? undefined : resolve("dist/web"), logger,
-  plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
+  plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin],
   pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
 });
 installVersionRoute(server.httpServer, packageVersion(import.meta.resolve("@manuelselch/pi-server")));

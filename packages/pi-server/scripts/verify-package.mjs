@@ -72,7 +72,7 @@ try {
     import { createFileOpeningPlugin, fileOpeningContract } from '@manuelselch/pi-plugin-file-opening/host';
     const server = await createPiServer({
       runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null },
-      plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
+      plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin],
       pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
     });
     await server.close();
@@ -97,7 +97,7 @@ import { folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
 import { fileOpeningContract } from '@manuelselch/pi-plugin-file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
-const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
+const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
 const server = await createPiServer(options); void server.httpServer; void server.close;
 void createPiRuntimeAdapter; void createRestartService; void snapshotData; void runLoopbackFixture;
 `);

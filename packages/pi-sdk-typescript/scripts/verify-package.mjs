@@ -42,9 +42,10 @@ uiHost.sessions[0].status = "idle";
 const badPlacement: PluginUIContribution<string> = { ...toggle, placement: "feature-toggles" };
 // @ts-expect-error Web entries declare UI contributions, not imperative setup.
 const imperative: Plugin = { id: "folders", web: async () => ({ setup() {} }) };
-import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+import { z } from "zod";
+import { idSchema, filePathSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
 const fileOpeningContract = defineRemoteContract({ id: "consumer", version: 1, methods: {
-  open: { input: operationSchemas["file.open"].params.extend({ sessionId: idSchema }), output: fileOpenResultSchema },
+  open: { input: z.object({ sessionId: idSchema, path: filePathSchema }), output: fileOpenResultSchema },
 } });
 const plugin = definePlugin({
   id: "consumer", provides: [fileOpeningContract],
@@ -94,9 +95,10 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import * as sdk from "@manuelselch/pi-sdk";
 import * as plugins from "@manuelselch/pi-sdk/plugins";
-import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+import { z } from "zod";
+import { idSchema, filePathSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
 const fileOpeningContract = plugins.defineRemoteContract({ id: "consumer", version: 1, methods: {
-  open: { input: operationSchemas["file.open"].params.extend({ sessionId: idSchema }), output: fileOpenResultSchema },
+  open: { input: z.object({ sessionId: idSchema, path: filePathSchema }), output: fileOpenResultSchema },
 } });
 assert.equal(typeof plugins.definePlugin, "function");
 assert.equal(typeof plugins.defineRemoteContract, "function");

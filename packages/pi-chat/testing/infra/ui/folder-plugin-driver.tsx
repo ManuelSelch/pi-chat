@@ -37,7 +37,7 @@ export class FolderPluginDriver {
 
   shouldBrowseThroughPlugin(path = "~") {
     expect(Socket.current.requests.at(-1)).toMatchObject({ method: "plugin.call", params: { contractId: "folder-opening", contractVersion: 1, method: "browse", input: { path, showHidden: false } } });
-    expect(Socket.current.requests.some(request => request.method === "directory.browse")).toBe(false);
+    expect(Socket.current.requests.map(request => request.method)).not.toContain("directory.browse");
   }
 
   async showFolder(path = "/server/work") {

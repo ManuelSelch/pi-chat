@@ -1,4 +1,4 @@
-import { CONTROLLER_REPLACED_CODE, type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type DirectoryBrowse, type DirectoryListing, type CommandCompletionItem, type SessionTheme } from "./protocol/index.js";
+import { CONTROLLER_REPLACED_CODE, type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type CommandCompletionItem, type SessionTheme } from "./protocol/index.js";
 import { capabilitySchema, requestSchema, serverMessageSchema, parseResponse, type ServerMessage, type Event, type Method, type Params, type Result, type Capability, type OpenSessionSummary, type SessionSnapshot } from "./protocol/v2.js";
 import { SDKError } from "./errors.js";
 import { defaultScheduler, type Scheduler, type CancellationSignal } from "./platform.js";
@@ -66,7 +66,6 @@ export class PiClient {
   private readonly inbox: { text: string; generation: number }[] = [];
   private readonly gaps = new Map<string, Extract<Event, { sequence: number }>[]>();
   private readonly recovering = new Set<string>();
-  private readonly fileWaits = new Map<string, Promise<void>>();
   private bufferedCharacters = 0;
   private processing = false;
   private requestSequence = 0;
@@ -148,17 +147,7 @@ export class PiClient {
   async closeSession(id: string): Promise<void> { await this.request("session.close", {}, id); }
   async openSession(sessionPath: string, options: RequestOptions = {}): Promise<string> { return (await this.request("session.open", { sessionPath }, undefined, options)).snapshot.sessionId; }
   async createSession(projectPath?: string, options: RequestOptions = {}): Promise<string> { return (await this.request("session.create", { projectPath }, undefined, options)).snapshot.sessionId; }
-  browseDirectories(query: DirectoryBrowse, options: RequestOptions = {}): Promise<DirectoryListing> { return this.request("directory.browse", query, undefined, options); }
   async completeCommandArguments(id: string, commandName: string, argumentPrefix: string, options: RequestOptions = {}): Promise<CommandCompletionItem[]> { return (await this.request("command.complete", { commandName, argumentPrefix }, id, options)).items; }
-  openFile(id: string, path: string, options: RequestOptions = {}): Promise<void> {
-    const key = JSON.stringify([id, path]); const existing = options.signal ? undefined : this.fileWaits.get(key);
-    if (existing) return existing;
-    const pending = this.request("file.open", { path }, id, options).then(() => {});
-    if (options.signal) return pending;
-    this.fileWaits.set(key, pending);
-    void pending.then(() => { if (this.fileWaits.get(key) === pending) this.fileWaits.delete(key); }, () => { if (this.fileWaits.get(key) === pending) this.fileWaits.delete(key); });
-    return pending;
-  }
   async archiveSession(path: string, archived: boolean, options: RequestOptions = {}): Promise<void> { await this.request("session.archive", { path, archived }, undefined, options); }
   async pinProject(path: string, pinned: boolean, options: RequestOptions = {}): Promise<void> { await this.request("project.pin", { path, pinned }, undefined, options); }
   async removeProject(path: string, options: RequestOptions = {}): Promise<void> { await this.request("project.remove", { path }, undefined, options); }
@@ -330,7 +319,7 @@ export class PiClient {
   private report(error: SDKError): void { for (const listener of [...this.errorListeners]) { try { listener(error); } catch { /* Diagnostics cannot break cleanup. */ } } }
   private release(transport: Transport): void { try { transport.dispose(); } catch {} try { transport.close(); } catch {} }
   private detach(reason = new SDKError("disconnected", "Connection lost.")): void {
-    ++this.generation; this.initializeId = undefined; this.pending.disconnect(reason); this.gaps.clear(); this.recovering.clear(); this.fileWaits.clear(); this.inbox.length = 0; this.bufferedCharacters = 0;
+    ++this.generation; this.initializeId = undefined; this.pending.disconnect(reason); this.gaps.clear(); this.recovering.clear(); this.inbox.length = 0; this.bufferedCharacters = 0;
     if (this.timer !== undefined) this.scheduler.clearTimeout(this.timer); if (this.watchdog !== undefined) this.scheduler.clearTimeout(this.watchdog); this.timer = undefined; this.watchdog = undefined;
     const transport = this.transport; this.transport = undefined; if (transport) this.release(transport);
   }

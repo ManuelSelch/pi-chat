@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type { ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import { createPiServer, type PiServer } from "@manuelselch/pi-server";
+import { folderOpeningPlugin, folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening/host";
 import { BrowserClient } from "./browser-client.js";
 import { BrowserDriver } from "./browser-driver.js";
 import { ChatDriver } from "./chat-driver.js";
@@ -59,7 +60,7 @@ export class PiChatDriver {
     let client: BrowserClient | undefined;
     try {
       const initial = options.startAtHome ? undefined : await world.create(options.responses ?? []);
-      server = await createPiServer({ runtime: initial, runtimeFactory: world.factory });
+      server = await createPiServer({ runtime: initial, runtimeFactory: world.factory, plugins: [folderOpeningPlugin], pluginRpcContracts: [folderOpeningContract] });
       const listeningServer = server;
       await new Promise<void>((resolve, reject) => {
         listeningServer.httpServer.once("error", reject);

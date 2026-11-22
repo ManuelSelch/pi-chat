@@ -1,9 +1,9 @@
 import { type HostPluginContext, definePlugin } from "@manuelselch/pi-sdk/plugins";
 import { fileOpeningContract } from "../contract.js";
-import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
+import type { FileService } from "./file-service.js";
 
 export interface FileOpeningServices {
-  open(sessionId: string, path: string): Promise<FileOpenResult>;
+  getSession(sessionId: string): Promise<{ projectPath: string }>;
 }
 
 export { FileService } from "./file-service.js";
@@ -12,13 +12,13 @@ export { SystemFileOpener, type FileOpener } from "./system-file-opener.js";
 export * from "../contract.js";
 
 /** Explicit opt-in; the server supplies session lookup, the plugin owns OS opening. */
-export function createFileOpeningPlugin(services: FileOpeningServices) {
+export function createFileOpeningPlugin(services: FileOpeningServices, files?: Pick<FileService, "open">) {
   return definePlugin({
     id: "file-opening",
     provides: [fileOpeningContract],
     host: async () => {
       const { setup } = await import("./setup.js");
-      return { setup: (ctx: HostPluginContext) => setup(ctx, services) };
+      return { setup: (ctx: HostPluginContext) => setup(ctx, services, files) };
     },
   });
 }

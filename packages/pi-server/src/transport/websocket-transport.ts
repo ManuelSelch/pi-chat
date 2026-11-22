@@ -33,11 +33,8 @@ export class WebSocketTransport {
     this.server.on("connection", socket => this.connect(socket));
   }
   /** Plugin input carries public incarnation IDs, never raw adapter IDs. */
-  async openFile(sessionId: string, path: string) {
-    let raw: string;
-    try { raw = this.publisher.rawId(sessionId); }
-    catch { return { ok: false as const, error: { code: "sessionUnavailable" as const, message: "This session is no longer available on the server." } }; }
-    return this.chat.openFile(raw, path);
+  getSession(sessionId: string): { projectPath: string } {
+    return this.chat.getSession(this.publisher.rawId(sessionId));
   }
   async close(): Promise<void> {
     this.unsubscribe();
@@ -68,7 +65,7 @@ export class WebSocketTransport {
   private connect(socket: WebSocket): void {
     const connectionId = randomUUID(); let selected: Capability[] = [];
     this.logger?.info("websocket.open", { connectionId });
-    const capabilities: Capability[] = ["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", ...(this.pluginRpc?.enabled ? ["plugin.call" as const] : []), ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
+    const capabilities: Capability[] = ["presentation", "command.complete", "session.archive", "project.pin", "project.remove", ...(this.pluginRpc?.enabled ? ["plugin.call" as const] : []), ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
     const connection = new V2Connection({
       serverInstanceId: this.publisher.serverInstanceId, connectionId, capabilities,
       isWritable: () => socket.readyState === WebSocket.OPEN,

@@ -21,7 +21,7 @@ function messages(socket: WebSocket) {
     });
   } };
 }
-async function connect(capabilities = ["presentation", "command.complete", "file.open"]) {
+async function connect(capabilities = ["presentation", "command.complete"]) {
   const socket = new WebSocket(`ws://127.0.0.1:${(server.httpServer.address() as AddressInfo).port}/ws`); sockets.push(socket);
   const inbox = messages(socket); await once(socket, "open");
   const send = (method: string, requestId: string, params: object = {}, sessionId?: string) => socket.send(JSON.stringify({ version: 2, type: "request", requestId, method, params, ...(sessionId ? { sessionId } : {}) }));

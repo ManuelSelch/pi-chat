@@ -79,7 +79,7 @@ describe("v2-only contract", () => {
   it("has the core methods and optional plugin RPC without tab/focus or feature wrappers", () => {
     expect(Object.keys(operationSchemas).sort()).toEqual([
       "server.initialize", "server.ping", "server.restart", "session.create", "session.open", "session.list", "session.snapshot", "session.close", "session.compact", "session.reload", "session.archive",
-      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "directory.browse", "command.complete", "file.open", "plugin.call",
+      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "command.complete", "plugin.call",
     ].sort());
   });
 });

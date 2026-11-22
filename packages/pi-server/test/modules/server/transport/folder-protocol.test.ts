@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, mkdir, rm, symlink, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { requestSchema } from "@manuelselch/pi-sdk/protocol";
+import { folderOpeningPlugin, folderOpeningContract } from "@manuelselch/pi-plugin-folder-opening/host";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { createPiServer, type PiServer } from "../../../../src/index.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
@@ -19,7 +19,7 @@ afterEach(async () => {
   folder = undefined;
 });
 async function connect(factory = { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(async () => new FakeRuntimeAdapter()) }) {
-  server = await createPiServer({ runtimeFactory: factory });
+  server = await createPiServer({ runtimeFactory: factory, plugins: [folderOpeningPlugin], pluginRpcContracts: [folderOpeningContract] });
   await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
   client = await v2Socket(server); await client.initialize();
   return factory;
@@ -30,15 +30,15 @@ describe("folder requests", () => {
     folder = await mkdtemp(join(tmpdir(), "pi-browser-"));
     await mkdir(join(folder, "new-project"));
     const factory = await connect();
-    client.send("directory.browse", "browse-1", { path: folder });
-    expect(await client.response("browse-1")).toMatchObject({ ok: true, result: { path: await realpath(folder), entries: [{ name: "new-project" }] } });
+    client.send("plugin.call", "browse-1", { contractId: folderOpeningContract.id, contractVersion: 1, method: "browse", input: { path: folder } });
+    expect(await client.response("browse-1")).toMatchObject({ ok: true, result: { value: { ok: true, listing: { path: await realpath(folder), entries: [{ name: "new-project" }] } } } });
     expect(factory.newSession).not.toHaveBeenCalled();
     expect(factory.continueProject).not.toHaveBeenCalled();
   });
   it("reports browse and start failures at app level on Home", async () => {
     await connect();
-    client.send("directory.browse", "bad-browse", { path: "/missing/pi-chat-folder" });
-    expect(await client.response("bad-browse")).toMatchObject({ ok: false, error: { code: "notFound", message: expect.stringContaining("not found") } });
+    client.send("plugin.call", "bad-browse", { contractId: folderOpeningContract.id, contractVersion: 1, method: "browse", input: { path: "/missing/pi-chat-folder" } });
+    expect(await client.response("bad-browse")).toMatchObject({ ok: true, result: { value: { ok: false, error: { code: "notFound", message: expect.stringContaining("not found") } } } });
     client.send("session.create", "bad-start", { projectPath: "/missing/pi-chat-folder" });
     expect(await client.response("bad-start")).toMatchObject({ ok: false, error: { code: "notFound", message: expect.stringContaining("not found") } });
   });
@@ -81,7 +81,7 @@ describe("folder requests", () => {
     expect(factory.continueProject).not.toHaveBeenCalled();
   });
   it("rejects malformed paths and cursors", () => {
-    expect(() => requestSchema.parse({ version: 2, type: "request", method: "directory.browse", requestId: "x", params: { path: "\0" } })).toThrow();
-    expect(() => requestSchema.parse({ version: 2, type: "request", method: "directory.browse", requestId: "x", params: { path: "/", cursor: 3 } })).toThrow();
+    expect(() => folderOpeningContract.methods.browse.input.parse({ path: "\0" })).toThrow();
+    expect(() => folderOpeningContract.methods.browse.input.parse({ path: "/", cursor: 3 })).toThrow();
   });
 });

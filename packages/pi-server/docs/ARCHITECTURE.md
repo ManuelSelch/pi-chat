@@ -11,7 +11,7 @@ Every arrow means “source imports target”, including type-only imports; it d
 | `transport` | WebSocket v2 initialization, request validation/dispatch, operation outcomes, snapshots and event publication; connection-local state and backpressure. |
 | `application` | Session commands and lifecycle coordination, mutation guards and shared live-runtime registry. |
 | `runtime` | Runtime contracts and the Pi adapter: lazy agent creation, transcript/tool/event mapping, headless theme and web extension UI context. |
-| `projects` | Persisted-session catalogue, project metadata, directory browsing and Git worktree discovery. |
+| `projects` | Persisted-session catalogue, project metadata, project-path admission and Git worktree discovery. Optional folder browsing and file opening are plugin-owned; Server supplies generic session lookup only. |
 | `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. The transport's explicit [RPC allowlist](PLUGINS.md) exposes selected contracts over the existing WebSocket. |
 | `extensions` | Native Pi UI prompt/status/widget registries. |
 | `bootstrap` | Process restart planning/execution and PID-file publication. |
@@ -28,7 +28,7 @@ External boundaries, intentionally not diagram boxes:
 - `@manuelselch/pi-sdk/protocol` owns wire schemas. It is a package dependency, not copied server protocol source.
 - `@earendil-works/pi-coding-agent` supplies agent runtimes, session persistence, providers and extension loading; the runtime factory enables codemode, tool search and MCP.
 - Local disk holds Pi session histories and separate project metadata (by default `getAgentDir()/pi-chat/projects.json`). Catalogue reads do not turn metadata operations into rewrites of original Pi histories.
-- Git discovery, system file opening and standalone restart cross into OS processes. Provider/tool/MCP access is performed through Pi, not a separate server-side service drawn here.
+- Git discovery and standalone restart cross into OS processes; optional system file opening is owned by its plugin. Provider/tool/MCP access is performed through Pi, not a separate server-side service drawn here.
 
 ## State and runtime flow
 

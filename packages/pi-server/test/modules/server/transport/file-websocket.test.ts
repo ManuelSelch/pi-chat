@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { v2Socket } from "../../../infra/v2-socket.js";
 import { createPiServer, type PiServer } from "../../../../src/index.js";
-import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
+import { FileService, createFileOpeningPlugin, fileOpeningContract } from "@manuelselch/pi-plugin-file-opening/host";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 let server: PiServer | undefined;
@@ -25,20 +25,20 @@ describe("file WebSocket integration", () => {
     const prompt = vi.spyOn(runtime, "prompt");
     const abort = vi.spyOn(runtime, "abort");
     const opener = { open: vi.fn(async (_path: string) => {}) };
-    server = await createPiServer({ runtime: runtime, runtimeFactory: { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() }, files: new FileService(opener) });
+    server = await createPiServer({ runtime: runtime, runtimeFactory: { continueProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn() }, plugins: services => [createFileOpeningPlugin(services, new FileService(opener))], pluginRpcContracts: [fileOpeningContract] });
     await new Promise<void>((resolve) => server!.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); const initial = await client.initialize(); client.messages.length = 0;
     const send = async (requestId: string, path: string, sessionId = initial.snapshots[0]!.sessionId) => {
-      client.send("file.open", requestId, { path }, sessionId); return client.response(requestId);
+      client.send("plugin.call", requestId, { contractId: fileOpeningContract.id, contractVersion: 1, method: "open", input: { sessionId, path } }); return client.response(requestId);
     };
-    expect(await send("open-1", "harmless.pdf")).toMatchObject({ requestId: "open-1", ok: true });
+    expect(await send("open-1", "harmless.pdf")).toMatchObject({ requestId: "open-1", ok: true, result: { value: { ok: true } } });
     expect(opener.open).toHaveBeenCalledWith(await realpath(join(folder, "harmless.pdf")));
-    expect(await send("missing-file", "missing.pdf")).toMatchObject({ requestId: "missing-file", ok: false, error: { code: "notFound" } });
-    expect(await send("missing-session", "harmless.pdf", "closed-session")).toMatchObject({ requestId: "missing-session", ok: false, error: { code: "sessionNotFound" } });
+    expect(await send("missing-file", "missing.pdf")).toMatchObject({ requestId: "missing-file", ok: true, result: { value: { ok: false, error: { code: "notFound" } } } });
+    expect(await send("missing-session", "harmless.pdf", "closed-session")).toMatchObject({ requestId: "missing-session", ok: true, result: { value: { ok: false, error: { code: "sessionUnavailable" } } } });
     // Allow queued writes to arrive before checking the absence of side effects.
     await new Promise((resolve) => setTimeout(resolve, 30));
     // Initialization's independent catalogue refresh may finish after readiness;
-    // it is not file.open history/state traffic. Still reject every other event.
+    // it is not plugin-call history/state traffic. Still reject every other event.
     const fileTraffic = client.messages.filter(message => !(message.type === "event" && message.event === "project.list.changed"));
     expect(fileTraffic.map(message => message.type)).toEqual(["response", "response", "response"]);
     expect(opener.open).toHaveBeenCalledTimes(1);

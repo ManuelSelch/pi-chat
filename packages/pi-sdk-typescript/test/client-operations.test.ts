@@ -26,7 +26,7 @@ it("routes convenience operations to explicit session IDs and typed method names
   const rejected = Promise.all(pending.map(wait => expect(wait).rejects.toMatchObject({ outcome: "unknown" }))); t.client.dispose(); await rejected;
 });
 it("matches only pending IDs and fails invalid method result shapes instead of cross-family resolution", async () => {
-  const t = setup(); const pending = t.client.browseDirectories({ path: "/" }); const result = expect(pending).rejects.toMatchObject({ code: "invalidMessage", outcome: "unknown" });
+  const t = setup(); const pending = t.client.request("project.list", {}); const result = expect(pending).rejects.toMatchObject({ code: "invalidMessage", outcome: "unknown" });
   t.reply({ state: "completed" }); await result; expect(t.client.getState().connection.phase).toBe("failed"); t.client.dispose();
 });
 it("cleans signal listeners and makes pre-abort definitively notSent", async () => {
@@ -34,17 +34,17 @@ it("cleans signal listeners and makes pre-abort definitively notSent", async () 
   const next = new AbortController(); const remove = vi.spyOn(next.signal, "removeEventListener"); const pending = t.client.pinProject("/p", true, { signal: next.signal }); t.reply({ state: "completed" }); await pending; expect(remove).toHaveBeenCalled(); t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
 });
 for (const action of ["stop", "dispose", "takeControl"] as const) it(`rejects all outstanding operations on ${action} without replay`, async () => {
-  const t = setup(); const requests = [t.client.browseDirectories({ path: "/" }), t.client.createSession("/p"), t.client.completeCommandArguments("runtime", "deploy", "st"), t.client.openFile("runtime", "f.pdf"), t.client.pinProject("/p", true)];
+  const t = setup(); const requests = [t.client.request("project.list", {}), t.client.createSession("/p"), t.client.completeCommandArguments("runtime", "deploy", "st"), t.client.completeCommandArguments("runtime", "example", ""), t.client.pinProject("/p", true)];
   const rejected = Promise.all(requests.map(pending => expect(pending).rejects.toMatchObject({ outcome: "unknown" }))); t.client[action](); await rejected;
   if (action === "takeControl") { vi.advanceTimersByTime(0); t.sockets[1]!.open(); expect(t.sockets[1]!.sent.map(value => JSON.parse(value).method)).toEqual(["server.initialize"]); }
   t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
 });
 it("cancels only closed-runtime waits and permits the correlated close response", async () => {
-  const t = setup(); const file = t.client.openFile("runtime", "f.pdf"); const other = t.client.openFile("background", "f.pdf");
+  const t = setup(); const file = t.client.completeCommandArguments("runtime", "example", ""); const other = t.client.completeCommandArguments("background", "example", "");
   const cancelled = expect(file).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }); const close = t.client.closeSession("runtime");
   t.socket.message(event("session.closed", { reason: "requested" }, 1, "runtime")); await cancelled;
   t.reply({ state: "completed" }); await close;
-  t.reply({ state: "completed" }, t.requests()[2].requestId); await other; t.client.dispose();
+  t.reply({ items: [] }, t.requests()[2].requestId); await other; t.client.dispose();
 });
 for (const known of [false, true]) it(`cleans a synchronous send failure with ${known ? "notSent" : "unknown"} outcome`, async () => {
   const fake = fakeTransport(); const client = new PiClient({ endpoint: "ws://example/ws", transport: (url, events) => { const transport = fake.factory(url, events); return { ...transport, send(text) { if (JSON.parse(text).method !== "server.initialize") throw known ? new SDKError("limitExceeded", "full") : new Error("broken"); transport.send(text); } }; } });

@@ -874,47 +874,11 @@
       }
     },
     {
-      "method": "directory.browse",
-      "request": {
-        "version": 2,
-        "type": "request",
-        "requestId": "request-19",
-        "method": "directory.browse",
-        "params": {
-          "path": "/p"
-        }
-      },
-      "response": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-19",
-        "ok": true,
-        "result": {
-          "path": "/p",
-          "breadcrumbs": [],
-          "entries": []
-        }
-      },
-      "rejection": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-19",
-        "ok": false,
-        "error": {
-          "code": "operationFailed",
-          "message": "Rejected",
-          "details": {
-            "retry": false
-          }
-        }
-      }
-    },
-    {
       "method": "command.complete",
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-20",
+        "requestId": "request-19",
         "method": "command.complete",
         "params": {
           "commandName": "demo",
@@ -925,7 +889,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-20",
+        "requestId": "request-19",
         "ok": true,
         "result": {
           "items": [
@@ -939,42 +903,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-20",
-        "ok": false,
-        "error": {
-          "code": "operationFailed",
-          "message": "Rejected",
-          "details": {
-            "retry": false
-          }
-        }
-      }
-    },
-    {
-      "method": "file.open",
-      "request": {
-        "version": 2,
-        "type": "request",
-        "requestId": "request-21",
-        "method": "file.open",
-        "params": {
-          "path": "./report.pdf"
-        },
-        "sessionId": "runtime"
-      },
-      "response": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-21",
-        "ok": true,
-        "result": {
-          "state": "completed"
-        }
-      },
-      "rejection": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-21",
+        "requestId": "request-19",
         "ok": false,
         "error": {
           "code": "operationFailed",
@@ -990,7 +919,7 @@
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-22",
+        "requestId": "request-20",
         "method": "plugin.call",
         "params": {
           "contractId": "test-counter",
@@ -1002,7 +931,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-22",
+        "requestId": "request-20",
         "ok": true,
         "result": {
           "value": 1
@@ -1011,7 +940,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-22",
+        "requestId": "request-20",
         "ok": false,
         "error": {
           "code": "operationFailed",

@@ -1,6 +1,5 @@
 import express from "express";
 import type { Plugin, RemoteContract } from "@manuelselch/pi-sdk/plugins";
-import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { PluginRpc } from "./transport/plugin-rpc.js";
 import { createPluginRuntime } from "./plugins/runtime.js";
 import { createServer, type Server } from "node:http";
@@ -14,7 +13,6 @@ import type { ProjectSessionLister } from "./projects/catalogue-types.js";
 import type { WorktreeRepository } from "./projects/worktree-discovery.js";
 import { WebSocketTransport } from "./transport/websocket-transport.js";
 import type { RuntimeAdapter, RuntimeAdapterFactory } from "./runtime/contracts.js";
-import type { FileService } from "@manuelselch/pi-plugin-file-opening/host";
 import type { FileLogger } from "./logging/file-logger.js";
 import type { RestartService } from "./bootstrap/restart-service.js";
 
@@ -36,7 +34,7 @@ export interface CatalogueOptions {
 }
 export interface ServerPluginServices {
   /** Available to handlers after server readiness, not during plugin setup. */
-  openFile(sessionId: string, path: string): Promise<FileOpenResult>;
+  getSession(sessionId: string): Promise<{ projectPath: string }>;
 }
 export interface PiServerOptions {
   /** Explicit built-in host plugins, activated once per server before readiness. */
@@ -47,7 +45,6 @@ export interface PiServerOptions {
   runtimeFactory?: RuntimeAdapterFactory;
   staticDirectory?: string;
   restart?: RestartService;
-  files?: Pick<FileService, "open">;
   logger?: FileLogger;
   catalogue?: CatalogueOptions;
 }
@@ -65,9 +62,9 @@ interface ServerResources {
 
 function createPluginServices(resources: ServerResources): ServerPluginServices {
   return {
-    openFile: (sessionId, path) => {
-      if (!resources.transport) return Promise.reject(new Error("Server application is not ready."));
-      return resources.transport.openFile(sessionId, path);
+    getSession: async sessionId => {
+      if (!resources.transport) throw new Error("Server application is not ready.");
+      return resources.transport.getSession(sessionId);
     },
   };
 }
@@ -116,7 +113,7 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
     teardown.unshift(async () => {
       if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
     });
-    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, undefined, options.files);
+    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart);
     resources.application = chat;
     teardown.push(() => { resources.application = undefined; return chat.dispose(); });
     const connection = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);

@@ -87,7 +87,7 @@ export class PiChatBrowserDriver {
       }
       const createServer = () => createPiServer({
         staticDirectory: resolve("dist/web"), runtimeFactory: world.factory, restart: options.restart,
-        plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin],
+        plugins: services => [createFileOpeningPlugin(services), folderOpeningPlugin],
         pluginRpcContracts: [fileOpeningContract, folderOpeningContract],
         catalogue: {
           lister: { listAll: () => world.listSessions() },

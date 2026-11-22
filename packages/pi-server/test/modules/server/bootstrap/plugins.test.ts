@@ -55,7 +55,7 @@ test("plugin service factories cannot use server actions during setup or after c
   const server = await createPiServer({ plugins: provided => {
     services = provided;
     return [definePlugin({ id: "service-lifetime", host: async () => ({ async setup() {
-      await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+      await expect(services.getSession("s")).rejects.toThrow("not ready");
       expect(services).not.toHaveProperty("browseDirectories");
       expect(calls.http).not.toHaveBeenCalled();
       expect(calls.chat).not.toHaveBeenCalled();
@@ -64,7 +64,7 @@ test("plugin service factories cannot use server actions during setup or after c
 
   await server.close();
 
-  await expect(services.openFile("s", "report.pdf")).rejects.toThrow("not ready");
+  await expect(services.getSession("s")).rejects.toThrow("not ready");
   expect(services).not.toHaveProperty("browseDirectories");
 });
 

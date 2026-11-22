@@ -1,4 +1,5 @@
-import { idSchema, operationSchemas, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
+import { z } from "zod";
+import { idSchema, filePathSchema, fileOpenResultSchema } from "@manuelselch/pi-sdk/protocol";
 import { defineRemoteContract, type RemoteContractClient } from "@manuelselch/pi-sdk/plugins";
 
 // Reuse existing validators; no new wire route is registered.
@@ -11,7 +12,7 @@ export const fileOpeningContract = defineRemoteContract({
   version: 1,
   methods: {
     open: {
-      input: operationSchemas["file.open"].params.extend({ sessionId: idSchema }),
+      input: z.object({ sessionId: idSchema, path: filePathSchema }),
       output: fileOpenResultSchema,
     },
   },

@@ -30,9 +30,7 @@ export const operationExamples: Record<Method, { params: object; result: object;
   "prompt.answer": { sessionId: "runtime", params: { promptId: "prompt", result: { cancelled: false, value: true } }, result: completed },
   "model.select": { sessionId: "runtime", params: { model: "p/m" }, result: settings },
   "thinking.level": { sessionId: "runtime", params: { level: "off" }, result: settings },
-  "directory.browse": { params: { path: "/p" }, result: { path: "/p", breadcrumbs: [], entries: [] } },
   "command.complete": { sessionId: "runtime", params: { commandName: "demo", argumentPrefix: "st" }, result: { items: [{ value: "staging", label: "Staging" }] } },
-  "file.open": { sessionId: "runtime", params: { path: "./report.pdf" }, result: completed },
   "plugin.call": { params: { contractId: "test-counter", contractVersion: 1, method: "increment", input: null }, result: { value: 1 } },
 };
 const eventData: Record<Event["event"], object> = {
@@ -223,6 +221,7 @@ export const domainExamples: { name: string; schema: string; input: unknown }[] 
   }
 ];
 export const invalidExamples: { name: string; schema: string; input: unknown }[] = [
+  ...["directory.browse", "file.open"].map(method => ({ name: `removed ${method} operation`, schema: "Request", input: { version: 2, type: "request", requestId: "removed", method, params: { path: "/project" }, ...(method === "file.open" ? { sessionId: "runtime" } : {}) } })),
   { name: "open result missing required theme", schema: "result.session.open", input: { summary, snapshot } },
   { name: "create result missing required theme", schema: "result.session.create", input: { summary, snapshot } },
   { name: "open result with null theme", schema: "result.session.open", input: { summary, snapshot, theme: null } },

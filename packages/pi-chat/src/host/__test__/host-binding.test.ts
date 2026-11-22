@@ -25,7 +25,7 @@ describe("server host binding", () => {
     await import("../index.js");
 
     const options = createServer.mock.calls[0]![0];
-    expect(options.plugins({ openFile: vi.fn(), browseDirectories: vi.fn() })).toEqual([
+    expect(options.plugins({ getSession: vi.fn() })).toEqual([
       expect.objectContaining({ id: "file-opening", host: expect.any(Function) }),
       expect.objectContaining({ id: "folder-opening", host: expect.any(Function) }),
     ]);

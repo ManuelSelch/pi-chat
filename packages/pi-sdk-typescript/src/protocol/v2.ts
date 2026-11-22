@@ -2,8 +2,6 @@ import { z } from "zod";
 import { promptPresentationShape, promptSubmissionSchema } from "./prompt-presentation.js";
 import { modelScopeSchema, validateModelScope } from "./model-scope.js";
 import { sessionThemeSchema } from "./theme.js";
-import { directoryBrowseSchema, directoryListingSchema } from "./directories.js";
-import { filePathSchema } from "./files.js";
 import { pluginCallParamsSchema, pluginCallResultSchema } from "./plugin-rpc.js";
 import {
   bashMessageSchema, toolCardSchema, skillInvocationSchema, thinkingLevelSchema, chatMessageSchema,
@@ -14,7 +12,7 @@ import {
 export const VERSION = 2 as const;
 export const idSchema = z.string().min(1).max(128).regex(/^[^\u0000-\u001f\u007f-\u009f]+$/);
 export const counterSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
-export const capabilitySchema = z.enum(["presentation", "directory.browse", "command.complete", "session.archive", "project.pin", "project.remove", "file.open", "server.restart", "plugin.call"]);
+export const capabilitySchema = z.enum(["presentation", "command.complete", "session.archive", "project.pin", "project.remove", "server.restart", "plugin.call"]);
 export type Capability = z.infer<typeof capabilitySchema>;
 export const errorSchema = z.object({ code: z.string().min(1).max(128), message: z.string().min(1), details: z.json().optional() });
 export type ProtocolError = z.infer<typeof errorSchema>;
@@ -91,9 +89,7 @@ export const operationSchemas = {
   "prompt.answer": session(z.object({ promptId: idSchema, result: promptResultSchema }), completedSchema),
   "model.select": session(z.object({ model: z.string().min(1) }), settingsSchema),
   "thinking.level": session(z.object({ level: thinkingLevelSchema }), settingsSchema),
-  "directory.browse": server(directoryBrowseSchema, directoryListingSchema, "directory.browse"),
   "command.complete": session(z.object({ commandName: z.string().min(1), argumentPrefix: z.string() }), z.object({ items: z.array(commandCompletionItemSchema) }), "command.complete"),
-  "file.open": session(z.object({ path: filePathSchema }), completedSchema, "file.open"),
 } as const;
 export type Method = keyof typeof operationSchemas;
 export type Params<M extends Method> = z.input<(typeof operationSchemas)[M]["params"]>;

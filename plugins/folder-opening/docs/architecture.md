@@ -29,4 +29,4 @@
 - The SDK validates output; the browser client turns safe failures into `SDKError` for the picker to display.
 - Unexpected filesystem exceptions become a generic `operationFailed` result; dispatcher/validation failures reject the RPC.
 - Contract and [named schemas](../src/schemas.ts) are shared by browser and host. Absent optional fields are omitted for JSON safety.
-- Server separately reuses the directory service for existing `directory.browse` and session-path validation; these paths do not activate or call the plugin RPC.
+- Browsing is available only through the activated, allowlisted plugin RPC. The original `directory.browse` wire operation is removed. Server owns independent project-path admission validation, not a directory-browser dependency.

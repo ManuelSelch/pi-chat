@@ -35,12 +35,11 @@ export class FileOpeningPluginDriver {
     let nextId = 0;
     const runtime = async (path: string) => new FileRuntime(`file-${++nextId}`, path);
     this.server = await createPiServer({
-      plugins: services => [createFileOpeningPlugin({ open: services.openFile })],
-      pluginRpcContracts: expose ? [fileOpeningContract] : [],
-      files: new FileService({ open: async path => {
+      plugins: services => [createFileOpeningPlugin(services, new FileService({ open: async path => {
         if (this.unsupported) throw new FileOpenError("unsupported", "Opening files on the server is currently supported only on macOS.");
         this.opened.push(path);
-      } }),
+      } }))],
+      pluginRpcContracts: expose ? [fileOpeningContract] : [],
       runtimeFactory: { newSession: runtime, continueProject: runtime, openSession: runtime },
       catalogue: { homeDirectory: null, lister: { listAll: async () => [] } },
     });
