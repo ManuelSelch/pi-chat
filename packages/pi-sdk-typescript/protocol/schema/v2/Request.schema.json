@@ -980,57 +980,6 @@
         },
         "method": {
           "type": "string",
-          "const": "extension.run"
-        },
-        "params": {
-          "type": "object",
-          "properties": {
-            "actionId": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-            }
-          },
-          "required": [
-            "actionId"
-          ]
-        },
-        "sessionId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-        }
-      },
-      "required": [
-        "version",
-        "type",
-        "requestId",
-        "method",
-        "params",
-        "sessionId"
-      ]
-    },
-    {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "number",
-          "const": 2
-        },
-        "type": {
-          "type": "string",
-          "const": "request"
-        },
-        "requestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-        },
-        "method": {
-          "type": "string",
           "const": "directory.browse"
         },
         "params": {

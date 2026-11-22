@@ -41,7 +41,6 @@ export function SettingsContainer() {
       setHideArchivedSessions={archivedSessions.setHide}
       transcriptDensity={transcript.density}
       setTranscriptDensity={transcript.setDensity}
-      runExtensionAction={chat.runExtensionAction}
     />
   );
 }

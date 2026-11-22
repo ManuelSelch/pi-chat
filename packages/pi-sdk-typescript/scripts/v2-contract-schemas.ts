@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { sessionThemeSchema } from "../src/protocol/theme.js";
-import { requestSchema, responseSchema, eventSchema, serverMessageSchema, snapshotSchema, initializeResultSchema, operationSchemas, messageSchema, extensionsSchema, presentationSchema, promptResultSchema } from "../src/protocol/v2.js";
+import { requestSchema, responseSchema, eventSchema, serverMessageSchema, snapshotSchema, initializeResultSchema, operationSchemas, messageSchema, presentationSchema, promptResultSchema } from "../src/protocol/v2.js";
 import { filePathSchema } from "../src/protocol/files.js";
 import { directoryBrowseSchema } from "../src/protocol/directories.js";
 import { thinkingLevelSchema } from "../src/protocol/models.js";
 
-export const domainSchemaSources = { SessionTheme: sessionThemeSchema, ChatMessage: messageSchema, ThinkingLevel: thinkingLevelSchema, ExtensionContributions: extensionsSchema, FooterItem: presentationSchema.shape.footer.element, PromptResult: promptResultSchema };
+export const domainSchemaSources = { SessionTheme: sessionThemeSchema, ChatMessage: messageSchema, ThinkingLevel: thinkingLevelSchema, FooterItem: presentationSchema.shape.footer.element, PromptResult: promptResultSchema };
 export const v2SchemaSources = {
   ...domainSchemaSources,
   Request: requestSchema, Response: responseSchema, Event: eventSchema, ServerMessage: serverMessageSchema,

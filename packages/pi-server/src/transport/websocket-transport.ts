@@ -39,12 +39,6 @@ export class WebSocketTransport {
     catch { return { ok: false as const, error: { code: "sessionUnavailable" as const, message: "This session is no longer available on the server." } }; }
     return this.chat.openFile(raw, path);
   }
-  /** `session.archive` for in-process extensions, published to all ready clients alike. */
-  async archiveSession(path: string): Promise<void> {
-    await this.chat.archiveSession(path, true);
-    this.publisher.inventoryChanged();
-    await this.publisher.refreshProjects(true);
-  }
   async close(): Promise<void> {
     this.unsubscribe();
     for (const socket of this.server.clients) socket.terminate();

@@ -1,15 +1,13 @@
 import { ActionIcon, AppShell, Group, Text } from "@mantine/core";
 import { IconArchive, IconChevronRight, IconClockPause, IconLayoutSidebar, IconPlus, IconX } from "@tabler/icons-react";
-import type { PiChatBadge, PiChatButton, Tab } from "../../../../types/view-types.js";
-import { Slot } from "../../../extensions/components/Slot.js";
+import type { Tab } from "../../../../types/view-types.js";
 import { InboxStatus } from "./InboxStatus.js";
 import styles from "./Inbox.module.css";
 
 interface InboxHeaderProps {
   session: Tab | undefined; branch: string | undefined; title: string | undefined;
   opened: boolean; disabled: boolean; pending: boolean; saved: boolean;
-  buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[];
-  onToggle(): void; onNew(): void; onPark(): void; onArchive(): void; onCloseView(): void; onAction(id: string): void;
+  onToggle(): void; onNew(): void; onPark(): void; onArchive(): void; onCloseView(): void;
 }
 export function InboxHeader(p: InboxHeaderProps) {
   const title = p.session ? p.branch?.trim() || p.title : p.title;
@@ -22,10 +20,6 @@ export function InboxHeader(p: InboxHeaderProps) {
       </div>
       {p.session && <>
         <span className={styles.headerStatus}><InboxStatus status={p.session.status} label /></span>
-        <div className={styles.headerExtras}>
-          <Slot name="session.status" buttons={p.buttons} badges={p.badges} onAction={p.onAction} />
-          <Slot name="session.header.right" buttons={p.buttons} badges={p.badges} onAction={p.onAction} />
-        </div>
         <div className={styles.headerActions}>
           {p.session.status !== "running" && <>
             <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Move current session to Later" disabled={p.disabled || p.pending || p.session.status !== "idle" || !p.saved} onClick={p.onPark}><IconClockPause size={17} /></ActionIcon>

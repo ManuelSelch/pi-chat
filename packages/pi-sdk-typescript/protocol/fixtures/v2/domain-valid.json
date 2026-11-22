@@ -120,39 +120,6 @@
     "input": "xhigh"
   },
   {
-    "name": "empty extension contributions",
-    "schema": "ExtensionContributions",
-    "input": {
-      "buttons": [],
-      "badges": [],
-      "state": {}
-    }
-  },
-  {
-    "name": "extension JSON values",
-    "schema": "ExtensionContributions",
-    "input": {
-      "state": {
-        "demo": {
-          "nothing": null,
-          "enabled": true,
-          "count": 3,
-          "text": "hello",
-          "array": [
-            false,
-            1.5,
-            {
-              "key": "value"
-            }
-          ]
-        }
-      },
-      "future": true,
-      "buttons": [],
-      "badges": []
-    }
-  },
-  {
     "name": "cancel question",
     "schema": "PromptResult",
     "input": {

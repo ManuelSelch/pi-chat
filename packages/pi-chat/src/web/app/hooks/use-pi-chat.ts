@@ -107,7 +107,6 @@ export function usePiChat() {
     setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
     compactSession: () => control((client) => client.compactSession(app.activeSessionId)),
     setThinkingLevel: (level: ThinkingLevel) => control((client) => client.setThinkingLevel(app.activeSessionId, level)),
-    runExtensionAction: (actionId: string, sessionId?: string) => control((client) => client.runExtensionAction(target(sessionId), actionId)),
     dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
   };
 }

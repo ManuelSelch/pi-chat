@@ -8,7 +8,6 @@ import { join } from 'node:path';
 const directory = await mkdtemp(join(tmpdir(), 'pi-server-api-'));
 process.env.PI_CODING_AGENT_DIR = join(directory, 'agent');
 const api = await import('../dist/index.js');
-const extensions = await import('../dist/extensions.js');
 const plugins = await import('../dist/plugins.js');
 const { definePlugin } = await import('@manuelselch/pi-sdk/plugins');
 const testing = await import('../dist/testing/index.js');
@@ -19,8 +18,7 @@ try {
     for (const name of ['createPiServer', 'createPiRuntimeAdapter', 'createRestartService', 'createFileLogger']) assert.equal(typeof api[name], 'function');
     for (const name of ['ChatApplicationService', 'WebSocketTransport', 'PiRuntimeAdapter', 'ProjectSessionService']) assert.equal(api[name], undefined);
     assert.equal(typeof plugins.createPluginRuntime, 'function');
-    assert.equal(extensions.resetPiChatExtensionRegistryForTests, undefined);
-    assert.equal(typeof testing.resetPiChatExtensionRegistryForTests, 'function');
+    assert.equal(testing.resetPiChatExtensionRegistryForTests, undefined);
     assert.equal(typeof testing.snapshotData, 'function');
   });
   await test('headless public host initializes the SDK without creating a runtime', async () => {
@@ -31,17 +29,6 @@ try {
       server.assertNoRuntimesCreated();
       await server.createAndCloseRuntime();
     });
-  });
-  await test('public extension registrations reach the host and retain global identity', async () => {
-    testing.resetPiChatExtensionRegistryForTests();
-    const registry = extensions.getPiChatExtensionRegistry();
-    assert.equal(registry, globalThis[Symbol.for('pi-chat.extension-registry')]);
-    registry.registerBadge({ id: 'package', label: 'Package', slot: 'session.status' });
-    await ServerDriver.run(directory, async server => {
-      await server.connect();
-      await server.assertExtensionBadge('package');
-    });
-    testing.resetPiChatExtensionRegistryForTests();
   });
   await test('explicit embedding assets support SPA fallback', async () => {
     const assets = join(directory, 'web');

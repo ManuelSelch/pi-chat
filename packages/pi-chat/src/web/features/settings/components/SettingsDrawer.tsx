@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
 import { Button, Drawer, Select, Stack, Switch } from "@mantine/core";
-import { IconBrain, IconPuzzle, IconAdjustments } from "@tabler/icons-react";
+import { IconBrain, IconAdjustments } from "@tabler/icons-react";
 import type { ThinkingLevel } from "../../../types/view-types.js";
 import type { ChatState } from "../../../app/stores/chat-state.js";
-import { Slot } from "../../extensions/components/Slot.js";
 import { SectionHeader } from "../../../components/SectionHeader.js";
 import { Panel } from "../../../components/Panel.js";
 import { useComposerFocusReturn } from "../../../hooks/composer-focus.js";
@@ -29,19 +28,14 @@ interface SettingsDrawerProps {
   setHideArchivedSessions: (value: boolean) => void;
   transcriptDensity: "comfortable" | "compact";
   setTranscriptDensity: (value: "comfortable" | "compact") => void;
-  runExtensionAction: (actionId: string) => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, pluginFeatureToggles, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, runExtensionAction, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, pluginFeatureToggles, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
   const compactFeature = state.actions.features.find((feature) => feature.id === "session.compact");
   const hasSessionControls = Boolean(thinkingFeature) || Boolean(modelFeature) || Boolean(compactFeature);
-  // Extensions place their own controls here, so the section only exists once one registered something.
-  const hasExtensionControls =
-    state.extensions.buttons.some((button) => button.slot === "settings.section") ||
-    state.extensions.badges.some((badge) => badge.slot === "settings.section");
 
   return (
     <Drawer {...focusReturn} opened={opened} onClose={onClose} title="Settings" size="md" position="right">
@@ -108,18 +102,6 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, v
             />
           </div>
         </Panel>
-
-        {hasExtensionControls ? (
-          <Panel>
-            <SectionHeader icon={<IconPuzzle size={16} />}>Extensions</SectionHeader>
-            <Slot
-              name="settings.section"
-              buttons={state.extensions.buttons}
-              badges={state.extensions.badges}
-              onAction={runExtensionAction}
-            />
-          </Panel>
-        ) : null}
 
         <Panel>
           <div role="group" aria-label="Backend server">

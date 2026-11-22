@@ -37,7 +37,7 @@ describe.each(["session.open", "session.create"] as const)("%s theme result", me
 it("does not add theme to summaries, snapshots, presentation or initialization", () => {
   const snapshot = snap();
   expect(snapshotSchema.parse({ ...snapshot, theme: themeFixture })).not.toHaveProperty("theme");
-  expect(presentationSchema.parse({ revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} }, theme: themeFixture })).not.toHaveProperty("theme");
+  expect(presentationSchema.parse({ revision: 0, widgets: [], footer: [], theme: themeFixture })).not.toHaveProperty("theme");
   expect(initializeResultSchema.parse({ ...initialized(), theme: themeFixture })).not.toHaveProperty("theme");
   const result = operationSchemas["session.open"].result.parse({ summary: { ...summary(), theme: themeFixture }, snapshot, theme: themeFixture });
   expect(result.summary).not.toHaveProperty("theme");

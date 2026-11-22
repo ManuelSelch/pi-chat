@@ -82,7 +82,6 @@ export async function executeOperation(command: Exclude<Request, Request<"server
         if (chat.captureSnapshot(raw!).isStreaming) throw new V2OperationError("sessionBusy", "Stop the current run before compacting.");
         return accepted(() => finishWork(() => chat.runFeature({ type: "runFeature", sessionId: raw!, featureId: "session.compact", input: {} })));
       case "session.reload": return accepted(() => finishWork(() => chat.reloadSession(raw!)));
-      case "extension.run": return accepted(() => finishWork(() => chat.runFeature({ type: "runExtensionAction", sessionId: raw!, actionId: command.params.actionId })));
       case "server.restart": return accepted(async () => {
         publisher.stopping();
         await chat.runFeature({ type: "runFeature", sessionId: "app", featureId: "app.restart", input: {} });

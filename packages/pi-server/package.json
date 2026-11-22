@@ -32,7 +32,6 @@
     "docs/ARCHITECTURE.md",
     "docs/architecture.drawio",
     "docs/CONFIGURATION.md",
-    "docs/EXTENSIONS.md",
     "docs/PLUGINS.md",
     "docs/PROTOCOL.md"
   ],
@@ -44,10 +43,6 @@
     "./plugins": {
       "types": "./dist/plugins.d.ts",
       "import": "./dist/plugins.js"
-    },
-    "./extensions": {
-      "types": "./dist/extensions.d.ts",
-      "import": "./dist/extensions.js"
     },
     "./testing": {
       "types": "./dist/testing/index.d.ts",

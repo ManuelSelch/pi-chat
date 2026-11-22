@@ -5,7 +5,6 @@
 //
 //   let chatMessage = try? JSONDecoder().decode(ChatMessage.self, from: jsonData)
 //   let thinkingLevel = try? JSONDecoder().decode(ThinkingLevel.self, from: jsonData)
-//   let extensionContributions = try? JSONDecoder().decode(ExtensionContributions.self, from: jsonData)
 //   let footerItem = try? JSONDecoder().decode(FooterItem.self, from: jsonData)
 //   let promptResult = try? JSONDecoder().decode(PromptResult.self, from: jsonData)
 
@@ -152,107 +151,6 @@ enum ThinkingLevel: String, Codable {
     case minimal = "minimal"
     case off = "off"
     case xhigh = "xhigh"
-}
-
-// MARK: - ExtensionContributions
-struct ExtensionContributions: Codable {
-    let badges: [Badge]
-    let buttons: [Button]
-    let state: [String: ExtensionContribution]
-
-    enum CodingKeys: String, CodingKey {
-        case badges = "badges"
-        case buttons = "buttons"
-        case state = "state"
-    }
-}
-
-// MARK: - Badge
-struct Badge: Codable {
-    let id: String
-    let label: String
-    let slot: String
-    let tone: String
-
-    enum CodingKeys: String, CodingKey {
-        case id = "id"
-        case label = "label"
-        case slot = "slot"
-        case tone = "tone"
-    }
-}
-
-// MARK: - Button
-struct Button: Codable {
-    let actionID: String
-    let icon: String?
-    let id: String
-    let label: String
-    let slot: String
-
-    enum CodingKeys: String, CodingKey {
-        case actionID = "actionId"
-        case icon = "icon"
-        case id = "id"
-        case label = "label"
-        case slot = "slot"
-    }
-}
-
-enum ExtensionContribution: Codable {
-    case bool(Bool)
-    case double(Double)
-    case string(String)
-    case unionArray([ExtensionContribution])
-    case unionMap([String: ExtensionContribution])
-    case null
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let x = try? container.decode(Bool.self) {
-            self = .bool(x)
-            return
-        }
-        if let x = try? container.decode([ExtensionContribution].self) {
-            self = .unionArray(x)
-            return
-        }
-        if let x = try? container.decode(Double.self) {
-            self = .double(x)
-            return
-        }
-        if let x = try? container.decode([String: ExtensionContribution].self) {
-            self = .unionMap(x)
-            return
-        }
-        if let x = try? container.decode(String.self) {
-            self = .string(x)
-            return
-        }
-        if container.decodeNil() {
-            self = .null
-            return
-        }
-        throw DecodingError.typeMismatch(ExtensionContribution.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for ExtensionContribution"))
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case .bool(let x):
-            try container.encode(x)
-        case .double(let x):
-            try container.encode(x)
-        case .string(let x):
-            try container.encode(x)
-        case .unionArray(let x):
-            try container.encode(x)
-        case .unionMap(let x):
-            try container.encode(x)
-        case .null:
-            try container.encodeNil()
-        }
-    }
 }
 
 // MARK: - FooterItem

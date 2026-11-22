@@ -36,7 +36,7 @@ describe("v2 contract", () => {
   });
   it("accepts unknown optional widget placements without weakening required lines", () => {
     expect(eventSchema.parse(presentationEvent({ widgets: [{ key: "w", placement: "future", lines: ["text"] }] }, "s", 1))).toMatchObject({ event: "presentation.changed" });
-    expect(eventSchema.safeParse({ ...presentationEvent({}, "s", 1), data: { revision: 1, widgets: [{ key: "w", placement: "aboveEditor", lines: [1] }], footer: [], extensions: { buttons: [], badges: [], state: {} } } }).success).toBe(false);
+    expect(eventSchema.safeParse({ ...presentationEvent({}, "s", 1), data: { revision: 1, widgets: [{ key: "w", placement: "aboveEditor", lines: [1] }], footer: [] } }).success).toBe(false);
   });
   it("validates successes using the pending method and rejects old uncorrelated reply families", () => {
     expect(parseResponse("server.ping", { version: 2, type: "response", requestId: "r", ok: true, result: { state: "completed" } })).toMatchObject({ ok: true });

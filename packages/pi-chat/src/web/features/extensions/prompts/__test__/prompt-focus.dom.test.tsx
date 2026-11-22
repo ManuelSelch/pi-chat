@@ -39,7 +39,7 @@ beforeEach(() => {
     request: async () => { throw new Error("SDK requests are not configured in this fixture."); }, prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn().mockResolvedValue(undefined),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(), pinProject: vi.fn(), removeProject: vi.fn(), setModel: vi.fn(), compactSession: vi.fn(),
-    setThinkingLevel: vi.fn(), runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
+    setThinkingLevel: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

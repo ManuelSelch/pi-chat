@@ -68,7 +68,7 @@ it("ignores old process events and prevents closed identities being recreated", 
   expect(t.client.getSession("s")).toBeUndefined(); t.client.dispose();
 });
 it("accepts additive data and unknown optional rendering hints without corrupting core state", () => {
-  const t = setup(); const s = snap(); s.presentation = { revision: 3, widgets: [{ key: "w", placement: "future-slot", lines: ["text"] }], footer: [], extensions: { buttons: [], badges: [], state: {} } };
+  const t = setup(); const s = snap(); s.presentation = { revision: 3, widgets: [{ key: "w", placement: "future-slot", lines: ["text"] }], footer: [] };
   t.reply({ ...initialized([s]), additive: true }); expect(t.client.getSession("s")?.widgets[0]?.placement).toBe("future-slot"); t.client.dispose();
 });
 it("bounds pending requests and rejects unsent work locally", async () => {
@@ -108,7 +108,7 @@ it.each(["session.open", "session.create"] as const)("caches the %s palette sepa
   expect(t.client.getState().themes.s).toEqual(themeFixture);
   expect(Object.isFrozen(t.client.getState().themes.s?.colors)).toBe(true);
   t.socket.message({ ...event("session.snapshot", snap("s", 2)), sessionId: "s" });
-  t.socket.message({ ...event("presentation.changed", { revision: 1, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} } }), sessionId: "s" });
+  t.socket.message({ ...event("presentation.changed", { revision: 1, widgets: [], footer: [] }), sessionId: "s" });
   const reload = t.client.reloadSession("s"); t.reply({ state: "accepted", operationId: "reload" }); await reload;
   expect(t.client.getState().themes.s).toEqual(themeFixture);
   expect(t.requests().map(request => request.method)).toEqual(["server.initialize", method, "session.reload"]);

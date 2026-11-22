@@ -17,15 +17,6 @@
   overflow: hidden;
 }
 .headerStatus { flex-shrink: 0; font-size: var(--mantine-font-size-xs); color: var(--mantine-color-dimmed); }
-.headerExtras {
-  display: flex;
-  gap: 8px;
-  min-width: 0;
-  max-width: 25%;
-  flex: 0 1 auto;
-  overflow-x: auto;
-}
-.headerExtras:empty { display: none; }
 .headerActions { display: flex; align-items: center; flex-shrink: 0; gap: 4px; }
 .headerActions > * { flex-shrink: 0; }
 .actions {

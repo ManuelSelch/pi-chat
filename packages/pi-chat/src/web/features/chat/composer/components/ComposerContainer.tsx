@@ -226,7 +226,6 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
         footerItems,
         widgetsAbove,
         widgetsBelow,
-        extensions: state.extensions,
       }}
       actions={{
         takeControl: chat.takeControl,
@@ -238,7 +237,6 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
         submit,
         setActiveCommand,
         runMenuItem,
-        runExtensionAction: chat.runExtensionAction,
       }}
       footerRef={footerRef}
       composerRef={composerRef}

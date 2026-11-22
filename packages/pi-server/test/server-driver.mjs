@@ -60,10 +60,6 @@ export class ServerDriver {
     await this.client.closeSession(id);
     assert.equal(this.client.getSession(id), undefined);
   }
-  async assertExtensionBadge(id) {
-    const runtime = await this.client.createSession(this.directory);
-    assert.ok(this.client.getSession(runtime).extensions.badges.some(badge => badge.id === id));
-  }
   async close() {
     this.client?.dispose();
     if (this.server) {

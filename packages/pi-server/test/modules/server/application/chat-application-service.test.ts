@@ -3,7 +3,6 @@ import { mkdtemp, writeFile, symlink, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ChatApplicationService } from "../../../../src/application/chat-application-service.js";
-import { createPiChatExtensionRegistry } from "../../../../src/extensions/extension-registry.js";
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 
 function service(archiveSpy = vi.fn(async () => {})) {
@@ -111,55 +110,6 @@ describe("closing the last tab", () => {
     await chat.openSession("/sessions/project/other.jsonl");
 
     expect(chat.openSessionIds()).toHaveLength(1);
-  });
-});
-
-describe("Pi Chat extension registry integration", () => {
-  it("adds extension buttons to snapshots and runs extension actions", async () => {
-    const runtime = new FakeRuntimeAdapter();
-    const extensions = createPiChatExtensionRegistry();
-    extensions.registerButton({ id: "demo", slot: "composer.right", label: "Demo", actionId: "demo.sayHello" });
-    extensions.registerAction({ id: "demo.sayHello", title: "Say hello", run: (ctx) => ctx.notify("Demo action clicked") });
-    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
-    const chat = new ChatApplicationService(runtime, {
-      continueProject: async () => new FakeRuntimeAdapter(),
-      openSession: async () => new FakeRuntimeAdapter(),
-      newSession: async () => new FakeRuntimeAdapter(),
-    }, projectSessions, undefined, extensions);
-    const notifications: string[] = [];
-    chat.subscribe((_sessionId, event) => { if (event.type === "notification") notifications.push(event.message); });
-
-    await expect(chat.snapshot()).resolves.toMatchObject({ extensions: { buttons: [{ id: "demo" }] } });
-    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: chat.openSessionIds()[0]!, actionId: "demo.sayHello" });
-
-    expect(notifications).toEqual(["Demo action clicked"]);
-  });
-
-  // Without this an extension had to capture `ctx.ui` from `session_start` and
-  // keep it, which with several sessions open meant asking in whichever session
-  // started last — or in a closed one.
-  it("gives an action the dialog surface of the session it was run from", async () => {
-    const runtime = new FakeRuntimeAdapter();
-    const second = new FakeRuntimeAdapter("second-session");
-    const extensions = createPiChatExtensionRegistry();
-    const surfaces: unknown[] = [];
-    extensions.registerAction({ id: "demo.ask", title: "Ask", run: (ctx) => void surfaces.push(ctx.ui) });
-    const projectSessions = { catalogue: async () => ({ projects: [] }), delete: vi.fn() } as any;
-    const chat = new ChatApplicationService(runtime, {
-      continueProject: async () => new FakeRuntimeAdapter(),
-      openSession: async () => second,
-      newSession: async () => second,
-    }, projectSessions, undefined, extensions);
-
-    const openedId = await chat.openSession("second-session.jsonl");
-    expect(openedId).not.toBe(runtime.snapshot().sessionId);
-
-    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: openedId, actionId: "demo.ask" });
-    await chat.runFeature({ version: 1, type: "runExtensionAction", sessionId: "no-such-session", actionId: "demo.ask" });
-
-    expect(surfaces[0]).toBe(second.uiContext());
-    // The home screen has no session to open a modal in.
-    expect(surfaces[1]).toBeUndefined();
   });
 });
 

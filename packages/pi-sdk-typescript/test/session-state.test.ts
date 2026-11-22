@@ -39,7 +39,7 @@ it("keeps structured model/thinking settings authoritative independently of foot
   expect(next.actions.features.find(feature => feature.id === "thinking.level")?.state).toEqual({ value: "high", options: ["off", "high"] });
 });
 it("revisions optional presentation independently from core sequences", () => {
-  const presentation = { revision: 10, widgets: [{ key: "w", placement: "future", lines: ["data"] }], footer: [], extensions: { buttons: [], badges: [], state: {} } };
+  const presentation = { revision: 10, widgets: [{ key: "w", placement: "future", lines: ["data"] }], footer: [] };
   const state = reduce(undefined, { ...event("presentation.changed", presentation), sessionId: "s" }); expect(state.sequence).toBe(0); expect(state.widgets).toEqual(presentation.widgets);
   expect(reduce(state, { ...event("presentation.changed", { ...presentation, revision: 9, widgets: [] }), sessionId: "s" })).toBe(state);
 });

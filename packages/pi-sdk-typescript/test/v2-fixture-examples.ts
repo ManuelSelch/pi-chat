@@ -2,7 +2,7 @@ import type { Event, Method } from "../src/protocol/v2.js";
 import { themeFixture } from "./theme-fixture.js";
 
 const settings = { model: "p/m", availableModels: ["p/m"], thinkingLevel: "off", availableThinkingLevels: ["off"] };
-const presentation = { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: { demo: { value: [null, true, 1, "text"] } } } };
+const presentation = { revision: 0, widgets: [], footer: [] };
 const summary = { sessionId: "runtime", title: "Example", projectPath: "/p", projectName: "p", status: "idle" };
 const snapshot = { sessionId: "runtime", throughSequence: 0, projectPath: "/p", messages: [], runtime: { status: "idle" }, steeringMessages: [], settings, commands: [], prompts: [], presentation };
 const inventory = { revision: 0, sessions: [summary] };
@@ -30,7 +30,6 @@ export const operationExamples: Record<Method, { params: object; result: object;
   "prompt.answer": { sessionId: "runtime", params: { promptId: "prompt", result: { cancelled: false, value: true } }, result: completed },
   "model.select": { sessionId: "runtime", params: { model: "p/m" }, result: settings },
   "thinking.level": { sessionId: "runtime", params: { level: "off" }, result: settings },
-  "extension.run": { sessionId: "runtime", params: { actionId: "demo.action" }, result: accepted },
   "directory.browse": { params: { path: "/p" }, result: { path: "/p", breadcrumbs: [], entries: [] } },
   "command.complete": { sessionId: "runtime", params: { commandName: "demo", argumentPrefix: "st" }, result: { items: [{ value: "staging", label: "Staging" }] } },
   "file.open": { sessionId: "runtime", params: { path: "./report.pdf" }, result: completed },
@@ -167,39 +166,6 @@ export const domainExamples: { name: string; schema: string; input: unknown }[] 
     "name": "thinking enum",
     "schema": "ThinkingLevel",
     "input": "xhigh"
-  },
-  {
-    "name": "empty extension contributions",
-    "schema": "ExtensionContributions",
-    "input": {
-      "buttons": [],
-      "badges": [],
-      "state": {}
-    }
-  },
-  {
-    "name": "extension JSON values",
-    "schema": "ExtensionContributions",
-    "input": {
-      "state": {
-        "demo": {
-          "nothing": null,
-          "enabled": true,
-          "count": 3,
-          "text": "hello",
-          "array": [
-            false,
-            1.5,
-            {
-              "key": "value"
-            }
-          ]
-        }
-      },
-      "future": true,
-      "buttons": [],
-      "badges": []
-    }
   },
   {
     "name": "cancel question",

@@ -1,5 +1,5 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
-import type { SessionTheme, ActionRegistry, CommandCompletionItem, ChatMessage, FooterItem, PiChatExtensions, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "@manuelselch/pi-sdk/protocol";
+import type { SessionTheme, ActionRegistry, CommandCompletionItem, ChatMessage, FooterItem, ThinkingLevel, ToolCard, UiPrompt, UiPromptResult, Widget } from "@manuelselch/pi-sdk/protocol";
 
 export type RuntimeEvent =
   | { type: "assistantDelta"; runId: string; delta: string }
@@ -34,7 +34,6 @@ export interface RuntimeSnapshot {
    */
   footer: FooterItem[];
   /** Declarative Pi Chat web extension contributions such as slot buttons. */
-  extensions?: PiChatExtensions;
   /**
    * How the last turn failed, kept until the next one starts. A snapshot that
    * omitted it erased the message the browser had just shown, which is why a

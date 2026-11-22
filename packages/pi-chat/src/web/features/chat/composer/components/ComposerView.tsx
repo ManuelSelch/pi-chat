@@ -7,8 +7,7 @@ import { CommandMenu } from "./CommandMenu.js";
 import type { MenuItem } from "../utils/command-menu.js";
 import { RuntimeFooter } from "../../../extensions/footer/components/RuntimeFooter.js";
 import { WidgetPanel } from "../../../extensions/widgets/components/WidgetPanel.js";
-import { Slot } from "../../../extensions/components/Slot.js";
-import type { FooterItem, PiChatBadge, PiChatButton, Widget } from "../../../../types/view-types.js";
+import type { FooterItem, Widget } from "../../../../types/view-types.js";
 
 export interface ComposerViewModel {
   home: boolean;
@@ -27,7 +26,6 @@ export interface ComposerViewModel {
   footerItems: FooterItem[];
   widgetsAbove: readonly Widget[];
   widgetsBelow: readonly Widget[];
-  extensions: { buttons: readonly PiChatButton[]; badges: readonly PiChatBadge[] };
 }
 
 export interface ComposerViewActions {
@@ -40,7 +38,6 @@ export interface ComposerViewActions {
   submit(event?: FormEvent): void;
   setActiveCommand(index: number): void;
   runMenuItem(item: MenuItem): void;
-  runExtensionAction(actionId: string): void;
 }
 
 interface ComposerViewProps {
@@ -51,7 +48,7 @@ interface ComposerViewProps {
 }
 
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
-  const { home, connection, connecting, loading, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow, extensions } = model;
+  const { home, connection, connecting, loading, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow } = model;
   const menuOpen = matches.length > 0;
   const bashInput = input.trimStart().startsWith("!");
 
@@ -147,12 +144,10 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
               flex={1}
               styles={{ input: { padding: "8px 10px" } }}
             />
-            <Slot name="composer.right" buttons={extensions.buttons} badges={extensions.badges} onAction={actions.runExtensionAction} />
           </Group>
         </Paper>
         {widgetsBelow.length > 0 ? <Box mt="xs"><WidgetPanel widgets={widgetsBelow} /></Box> : null}
         <Box mt={6} pl={12}>
-          <Slot name="composer.below" buttons={extensions.buttons} badges={extensions.badges} onAction={actions.runExtensionAction} />
         </Box>
         <RuntimeFooter items={footerItems} />
       </Container>

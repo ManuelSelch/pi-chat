@@ -3,7 +3,7 @@ import { InputData, JSONSchemaInput, quicktype } from "quicktype-core";
 
 export async function generateSwiftProbe(): Promise<string> {
   const input = new JSONSchemaInput(undefined);
-  for (const name of ["ChatMessage", "ThinkingLevel", "ExtensionContributions", "FooterItem", "PromptResult"]) {
+  for (const name of ["ChatMessage", "ThinkingLevel", "FooterItem", "PromptResult"]) {
     const schema = await readFile(new URL(`../protocol/schema/v2/${name}.schema.json`, import.meta.url), "utf8");
     await input.addSource({ name, schema });
   }

@@ -79,7 +79,6 @@ Unknown methods or unsupported optional operations return an explicit error. Ses
 
 | Method | Scope / input | Response meaning |
 |---|---|---|
-| `extension.run` | Session; `actionId` | Accepted operation receipt |
 
 ### 4.4 Optional capability operations
 
@@ -117,7 +116,7 @@ Paths refer to the server. `file.open` opens there, not on iOS. Removing a proje
 - `session.list.changed` and `project.list.changed` carry complete replacement views with independent revisions. Optional `presentation.changed` also uses its own revision, not the core sequence, so capability filtering creates no gaps.
 - Reconnect repeats initialization and receives current state, not missed-event replay. Drop obsolete socket callbacks and incomplete drafts; reconcile local navigation against inventory. Retain the client's selected runtime if it remains in the complete inventory; otherwise select the first inventory entry in server order, or show Home when empty. Focus is never sent to the server. Transient notifications and operation outcomes may be lost.
 - The current draft does not guarantee recovering an unfinished answer's already-streamed prefix. Clients may show running state until a complete final message arrives. Complete current-draft snapshots remain a review question.
-- Runtime errors survive snapshots until new execution begins. Optional widgets/footer/slots are rendering hints; core settings must not be parsed from formatted UI text.
+- Runtime errors survive snapshots until new execution begins. Optional widgets/footer are rendering hints; core settings must not be parsed from formatted UI text.
 
 ### Server events
 
@@ -282,7 +281,6 @@ interface Presentation {
   revision: number;
   widgets: Widget[];
   footer: FooterItem[];
-  extensions: ExtensionContributions;
 }
 
 interface Widget {
@@ -296,30 +294,6 @@ interface FooterItem {
   text: string;
   align: "left" | "right";
   variant: "badge" | "plain";
-}
-
-type Slot = "session.header.right" | "composer.right" | "composer.below"
-  | "session.status" | "settings.section";
-
-interface ExtensionContributions {
-  buttons: ExtensionButton[];
-  badges: ExtensionBadge[];
-  state: Record<string, JsonValue>; // Namespaced by extension.
-}
-
-interface ExtensionButton {
-  id: string;
-  slot: Slot;
-  label: string;
-  icon?: string;
-  actionId: string; // Invoked through extension.run.
-}
-
-interface ExtensionBadge {
-  id: string;
-  slot: Slot;
-  label: string;
-  tone: "neutral" | "green" | "yellow" | "red";
 }
 
 type JsonValue = null | boolean | number | string | JsonValue[]
@@ -397,7 +371,7 @@ Arbitrary `ui.custom()` components, component-factory widgets, raw terminal inpu
 
 Implemented v2 cutover decisions:
 
-- Treat the known presentation placements/slots/styles in section 6 as rendering hints, not closed core variants. The wire schemas accept future hint strings; clients ignore unsupported hints/contributions without rejecting required session state.
+- Treat the known presentation placements/styles in section 6 as rendering hints, not closed core variants. The wire schemas accept future hint strings; clients ignore unsupported hints/contributions without rejecting required session state.
 - Use the custom envelopes in section 3 and wire version **2**, not JSON-RPC. Responses carry no method; SDK correlation validates the successful result against the original request's method-specific schema. Error codes are open strings so new structured failures remain readable.
 - Negotiate requested optional capability names by intersection. Unknown requested optional names are ignored; unselected optional operations return `unsupportedOperation`. Unknown core methods return `unsupportedOperation`; malformed known requests return `invalidRequest`.
 - Validate identity/scope/capabilities and admission guards before acceptance. Enqueue the accepted response before invoking the admitted asynchronous work, so synchronous Pi callbacks cannot overtake it. Work still runs directly through Pi; no new scheduler or durable journal is introduced. A later handoff/execution failure produces `operation.finished`, never a second response. Steering settlement means Pi accepted the submission, not that the active run finished.

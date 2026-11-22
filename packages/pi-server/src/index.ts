@@ -7,7 +7,6 @@ import { createServer, type Server } from "node:http";
 import { resolve } from "node:path";
 import type { AgentSessionRuntime } from "@earendil-works/pi-coding-agent";
 import { ChatApplicationService } from "./application/chat-application-service.js";
-import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "./extensions/extension-registry.js";
 import { PiRuntimeAdapter } from "./runtime/pi/pi-runtime-adapter.js";
 import { ProjectSessionService } from "./projects/project-session-service.js";
 import { ProjectMetadataStore } from "./projects/project-metadata-store.js";
@@ -48,7 +47,6 @@ export interface PiServerOptions {
   runtimeFactory?: RuntimeAdapterFactory;
   staticDirectory?: string;
   restart?: RestartService;
-  extensions?: PiChatExtensionRegistry;
   files?: Pick<FileService, "open">;
   logger?: FileLogger;
   catalogue?: CatalogueOptions;
@@ -118,15 +116,12 @@ export async function createPiServer(options: PiServerOptions = {}): Promise<PiS
     teardown.unshift(async () => {
       if (httpServer.listening) await new Promise<void>((done, reject) => httpServer.close(error => error ? reject(error) : done()));
     });
-    const extensions = options.extensions ?? getPiChatExtensionRegistry();
-    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, extensions, undefined, options.files);
+    const chat = new ChatApplicationService(options.runtime, factory, projects, options.restart, undefined, options.files);
     resources.application = chat;
     teardown.push(() => { resources.application = undefined; return chat.dispose(); });
     const connection = new WebSocketTransport(httpServer, chat, options.logger, pluginRpc);
     resources.transport = connection;
     teardown.unshift(() => { resources.transport = undefined; return connection.close(); });
-    const releaseSessionHost = extensions.bindSessionHost({ archive: path => connection.archiveSession(path) });
-    teardown.unshift(releaseSessionHost);
     let closing: Promise<void> | undefined;
     return { httpServer, close() {
       return closing ??= (async () => {

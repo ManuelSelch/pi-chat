@@ -144,7 +144,6 @@ export class PiClient {
   setThinkingLevel(id: string, level: ThinkingLevel) { return this.request("thinking.level", { level }, id); }
   compactSession(id: string) { return this.request("session.compact", {}, id); }
   reloadSession(id: string) { return this.request("session.reload", {}, id); }
-  runExtensionAction(id: string, actionId: string) { return this.request("extension.run", { actionId }, id); }
   restartServer() { return this.request("server.restart", {}); }
   async closeSession(id: string): Promise<void> { await this.request("session.close", {}, id); }
   async openSession(sessionPath: string, options: RequestOptions = {}): Promise<string> { return (await this.request("session.open", { sessionPath }, undefined, options)).snapshot.sessionId; }

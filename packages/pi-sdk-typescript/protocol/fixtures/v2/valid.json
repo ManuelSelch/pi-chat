@@ -73,21 +73,7 @@
               "presentation": {
                 "revision": 0,
                 "widgets": [],
-                "footer": [],
-                "extensions": {
-                  "buttons": [],
-                  "badges": [],
-                  "state": {
-                    "demo": {
-                      "value": [
-                        null,
-                        true,
-                        1,
-                        "text"
-                      ]
-                    }
-                  }
-                }
+                "footer": []
               }
             }
           ]
@@ -220,21 +206,7 @@
             "presentation": {
               "revision": 0,
               "widgets": [],
-              "footer": [],
-              "extensions": {
-                "buttons": [],
-                "badges": [],
-                "state": {
-                  "demo": {
-                    "value": [
-                      null,
-                      true,
-                      1,
-                      "text"
-                    ]
-                  }
-                }
-              }
+              "footer": []
             }
           },
           "theme": {
@@ -326,21 +298,7 @@
             "presentation": {
               "revision": 0,
               "widgets": [],
-              "footer": [],
-              "extensions": {
-                "buttons": [],
-                "badges": [],
-                "state": {
-                  "demo": {
-                    "value": [
-                      null,
-                      true,
-                      1,
-                      "text"
-                    ]
-                  }
-                }
-              }
+              "footer": []
             }
           },
           "theme": {
@@ -464,21 +422,7 @@
           "presentation": {
             "revision": 0,
             "widgets": [],
-            "footer": [],
-            "extensions": {
-              "buttons": [],
-              "badges": [],
-              "state": {
-                "demo": {
-                  "value": [
-                    null,
-                    true,
-                    1,
-                    "text"
-                  ]
-                }
-              }
-            }
+            "footer": []
           }
         }
       },
@@ -930,47 +874,11 @@
       }
     },
     {
-      "method": "extension.run",
-      "request": {
-        "version": 2,
-        "type": "request",
-        "requestId": "request-19",
-        "method": "extension.run",
-        "params": {
-          "actionId": "demo.action"
-        },
-        "sessionId": "runtime"
-      },
-      "response": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-19",
-        "ok": true,
-        "result": {
-          "state": "accepted",
-          "operationId": "operation"
-        }
-      },
-      "rejection": {
-        "version": 2,
-        "type": "response",
-        "requestId": "request-19",
-        "ok": false,
-        "error": {
-          "code": "operationFailed",
-          "message": "Rejected",
-          "details": {
-            "retry": false
-          }
-        }
-      }
-    },
-    {
       "method": "directory.browse",
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-20",
+        "requestId": "request-19",
         "method": "directory.browse",
         "params": {
           "path": "/p"
@@ -979,7 +887,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-20",
+        "requestId": "request-19",
         "ok": true,
         "result": {
           "path": "/p",
@@ -990,7 +898,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-20",
+        "requestId": "request-19",
         "ok": false,
         "error": {
           "code": "operationFailed",
@@ -1006,7 +914,7 @@
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-21",
+        "requestId": "request-20",
         "method": "command.complete",
         "params": {
           "commandName": "demo",
@@ -1017,7 +925,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-21",
+        "requestId": "request-20",
         "ok": true,
         "result": {
           "items": [
@@ -1031,7 +939,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-21",
+        "requestId": "request-20",
         "ok": false,
         "error": {
           "code": "operationFailed",
@@ -1047,7 +955,7 @@
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-22",
+        "requestId": "request-21",
         "method": "file.open",
         "params": {
           "path": "./report.pdf"
@@ -1057,7 +965,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-22",
+        "requestId": "request-21",
         "ok": true,
         "result": {
           "state": "completed"
@@ -1066,7 +974,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-22",
+        "requestId": "request-21",
         "ok": false,
         "error": {
           "code": "operationFailed",
@@ -1082,7 +990,7 @@
       "request": {
         "version": 2,
         "type": "request",
-        "requestId": "request-23",
+        "requestId": "request-22",
         "method": "plugin.call",
         "params": {
           "contractId": "test-counter",
@@ -1094,7 +1002,7 @@
       "response": {
         "version": 2,
         "type": "response",
-        "requestId": "request-23",
+        "requestId": "request-22",
         "ok": true,
         "result": {
           "value": 1
@@ -1103,7 +1011,7 @@
       "rejection": {
         "version": 2,
         "type": "response",
-        "requestId": "request-23",
+        "requestId": "request-22",
         "ok": false,
         "error": {
           "code": "operationFailed",
@@ -1146,21 +1054,7 @@
         "presentation": {
           "revision": 0,
           "widgets": [],
-          "footer": [],
-          "extensions": {
-            "buttons": [],
-            "badges": [],
-            "state": {
-              "demo": {
-                "value": [
-                  null,
-                  true,
-                  1,
-                  "text"
-                ]
-              }
-            }
-          }
+          "footer": []
         }
       }
     },
@@ -1235,21 +1129,7 @@
           "presentation": {
             "revision": 0,
             "widgets": [],
-            "footer": [],
-            "extensions": {
-              "buttons": [],
-              "badges": [],
-              "state": {
-                "demo": {
-                  "value": [
-                    null,
-                    true,
-                    1,
-                    "text"
-                  ]
-                }
-              }
-            }
+            "footer": []
           }
         }
       }
@@ -1431,21 +1311,7 @@
       "data": {
         "revision": 0,
         "widgets": [],
-        "footer": [],
-        "extensions": {
-          "buttons": [],
-          "badges": [],
-          "state": {
-            "demo": {
-              "value": [
-                null,
-                true,
-                1,
-                "text"
-              ]
-            }
-          }
-        }
+        "footer": []
       }
     },
     {

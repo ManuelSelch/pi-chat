@@ -54,7 +54,7 @@ beforeEach(() => {
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
     archiveSession: vi.fn(async () => {}), pinProject: vi.fn(async () => {}), removeProject: vi.fn(async () => {}),
     setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),
-    runExtensionAction: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
+    dismissError: vi.fn(), takeControl: vi.fn(),
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

@@ -21,7 +21,6 @@ export function HeaderContainer() {
     return <InboxHeader session={headerSession} title={selected?.title ?? (home ? "Home" : undefined)}
       branch={project?.worktree?.primary === false ? project.worktree.branch : undefined}
       opened={overlays.state.projects} disabled={app.connection !== "open"} pending={chat.inbox.pending} saved={hasSavedSession(app.catalogue, selected?.sessionPath)}
-      buttons={state.extensions.buttons} badges={state.extensions.badges} onAction={chat.runExtensionAction}
       onToggle={() => { overlays.toggle("projects"); if (overlays.projectsPresentation === "sidebar") focusComposer(); }}
       onNew={() => chat.newSession(selected?.projectPath)}
       onPark={() => { if (selected) void chat.inbox.park(selected.sessionId); }}
@@ -36,15 +35,12 @@ export function HeaderContainer() {
       tabs={visibleTabs(app)}
       openingTabs={app.openingTabs}
       activeSessionId={app.activeSessionId}
-      buttons={state.extensions.buttons}
-      badges={state.extensions.badges}
       projectsOpened={overlays.state.projects}
       onOpenProjects={() => {
         overlays.toggle("projects");
         if (overlays.projectsPresentation === "sidebar") focusComposer();
       }}
       onOpenSettings={() => overlays.open("settings")}
-      onAction={chat.runExtensionAction}
       onFocusTab={chat.focusTab}
       onCloseTab={(tab) => chat.closeTab(tab.sessionId)}
       onNewSession={() => chat.newSession(state.projectPath || undefined)}

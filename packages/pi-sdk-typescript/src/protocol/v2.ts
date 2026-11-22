@@ -29,20 +29,13 @@ export const promptResultSchema = z.discriminatedUnion("cancelled", [
   z.object({ cancelled: z.literal(true) }),
   z.object({ cancelled: z.literal(false), value: z.union([z.string(), z.boolean()]) }),
 ]);
-// Presentation hints are open strings: clients ignore unsupported placements,
-// slots/styles rather than rejecting the required session state containing them.
+// Presentation hints are open strings: clients ignore unsupported widget/footer styles.
 const hint = z.string().min(1).max(128);
 const v2ToolCardSchema = toolCardSchema.extend({ toolCallId: idSchema });
-export const extensionsSchema = z.object({
-  buttons: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), icon: z.string().optional(), actionId: idSchema })),
-  badges: z.array(z.object({ id: idSchema, slot: hint, label: z.string().min(1), tone: hint })),
-  state: z.record(z.string(), z.json()),
-});
 export const presentationSchema = z.object({
   revision: counterSchema,
   widgets: z.array(z.object({ key: idSchema, lines: z.array(z.string()), placement: hint })),
   footer: z.array(z.object({ key: idSchema, text: z.string().min(1), align: hint, variant: hint })),
-  extensions: extensionsSchema,
 });
 export const settingsSchema = z.object({
   model: z.string(), availableModels: z.array(z.string()), thinkingLevel: thinkingLevelSchema, availableThinkingLevels: z.array(thinkingLevelSchema),
@@ -98,7 +91,6 @@ export const operationSchemas = {
   "prompt.answer": session(z.object({ promptId: idSchema, result: promptResultSchema }), completedSchema),
   "model.select": session(z.object({ model: z.string().min(1) }), settingsSchema),
   "thinking.level": session(z.object({ level: thinkingLevelSchema }), settingsSchema),
-  "extension.run": session(z.object({ actionId: idSchema }), acceptedSchema),
   "directory.browse": server(directoryBrowseSchema, directoryListingSchema, "directory.browse"),
   "command.complete": session(z.object({ commandName: z.string().min(1), argumentPrefix: z.string() }), z.object({ items: z.array(commandCompletionItemSchema) }), "command.complete"),
   "file.open": session(z.object({ path: filePathSchema }), completedSchema, "file.open"),

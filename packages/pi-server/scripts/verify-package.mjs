@@ -83,7 +83,6 @@ try {
     let source = await readFile(join(root, 'test', file), 'utf8');
     source = source.replaceAll("'@manuelselch/pi-sdk'", sdkEntry)
       .replaceAll("'../dist/index.js'", "'@manuelselch/pi-server'")
-      .replaceAll("'../dist/extensions.js'", "'@manuelselch/pi-server/extensions'")
       .replaceAll("'../dist/plugins.js'", "'@manuelselch/pi-server/plugins'")
       .replaceAll("'../dist/testing/index.js'", "'@manuelselch/pi-server/testing'")
       .replaceAll("new URL('../dist/cli.js', import.meta.url)", "new URL('./node_modules/.bin/pi-server', import.meta.url)")
@@ -92,14 +91,13 @@ try {
   }
   run(['--test', ...((await readdir(directory)).filter(file => file.endsWith('.test.mjs')))], directory);
   await writeFile(join(directory, 'consumer.ts'), `import { createPiServer, createPiRuntimeAdapter, createRestartService, type PiServerOptions, type RuntimeAdapter, type FileLogger } from '@manuelselch/pi-server';
-import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from '@manuelselch/pi-server/extensions';
 import { createFileOpeningPlugin } from '@manuelselch/pi-plugin-file-opening/host';
 import { folderOpeningPlugin } from '@manuelselch/pi-plugin-folder-opening';
 import { folderOpeningContract } from '@manuelselch/pi-plugin-folder-opening';
 import { fileOpeningContract } from '@manuelselch/pi-plugin-file-opening';
 import { FakeRuntimeAdapter, snapshotData } from '@manuelselch/pi-server/testing';
 import { runLoopbackFixture } from '@manuelselch/pi-server/testing/loopback';
-const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), extensions: getPiChatExtensionRegistry(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
+const options: PiServerOptions = { runtime: new FakeRuntimeAdapter(), catalogue: { homeDirectory: null }, plugins: services => [createFileOpeningPlugin({ open: services.openFile }), folderOpeningPlugin], pluginRpcContracts: [fileOpeningContract, folderOpeningContract] };
 const server = await createPiServer(options); void server.httpServer; void server.close;
 void createPiRuntimeAdapter; void createRestartService; void snapshotData; void runLoopbackFixture;
 `);

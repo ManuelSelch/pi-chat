@@ -41,5 +41,5 @@ or `/pi-chat` to check its status.
 - [System development](../../docs/development.md) and [Chat development](docs/development.md): setup, testing and source organization.
 - [Architecture](../../docs/architecture.md): components and data flow.
 - [Protocol integration](../../docs/protocol.md): SDK ownership, operation outcomes, and recovery.
-- [Extension API](docs/extension-api.md): experimental web UI extension integration.
+- [Extension API](docs/extension-api.md): native Pi prompts, widgets and footer status.
 - [All system guides](../../docs/README.md): drivers, workspace ownership, themes, and capture limitations.

@@ -6,8 +6,7 @@ import { DirectoryBrowserService } from "@manuelselch/pi-plugin-folder-opening/h
 import type { FileOpenResult } from "@manuelselch/pi-sdk/protocol";
 import { FileService } from "@manuelselch/pi-plugin-file-opening/host";
 import { fileOpenFailure } from "@manuelselch/pi-plugin-file-opening/host";
-import type { ChatMessage, UiPromptResult, WebFeature } from "@manuelselch/pi-sdk/protocol";
-import { getPiChatExtensionRegistry, type PiChatExtensionRegistry } from "../extensions/extension-registry.js";
+import type { UiPromptResult, WebFeature } from "@manuelselch/pi-sdk/protocol";
 import type { RuntimeAdapter, RuntimeAdapterFactory, RuntimeEvent, RuntimeSnapshot } from "../runtime/contracts.js";
 import { ProjectSessionService } from "../projects/project-session-service.js";
 import type { ProjectCatalogue } from "../projects/catalogue-types.js";
@@ -43,7 +42,6 @@ export class ChatApplicationService {
     private readonly factory: RuntimeAdapterFactory,
     private readonly projectSessions = new ProjectSessionService(),
     private readonly restartService?: RestartService,
-    private readonly extensions: PiChatExtensionRegistry = getPiChatExtensionRegistry(),
     private readonly directories = new DirectoryBrowserService(),
     private readonly files: Pick<FileService, "open"> = new FileService(),
   ) {
@@ -64,16 +62,14 @@ export class ChatApplicationService {
   /** Synchronous capture used only after asynchronous snapshot preparation. */
   captureSnapshot(sessionId: string) {
     const snapshot = this.sessions.get(sessionId).snapshot();
-    return { ...snapshot, actions: this.withAppActions(snapshot.actions), extensions: this.extensions.snapshot({ sessionId }) };
+    return { ...snapshot, actions: this.withAppActions(snapshot.actions) };
   }
 
-  /** Await extension hooks only; catalogue scans must never block transcript publication. */
+  /** Prepare a guarded capture; catalogue scans never block transcript publication. */
   async prepareSnapshot(sessionId: string) {
     if (!this.sessions.has(sessionId)) return () => undefined;
     const adapter = this.sessions.get(sessionId);
     const isCurrent = () => this.sessions.has(sessionId) && this.sessions.get(sessionId) === adapter;
-    await this.extensions.emit("session.snapshot", { sessionId });
-    if (!isCurrent()) return () => undefined;
     return () => {
       if (!isCurrent()) return undefined;
       const snapshot = adapter.snapshot();
@@ -81,7 +77,6 @@ export class ChatApplicationService {
       return {
         ...snapshot,
         actions: this.withAppActions(snapshot.actions),
-        extensions: this.extensions.snapshot({ sessionId }),
       };
     };
   }
@@ -269,10 +264,8 @@ export class ChatApplicationService {
       await runFeatureAction(message, {
         sessions: this.sessions,
         restartService: this.restartService,
-        extensions: this.extensions,
-        notify: (id, text, level) => this.emit(id, { type: "notification", level, message: text }),
       });
-      if (path && (message.type === "runExtensionAction" || message.featureId === "session.compact")) {
+      if (path && message.featureId === "session.compact") {
         await this.projectSessions.restoreIfArchived?.(path);
       }
     } finally {
@@ -314,9 +307,6 @@ export class ChatApplicationService {
     if (event.type === "sessionSwitch") {
       this.sessions.rekey(event.previousSessionId || sessionId, event.sessionId);
       sessionId = event.sessionId;
-    }
-    if (event.type === "messageFinal") {
-      void this.extensions.emit("message.final", { sessionId, message: event.message as ChatMessage });
     }
     for (const listener of this.listeners) listener(sessionId, event);
   }

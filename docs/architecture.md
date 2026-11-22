@@ -18,14 +18,14 @@ flowchart LR
 | Owner | Responsibility |
 |---|---|
 | [Chat backend](../packages/pi-chat/src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
-| [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, extension registries, file operations and server diagnostics |
+| [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, native Pi UI presentation, file operations and server diagnostics |
 | [pi-sdk-typescript](../packages/pi-sdk-typescript/README.md) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
 | [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
 
 Chat consumes compiled public exports from local workspace packages, not private source paths.
 See the [manifest](../package.json), [lockfile](../package-lock.json) and
 [monorepo guide](monorepo.md) for dependency resolution, builds and imported history. Public server imports are the
-root, `/plugins`, `/extensions`, `/testing` and `/testing/loopback`; server internals are not
+root, `/plugins`, `/testing` and `/testing/loopback`; server internals are not
 Chat extension points. The SDK's `/protocol` entry is the contract authority.
 
 ## Plugin primitives and local runtime

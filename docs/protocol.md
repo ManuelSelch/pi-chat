@@ -50,7 +50,6 @@ Common typed operations used by Chat:
 | `compactSession`, `reloadSession` | `session.compact`, `session.reload` | Asynchronous Pi work admitted |
 | `respondToPrompt` | `prompt.answer` | Answer submission completed, with kind/options validated server-side |
 | `selectModel`, `setThinkingLevel` | `model.select`, `thinking.level` | Structured settings change completed |
-| `runExtensionAction` | `extension.run` | Extension work admitted |
 | `completeCommandArguments` | `command.complete` | Session-bound suggestions returned; command not executed |
 | `browseDirectories` | `directory.browse` | Server-local directory listing returned |
 | Chat file-link action | `plugin.call` with `fileOpeningContract.open` | Structured file result; default server OS application, no bytes transferred or display guarantee |

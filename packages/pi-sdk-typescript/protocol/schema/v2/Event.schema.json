@@ -790,104 +790,12 @@
                       "variant"
                     ]
                   }
-                },
-                "extensions": {
-                  "type": "object",
-                  "properties": {
-                    "buttons": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                          },
-                          "slot": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128
-                          },
-                          "label": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "icon": {
-                            "type": "string"
-                          },
-                          "actionId": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "slot",
-                          "label",
-                          "actionId"
-                        ]
-                      }
-                    },
-                    "badges": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128,
-                            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                          },
-                          "slot": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128
-                          },
-                          "label": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "tone": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 128
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "slot",
-                          "label",
-                          "tone"
-                        ]
-                      }
-                    },
-                    "state": {
-                      "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
-                      "additionalProperties": {
-                        "$ref": "#/$defs/__schema0"
-                      }
-                    }
-                  },
-                  "required": [
-                    "buttons",
-                    "badges",
-                    "state"
-                  ]
                 }
               },
               "required": [
                 "revision",
                 "widgets",
-                "footer",
-                "extensions"
+                "footer"
               ]
             }
           },
@@ -1014,104 +922,12 @@
                   "variant"
                 ]
               }
-            },
-            "extensions": {
-              "type": "object",
-              "properties": {
-                "buttons": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                      },
-                      "slot": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "icon": {
-                        "type": "string"
-                      },
-                      "actionId": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "slot",
-                      "label",
-                      "actionId"
-                    ]
-                  }
-                },
-                "badges": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                      },
-                      "slot": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "tone": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "slot",
-                      "label",
-                      "tone"
-                    ]
-                  }
-                },
-                "state": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {
-                    "$ref": "#/$defs/__schema0"
-                  }
-                }
-              },
-              "required": [
-                "buttons",
-                "badges",
-                "state"
-              ]
             }
           },
           "required": [
             "revision",
             "widgets",
-            "footer",
-            "extensions"
+            "footer"
           ]
         }
       },
@@ -2141,104 +1957,12 @@
                           "variant"
                         ]
                       }
-                    },
-                    "extensions": {
-                      "type": "object",
-                      "properties": {
-                        "buttons": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                              },
-                              "slot": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128
-                              },
-                              "label": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "icon": {
-                                "type": "string"
-                              },
-                              "actionId": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "slot",
-                              "label",
-                              "actionId"
-                            ]
-                          }
-                        },
-                        "badges": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128,
-                                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-                              },
-                              "slot": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128
-                              },
-                              "label": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "tone": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": 128
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "slot",
-                              "label",
-                              "tone"
-                            ]
-                          }
-                        },
-                        "state": {
-                          "type": "object",
-                          "propertyNames": {
-                            "type": "string"
-                          },
-                          "additionalProperties": {
-                            "$ref": "#/$defs/__schema0"
-                          }
-                        }
-                      },
-                      "required": [
-                        "buttons",
-                        "badges",
-                        "state"
-                      ]
                     }
                   },
                   "required": [
                     "revision",
                     "widgets",
-                    "footer",
-                    "extensions"
+                    "footer"
                   ]
                 }
               },
@@ -3162,7 +2886,7 @@
                       "minLength": 1
                     },
                     "details": {
-                      "$ref": "#/$defs/__schema1"
+                      "$ref": "#/$defs/__schema0"
                     }
                   },
                   "required": [
@@ -3819,37 +3543,6 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema0"
-          }
-        }
-      ]
-    },
-    "__schema1": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "number"
-        },
-        {
-          "type": "boolean"
-        },
-        {
-          "type": "null"
-        },
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/__schema1"
-          }
-        },
-        {
-          "type": "object",
-          "propertyNames": {
-            "type": "string"
-          },
-          "additionalProperties": {
-            "$ref": "#/$defs/__schema1"
           }
         }
       ]

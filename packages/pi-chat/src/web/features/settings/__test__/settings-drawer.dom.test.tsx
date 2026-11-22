@@ -10,13 +10,13 @@ afterEach(cleanup);
 
 const noop = () => {};
 
-function renderDrawer(extensions: typeof initialChatState.extensions, runExtensionAction = vi.fn(), setHideArchivedSessions = vi.fn(), transcriptDensity: "comfortable" | "compact" = "compact", setTranscriptDensity = vi.fn(), overrides: Partial<ComponentProps<typeof SettingsDrawer>> = {}) {
+function renderDrawer(setHideArchivedSessions = vi.fn(), transcriptDensity: "comfortable" | "compact" = "compact", setTranscriptDensity = vi.fn(), overrides: Partial<ComponentProps<typeof SettingsDrawer>> = {}) {
   render(
     <MantineProvider>
       <SettingsDrawer
         opened
         onClose={noop}
-        state={{ ...initialChatState, sessionName: "Pi-generated title", extensions }}
+        state={{ ...initialChatState, sessionName: "Pi-generated title" }}
         busy={false}
         serverSettings={null}
         versions={<div role="group" aria-label="Versions">Versions</div>}
@@ -34,12 +34,10 @@ function renderDrawer(extensions: typeof initialChatState.extensions, runExtensi
         setHideArchivedSessions={setHideArchivedSessions}
         transcriptDensity={transcriptDensity}
         setTranscriptDensity={setTranscriptDensity}
-        runExtensionAction={runExtensionAction}
         {...overrides}
       />
     </MantineProvider>,
   );
-  return runExtensionAction;
 }
 
 const sessionFeatures: typeof initialChatState.actions.features = [
@@ -51,7 +49,7 @@ const sessionFeatures: typeof initialChatState.actions.features = [
 describe("SettingsDrawer groups", () => {
   it("renders plugin controls inside Feature Toggles without owning their state", () => {
     const toggle = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
+    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
       pluginFeatureToggles: <Switch label="Example plugin" onChange={event => toggle(event.currentTarget.checked)} />,
     });
 
@@ -60,7 +58,7 @@ describe("SettingsDrawer groups", () => {
     expect(toggle).toHaveBeenCalledExactlyOnceWith(true);
   });
   it("has no custom name editor and retains other settings", () => {
-    renderDrawer(initialChatState.extensions);
+    renderDrawer();
     expect(screen.queryByRole("textbox", { name: "Session name" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
     expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
@@ -68,7 +66,7 @@ describe("SettingsDrawer groups", () => {
   });
 
   it("groups all switches under Feature Toggles including Agentation", () => {
-    renderDrawer(initialChatState.extensions);
+    renderDrawer();
     const group = screen.getByRole("group", { name: "Feature Toggles" });
 
     expect(within(group).getAllByRole("switch")).toHaveLength(6);
@@ -84,7 +82,7 @@ describe("SettingsDrawer groups", () => {
 
   it("toggles Agentation feedback", () => {
     const setAgentationEnabled = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "compact", vi.fn(), { setAgentationEnabled });
+    renderDrawer(vi.fn(), "compact", vi.fn(), { setAgentationEnabled });
     const toggle = screen.getByRole("switch", { name: "Agentation UI feedback" }) as HTMLInputElement;
 
     expect(toggle.checked).toBe(false);
@@ -98,7 +96,7 @@ describe("SettingsDrawer groups", () => {
     ["compact", true, "comfortable"],
   ] as const)("reflects %s density and switches to %s", (density, checked, nextDensity) => {
     const setTranscriptDensity = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), density, setTranscriptDensity);
+    renderDrawer(vi.fn(), density, setTranscriptDensity);
     const group = screen.getByRole("group", { name: "Feature Toggles" });
     const toggle = within(group).getByRole("switch", { name: "Compact transcript" }) as HTMLInputElement;
 
@@ -108,10 +106,10 @@ describe("SettingsDrawer groups", () => {
     expect(setTranscriptDensity).toHaveBeenCalledExactlyOnceWith(nextDensity);
   });
 
-  it("orders Session, Feature Toggles, extension controls, then Backend server and retains actions", () => {
+  it("orders Session, Feature Toggles, then Backend server and retains actions", () => {
     const compactSession = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
-      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures }, extensions: { ...initialChatState.extensions, buttons: [{ id: "demo", slot: "settings.section", label: "Demo", actionId: "demo" }] } },
+    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
+      state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } },
       serverSettings: <span>Endpoint settings</span>, compactSession,
     });
     const session = screen.getByRole("group", { name: "Session" });
@@ -124,8 +122,8 @@ describe("SettingsDrawer groups", () => {
     expect(within(backend).getByText("Endpoint settings")).toBeTruthy();
     expect(within(backend).queryByRole("button", { name: "Restart" })).toBeNull();
     expect(session.compareDocumentPosition(features) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(features.compareDocumentPosition(screen.getByText("Extensions")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("Extensions").compareDocumentPosition(backend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(features.compareDocumentPosition(backend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText("Extensions")).toBeNull();
     expect(backend.compareDocumentPosition(screen.getByRole("group", { name: "Versions" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(compactSession).toHaveBeenCalledOnce();
     expect(screen.queryByText("Summarize older context to free up space.")).toBeNull();
@@ -133,7 +131,7 @@ describe("SettingsDrawer groups", () => {
   });
 
   it("omits Session without advertised session features and does not offer restart", () => {
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), { serverSettings: <span>Endpoint settings</span> });
+    renderDrawer(vi.fn(), "comfortable", vi.fn(), { serverSettings: <span>Endpoint settings</span> });
 
     expect(screen.queryByRole("group", { name: "Session" })).toBeNull();
     expect(within(screen.getByRole("group", { name: "Backend server" })).queryByRole("button", { name: "Restart" })).toBeNull();
@@ -141,7 +139,7 @@ describe("SettingsDrawer groups", () => {
 
   it("keeps session controls disabled while busy", () => {
     const compactSession = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), vi.fn(), "comfortable", vi.fn(), {
+    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
       state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } }, busy: true, compactSession,
     });
     const session = screen.getByRole("group", { name: "Session" });
@@ -154,37 +152,10 @@ describe("SettingsDrawer groups", () => {
 
   it("shows the enabled archive visibility switch and dispatches changes", () => {
     const setHideArchivedSessions = vi.fn();
-    renderDrawer(initialChatState.extensions, vi.fn(), setHideArchivedSessions);
+    renderDrawer(setHideArchivedSessions);
     const toggle = screen.getByRole("switch", { name: "Hide archived sessions" }) as HTMLInputElement;
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
     expect(setHideArchivedSessions).toHaveBeenCalledWith(false);
-  });
-
-  it("renders settings.section buttons and dispatches their action", () => {
-    const runExtensionAction = renderDrawer({
-      buttons: [
-        { id: "demo.enable", slot: "settings.section", label: "Enable demo", actionId: "demo.toggleEnabled" },
-        { id: "demo.header", slot: "session.header.right", label: "Users", actionId: "demo.status" },
-      ],
-      badges: [],
-      state: {},
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Enable demo" }));
-
-    expect(screen.getByText("Extensions")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Users" })).toBeNull();
-    expect(runExtensionAction).toHaveBeenCalledWith("demo.toggleEnabled");
-  });
-
-  it("omits the section when no extension registered a settings control", () => {
-    renderDrawer({
-      buttons: [{ id: "demo.header", slot: "session.header.right", label: "Users", actionId: "demo.status" }],
-      badges: [],
-      state: {},
-    });
-
-    expect(screen.queryByText("Extensions")).toBeNull();
   });
 });

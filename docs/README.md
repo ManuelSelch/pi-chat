@@ -11,7 +11,7 @@ below do not imply that tests or visual acceptance have just run.
   themes and diagnostics.
 - [Protocol integration](protocol.md): installed SDK authority, identities,
   response meaning, recovery and cancellation.
-- [Extension API](../packages/pi-chat/docs/extension-api.md): public registry and native Pi UI contributions.
+- [Extension API](../packages/pi-chat/docs/extension-api.md): native Pi prompts, widgets and footer status.
 - [Plugin primitives](plugins.md) and [host runtime/RPC](plugin-runtime.md): declarations,
   activation/cleanup, typed WebSocket calls and the file-opening plugin.
 - [Development](development.md): setup, build/test/CI, source organization and

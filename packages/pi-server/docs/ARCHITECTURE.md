@@ -9,11 +9,11 @@ Every arrow means “source imports target”, including type-only imports; it d
 | Slice under `src/` | Responsibility |
 | --- | --- |
 | `transport` | WebSocket v2 initialization, request validation/dispatch, operation outcomes, snapshots and event publication; connection-local state and backpressure. |
-| `application` | Session commands and lifecycle coordination, mutation guards, extension hooks and shared live-runtime registry. |
+| `application` | Session commands and lifecycle coordination, mutation guards and shared live-runtime registry. |
 | `runtime` | Runtime contracts and the Pi adapter: lazy agent creation, transcript/tool/event mapping, headless theme and web extension UI context. |
 | `projects` | Persisted-session catalogue, project metadata, directory browsing and Git worktree discovery. |
 | `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. The transport's explicit [RPC allowlist](PLUGINS.md) exposes selected contracts over the existing WebSocket. |
-| `extensions` | In-process extension registrations, session-host binding and UI prompt/status/widget registries. |
+| `extensions` | Native Pi UI prompt/status/widget registries. |
 | `bootstrap` | Process restart planning/execution and PID-file publication. |
 | `files` | File-open validation and delegation to the system opener. |
 | `logging` | Buffered file logging and explicit flush/close. |
@@ -38,13 +38,13 @@ External boundaries, intentionally not diagram boxes:
 4. Runtime events reach the application and then the transport publisher. Ready clients receive snapshots/events filtered by negotiated capabilities. UI tab order and focus remain client-owned.
 5. Disconnect disposes connection-local state, **not** live agent sessions. A reconnect resynchronizes from current state; explicit session close or host shutdown disposes retained runtimes.
 
-Host `close()` is idempotent: release the extension session-host binding, terminate transport connections, close HTTP, dispose host plugins, then application runtimes. All teardown steps are attempted even if one fails. Startup failure rolls back owned resources; see [plugin lifecycle](PLUGINS.md).
+Host `close()` is idempotent: terminate transport connections, close HTTP, dispose host plugins, then application runtimes. All teardown steps are attempted even if one fails. Startup failure rolls back owned resources; see [plugin lifecycle](PLUGINS.md).
 Embedding callers own flushing/closing injected loggers. The CLI owns signals, PID/log setup and standalone restart; embedding may inject restart behavior, including an explicit build callback.
 A failed explicit restart build leaves the existing process serving.
 
 The endpoint has no built-in authentication. Browser Origin validation is not authentication.
 Use loopback or a trusted authenticated TLS proxy that prevents direct backend access; Pi tools run with the host user's permissions.
-See [configuration](CONFIGURATION.md), [protocol](PROTOCOL.md), [extension integration](EXTENSIONS.md) and [test ownership](TEST-OWNERSHIP.md).
+See [configuration](CONFIGURATION.md), [protocol](PROTOCOL.md) and [test ownership](TEST-OWNERSHIP.md).
 
 ## Diagram contract and verification
 

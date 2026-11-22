@@ -21,7 +21,6 @@ export interface SessionState {
   prompts: SessionSnapshot["prompts"];
   widgets: Presentation["widgets"];
   footer: Presentation["footer"];
-  extensions: Presentation["extensions"];
   presentationRevision: number;
   sequence: number;
   lastOperation?: Extract<Event, { event: "operation.finished" }>["data"];
@@ -29,7 +28,7 @@ export interface SessionState {
 export const initialSessionState: SessionState = {
   messages: [], steeringMessages: [], status: "connecting", sessionId: "", projectPath: "", catalogue: { projects: [] },
   settings: { model: "", availableModels: [], thinkingLevel: "off", availableThinkingLevels: [] },
-  actions: { features: [], commands: [] }, prompts: [], widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} }, presentationRevision: -1, sequence: -1,
+  actions: { features: [], commands: [] }, prompts: [], widgets: [], footer: [], presentationRevision: -1, sequence: -1,
 };
 function actions(settings: SessionSettings, commands: ActionRegistry["commands"]): ActionRegistry {
   return { commands, features: [
@@ -48,7 +47,7 @@ export function applySnapshot(state: SessionState, snapshot: SessionSnapshot): S
     // reconnect initialization starts from initialSessionState and has no draft.
     draft: snapshot.runtime.status === "running" && snapshot.runtime.runId && state.draft?.runId === snapshot.runtime.runId ? state.draft : undefined,
     steeringMessages: snapshot.steeringMessages, settings: snapshot.settings, actions: actions(snapshot.settings, snapshot.commands), prompts: snapshot.prompts,
-    ...(presentation && presentation.revision >= state.presentationRevision ? { widgets: presentation.widgets, footer: presentation.footer, extensions: presentation.extensions, presentationRevision: presentation.revision } : {}),
+    ...(presentation && presentation.revision >= state.presentationRevision ? { widgets: presentation.widgets, footer: presentation.footer, presentationRevision: presentation.revision } : {}),
   };
 }
 /** Pure v2 projection; sequence gaps/recovery and process identity are owned by PiClient. */
@@ -58,7 +57,7 @@ export function reduceSessionMessage(state: SessionState, message: SessionAction
   if (message.event === "session.snapshot") return applySnapshot(state, message.data);
   if (message.event === "presentation.changed") {
     if (message.data.revision <= state.presentationRevision) return state;
-    return { ...state, widgets: message.data.widgets, footer: message.data.footer, extensions: message.data.extensions, presentationRevision: message.data.revision };
+    return { ...state, widgets: message.data.widgets, footer: message.data.footer, presentationRevision: message.data.revision };
   }
   if (message.sequence <= state.sequence) return state;
   const next = { ...state, sequence: message.sequence };

@@ -33,7 +33,7 @@ node packages/pi-server/dist/cli.js --host 127.0.0.1 --port 8788 --project /path
 - Standalone restart re-executes compiled JS without a build. `--no-restart` supports external supervisors; SIGINT/SIGTERM dispose listeners/runtimes and flush logs.
 - The Chat backend owns `PI_CHAT_*` configuration and build-before-restart behavior. See [configuration](docs/CONFIGURATION.md).
 - Await root `createPiServer(options)` before listening; the handle exposes `httpServer` and idempotent async `close()`. Callers own injected logger flush/close.
-- `/plugins` exports the host runtime and opt-in feature factories; `/extensions` exports in-process registration contracts.
+- `/plugins` exports the host runtime and opt-in feature factories.
 - `/testing` exports compiled fakes; `/testing/loopback` exports the isolated fixture. Concrete application/transport internals are not public APIs.
 - SDK `/protocol` remains authoritative; no copied protocol source lives here.
 
@@ -42,6 +42,5 @@ node packages/pi-server/dist/cli.js --host 127.0.0.1 --port 8788 --project /path
 - [Architecture and module diagram](docs/ARCHITECTURE.md)
 - [Host plugins and RPC](docs/PLUGINS.md)
 - [Protocol reference](docs/PROTOCOL.md)
-- [Extension embedding](docs/EXTENSIONS.md)
 - [Test ownership](docs/TEST-OWNERSHIP.md): package-local tests, Chat acceptance and separate Swift compatibility.
 - [MIT license](LICENSE) and [third-party notices](THIRD-PARTY-NOTICES.md). Dependencies retain their own licenses.

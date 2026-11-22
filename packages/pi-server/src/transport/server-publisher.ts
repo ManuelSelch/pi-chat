@@ -37,7 +37,7 @@ export class ServerPublisher {
   }
   private snapshot(raw: string, snapshot: RuntimeSnapshot): SessionSnapshot {
     const id = this.wireId(raw); const entry = this.sessions.get(raw)!;
-    const presentation = { widgets: snapshot.widgets, footer: snapshot.footer, extensions: snapshot.extensions ?? { buttons: [], badges: [], state: {} } };
+    const presentation = { widgets: snapshot.widgets, footer: snapshot.footer };
     const signature = JSON.stringify(presentation);
     if (entry.presentationSignature !== undefined && entry.presentationSignature !== signature) ++entry.presentationRevision;
     entry.presentationSignature = signature;
@@ -78,15 +78,8 @@ export class ServerPublisher {
   }
   async opened(raw: string): Promise<Result<"session.open">> {
     const id = this.wireId(raw);
-    let snapshot: SessionSnapshot;
-    try { const capture = await this.prepareSnapshot(id); snapshot = capture(); }
-    catch (error) {
-      // Creation/open already succeeded. An extension refresh is not allowed to
-      // reject that mutation; use a fresh synchronous core capture instead.
-      if (this.rawId(id) !== raw) throw error;
-      snapshot = this.snapshot(raw, this.chat.captureSnapshot(raw));
-      this.logger?.warn("snapshot.open_refresh_failed", { message: "Using current runtime state after extension snapshot refresh failed." });
-    }
+    const capture = await this.prepareSnapshot(id);
+    const snapshot = capture();
     return { snapshot, summary: this.inventory().sessions.find(session => session.sessionId === snapshot.sessionId)!, theme: this.chat.sessionTheme(raw) };
   }
   async prepareInitial(connectionId: string, capabilities: Result<"server.initialize">["capabilities"]): Promise<() => Result<"server.initialize">> {
@@ -132,8 +125,7 @@ export class ServerPublisher {
       void this.prepareSnapshot(id).then(capture => {
         if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: capture() });
       }).catch(error => {
-        // The switch already succeeded. A failed extension refresh must not strand
-        // clients on the retired incarnation; publish a synchronous core capture.
+        // The switch already succeeded; capture current state if preparation failed.
         this.logger?.warn("session.replace_failed", { message: redactRuntimeError(error instanceof Error ? error.message : "Replacement snapshot failed") });
         if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: this.snapshot(event.sessionId, this.chat.captureSnapshot(event.sessionId)) });
       }).finally(() => {

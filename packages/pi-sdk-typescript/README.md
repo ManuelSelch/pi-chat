@@ -92,7 +92,6 @@ close/reopen; in-place resource reload and reconnect retain it.
 | `compactSession(id)`, `reloadSession(id)` | `session.compact`, `session.reload` | Accepted asynchronous Pi work; eventual operation event |
 | `respondToPrompt(id, promptId, result)` | `prompt.answer` | Completed prompt answer submission; valid kind/options checked server-side |
 | `selectModel(id, model)`, `setThinkingLevel(id, level)` | `model.select`, `thinking.level` | Completed structured settings update |
-| `runExtensionAction(id, actionId)` | `extension.run` | Accepted async extension action |
 | `restartServer()` | `server.restart` | Accepted restart attempt; disconnect is not proof of success |
 | `browseDirectories(query)` | `directory.browse` | Server-local paginated directory listing |
 | `completeCommandArguments(id, name, prefix)` | `command.complete` | Session-scoped completion items |

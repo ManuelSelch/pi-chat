@@ -281,7 +281,7 @@ describe("extension widgets", () => {
     expect(pushed.widgets).toEqual([todo]);
 
     // A reconnecting browser rebuilds the panel from the snapshot alone.
-    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [todo], footer: [], extensions: { buttons: [], badges: [], state: {} } } }));
+    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [todo], footer: [] } }));
     expect(reconnected.widgets).toEqual([todo]);
 
     const cleared = reduceServerMessage(pushed, presentationEvent({ widgets: [] }, "session", 2));
@@ -310,7 +310,7 @@ describe("composer footer", () => {
     expect(pushed.footer).toEqual([readonly, model]);
 
     // A reconnecting browser rebuilds the footer from the snapshot alone.
-    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [], footer: [readonly, model], extensions: { buttons: [], badges: [], state: {} } } }));
+    const reconnected = reduceServerMessage(initialChatState, snapshotEvent({ throughSequence: 5, sessionId: "session", projectPath: "/tmp", messages: [], runtime: { status: "idle" }, presentation: { revision: 5, widgets: [], footer: [readonly, model] } }));
     expect(reconnected.footer).toEqual([readonly, model]);
   });
 

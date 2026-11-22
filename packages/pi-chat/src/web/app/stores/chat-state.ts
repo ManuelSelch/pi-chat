@@ -1,7 +1,7 @@
-import { initialSessionState, widgetSchema, footerItemSchema, piChatButtonSchema, piChatBadgeSchema, uiPromptSchema, type Widget, type FooterItem, type PiChatExtensions, type UiPrompt, type ReadonlyDeep, type SessionState, type ServerMessage, type ChatMessage } from "@manuelselch/pi-sdk";
+import { initialSessionState, widgetSchema, footerItemSchema, uiPromptSchema, type Widget, type FooterItem, type UiPrompt, type ReadonlyDeep, type SessionState, type ServerMessage, type ChatMessage } from "@manuelselch/pi-sdk";
 
-export type ChatState = ReadonlyDeep<Omit<SessionState, "messages" | "widgets" | "footer" | "extensions" | "prompts"> & { messages: (ChatMessage | NoticeMessage)[]; widgets: Widget[]; footer: FooterItem[]; extensions: PiChatExtensions; prompts: UiPrompt[] }>;
-export const initialChatState: ChatState = { ...initialSessionState, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} }, prompts: [] };
+export type ChatState = ReadonlyDeep<Omit<SessionState, "messages" | "widgets" | "footer" | "prompts"> & { messages: (ChatMessage | NoticeMessage)[]; widgets: Widget[]; footer: FooterItem[]; prompts: UiPrompt[] }>;
+export const initialChatState: ChatState = { ...initialSessionState, widgets: [], footer: [], prompts: [] };
 type NoticeMessage = { id: string; role: "notice"; level: "info" | "warning" | "error"; text: string; anchor?: number; timestamp?: number };
 export type ChatViewMessage = ReadonlyDeep<ChatMessage | NoticeMessage>;
 type Message = ChatViewMessage;
@@ -45,11 +45,6 @@ export function projectChatState(next: ReadonlyDeep<SessionState>, previous = in
   const error = undefined;
   const widgets = source?.widgets === next.widgets ? previous.widgets : next.widgets.flatMap(value => { const parsed = widgetSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
   const footer = source?.footer === next.footer ? previous.footer : next.footer.flatMap(value => { const parsed = footerItemSchema.safeParse(value); return parsed.success ? [parsed.data] : []; });
-  // Unknown optional slots/styles are ignored by web views, not by core decoding.
-  const extensions = source?.extensions === next.extensions ? previous.extensions : {
-    buttons: next.extensions.buttons.flatMap(value => { const parsed = piChatButtonSchema.safeParse(value); return parsed.success ? [parsed.data] : []; }),
-    badges: next.extensions.badges.flatMap(value => { const parsed = piChatBadgeSchema.safeParse(value); return parsed.success ? [parsed.data] : []; }), state: next.extensions.state,
-  };
   const prompts = source?.prompts === next.prompts ? previous.prompts : next.prompts.map(value => uiPromptSchema.parse(value));
-  return { ...next, messages, error, widgets, footer, extensions, prompts };
+  return { ...next, messages, error, widgets, footer, prompts };
 }

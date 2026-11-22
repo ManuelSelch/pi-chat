@@ -19,6 +19,17 @@ describe("v2-only contract", () => {
     ]) expect(requestSchema.safeParse(command).success).toBe(false);
   });
 
+  it("removes slot actions while preserving native presentation without extension state", () => {
+    expect(requestSchema.safeParse(request("extension.run", { actionId: "demo" }, "runtime")).success).toBe(false);
+    const presentation = {
+      revision: 1,
+      widgets: [{ key: "native", lines: ["Native widget"], placement: "aboveEditor" }],
+      footer: [{ key: "status", text: "Native status", align: "left", variant: "badge" }],
+    };
+
+    expect(snapshotSchema.parse({ ...snapshot, presentation }).presentation).toEqual(presentation);
+  });
+
   it("enforces scope, bounded IDs, safe counters, JSON and prompt discrimination", () => {
     expect(requestSchema.safeParse(request("message.send", { message: "hello" })).success).toBe(false);
     expect(requestSchema.parse(request("message.send", { message: "  hello  " }, "s")).params).toEqual({ message: "hello" });
@@ -27,7 +38,6 @@ describe("v2-only contract", () => {
     expect(snapshotSchema.safeParse({ ...snapshot, throughSequence: Number.MAX_SAFE_INTEGER + 1 }).success).toBe(false);
     expect(snapshotSchema.safeParse({ ...snapshot, prompts: [{ id: "p", title: "Choose", kind: "select" }] }).success).toBe(false);
     expect(snapshotSchema.safeParse({ ...snapshot, messages: [{ id: "n", role: "notice", level: "info", text: "local-only" }] }).success).toBe(false);
-    expect(snapshotSchema.safeParse({ ...snapshot, presentation: { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: { bad: undefined } } } }).success).toBe(false);
   });
 
   it("caps wire transcript/tool IDs while Pi adapters normalize oversized source IDs", () => {
@@ -53,8 +63,8 @@ describe("v2-only contract", () => {
     expect(serverMessageSchema.safeParse({ ...base, event: "session.snapshot", data: snapshot }).success).toBe(true);
     expect(serverMessageSchema.safeParse({ ...base, event: "message.delta", data: { runId: "run", delta: "hi" } }).success).toBe(false);
     expect(serverMessageSchema.safeParse({ ...base, event: "message.delta", sequence: 1, data: { runId: "run", delta: "hi" } }).success).toBe(true);
-    expect(serverMessageSchema.safeParse({ ...base, event: "presentation.changed", data: { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} } } }).success).toBe(true);
-    expect(serverMessageSchema.safeParse({ ...base, event: "presentation.changed", sequence: 1, data: { revision: 0, widgets: [], footer: [], extensions: { buttons: [], badges: [], state: {} } } }).success).toBe(false);
+    expect(serverMessageSchema.safeParse({ ...base, event: "presentation.changed", data: { revision: 0, widgets: [], footer: [] } }).success).toBe(true);
+    expect(serverMessageSchema.safeParse({ ...base, event: "presentation.changed", sequence: 1, data: { revision: 0, widgets: [], footer: [] } }).success).toBe(false);
     expect(serverMessageSchema.safeParse({ ...base, event: "required.unknown", sequence: 1, data: {} }).success).toBe(false);
   });
 
@@ -62,7 +72,6 @@ describe("v2-only contract", () => {
     const presentation = { revision: 1,
       widgets: [{ key: "future", lines: ["plain text"], placement: "future.position" }],
       footer: [{ key: "future", text: "hint", align: "future.align", variant: "future.style" }],
-      extensions: { buttons: [{ id: "future", actionId: "demo", label: "Demo", slot: "future.slot" }], badges: [{ id: "future", label: "Hint", slot: "future.slot", tone: "future.tone" }], state: {} },
     };
     expect(snapshotSchema.safeParse({ ...snapshot, presentation }).success).toBe(true);
   });
@@ -70,7 +79,7 @@ describe("v2-only contract", () => {
   it("has the core methods and optional plugin RPC without tab/focus or feature wrappers", () => {
     expect(Object.keys(operationSchemas).sort()).toEqual([
       "server.initialize", "server.ping", "server.restart", "session.create", "session.open", "session.list", "session.snapshot", "session.close", "session.compact", "session.reload", "session.archive",
-      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "extension.run", "directory.browse", "command.complete", "file.open", "plugin.call",
+      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "directory.browse", "command.complete", "file.open", "plugin.call",
     ].sort());
   });
 });

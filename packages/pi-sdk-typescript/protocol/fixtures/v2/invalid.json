@@ -34,21 +34,7 @@
         "presentation": {
           "revision": 0,
           "widgets": [],
-          "footer": [],
-          "extensions": {
-            "buttons": [],
-            "badges": [],
-            "state": {
-              "demo": {
-                "value": [
-                  null,
-                  true,
-                  1,
-                  "text"
-                ]
-              }
-            }
-          }
+          "footer": []
         }
       }
     }
@@ -88,21 +74,7 @@
         "presentation": {
           "revision": 0,
           "widgets": [],
-          "footer": [],
-          "extensions": {
-            "buttons": [],
-            "badges": [],
-            "state": {
-              "demo": {
-                "value": [
-                  null,
-                  true,
-                  1,
-                  "text"
-                ]
-              }
-            }
-          }
+          "footer": []
         }
       }
     }
@@ -142,21 +114,7 @@
         "presentation": {
           "revision": 0,
           "widgets": [],
-          "footer": [],
-          "extensions": {
-            "buttons": [],
-            "badges": [],
-            "state": {
-              "demo": {
-                "value": [
-                  null,
-                  true,
-                  1,
-                  "text"
-                ]
-              }
-            }
-          }
+          "footer": []
         }
       },
       "theme": null

@@ -52,4 +52,4 @@ flowchart TD
 - [File opening](../plugins/file-opening/README.md) owns its contract, browser actions and host/filesystem implementation in a standalone workspace; Chat retains explicit action composition.
 - [Chimes](../plugins/chimes/README.md) contributes `chimes.enabled` at `settings.feature-toggles`; its provider owns browser-local preferences, transition tracking and audio cleanup independently of Settings visibility.
 - Host plugins and RPC allowlists are configured separately. Browser composition does not activate or disable server capabilities.
-- Pi runtime extensions and server-sent buttons/badges, prompts and widgets remain separate mechanisms.
+- Native Pi prompts, widgets and footer status remain separate from browser plugin contributions.

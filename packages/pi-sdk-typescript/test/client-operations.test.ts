@@ -21,8 +21,8 @@ for (const example of validExamples().operations.filter(value => value.method !=
   });
 }
 it("routes convenience operations to explicit session IDs and typed method names", async () => {
-  const t = setup(); const pending = [t.client.prompt("runtime", "hello"), t.client.abort("runtime"), t.client.selectModel("runtime", "p/m"), t.client.setThinkingLevel("runtime", "off"), t.client.compactSession("runtime"), t.client.runExtensionAction("runtime", "demo"), t.client.respondToPrompt("runtime", "q", { cancelled: true }), t.client.reloadSession("runtime")];
-  expect(t.requests().slice(1).map(value => [value.method, value.sessionId])).toEqual(["message.send", "run.abort", "model.select", "thinking.level", "session.compact", "extension.run", "prompt.answer", "session.reload"].map(method => [method, "runtime"]));
+  const t = setup(); const pending = [t.client.prompt("runtime", "hello"), t.client.abort("runtime"), t.client.selectModel("runtime", "p/m"), t.client.setThinkingLevel("runtime", "off"), t.client.compactSession("runtime"), t.client.respondToPrompt("runtime", "q", { cancelled: true }), t.client.reloadSession("runtime")];
+  expect(t.requests().slice(1).map(value => [value.method, value.sessionId])).toEqual(["message.send", "run.abort", "model.select", "thinking.level", "session.compact", "prompt.answer", "session.reload"].map(method => [method, "runtime"]));
   const rejected = Promise.all(pending.map(wait => expect(wait).rejects.toMatchObject({ outcome: "unknown" }))); t.client.dispose(); await rejected;
 });
 it("matches only pending IDs and fails invalid method result shapes instead of cross-family resolution", async () => {

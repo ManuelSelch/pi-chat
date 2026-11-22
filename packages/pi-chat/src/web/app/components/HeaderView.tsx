@@ -1,7 +1,6 @@
 import { ActionIcon, AppShell, Group, Text } from "@mantine/core";
 import { IconLayoutSidebar, IconSettings } from "@tabler/icons-react";
-import type { PiChatBadge, PiChatButton, Tab } from "../../types/view-types.js";
-import { Slot } from "../../features/extensions/components/Slot.js";
+import type { Tab } from "../../types/view-types.js";
 import { TabBar } from "../../features/sessions/tabs/components/TabBar.js";
 import { MANTINE_COLOR } from "../../config/theme.js";
 
@@ -11,12 +10,9 @@ interface HeaderViewProps {
   tabs: readonly Tab[];
   openingTabs: number;
   activeSessionId: string;
-  buttons: readonly PiChatButton[];
-  badges: readonly PiChatBadge[];
   projectsOpened: boolean;
   onOpenProjects: () => void;
   onOpenSettings: () => void;
-  onAction: (actionId: string) => void;
   onFocusTab: (sessionId: string) => void;
   onCloseTab: (tab: Tab) => void;
   onNewSession: () => void;
@@ -28,12 +24,9 @@ export function HeaderView({
   tabs,
   openingTabs,
   activeSessionId,
-  buttons,
-  badges,
   projectsOpened,
   onOpenProjects,
   onOpenSettings,
-  onAction,
   onFocusTab,
   onCloseTab,
   onNewSession,
@@ -48,8 +41,6 @@ export function HeaderView({
           {home ? null : <Text c="dimmed" size="xs" truncate>{title}</Text>}
         </Group>
         <Group gap="sm" wrap="nowrap">
-          {home ? null : <Slot name="session.status" buttons={buttons} badges={badges} onAction={onAction} />}
-          {home ? null : <Slot name="session.header.right" buttons={buttons} badges={badges} onAction={onAction} />}
           <ActionIcon variant="subtle" color={MANTINE_COLOR.neutral} aria-label="Settings" onClick={onOpenSettings}>
               <IconSettings size={18} />
             </ActionIcon>

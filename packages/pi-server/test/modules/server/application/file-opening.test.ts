@@ -12,7 +12,7 @@ function fixture() {
   const open = vi.spyOn(files, "open").mockResolvedValue({ ok: true });
   const catalogue = vi.fn(async () => ({ projects: [] }));
   const projects = { catalogue, delete: vi.fn() } as any;
-  const chat = new ChatApplicationService(first, { continueProject: vi.fn(), newSession: vi.fn(), openSession: async () => second }, projects, undefined, undefined, undefined, files);
+  const chat = new ChatApplicationService(first, { continueProject: vi.fn(), newSession: vi.fn(), openSession: async () => second }, projects, undefined, undefined, files);
   return { chat, first, second, open, catalogue };
 }
 
