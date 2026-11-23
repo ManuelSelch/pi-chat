@@ -600,55 +600,6 @@
         },
         "method": {
           "type": "string",
-          "const": "project.pin"
-        },
-        "params": {
-          "type": "object",
-          "properties": {
-            "path": {
-              "type": "string",
-              "minLength": 1
-            },
-            "pinned": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "path",
-            "pinned"
-          ]
-        },
-        "sessionId": {
-          "not": {}
-        }
-      },
-      "required": [
-        "version",
-        "type",
-        "requestId",
-        "method",
-        "params"
-      ]
-    },
-    {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "number",
-          "const": 2
-        },
-        "type": {
-          "type": "string",
-          "const": "request"
-        },
-        "requestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128,
-          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$"
-        },
-        "method": {
-          "type": "string",
           "const": "project.remove"
         },
         "params": {

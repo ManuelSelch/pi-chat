@@ -3,11 +3,11 @@ import { ChatApplicationService } from "../../../../src/application/chat-applica
 import { FakeRuntimeAdapter } from "../../../infra/fake-runtime-adapter.js";
 function setup() {
   const runtime = new FakeRuntimeAdapter();
-  const archive = vi.fn(async () => {}), restoreIfArchived = vi.fn(async () => {}), pin = vi.fn(async () => {});
-  const projects = { catalogue: async () => ({ projects: [] }), archive, restoreIfArchived, pin, delete: vi.fn() } as any;
+  const archive = vi.fn(async () => {}), restoreIfArchived = vi.fn(async () => {});
+  const projects = { catalogue: async () => ({ projects: [] }), archive, restoreIfArchived } as any;
   const factory = { continueProject: async () => new FakeRuntimeAdapter(), newSession: async () => new FakeRuntimeAdapter(), openSession: async () => runtime };
   const chat = new ChatApplicationService(runtime, factory, projects);
-  return { chat, runtime, archive, restoreIfArchived, pin };
+  return { chat, runtime, archive, restoreIfArchived };
 }
 describe("archive lifecycle", () => {
   it("archives and closes only the target idle tab; restore does not open a runtime", async () => {
@@ -59,9 +59,5 @@ describe("archive lifecycle", () => {
     await chat.closeTab(runtime.snapshot().sessionId);
     expect(restoreIfArchived).not.toHaveBeenCalled();
   });
-  it("pins a validated project through the application boundary", async () => {
-    const { chat, pin } = setup();
-    await chat.pinProject(process.cwd(), true);
-    expect(pin).toHaveBeenCalledWith(process.cwd(), true);
-  });
+
 });

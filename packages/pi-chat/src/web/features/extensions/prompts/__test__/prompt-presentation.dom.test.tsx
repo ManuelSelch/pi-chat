@@ -66,11 +66,11 @@ describe("browser prompt presentation", () => {
     expect(app.result.current.draft).toMatchObject({ selectedOption: "B", minimized: true });
   });
 
-  it("keeps drafts during reconnect and supersession, but disables responses", () => {
+  it("keeps drafts during reconnect, but disables responses", () => {
     const app = setup();
     act(() => { app.result.current.update({ value: "Keep" }); app.result.current.minimize(); });
     app.update({ connection: "connecting", sessions: {} });
-    app.update({ connection: "superseded", sessions: { one: { prompts: [editor()] } } });
+    app.update({ connection: "connecting", sessions: { one: { prompts: [editor()] } } });
     app.result.current.respond("p", { cancelled: false, value: "Keep" });
     expect(app.respond).not.toHaveBeenCalled();
     expect(app.result.current.disabled).toBe(true);

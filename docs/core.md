@@ -19,7 +19,7 @@
 | Deterministic disposal, safe host binding/origin checks and bounded diagnostics | Host + Server | Required safety and operational correctness |
 | Behavioral tests and package/protocol checks | Owning package/testing infrastructure | Prevent simplification from silently changing retained behavior |
 
-- Core does **not** mean every current control is mandatory: one native model-selection path is essential; duplicating it in Settings is not.
+- Core does **not** mean every current control is mandatory: native model selection remains; the duplicate Settings controls have been removed.
 - Persisted Pi history remains Pi-owned. Core must not add a second transcript database, tool runner, credential store or model scheduler.
 
 ## Optional: retain only when useful
@@ -47,15 +47,16 @@
 
 - Legacy tab bar, Projects drawer and sidebar/path/archive preference branches are deleted; [usage](../packages/pi-chat/docs/usage.md#sessions) documents the retained behavior.
 - Unused `StatusBadge` component and its types are deleted. No consumers or public exports remained.
+- Take-control UX/API and superseded connection state are deleted; all socket closures use normal reconnect/backoff.
+- Project pinning is deleted from SDK/Server methods, schemas, catalogue projection and metadata writes. Archive/project-removal metadata and Pi histories remain.
+- Settings no longer has a Session section. Native `/model`, `/thinking` and `/compact` commands and their underlying Server/SDK operations remain.
 
 ## Removable: evidence and approval needed
 
 | Candidate | Evidence today | Before removing |
 | --- | --- | --- |
-| Old “take control/superseded” UX | SDK/Chat still handle close code 4001, but the current [server transport](../packages/pi-server/src/transport/websocket-transport.ts) keeps multiple initialized sockets and does not displace a controller | Check other supported hosts/clients; distinguish useful reconnect from obsolete control ownership |
-| Project pin/remove and continue-recent API paths | Still public Server/SDK contracts; Chat no longer exposes pin/remove controls or calls continue-recent in its normal open/create flow | Audit native/external consumers and persisted metadata; a missing Chat button is not proof of an unused API |
+| Project remove and continue-recent API paths | Still public Server/SDK contracts; Chat has no project-removal control and does not call continue-recent in its normal open/create flow | Audit native/external consumers and persisted metadata; a missing Chat button is not proof of an unused API |
 | Stale README capture assumptions | [Capture guide](../packages/pi-chat/docs/readme-showcase/CAPTURE.md) records retired UI selectors and unverified appearance assumptions | Decide whether to repair the workflow or retire it; keep approved mockups/assets unless separately authorized |
-| Duplicated model/compact controls or entry points | Settings and native commands overlap | Confirm the preferred journey, then remove only redundant presentation, not the Pi capability |
 
 ## Decision rule for the next cleanup
 

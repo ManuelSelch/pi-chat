@@ -22,7 +22,7 @@ The authoritative Zod protocol, domain schemas, generated JSON Schemas and fixtu
 - Result: protocol/server versions, `serverInstanceId`, `connectionId`, selected capabilities, complete open-session inventory, project catalogue and snapshots for all open sessions.
 - Initialization is the readiness barrier: apply the whole result before processing later events or sending work. No navigation state is exchanged.
 - The initial project catalogue is the last published cache (empty at revision 0 on cold start). A full disk/worktree refresh runs asynchronously and publishes `project.list.changed` with a newer revision; catalogue discovery never blocks readiness. If discovery finishes during runtime snapshot preparation, the initial result includes that newer catalogue. A failed refresh retains the cached catalogue. Runtime inventory/snapshots still use the atomic current-state barrier.
-- Every open runtime's project directory seeds checkout discovery, including unsaved sessions with no transcript. Such directories retain repository/worktree metadata with zero saved-session summaries; they do not create artificial history or session files. Creation and runtime replacement refresh discovery independently of selected session and first-message persistence. Closing the last runtime removes an otherwise unpinned, history-free group on the next refresh.
+- Every open runtime's project directory seeds checkout discovery, including unsaved sessions with no transcript. Such directories retain repository/worktree metadata with zero saved-session summaries; they do not create artificial history or session files. Creation and runtime replacement refresh discovery independently of selected session and first-message persistence. Closing the last runtime removes an otherwise history-free group on the next refresh.
 - Every message carries `version: 2`. Unsupported versions fail explicitly; unknown optional fields are ignored. Unknown required core variants are compatibility errors. Software/package versions are independent of wire versions.
 
 ## 3. Messages and identity
@@ -88,7 +88,6 @@ Optional capabilities expose these operations and presentation contributions. Cl
 |---|---|
 | `command.complete` | Session; complete slash-command arguments |
 | `session.archive` | Server; set saved-history archive state by path, including unarchive |
-| `project.pin` | Server; set project pin state |
 | `project.remove` | Server; remove catalogue membership |
 | `plugin.call` | Server; call an explicitly exposed contract revision/method with JSON input; returns `{ value }`. See [plugin RPC](PLUGINS.md). |
 | `server.restart` | Server; acknowledge before shutdown where supported; disconnect alone does not prove restart succeeded |
@@ -312,7 +311,6 @@ interface ProjectSummary {
   exists: boolean;
   modified: number;
   sessionCount: number;
-  pinned?: boolean;
   quickChats?: boolean;
   sessions: SavedSessionSummary[];
   repositoryPath?: string;

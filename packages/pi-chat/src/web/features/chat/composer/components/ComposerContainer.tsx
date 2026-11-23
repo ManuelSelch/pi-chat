@@ -206,7 +206,6 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
     <ComposerView
       model={{
         home,
-        connection: app.connection,
         connecting,
         loading,
         promptPending: state.prompts.length > 0,
@@ -228,7 +227,6 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
         widgetsBelow,
       }}
       actions={{
-        takeControl: chat.takeControl,
         dismissError: chat.dismissError,
         changeInput,
         selectionChanged,

@@ -16,6 +16,6 @@ it("starts with an empty user catalogue and project metadata", async () => {
   expect(basename(getAgentDir())).toMatch(/^pi-chat-test-agent-/);
   expect(await SessionManager.listAll()).toEqual([]);
   expect(await new ProjectMetadataStore().read()).toEqual({
-    version: 1, pins: [], archives: [], removedProjects: [],
+    version: 1, archives: [], removedProjects: [],
   });
 });

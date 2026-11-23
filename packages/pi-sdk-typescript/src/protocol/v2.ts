@@ -12,7 +12,7 @@ import {
 export const VERSION = 2 as const;
 export const idSchema = z.string().min(1).max(128).regex(/^[^\u0000-\u001f\u007f-\u009f]+$/);
 export const counterSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
-export const capabilitySchema = z.enum(["presentation", "command.complete", "session.archive", "project.pin", "project.remove", "server.restart", "plugin.call"]);
+export const capabilitySchema = z.enum(["presentation", "command.complete", "session.archive", "project.remove", "server.restart", "plugin.call"]);
 export type Capability = z.infer<typeof capabilitySchema>;
 export const errorSchema = z.object({ code: z.string().min(1).max(128), message: z.string().min(1), details: z.json().optional() });
 export type ProtocolError = z.infer<typeof errorSchema>;
@@ -82,7 +82,6 @@ export const operationSchemas = {
   "session.reload": session(empty, acceptedSchema),
   "session.archive": server(z.object({ path: z.string().min(1), archived: z.boolean() }), completedSchema, "session.archive"),
   "project.list": server(empty, projectsSchema),
-  "project.pin": server(z.object({ path: z.string().min(1), pinned: z.boolean() }), completedSchema, "project.pin"),
   "project.remove": server(z.object({ path: z.string().min(1) }), completedSchema, "project.remove"),
   "message.send": session(z.object({ message: z.string().trim().min(1).max(1_048_576) }), acceptedSchema),
   "run.abort": session(empty, z.union([acceptedSchema, completedSchema])),

@@ -65,7 +65,7 @@ export class WebSocketTransport {
   private connect(socket: WebSocket): void {
     const connectionId = randomUUID(); let selected: Capability[] = [];
     this.logger?.info("websocket.open", { connectionId });
-    const capabilities: Capability[] = ["presentation", "command.complete", "session.archive", "project.pin", "project.remove", ...(this.pluginRpc?.enabled ? ["plugin.call" as const] : []), ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
+    const capabilities: Capability[] = ["presentation", "command.complete", "session.archive", "project.remove", ...(this.pluginRpc?.enabled ? ["plugin.call" as const] : []), ...(this.chat.appFeatures().length ? ["server.restart" as const] : [])];
     const connection = new V2Connection({
       serverInstanceId: this.publisher.serverInstanceId, connectionId, capabilities,
       isWritable: () => socket.readyState === WebSocket.OPEN,

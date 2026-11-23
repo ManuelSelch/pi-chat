@@ -11,7 +11,7 @@ export async function executeOperation(command: Exclude<Request, Request<"server
   const raw = command.sessionId ? publisher.rawId(command.sessionId, command.method === "session.close") : undefined;
   const completed = (result?: unknown, afterResponse?: () => Promise<void> | void): V2Execution => ({ kind: "completed", result: result === undefined ? { state: "completed" } : result, afterResponse });
   const accepted = (run: () => Promise<void>): V2Execution => ({ kind: "accepted", operationId: randomUUID(), run });
-  // Metadata-only mutations (archive/pin/remove) reuse the last catalogue scan;
+  // Metadata-only mutations (archive/remove) reuse the last catalogue scan;
   // anything that can introduce sessions, titles, projects or worktrees rescans.
   const refresh = async (metadataOnly = false) => { publisher.inventoryChanged(); await publisher.refreshProjects(metadataOnly); };
   const finishWork = async (run: () => Promise<unknown>) => {
@@ -42,7 +42,6 @@ export async function executeOperation(command: Exclude<Request, Request<"server
         publisher.closed(raw!, "requested"); return completed(undefined, refresh);
       }
       case "command.complete": return completed({ items: await chat.completeCommandArguments(raw!, command.params.commandName, command.params.argumentPrefix) });
-      case "project.pin": await chat.pinProject(command.params.path, command.params.pinned); return completed(undefined, () => refresh(true));
       case "project.remove": await chat.removeProject(command.params.path); return completed(undefined, () => refresh(true));
       case "session.archive":
         try { await chat.archiveSession(command.params.path, command.params.archived); }

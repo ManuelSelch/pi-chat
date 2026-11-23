@@ -12,6 +12,18 @@ describe("v2 WebSocket transport", () => {
     server = await createPiServer({ runtime: runtime }); await new Promise<void>(resolve => server.httpServer.listen(0, "127.0.0.1", resolve));
     const client = await v2Socket(server); const initial = await client.initialize(); return { ...client, initial };
   }
+  it("keeps multiple clients connected without transferring exclusive control", async () => {
+    const first = await listen(new FakeRuntimeAdapter());
+    const second = await v2Socket(server);
+    const initial = await second.initialize();
+
+    first.send("server.ping", "first");
+    second.send("server.ping", "second");
+
+    expect(await first.response("first")).toMatchObject({ ok: true });
+    expect(await second.response("second")).toMatchObject({ ok: true });
+    expect(initial.snapshots[0]!.sessionId).toBe(first.initial.snapshots[0]!.sessionId);
+  });
   it("initializes with an empty inventory when no runtime is open", async () => {
     const client = await listen(); expect(client.initial.inventory.sessions).toEqual([]); expect(client.initial.snapshots).toEqual([]);
   });
@@ -40,13 +52,15 @@ describe("v2 WebSocket transport", () => {
     expect(archive).toHaveBeenCalledWith("fake-session.jsonl", true);
     expect(client.messages).toContainEqual(expect.objectContaining({ event: "session.closed", data: { reason: "archived" } }));
   });
-  it.each([true, false])("acknowledges pin mutation even when later catalogue refresh fails (pinned=%s)", async pinned => {
-    const pin = vi.spyOn(ProjectSessionService.prototype, "pin").mockResolvedValue(undefined);
+  it("acknowledges project removal even when later catalogue refresh fails", async () => {
+    const remove = vi.spyOn(ProjectSessionService.prototype, "removeProject").mockResolvedValue(undefined);
     const client = await listen(new FakeRuntimeAdapter());
     vi.spyOn(ProjectSessionService.prototype, "catalogue").mockRejectedValue(new Error("scan failed"));
-    client.send("project.pin", "pin", { path: process.cwd(), pinned });
-    expect(await client.response("pin")).toMatchObject({ ok: true, result: { state: "completed" } });
-    expect(pin).toHaveBeenCalledWith(process.cwd(), pinned);
+
+    client.send("project.remove", "remove", { path: process.cwd() });
+
+    expect(await client.response("remove")).toMatchObject({ ok: true, result: { state: "completed" } });
+    expect(remove).toHaveBeenCalledWith(process.cwd());
   });
   it.each(["session.create", "session.open"])("returns %s before the post-mutation project scan completes", async method => {
     let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });

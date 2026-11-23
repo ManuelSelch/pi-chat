@@ -2,13 +2,13 @@ import type { ActionRegistry, ProjectCatalogue } from "./protocol/models.js";
 import type { Event, SessionSnapshot, SessionSettings } from "./protocol/v2.js";
 
 export type SessionServerMessage = Extract<Event, { sessionId: string }>;
-export type SessionAction = SessionServerMessage | { type: "connectionLost"; error?: string } | { type: "superseded" };
+export type SessionAction = SessionServerMessage | { type: "connectionLost"; error?: string };
 type Presentation = NonNullable<SessionSnapshot["presentation"]>;
 export interface SessionState {
   messages: SessionSnapshot["messages"];
   steeringMessages: string[];
   draft?: { runId: string; text: string; thinking: string };
-  status: "connecting" | "idle" | "running" | "aborting" | "closing" | "superseded";
+  status: "connecting" | "idle" | "running" | "aborting" | "closing";
   error?: string;
   sessionId: string;
   sessionName?: string;
@@ -52,7 +52,6 @@ export function applySnapshot(state: SessionState, snapshot: SessionSnapshot): S
 }
 /** Pure v2 projection; sequence gaps/recovery and process identity are owned by PiClient. */
 export function reduceSessionMessage(state: SessionState, message: SessionAction): SessionState {
-  if (message.type === "superseded") return { ...state, status: "superseded", draft: undefined, error: undefined };
   if (message.type === "connectionLost") return { ...state, status: "connecting", draft: undefined, error: message.error };
   if (message.event === "session.snapshot") return applySnapshot(state, message.data);
   if (message.event === "presentation.changed") {

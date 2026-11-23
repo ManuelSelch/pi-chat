@@ -23,7 +23,7 @@
 - New session, Close Session, Later, Archive Session, Open folder and Settings are shared by the composer and Quick Switcher. Type exact `/close`, `/later` or `/archive` commands, or use the action menu.
 - Later and Archive remain listed but disabled for unsaved, running or blocked conversations. Titles come from Pi; there is no custom rename or delete-session command.
 - Linked-worktree rows emphasize branch names; conversation subtitles appear when multiple conversations need disambiguation. Main checkouts emphasize conversation titles. Actual Git branch names and session identities are unchanged.
-- The bottom gear opens Settings. On phones it dismisses navigation; real dialogs retain focus ownership.
+- The bottom gear opens Settings. On phones it dismisses navigation; real dialogs retain focus ownership. Settings contains Feature Toggles, Backend server and Versions, not model/thinking/compaction controls.
 - **Feature Toggles** retains chimes, Agentation feedback and Compact transcript. Sidebar navigation, hidden paths and hidden archived history are fixed behavior; old stored preferences are ignored.
 
 ## Changes panel
@@ -127,9 +127,9 @@ models** shows every model available to this runtime's providers/credentials.
 Press **Tab** to toggle scope without losing the search query or search focus.
 **Shift+Tab** retains normal focus navigation. Arrow keys and Enter still select;
 Cancel/Escape dismiss without changing the model. The scope switch does not edit
-Pi's configured shortlist. Scope/query survive minimization, tab switches and
-reconnection within this browser page. Settings and the read-only footer are
-unchanged; there is no added footer model selector.
+Pi's configured shortlist. Scope/query survive minimization, session switches and
+reconnection within this browser page. Use `/model`, `/thinking` and `/compact` for
+session settings; Settings has no Session section. The footer remains read-only.
 
 ## Extension prompts and widgets
 
@@ -140,7 +140,7 @@ wait for explicit submission; ordinary literal selection menus remain immediate.
 Minimize a question to read the conversation, then use Reopen to continue.
 Selections/reasoning survive switching sessions and reconnecting within this
 page, but not browser refresh. Minimize does not submit, cancel or pause expiry.
-While disconnected or superseded, questions can be reopened for reading but not
+While disconnected, questions can be reopened for reading but not
 answered. Failed submissions retain the draft for retry. Escape on a minimized
 prompt does not answer/cancel it; explicit Stop cancels pending work.
 

@@ -5,7 +5,7 @@ import { createPromptDraft, promptDraftKey, reconcilePromptDrafts, type PromptDr
 interface Input {
   serverInstanceId?: string;
   activeSessionId: string;
-  connection: "open" | "connecting" | "superseded";
+  connection: "open" | "connecting";
   sessions: Record<string, { prompts: readonly UiPrompt[] }>;
   respond(promptId: string, result: UiPromptResult, sessionId: string): Promise<unknown>;
 }

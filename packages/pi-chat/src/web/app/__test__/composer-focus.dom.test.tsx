@@ -58,8 +58,7 @@ beforeEach(() => {
     createAndFocusSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
     request: async invoke => invoke({ plugin: () => ({ browse: async () => ({ ok: true, listing: await controller.browseDirectories() }) }) } as unknown as import("@manuelselch/pi-sdk").PiClient), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
-    setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),
-    dismissError: vi.fn(), takeControl: vi.fn(),
+    dismissError: vi.fn(),
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

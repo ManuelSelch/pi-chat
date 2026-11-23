@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useInboxLifecycle } from "../../features/sessions/inbox/hooks/use-inbox-lifecycle.js";
-import { PiClient, SDKError, type CancellationSignal, type ThinkingLevel, type UiPromptResult } from "@manuelselch/pi-sdk";
+import { PiClient, SDKError, type CancellationSignal, type UiPromptResult } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "../stores/app-state.js";
 import { browserTransport } from "../lib/browser-transport.js";
 import { bindPiChat } from "../lib/sdk-binding.js";
@@ -65,7 +65,6 @@ export function usePiChat() {
     dispatch({ type: "closePending", sessionId });
     control((client) => client.closeSession(sessionId), { closingSessionId: sessionId });
   }, [control]);
-  const takeControl = useCallback(() => control((client) => client.takeControl()), [control]);
 
   // User-visible focus remains application-owned; the SDK always gets an ID.
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
@@ -86,7 +85,7 @@ export function usePiChat() {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice" || message.role === "bash")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });
     }, createAndFocusSession, completeCommandArguments,
-    openSession, openProject, newSession, closeTab, takeControl,
+    openSession, openProject, newSession, closeTab,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
       control((client) => client.prompt(id, message));
@@ -100,9 +99,6 @@ export function usePiChat() {
       throw error;
     }),
     focusTab: (sessionId: string) => dispatch({ type: "focusSession", sessionId }),
-    setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
-    compactSession: () => control((client) => client.compactSession(app.activeSessionId)),
-    setThinkingLevel: (level: ThinkingLevel) => control((client) => client.setThinkingLevel(app.activeSessionId, level)),
     dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
   };
 }

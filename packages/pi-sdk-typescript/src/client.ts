@@ -1,4 +1,4 @@
-import { CONTROLLER_REPLACED_CODE, type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type CommandCompletionItem, type SessionTheme } from "./protocol/index.js";
+import { type ProjectCatalogue, type WebFeature, type ThinkingLevel, type UiPromptResult, type CommandCompletionItem, type SessionTheme } from "./protocol/index.js";
 import { capabilitySchema, requestSchema, serverMessageSchema, parseResponse, type ServerMessage, type Event, type Method, type Params, type Result, type Capability, type OpenSessionSummary, type SessionSnapshot } from "./protocol/v2.js";
 import { SDKError } from "./errors.js";
 import { defaultScheduler, type Scheduler, type CancellationSignal } from "./platform.js";
@@ -9,7 +9,7 @@ import type { RemoteContract, RemoteContractClient } from "./plugins/remote-cont
 import { pluginCallParamsSchema } from "./protocol/plugin-rpc.js";
 
 export type ReadonlyDeep<T> = T extends readonly (infer U)[] ? readonly ReadonlyDeep<U>[] : T extends object ? { readonly [K in keyof T]: ReadonlyDeep<T[K]> } : T;
-export type ConnectionPhase = "stopped" | "connecting" | "synchronizing" | "ready" | "reconnecting" | "superseded" | "failed" | "disposed";
+export type ConnectionPhase = "stopped" | "connecting" | "synchronizing" | "ready" | "reconnecting" | "failed" | "disposed";
 export interface ClientState {
   connection: { phase: ConnectionPhase; error?: { code: string; message: string } };
   serverInstanceId?: string;
@@ -97,12 +97,11 @@ export class PiClient {
   onMessage(listener: (message: ReadonlyDeep<ServerMessage>) => void): () => void { this.assertAlive(); this.messageListeners.add(listener); return () => { this.messageListeners.delete(listener); }; }
   onError(listener: (error: SDKError) => void): () => void { this.assertAlive(); this.errorListeners.add(listener); return () => { this.errorListeners.delete(listener); }; }
   start(): void {
-    this.assertAlive(); if (this.running || this.state.connection.phase === "superseded") return;
+    this.assertAlive(); if (this.running) return;
     this.running = true; this.retryMs = 250; const generation = this.generation;
     this.publish({ ...this.state, connection: { phase: "connecting" } });
     if (this.active(generation)) this.timer = this.scheduler.setTimeout(() => this.connect(), 0);
   }
-  takeControl(): void { this.assertAlive(); this.detach(); this.running = false; this.publish({ ...this.state, connection: { phase: "stopped" } }); this.start(); }
   stop(): void { this.shutdown("stopped"); }
   dispose(): void { this.shutdown("disposed"); }
 
@@ -149,7 +148,6 @@ export class PiClient {
   async createSession(projectPath?: string, options: RequestOptions = {}): Promise<string> { return (await this.request("session.create", { projectPath }, undefined, options)).snapshot.sessionId; }
   async completeCommandArguments(id: string, commandName: string, argumentPrefix: string, options: RequestOptions = {}): Promise<CommandCompletionItem[]> { return (await this.request("command.complete", { commandName, argumentPrefix }, id, options)).items; }
   async archiveSession(path: string, archived: boolean, options: RequestOptions = {}): Promise<void> { await this.request("session.archive", { path, archived }, undefined, options); }
-  async pinProject(path: string, pinned: boolean, options: RequestOptions = {}): Promise<void> { await this.request("project.pin", { path, pinned }, undefined, options); }
   async removeProject(path: string, options: RequestOptions = {}): Promise<void> { await this.request("project.remove", { path }, undefined, options); }
   private nextId(): string { if (this.requestSequence >= Number.MAX_SAFE_INTEGER) throw new SDKError("limitExceeded", "Request identifiers exhausted; create a fresh client."); return `sdk-${++this.requestSequence}`; }
   private sendFrame(value: unknown): void {
@@ -175,7 +173,7 @@ export class PiClient {
       const transport = this.options.transport(this.options.endpoint, {
         open: () => { if (!this.active(generation)) return; opened = true; initialize(); },
         message: text => { if (this.active(generation)) this.enqueue(text, generation); },
-        close: event => { if (this.active(generation)) this.lost(new SDKError(event.code === CONTROLLER_REPLACED_CODE ? "superseded" : "disconnected", event.reason || "Connection lost."), event.code === CONTROLLER_REPLACED_CODE); },
+        close: event => { if (this.active(generation)) this.lost(new SDKError("disconnected", event.reason || "Connection lost.")); },
         error: () => { if (this.active(generation)) this.report(new SDKError("transportError", "WebSocket transport reported an error.")); },
       });
       if (this.active(generation)) { this.transport = transport; if (opened && !this.initializeId) initialize(); } else this.release(transport);
@@ -323,10 +321,10 @@ export class PiClient {
     if (this.timer !== undefined) this.scheduler.clearTimeout(this.timer); if (this.watchdog !== undefined) this.scheduler.clearTimeout(this.watchdog); this.timer = undefined; this.watchdog = undefined;
     const transport = this.transport; this.transport = undefined; if (transport) this.release(transport);
   }
-  private disconnectedSessions(superseded = false): Record<string, SessionState> { return Object.fromEntries(Object.entries(this.state.sessions).map(([id, state]) => [id, reduceSessionMessage(state, { type: superseded ? "superseded" : "connectionLost" })])); }
-  private lost(error: SDKError, superseded = false): void {
-    this.detach(error); const generation = this.generation; if (superseded) this.running = false;
-    this.publish({ ...this.state, sessions: this.disconnectedSessions(superseded), connection: { phase: superseded ? "superseded" : "reconnecting", error: { code: error.code, message: error.message } } }); this.report(error);
+  private disconnectedSessions(): Record<string, SessionState> { return Object.fromEntries(Object.entries(this.state.sessions).map(([id, state]) => [id, reduceSessionMessage(state, { type: "connectionLost" })])); }
+  private lost(error: SDKError): void {
+    this.detach(error); const generation = this.generation;
+    this.publish({ ...this.state, sessions: this.disconnectedSessions(), connection: { phase: "reconnecting", error: { code: error.code, message: error.message } } }); this.report(error);
     if (!this.active(generation)) return; this.timer = this.scheduler.setTimeout(() => this.connect(), this.retryMs); this.retryMs = Math.min(this.retryMs * 2, 5000);
   }
   private fail(error: SDKError): void { this.running = false; this.detach(error); this.publish({ ...this.state, sessions: this.disconnectedSessions(), connection: { phase: "failed", error: { code: error.code, message: error.message } } }); this.report(error); }

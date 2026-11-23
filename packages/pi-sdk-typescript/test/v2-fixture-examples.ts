@@ -23,7 +23,6 @@ export const operationExamples: Record<Method, { params: object; result: object;
   "session.reload": { sessionId: "runtime", params: {}, result: accepted },
   "session.archive": { params: { path: "/p/history.jsonl", archived: true }, result: completed },
   "project.list": { params: {}, result: projects },
-  "project.pin": { params: { path: "/p", pinned: true }, result: completed },
   "project.remove": { params: { path: "/p" }, result: completed },
   "message.send": { sessionId: "runtime", params: { message: "Hello" }, result: accepted },
   "run.abort": { sessionId: "runtime", params: {}, result: accepted },

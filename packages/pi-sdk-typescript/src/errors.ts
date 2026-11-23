@@ -1,4 +1,4 @@
-export type SDKErrorCode = "notConnected" | "disconnected" | "stopped" | "disposed" | "superseded" | "timeout" | "cancelled" | "limitExceeded" | "invalidMessage" | "invalidRequest" | "transportError" | "serverError" | "listenerError" | (string & {});
+export type SDKErrorCode = "notConnected" | "disconnected" | "stopped" | "disposed" | "timeout" | "cancelled" | "limitExceeded" | "invalidMessage" | "invalidRequest" | "transportError" | "serverError" | "listenerError" | (string & {});
 export type RequestOutcome = "notSent" | "unknown" | "rejected";
 
 /** Local failures are distinct from server rejections; unknown never means retry. */

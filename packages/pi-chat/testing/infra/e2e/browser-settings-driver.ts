@@ -16,6 +16,13 @@ export class BrowserSettingsDriver {
     await expect(this.panel).toBeVisible();
   }
 
+  async shouldOmitSessionControls(): Promise<void> {
+    await expect(this.panel.getByRole("group", { name: "Session", exact: true })).toHaveCount(0);
+    for (const name of ["Model", "Thinking level"])
+      await expect(this.panel.getByLabel(name, { exact: true })).toHaveCount(0);
+    await expect(this.panel.getByRole("button", { name: /^Compact/ })).toHaveCount(0);
+  }
+
   async shouldOmitRetiredPreferences(): Promise<void> {
     for (const name of ["Show open sessions in sidebar", "Show folder path in projects panel", "Hide archived sessions"])
       await expect(this.panel.getByRole("switch", { name, exact: true })).toHaveCount(0);

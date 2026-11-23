@@ -64,16 +64,6 @@ describe("catalogue refresh mode after v2 mutations", () => {
     await chat.dispose();
   });
 
-  it("pins a cached project without rescanning sessions or rediscovering worktrees", async () => {
-    const { cwd, lister, discovery, chat, publisher } = await setup();
-    await chat.currentCatalogue(); lister.listAll.mockClear(); discovery.forDirectory.mockClear();
-    await settle(await executeOperation({ version: 2, type: "request", requestId: "r", method: "project.pin", params: { path: cwd, pinned: true } }, chat, publisher));
-    expect(lister.listAll).not.toHaveBeenCalled();
-    expect(discovery.forDirectory).not.toHaveBeenCalled();
-    expect(publisher.projects().catalogue.projects[0]!.pinned).toBe(true);
-    await chat.dispose();
-  });
-
   it("still performs a full scan when opening a session", async () => {
     const { path, lister, discovery, chat, publisher } = await setup();
     await chat.currentCatalogue(); lister.listAll.mockClear(); discovery.forDirectory.mockClear();

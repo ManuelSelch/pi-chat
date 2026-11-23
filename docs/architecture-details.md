@@ -138,7 +138,7 @@ reload does not persist these drafts.
 
 The session catalogue groups repository checkouts without mixing their session
 identities. Quick Chats stays separate; saved metadata and recent unarchived activity inform
-catalogue ordering. Chat no longer exposes pin/remove project controls. Worktree labels and catalogue discovery belong to the server/model,
+catalogue ordering. Project pinning has been removed; Chat does not expose project-removal controls. Worktree labels and catalogue discovery belong to the server/model,
 not filesystem probing in views. Every open runtime directory seeds server checkout
 discovery even without a saved transcript; creation and runtime replacement refresh
 the catalogue without inventing saved-session entries. Inbox uses repository context and promotes a
@@ -221,6 +221,8 @@ stacked.
 - The shared Markdown renderer strips generated `title` properties after its
   rehype plugins, including in tool-card previews; JSX lint cannot inspect
   attributes generated from Markdown at runtime.
+
+- Model, thinking and compaction settings use native Pi commands; the duplicate Settings Session section is removed. The SDK retains structured operations for other clients.
 
 ## Chat backend lifecycle and security
 

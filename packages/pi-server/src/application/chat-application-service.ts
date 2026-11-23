@@ -210,11 +210,6 @@ export class ChatApplicationService {
     return this.projectSessions.catalogue(undefined, { ...options, projectPaths });
   }
 
-  async pinProject(path: string, pinned: boolean): Promise<void> {
-    const target = pinned ? await validateProjectPath(path) : path;
-    await this.projectSessions.pin(target, pinned);
-  }
-
   async removeProject(path: string): Promise<void> {
     await this.projectSessions.removeProject(path);
   }

@@ -10,8 +10,7 @@ import { VersionsContainer } from "../versions/components/VersionsContainer.js";
 export function SettingsContainer() {
   const chat = useAppController();
   const overlays = useOverlays();
-  const { app, state } = chat;
-  const busy = state.status === "running" || state.status === "aborting";
+  const { app } = chat;
   const agentation = useAgentation();
   const transcript = useTranscriptDensity();
   
@@ -21,13 +20,8 @@ export function SettingsContainer() {
       setAgentationEnabled={agentation.setEnabled}
       opened={overlays.state.settings}
       onClose={() => overlays.close("settings")}
-      state={state}
-      busy={busy}
       serverSettings={<ServerSettingsContainer preference={chat.serverEndpoint} connected={app.connection === "open"} failed={app.connection !== "open" && !!app.error} />}
       versions={<VersionsContainer endpoint={chat.serverEndpoint.endpoint} connected={app.connection === "open"} opened={overlays.state.settings} />}
-      setThinkingLevel={chat.setThinkingLevel}
-      setModel={chat.setModel}
-      compactSession={chat.compactSession}
       pluginFeatureToggles={<PluginUIOutlet placement="settings.feature-toggles" />}
       transcriptDensity={transcript.density}
       setTranscriptDensity={transcript.setDensity}

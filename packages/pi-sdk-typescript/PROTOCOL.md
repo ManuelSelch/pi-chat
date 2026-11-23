@@ -86,7 +86,6 @@ Optional capabilities expose these operations and presentation contributions. Cl
 |---|---|
 | `command.complete` | Session; complete slash-command arguments |
 | `session.archive` | Server; set saved-history archive state by path, including unarchive |
-| `project.pin` | Server; set project pin state |
 | `project.remove` | Server; remove catalogue membership |
 | `plugin.call` | Server; call an explicitly exposed plugin contract revision/method with JSON input; returns `{ value }` |
 | `server.restart` | Server; acknowledge before shutdown where supported; disconnect alone does not prove restart succeeded |
@@ -331,7 +330,6 @@ interface ProjectSummary {
   exists: boolean;
   modified: number;
   sessionCount: number;
-  pinned?: boolean;
   quickChats?: boolean;
   sessions: SavedSessionSummary[];
   repositoryPath?: string;
@@ -400,6 +398,8 @@ Implemented v2 cutover decisions:
 
 These decisions are implemented and covered by SDK, application, transport and browser tests; schema conformance alone is not treated as proof of runtime behavior.
 
-The v1-to-v2 server/SDK/Pi Chat cutover is coordinated and complete. There is no v1 compatibility or dual-protocol period; v1 clients are unsupported. The current Swift package remains a generation probe/scaffold; its production vertical slice is deferred. Wire-level tabs/focus/project continuation have been removed and project-session selection is client-owned. Closing a Pi Chat client tab calls `session.close`. Multi-client control, subscriptions, durable journals, automatic mutation replay, file transfer and AHP compatibility are deferred.
-
-See [backend/SDK requirements](REQUIREMENTS.md) and [steering/snapshot requirements](../steering/REQUIREMENTS.md). Shared tests must cover lifecycle, streaming/steering, dialogs, version errors, snapshot ordering, reconnect/takeover, uncertain outcomes and slow consumers. V2 schema/fixture conformance is supplemented by real loopback server tests, SDK tests, web/domain drivers, browser e2e and production smoke verification; summary and limits are recorded in [CUTOVER.md](CUTOVER.md).
+- V1 clients remain unsupported; there is no dual-protocol or compatibility path. Wire-level tabs/focus/project continuation are not operations: navigation is client-owned.
+- Multiple clients may remain connected. There is no exclusive-controller/takeover state; SDK socket closures use normal reconnect/backoff.
+- `project.pin` and catalogue `pinned` fields are removed. Regenerate client artifacts rather than retaining pinning shims. Project removal and session archive operations remain.
+- Chat's Settings Session section is removed, not native model/thinking/compaction behavior or the structured operations used by other clients.
+- See [current integration rules](../../docs/protocol.md) and [verification guidance](../../docs/development.md#verification). Schema/fixture conformance is supplemented by SDK tests, real loopback Server tests, Chat scenarios, browser E2E and production smoke; external/native compatibility requires its own verification.

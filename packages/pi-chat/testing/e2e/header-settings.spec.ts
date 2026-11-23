@@ -47,4 +47,5 @@ test("retired sidebar preferences cannot restore tabs after reload", async () =>
   await app.inbox.shouldShowHome();
   await app.settings.open();
   await app.settings.shouldOmitRetiredPreferences();
+  await app.settings.shouldOmitSessionControls();
 });

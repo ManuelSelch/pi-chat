@@ -12,6 +12,6 @@ export function presentationEvent(data: Partial<NonNullable<SessionSnapshot["pre
   return { version: 2, type: "event", event: "presentation.changed", serverInstanceId: "process", sessionId, data: { revision, widgets: [], footer: [], ...data } };
 }
 export function initializeResult(snapshots: SessionSnapshot[], catalogue: Result<"project.list">["catalogue"] = { projects: [] }): Result<"server.initialize"> {
-  return { protocolVersion: 2, serverVersion: "test", serverInstanceId: "process", connectionId: "connection", capabilities: ["presentation", "command.complete", "session.archive", "project.pin", "project.remove"], inventory: { revision: 0, sessions: snapshots.map(summary) }, projects: { revision: 0, catalogue }, snapshots };
+  return { protocolVersion: 2, serverVersion: "test", serverInstanceId: "process", connectionId: "connection", capabilities: ["presentation", "command.complete", "session.archive", "project.remove"], inventory: { revision: 0, sessions: snapshots.map(summary) }, projects: { revision: 0, catalogue }, snapshots };
 }
 export function summary(snapshot: SessionSnapshot): OpenSessionSummary { return { sessionId: snapshot.sessionId, title: snapshot.sessionName ?? snapshot.sessionId, sessionPath: snapshot.sessionPath, projectPath: snapshot.projectPath, projectName: snapshot.projectPath.split("/").at(-1) ?? "", status: snapshot.runtime.status === "running" || snapshot.runtime.status === "aborting" ? "running" : snapshot.runtime.status }; }

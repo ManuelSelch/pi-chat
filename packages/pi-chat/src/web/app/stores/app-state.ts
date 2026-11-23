@@ -29,7 +29,7 @@ export interface AppState {
   tabsKnown: boolean;
   /** Revision zero is the server cold-start placeholder, before discovery. */
   catalogueKnown: boolean;
-  connection: "connecting" | "open" | "superseded";
+  connection: "connecting" | "open";
   error?: string;
 }
 
@@ -94,8 +94,7 @@ export function reduceAppMessage(state: AppState, action: AppAction): AppState {
   if (sdk.connection.phase === "ready") next = { ...next, tabsKnown: true, connection: "open", error: state.connection === "open" ? state.error : undefined };
   else {
     const { phase, error } = sdk.connection;
-    if (phase === "superseded") next = { ...next, connection: "superseded", error: undefined };
-    else if (phase === "reconnecting") next = { ...next, connection: "connecting", error: "Waiting for the Pi Chat server…" };
+    if (phase === "reconnecting") next = { ...next, connection: "connecting", error: "Waiting for the Pi Chat server…" };
     else if (phase === "failed") next = { ...next, connection: "connecting", error: `${error?.message ?? "Connection failed."} Reload to reconnect.` };
     else next = { ...next, connection: "connecting" };
   }

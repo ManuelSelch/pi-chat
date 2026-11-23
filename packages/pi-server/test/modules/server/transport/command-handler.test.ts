@@ -4,13 +4,13 @@ import type { ServerPublisher } from "../../../../src/transport/server-publisher
 import { executeOperation } from "../../../../src/transport/command-handler.js";
 
 function fixture(inventory?: unknown) {
-  const pinProject = vi.fn(async () => {});
+  const removeProject = vi.fn(async () => {});
   const inventoryChanged = vi.fn();
   const refreshProjects = vi.fn(async () => {});
   // Deliberately narrow unit doubles; no runtime, storage or sockets are needed.
-  const chat = { pinProject } as unknown as ChatApplicationService;
+  const chat = { removeProject } as unknown as ChatApplicationService;
   const publisher = { inventory: () => inventory, inventoryChanged, refreshProjects } as unknown as ServerPublisher;
-  return { chat, publisher, pinProject, inventoryChanged, refreshProjects };
+  return { chat, publisher, removeProject, inventoryChanged, refreshProjects };
 }
 
 const ping = { version: 2, type: "request", requestId: "ping", method: "server.ping", params: {} } as const;
@@ -50,9 +50,9 @@ describe("command completion defaults", () => {
   });
 
   it("keeps explicit-undefined mutation completion and defers its refresh callback", async () => {
-    const { chat, publisher, pinProject, inventoryChanged, refreshProjects } = fixture();
-    const execution = await executeOperation({ version: 2, type: "request", requestId: "pin", method: "project.pin", params: { path: "/project", pinned: true } }, chat, publisher);
-    expect(pinProject).toHaveBeenCalledExactlyOnceWith("/project", true);
+    const { chat, publisher, removeProject, inventoryChanged, refreshProjects } = fixture();
+    const execution = await executeOperation({ version: 2, type: "request", requestId: "remove", method: "project.remove", params: { path: "/project" } }, chat, publisher);
+    expect(removeProject).toHaveBeenCalledExactlyOnceWith("/project");
     expect(execution).toMatchObject({ kind: "completed", result: { state: "completed" }, afterResponse: expect.any(Function) });
     expect(inventoryChanged).not.toHaveBeenCalled();
     expect(refreshProjects).not.toHaveBeenCalled();
