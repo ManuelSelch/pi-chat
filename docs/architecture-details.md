@@ -1,0 +1,247 @@
+# Architecture details
+
+- Start with the [architecture map](architecture.md); this page explains the retained behavior and lifecycle details.
+
+Pi Chat consists of a browser application and the Chat backend, a thin Node.js wrapper around Pi Server.
+Chat, Server, feature plugins and the TypeScript SDK share this [npm workspace](monorepo.md), while retaining separate package APIs. The server runs Pi sessions; the TypeScript SDK owns the v2
+wire contract, transport and synchronized session projections. The browser owns
+navigation, drafts, focus and presentation. There is no v1 compatibility path.
+
+```mermaid
+flowchart LR
+    Browser[React browser app] <-->|PiClient / WebSocket| Server[pi-server]
+    Backend[Chat backend] --> Server
+    Server --> Pi[Pi runtime and extensions]
+    Server --> History[Session files and catalogue metadata]
+```
+
+## Package boundaries
+
+| Owner | Responsibility |
+|---|---|
+| [Chat backend](../packages/pi-chat/src/host/index.ts) | Web assets, `PI_CHAT_*` environment wiring, PID/log/signal lifecycle and build-before-restart policy |
+| [pi-server](../packages/pi-server/README.md) | HTTP/WebSocket hosting, client connections, session/runtime lifecycle, catalogue/persistence, native Pi UI presentation, file operations and server diagnostics |
+| [pi-sdk-typescript](../packages/pi-sdk-typescript/README.md) | Authoritative protocol schemas/artifacts, `PiClient`, request correlation, immutable projections, sequencing and recovery |
+| [pi-sdk-swift](https://github.com/ManuelSelch/pi-sdk-swift) | Native client, imported protocol artifacts and Swift-owned real-server compatibility testing |
+
+Chat consumes compiled public exports from local workspace packages, not private source paths.
+See the [manifest](../package.json), [lockfile](../package-lock.json) and
+[monorepo guide](monorepo.md) for dependency resolution, builds and imported history. Public server imports are the
+root, `/plugins`, `/testing` and `/testing/loopback`; server internals are not
+Chat extension points. The SDK's `/protocol` entry is the contract authority.
+
+## Plugin primitives and local runtime
+
+- [SDK-owned plugin declarations](plugins.md) define lazy built-ins and typed remote contracts; Chat has no copied primitives.
+- [Pi Server owns host activation](plugin-runtime.md); Chat awaits async server readiness before listening, and server close disposes plugins.
+- [File opening](../plugins/file-opening/README.md) is a standalone package with contract, web and host exports; Server supplies generic session lookup; Chat explicitly registers its host provider. [Folder opening](../plugins/folder-opening/README.md) is a standalone vertical plugin with separate contract, web and host exports; Chat supplies shell/session integration. Both use typed plugin RPC. Folder opening contributes its browser command and overlay through the [explicit web composition](plugins.md#browser-contributions).
+
+## Browser composition and state
+
+[App](../packages/pi-chat/src/web/app/App.tsx) composes the controller, confirmations, overlay and
+session-action providers, global keyboard routing and responsive workspace.
+[Frontend organization](../packages/pi-chat/docs/development.md#frontend-organization) describes application composition, feature modules and shared folders.
+
+[usePiChat](../packages/pi-chat/src/web/app/hooks/use-pi-chat.ts) creates one `PiClient` per mounted
+controller, supplies the selected endpoint and browser transport, exposes typed
+operations and disposes subscriptions/client state on unmount.
+[bindPiChat](../packages/pi-chat/src/web/app/lib/sdk-binding.ts) projects SDK state and
+notifications into browser-owned views. Chat does not implement another wire
+session reducer or request tracker.
+
+- SDK state owns runtime inventory, authoritative session projections, catalogue,
+  prompt lists, operation outcomes and runtime theme caches.
+- `app/stores` owns selection, optimistic opening/closing and transient anchored
+  notices. Pi model errors and prompt-execution exceptions arrive as live error
+  notifications and appear as transcript lines; the notification lines are transient and are not written to
+  saved session history or restored as composer popups from runtime error
+  metadata. Pi's own underlying assistant-message persistence remains unchanged.
+  Notices are retained across same-page snapshots but are not persisted transcript
+  messages. A failed local
+  operation rolls back its local placeholder.
+- Navigation and focus are local. Disconnecting or hiding a nonempty conversation
+  does not close its runtime. A close operation explicitly tears down a runtime;
+  an archive operation changes saved-history metadata.
+- Session IDs identify runtime incarnations, not persisted Pi history. Saved
+  `sessionPath` is the stable identity for reopening history. See the
+  [protocol boundary](protocol.md) for response meanings and uncertain outcomes.
+
+### Conversation input and actions
+
+The server delegates ordinary prompts, slash commands, skills, steering and
+user bash to Pi; the browser does not expand resources or schedule model turns.
+Queued steering is separate from consumed transcript messages. Snapshots reflect
+Pi's current context, so compaction can shorten history. Live/final/snapshot
+message identity prevents duplicated history; a reconnect does not promise to
+recover an unobserved partial streaming prefix.
+
+[SessionActionsProvider](../packages/pi-chat/src/web/features/sessions/actions/stores/SessionActionsProvider.tsx)
+shares local action definitions between composer and
+Quick Switcher. Inbox lifecycle owns parking/archive errors; the application notice renders them. Availability and execution guards recheck the current session,
+connection and busy state. Menu clearing/dismissal stays with each menu.
+Extension commands keep their native Pi path. Restart is available through
+the `/pi-chat restart` backend command.
+
+Argument-completion state is composer-local. Requests capture session, draft and
+caret context; changing that context aborts/invalidates the local wait. Late
+replies cannot insert into another draft. The provider owns filtering and the
+replacement value; selecting it inserts without executing.
+
+### Session navigation and drafts
+
+Inbox is the only session navigation: a desktop sidebar and phone drawer over SDK runtimes
+and catalogue. There is no tab-bar/legacy Projects branch or navigation-mode preference.
+Folder paths are hidden in search presentation (still searchable); archived history is always
+excluded. The three retired browser preferences are ignored, not migrated.
+
+Inbox and Quick Switcher share a projection of saved, unarchived history and
+runtime inventory, deduplicated by session path. Live rows use runtime titles
+and status, including sessions not yet in the catalogue; selecting one focuses
+its runtime ID. Saved-only rows are opened by path. Inbox Blocked derives from blocked status; working sessions appear in the
+project-grouped sidebar and a collapsed Home section. Ready contains other idle conversations
+except browser-local Later membership; it is not an unread-response list.
+History is not reopened automatically.
+
+Home is the single landing page. Its search-first view composes activity from
+`InboxPageContainer`. Search temporarily replaces
+activity; clearing it restores activity with Later initially collapsed. Header Home
+navigation clears selection without closing runtimes; SDK updates retain deliberate
+deselection. Opening a row restores the existing transcript/composer. Close view or
+removal of the selected runtime returns to Home. There is no separate page-routing
+state or Home/Inbox sidebar destination. `InboxContainer` and `InboxPageContainer`
+share the row projection and lifecycle actions; project and Later disclosure are
+local presentation state. The sidebar retains Later access and archive actions.
+Activity cards omit unavailable change totals rather than synthesizing metrics.
+
+`features/sessions/inbox` owns pure row/reconciliation rules, endpoint-scoped Later
+storage, lifecycle coordination and component/container UI. Parking loaded saved
+idle work stores intent before close and immediately moves its row to Later while
+the runtime closes; parking unloaded history only stores membership. Resume removes membership after confirmed opening. Definite failures
+roll back; uncertain outcomes reconcile with authoritative inventory/catalogue
+without automatic mutation replay. Revision zero is a cold-start catalogue
+placeholder, not authoritative empty history. Archive hides the Inbox row while the
+server updates metadata and restores it on failure; success does not create an Undo record or success notice. Notices show errors.
+
+Closing a nonempty view deliberately clears selection and renders Home without
+stopping background work. Empty idle runtimes are closed. Removing the selected
+runtime during a live connection (including parking or archiving it) also restores
+Home rather than selecting another runtime. Background session actions leave the
+current selection intact. SDK updates preserve deliberate deselection; runtime
+replacement transfers selection, while startup/reconnect retain their existing
+selection fallback. Later reconciliation removes missing/archived/external
+reopens only after authoritative catalogue availability.
+
+[SessionDraftProvider](../packages/pi-chat/src/web/features/sessions/drafts/stores/SessionDraftProvider.tsx)
+owns page-lifetime composer drafts. Unsaved runtime keys transfer to saved paths,
+so parking/reopening can reuse drafts even when the runtime ID changes. Browser
+reload does not persist these drafts.
+
+The session catalogue groups repository checkouts without mixing their session
+identities. Quick Chats stays separate; saved metadata and recent unarchived activity inform
+catalogue ordering. Chat no longer exposes pin/remove project controls. Worktree labels and catalogue discovery belong to the server/model,
+not filesystem probing in views. Every open runtime directory seeds server checkout
+discovery even without a saved transcript; creation and runtime replacement refresh
+the catalogue without inventing saved-session entries. Inbox uses repository context and promotes a
+linked worktree branch above its conversation title; main checkouts retain the
+title as primary. Single-conversation linked checkouts omit the subtitle;
+multiple conversations retain titles for disambiguation. Counts include unarchived
+catalogue history (including Later) and unsaved live siblings, deduplicated against
+saved paths before status filtering. Later uses the same live inventory.
+Quick Switcher also uses the linked branch as its primary session label and repository
+as context, including before the first message. Conversation titles remain searchable
+and appear as context when meaningful; the untitled “New session” placeholder is not
+displayed for linked branches. Primary checkouts keep their conversation titles.
+Sidebar rows expose the full title on hover, place status beside the primary label and omit recency; shared
+Home/Quick Switcher time formatting is unchanged. Project context uses the
+catalogue repository name, falling back to the runtime project name before
+discovery. The inbox header uses the catalogue's `quickChats` marker to label
+home-folder sessions “Quick Chat”; other header project names retain their runtime
+labels. This presentation does not modify runtime inventory. Row actions continue using original identities. The panel has no search field; empty project groups, Inbox status groups and an empty Later shelf are omitted entirely.
+
+### Transcript scrolling
+
+- Opening or switching a session pins the transcript to its latest message.
+- Message updates and delayed Markdown/image layout growth keep following until the reader scrolls up; returning to the bottom resumes following.
+- [Scroll hook](../packages/pi-chat/src/web/features/chat/transcript/hooks/use-auto-scroll.ts) owns follow intent, layout observation and animation-frame cleanup.
+- [Browser scenarios](../packages/pi-chat/testing/e2e/transcript-scroll.spec.ts) verify Home opening, session switching, reload and reader opt-out against actual viewport/composer geometry.
+
+### Focus and overlays
+
+[AppOverlays](../packages/pi-chat/src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
+navigation, a generic plugin overlay outlet and Settings. Desktop navigation is non-modal;
+phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
+Settings remains mounted while closed, but no longer owns audio lifetime. The [chimes plugin](../plugins/chimes/README.md) owns playback/preferences in its app-lifetime provider and contributes its existing switch to `settings.feature-toggles`.
+
+[Composer focus](../packages/pi-chat/src/web/hooks/composer-focus.ts) restores only an enabled,
+connected, visible composer when no dialog owns focus. Mantine exit callbacks
+increment a revision; a layout effect consumes it once after React commits DOM
+removal. This is not a polling loop or a promise that an animation frame implies
+a commit. Reopening or a newer/nested dialog prevents stale restoration. A
+minimized pending prompt can receive focus through its Reopen button while the
+composer is disabled. Background stream/snapshot updates do not request focus.
+See [focus test discipline](../packages/pi-chat/testing/README.md#composer-focus-regressions).
+
+### Runtime prompts, widgets and themes
+
+Server-owned prompts are independent of model turns and survive client reconnect
+within their server lifetime. Browser presentation/drafts are keyed by server
+instance, runtime and prompt ID; they survive session changes/reconnects but not page
+refresh. Authoritative removal/replacement clears them. Submission guards prevent
+duplicate answers; failures retain drafts for retry. Minimize is local and does
+not answer, cancel, extend expiry or pause the server's disconnect grace.
+[Prompt presentation](../packages/pi-chat/src/web/features/extensions/prompts/hooks/use-prompt-presentation.ts)
+keeps these drafts out of SDK snapshots. Native `/model` is an immediate select
+with all available references in `options` and a server-resolved
+`modelScope.scoped` subset. Search and scoped/all selection are browser-owned
+prompt drafts, not model configuration; Tab changes only that local scope.
+
+Widgets carry server-produced ANSI-styled string lines. Chat joins each widget's
+lines and renders styled plain text through Fancy-ANSI, not Markdown. HTTP(S)
+OSC 8 links open with safe new-tab attributes; Markdown/bare URLs remain literal.
+This is not full terminal emulation or comprehensive control-code sanitization.
+`WidgetDisclosureProvider` owns a page-lifetime set of collapsed widget keys,
+shared across sessions, widget removal/reappearance and inline/docked placement.
+Reopening removes the key; page reload resets preferences. These preferences
+are not stored in SDK snapshots or browser storage. Rendering, dock geometry and
+pure placement are separate modules. Only above-composer widgets use a grid sized by
+the composer column: at most two bottom-aligned cards per row, and a lone last
+card of an odd count spans the row. Below-composer and docked widgets remain
+stacked.
+
+- `AppThemeProvider` owns the fixed application theme, including portals.
+- Runtime Pi themes only color extension ANSI output, not the interface.
+- See [theme configuration](../packages/pi-chat/docs/configuration.md#pi-themes) for setup and lifetime.
+
+### File links and content presentation
+
+- Local Markdown links use the [file-opening plugin](../plugins/file-opening/README.md); its host entry owns filesystem access and OS effects, while the browser owns transient feedback outside chat history.
+- Markdown/read/write previews and edit highlighting present existing tool content, not new file access endpoints; raw HTML and remote preview images remain disabled.
+
+- JSX lint rejects explicit native-tooltip `title` attributes.
+- The shared Markdown renderer strips generated `title` properties after its
+  rehype plugins, including in tool-card previews; JSX lint cannot inspect
+  attributes generated from Markdown at runtime.
+
+## Chat backend lifecycle and security
+
+[The Chat backend](../packages/pi-chat/src/host/index.ts) awaits server/plugin readiness before listening and embeds the server with explicit built web assets,
+log ownership and idempotent shutdown. Managed PID records are published
+atomically. The `/pi-chat restart` extension resolves npm beside its running Node,
+runs `npm ci` and `npm run build`, and reports failures before signaling the Chat backend.
+SIGUSR2 invokes guarded process replacement without acquiring a WebSocket
+controller. The extension observes a healthy successor with a deadline; a
+disconnect or timeout alone is not proof of restart success. The successor uses
+the Chat backend's original Node executable; if it is unavailable, stop and start again.
+
+The server owns Pi runtime construction, including upstream codemode, tool-search
+and MCP extension registration. Credentials, subprocesses, discovery/trust and
+resource lifecycle remain server/Pi-owned, not browser settings or SDK work.
+Server implementation details and profiling diagnostics live in `packages/pi-server`;
+the Chat application does not carry a second implementation.
+
+The server can execute tools and access files with its user's permissions. It
+has no application authentication; bind to loopback/private interfaces and use a
+trusted authenticated TLS proxy/VPN for remote access. Endpoint preferences do
+not bypass origin protections. Logs are bounded/redacted and belong
+to the Chat backend/Pi Server; connection diagnostics must not log chat frames or secrets.
+See [configuration](../packages/pi-chat/docs/configuration.md) and [development](development.md).
