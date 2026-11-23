@@ -15,7 +15,7 @@ export const useSidePanel = () => useContext(PanelState);
 export function SidePanelToggle() {
   const panel = useSidePanel();
   if (!panel.available) return null;
-  return <Tooltip label="Side panel"><ActionIcon variant={panel.opened ? "light" : "subtle"} color="gray" aria-label="Toggle side panel" aria-expanded={panel.opened} aria-controls="plugin-side-panel" onClick={panel.toggle}><IconLayoutSidebarRight size={18}/></ActionIcon></Tooltip>;
+  return <ActionIcon variant={panel.opened ? "light" : "subtle"} color="gray" aria-label="Toggle side panel" aria-expanded={panel.opened} aria-controls="plugin-side-panel" onClick={panel.toggle}><IconLayoutSidebarRight size={18}/></ActionIcon>;
 }
 
 export function PluginSidePanel({stacked = false}:{stacked?:boolean}) {
