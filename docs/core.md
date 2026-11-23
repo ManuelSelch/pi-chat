@@ -43,12 +43,15 @@
 - Existing plugins are explicitly bundled/registered, not dynamically installed or toggled as a group. Optional is an ownership classification, not a working runtime disable switch.
 - Pi extension UI and workspace plugins are different extension mechanisms; do not move every native Pi feature behind workspace plugins merely to shrink a folder.
 
+## Completed removals
+
+- Legacy tab bar, Projects drawer and sidebar/path/archive preference branches are deleted; [usage](../packages/pi-chat/docs/usage.md#sessions) documents the retained behavior.
+- Unused `StatusBadge` component and its types are deleted. No consumers or public exports remained.
+
 ## Removable: evidence and approval needed
 
 | Candidate | Evidence today | Before removing |
 | --- | --- | --- |
-| Legacy tab bar, Projects drawer, path/archive/sidebar preference branches | Already retired; [usage](../packages/pi-chat/docs/usage.md#sessions) documents fixed behavior | Do not reintroduce compatibility branches |
-| [StatusBadge](../packages/pi-chat/src/web/components/StatusBadge.tsx) | Repository source search finds its declaration but no consumers | Confirm exports/generated consumers; remove with focused verification |
 | Old “take control/superseded” UX | SDK/Chat still handle close code 4001, but the current [server transport](../packages/pi-server/src/transport/websocket-transport.ts) keeps multiple initialized sockets and does not displace a controller | Check other supported hosts/clients; distinguish useful reconnect from obsolete control ownership |
 | Project pin/remove and continue-recent API paths | Still public Server/SDK contracts; Chat no longer exposes pin/remove controls or calls continue-recent in its normal open/create flow | Audit native/external consumers and persisted metadata; a missing Chat button is not proof of an unused API |
 | Stale README capture assumptions | [Capture guide](../packages/pi-chat/docs/readme-showcase/CAPTURE.md) records retired UI selectors and unverified appearance assumptions | Decide whether to repair the workflow or retire it; keep approved mockups/assets unless separately authorized |
