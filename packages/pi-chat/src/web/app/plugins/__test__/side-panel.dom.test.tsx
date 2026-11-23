@@ -17,6 +17,7 @@ it("composes generic panel tabs, does not block the composer and removes its tog
 
   fireEvent.click(screen.getByRole("button",{name:"Toggle side panel"}));
   expect(screen.getByText("First content")).toBeTruthy();
+  expect(screen.getByRole("tab",{name:"One"}).style.borderBottomColor).toBe("");
   fireEvent.click(screen.getByRole("tab",{name:"Two"}));
   expect(screen.getByText("Second content")).toBeTruthy();
   fireEvent.change(screen.getByRole("textbox",{name:"Composer"}),{target:{value:"Still usable"}});
@@ -24,6 +25,9 @@ it("composes generic panel tabs, does not block the composer and removes its tog
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.click(screen.getByRole("button",{name:"Close side panel"}));
   expect(screen.queryByRole("complementary",{name:"Side panel"})).toBeNull();
+  view.rerender(content([{...plugins[0]!,ui:{...plugins[0]!.ui,contributions:[plugins[0]!.ui.contributions[0]!]}}]));
+  fireEvent.click(screen.getByRole("button",{name:"Toggle side panel"}));
+  expect(screen.getByRole("tab",{name:"One"}).style.borderBottomColor).toBe("transparent");
   view.rerender(content([]));
   expect(screen.queryByRole("button",{name:"Toggle side panel"})).toBeNull();
 });

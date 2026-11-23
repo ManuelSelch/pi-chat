@@ -24,6 +24,14 @@ export class BrowserDiffDriver {
     await expect(this.page.getByRole("region",{name:"Diff for two.ts",exact:true})).toHaveCount(1);
     await expect(this.page.getByText("2 files changed",{exact:true})).toBeVisible();
   }
+  async shouldScrollDiffWithoutScrollingChat() {
+    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    await stream.hover();
+    const before = await this.page.evaluate(()=>window.scrollY);
+    await this.page.mouse.wheel(0, 500);
+    await expect.poll(()=>stream.evaluate(element=>element.scrollTop)).toBeGreaterThan(0);
+    expect(await this.page.evaluate(()=>window.scrollY)).toBe(before);
+  }
   async shouldKeepSelected(path:string) {
     await expect(this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:path,exact:true})).toHaveAttribute("aria-pressed","true");
   }

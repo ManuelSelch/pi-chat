@@ -9,6 +9,7 @@ test("plugin diffs scroll continuously beside chat and support named branch and 
     await app.changes.open();
 
     await app.changes.shouldShowEveryDiff();
+    await app.changes.shouldScrollDiffWithoutScrollingChat();
     await app.changes.chooseFile("two.ts");
     await app.changes.shouldKeepSelected("two.ts");
     await app.changes.shouldLeaveChatUsable();
