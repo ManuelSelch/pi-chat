@@ -30,7 +30,6 @@
           "presentation",
           "command.complete",
           "session.archive",
-          "project.pin",
           "project.remove",
           "server.restart",
           "plugin.call"
@@ -132,9 +131,6 @@
                     "type": "integer",
                     "minimum": 0,
                     "maximum": 9007199254740991
-                  },
-                  "pinned": {
-                    "type": "boolean"
                   },
                   "quickChats": {
                     "type": "boolean"

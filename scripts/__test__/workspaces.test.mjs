@@ -12,8 +12,8 @@ test('links SDK and Server workspaces through public compiled package entries', 
   assert.equal(manifest.private, true);
   assert.deepEqual(manifest.workspaces, ['packages/pi-sdk-typescript', 'plugins/*', 'packages/pi-server', 'packages/pi-chat']);
   assert.equal(manifest.pi, undefined);
-  // Ignored build caches may survive migration; application sources must be package-owned.
-  const oldRoots = ['src', 'extension', 'testing', 'public', 'themes', 'mockups', 'plans', 'index.html'];
+  // Application sources must be package-owned; isolated mockups may live at root.
+  const oldRoots = ['src', 'extension', 'testing', 'public', 'themes', 'plans', 'index.html'];
   assert.equal(execFileSync('git', ['ls-files', '--', ...oldRoots], { cwd: root, encoding: 'utf8' }), '');
   const chat = await json('packages/pi-chat/package.json');
   assert.equal(chat.name, 'pi-chat');

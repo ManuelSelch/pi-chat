@@ -23,7 +23,6 @@ interface QuickOpenProps {
   onNewSession: (path: string) => void;
   actions?: readonly SessionAction[];
   laterPaths?: ReadonlySet<string>;
-  showDisplayPath?: boolean;
 }
 
 const resultTypes: Record<QuickOpenItem["kind"], string> = { session: "Session", project: "Folder", worktree: "Worktree", projectAction: "Folder action", action: "Action" };
@@ -41,17 +40,17 @@ function resultTitle(item: QuickOpenItem): string {
   return item.kind === "worktree" ? item.branch ?? item.title : item.primaryLabel ?? item.title;
 }
 
-function resultContext(item: QuickOpenItem, showDisplayPath: boolean): string {
+function resultContext(item: QuickOpenItem): string {
   if (item.kind === "action") return item.project;
-  if (item.kind === "projectAction") return showDisplayPath ? item.project : "New session";
+  if (item.kind === "projectAction") return "New session";
   const checkout = item.branch ?? (item.detached ? `detached at ${item.commit?.slice(0, 7) ?? "unknown commit"}` : undefined);
   const project = item.repositoryName ?? item.project;
   if (item.kind === "session") {
     const conversation = item.primaryLabel && item.title !== "New session" && item.title !== item.primaryLabel ? item.title : undefined;
     return [project, item.primaryLabel ? conversation : checkout, relativeTime(item.modified)].filter(Boolean).join(" · ");
   }
-  if (item.kind === "worktree") return [item.repositoryName ?? (showDisplayPath ? item.repositoryPath : undefined), item.detached ? checkout : undefined, showDisplayPath ? item.displayPath ?? item.path : undefined].filter(Boolean).join(" · ");
-  return showDisplayPath ? item.displayPath ?? item.path : "";
+  if (item.kind === "worktree") return [item.repositoryName, item.detached ? checkout : undefined].filter(Boolean).join(" · ");
+  return "";
 }
 
 /** Reuses the existing session status indicator and snooze icon for Later. */
@@ -61,7 +60,7 @@ function SessionIndicator({ status }: { status: QuickOpenItem["status"] }) {
 }
 
 /** Scoped entity search and a small set of existing application actions. */
-export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths, showDisplayPath = true }: QuickOpenProps) {
+export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, onOpenSession, onFocusSession, onOpenProject, onNewSession, actions = [], laterPaths }: QuickOpenProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
@@ -213,7 +212,7 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
                 ref={index === selectedIndex ? activeRef : undefined}
                 role="option"
                 className={classes.row}
-                aria-label={[`${resultTypes[item.kind]}: ${resultTitle(item)}`, resultContext(item, showDisplayPath), item.isOpen ? "Open" : ""].filter(Boolean).join(" · ")}
+                aria-label={[`${resultTypes[item.kind]}: ${resultTitle(item)}`, resultContext(item), item.isOpen ? "Open" : ""].filter(Boolean).join(" · ")}
                 aria-selected={index === selectedIndex}
                 disabled={item.disabled}
                 onPointerMove={(event) => onPointerMove(event, index, selectedIndex, setActive)}
@@ -228,7 +227,7 @@ export function QuickOpen({ opened, inline = false, onClose, catalogue, tabs, on
                   })()}
                   <Stack gap={1} flex={1} style={{ minWidth: 0, overflow: "hidden" }}>
                     <Text size={item.kind === "projectAction" ? "md" : "sm"} truncate>{resultTitle(item)}</Text>
-                    <Text size="xs" c="dimmed" truncate>{resultContext(item, showDisplayPath)}</Text>
+                    <Text size="xs" c="dimmed" truncate>{resultContext(item)}</Text>
                   </Stack>
                 </Group>
               </UnstyledButton>

@@ -29,14 +29,14 @@ not directly from Playwright, so opt-in coverage starts before navigation and
 flushes before page teardown. Navigations must checkpoint through the browser
 driver. `e2e/coverage.spec.ts` verifies real reload retention; `infra-tests/e2e/coverage/`
 checks collection and conversion guards. Both coverage reports exclude colocated
-`__test__/` files; host builds exclude them too. See [coverage commands and scope](../../../docs/development.md#e2e-coverage).
+`__test__/` files; host builds exclude them too. See [coverage commands and scope](../../../docs/development.md#ci-and-coverage).
 
 ## Composer focus regressions
 
 [DOM focus tests](../src/web/app/__test__/composer-focus.dom.test.tsx) and
 [browser focus scenarios](e2e/composer-focus.spec.ts) cover restoration after
 loading, tab changes, overlay exits, nested confirmations and prompt handover.
-See [current focus ownership](../../../docs/architecture.md#focus-and-overlays).
+See [current focus ownership](../../../docs/architecture-details.md#focus-and-overlays).
 Browser assertions check focus before keyboard typing; do not replace them with
 `fill()`, a composer click or explicit focusing, which would conceal a regression.
 
@@ -75,7 +75,7 @@ change in question; historical counts/logs are not current verification.
 | Prompt/reply, abort, steering and reconnect | [Chat scenarios](scenarios/chat), [browser-connection scenarios](scenarios/browser), [tab scenarios](scenarios/tabs) |
 | Session title projection and rename removal | [title rendering](../src/web/app/components/__test__/session-title.dom.test.tsx), [settings](../src/web/features/settings/__test__/settings-drawer.dom.test.tsx) |
 | Quick Switcher and shared local actions | [browser navigation](e2e/quick-open.spec.ts), [action guards](../src/web/features/sessions/actions/__test__/session-actions.test.ts), [menu parity](../src/web/features/sessions/actions/__test__/shared-menus.dom.test.tsx) |
-| Projects, worktrees, pins and archive | [project model](../src/web/features/sessions/projects/__test__/project-panel-model.test.ts), [archive](e2e/project-archive.spec.ts), [pins](e2e/project-pin.spec.ts), [sidebar](e2e/projects-sidebar.spec.ts) |
+| Session navigation, worktrees and archive | [session switching](e2e/sessions.spec.ts), [archive](e2e/project-archive.spec.ts), [sidebar](e2e/projects-sidebar.spec.ts) |
 | Inbox and page-lifetime drafts | [Inbox lifecycle](../src/web/features/sessions/inbox/__test__/inbox-lifecycle.dom.test.tsx), [drafts](../src/web/features/sessions/drafts/__test__/session-drafts.dom.test.tsx), [browser Inbox](e2e/session-inbox.spec.ts), [labels](e2e/inbox-worktree-labels.spec.ts) |
 | Completion, bash display and streaming guards | [argument semantics](../src/web/features/chat/composer/__test__/argument-completion.test.ts), [composer interaction](../src/web/features/chat/composer/__test__/composer-completion.dom.test.tsx), [bash cards](../src/web/features/chat/bash/__test__/bash-card.dom.test.tsx), [browser chat](e2e/chat.spec.ts) |
 | Files, links, Markdown and edit/read/write rendering | [local links](../src/web/features/chat/markdown/__test__/local-link.test.ts), [file actions](../src/web/features/chat/markdown/__test__/file-actions.dom.test.tsx), [file content](../src/web/features/chat/tools/__test__/file-content.dom.test.tsx), [write content](../src/web/features/chat/tools/__test__/write-content.test.ts), [edit lifecycle](../src/web/features/chat/tools/__test__/edit-diff-lifecycle.test.ts) |

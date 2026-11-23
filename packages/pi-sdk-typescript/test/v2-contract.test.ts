@@ -76,10 +76,14 @@ describe("v2-only contract", () => {
     expect(snapshotSchema.safeParse({ ...snapshot, presentation }).success).toBe(true);
   });
 
+  it("rejects retired project pin requests", () => {
+    expect(requestSchema.safeParse({ version: 2, type: "request", requestId: "retired", method: "project.pin", params: { path: "/p", pinned: true } }).success).toBe(false);
+  });
+
   it("has the core methods and optional plugin RPC without tab/focus or feature wrappers", () => {
     expect(Object.keys(operationSchemas).sort()).toEqual([
       "server.initialize", "server.ping", "server.restart", "session.create", "session.open", "session.list", "session.snapshot", "session.close", "session.compact", "session.reload", "session.archive",
-      "project.list", "project.pin", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "command.complete", "plugin.call",
+      "project.list", "project.remove", "message.send", "run.abort", "prompt.answer", "model.select", "thinking.level", "command.complete", "plugin.call",
     ].sort());
   });
 });

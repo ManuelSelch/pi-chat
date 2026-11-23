@@ -7,7 +7,7 @@ import { initialAppState } from "../../stores/app-state.js";
 import { initialChatState, reduceServerMessage } from "../../../../../testing/infra/pi-chat/browser-session-view.js";
 import { HeaderContainer } from "../HeaderContainer.js";
 
-const chat = { app: { ...initialAppState }, state: initialChatState };
+const chat = { app: { ...initialAppState }, state: initialChatState, inbox: { pending: false } };
 vi.mock("../../AppControllerContext.js", () => ({ useAppController: () => chat }));
 vi.mock("../../overlays/OverlayController.js", () => ({ useOverlays: () => ({ state: { projects: false }, toggle: vi.fn() }) }));
 afterEach(cleanup);
@@ -15,6 +15,7 @@ afterEach(cleanup);
 function snapshot(name: string | undefined, sequence: number, isStreaming = false) {
   const message = snapshotEvent({ sessionId: "s1", sessionName: name, throughSequence: sequence, projectPath: "/project", runtime: { status: isStreaming ? "running" : "idle" } });
   chat.state = reduceServerMessage(chat.state, message);
+  chat.app = { ...chat.app, tabsKnown: true, activeSessionId: "s1", tabs: [{ sessionId: "s1", title: name ?? "New session", projectPath: "/project", projectName: "project", status: isStreaming ? "running" : "idle" }] };
 }
 
 function header() {
@@ -26,8 +27,7 @@ it("omits the title label at home instead of showing a placeholder", () => {
   chat.state = initialChatState;
   render(header());
   expect(screen.queryByText("No session open")).toBeNull();
-  expect(screen.getByRole("button", { name: "Projects and sessions" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Sessions" })).toBeTruthy();
 });
 
 it("shows Pi's session title, refreshes it while running, and clears it on a later snapshot", () => {

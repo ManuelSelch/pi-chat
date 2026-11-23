@@ -10,15 +10,13 @@ import type { CommandCompletionItem } from "../../../../../shared/protocol.js";
 
 const chat = {
   promptPresentation: { minimized: false, prompt: undefined },
-  app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [] },
+  app: { activeSessionId: "s1", tabs: [{ sessionId: "s1" }], tabsKnown: true, openingTabs: 0, closingSessionIds: [], connection: "open", appFeatures: [], catalogue: { projects: [{ path: "/repo", name: "repo", sessions: [{ path: "/sessions/s1.jsonl", title: "One", modified: 0, messageCount: 1 }] }] } },
   state: { ...initialChatState, sessionName: undefined as string | undefined, sessionPath: undefined as string | undefined, status: "idle" as typeof initialChatState.status, actions: { features: [], commands: [{ name: "deploy", source: "extension" }] } },
   completeCommandArguments: vi.fn<(session: string, name: string, prefix: string, signal?: AbortSignal) => Promise<CommandCompletionItem[]>>(),
   prompt: vi.fn(),
   closeTab: vi.fn(),
   closeView: vi.fn(),
-  archiveSession: vi.fn().mockResolvedValue(undefined),
-  inboxEnabled: false,
-  inbox: { park: vi.fn() },
+  inbox: { park: vi.fn(), archive: vi.fn() },
 };
 vi.mock("../../../../app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 const confirm = vi.fn();
@@ -44,8 +42,6 @@ beforeEach(() => {
   chat.state.sessionName = undefined;
   chat.state.sessionPath = undefined;
   chat.state.status = "idle";
-  chat.inboxEnabled = false;
-  chat.archiveSession.mockResolvedValue(undefined);
   confirm.mockResolvedValue(false);
   chat.completeCommandArguments.mockResolvedValue([{ value: "staging", label: "Staging", description: "Test environment" }]);
 });
@@ -63,7 +59,7 @@ describe("composer session actions", () => {
     expect(screen.queryByRole("option", { name: /Delete session/ })).toBeNull();
     type("/archive");
     fireEvent.keyDown(textarea, { key: "Enter" });
-    await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledWith("/sessions/s1.jsonl", true));
+    await waitFor(() => expect(chat.inbox.archive).toHaveBeenCalledWith("/sessions/s1.jsonl"));
     expect(confirm).not.toHaveBeenCalled();
     expect(chat.prompt).not.toHaveBeenCalled();
     expect(textarea.value).toBe("");
@@ -75,17 +71,7 @@ describe("composer session actions", () => {
     const textarea = type("/archive");
     fireEvent.keyDown(textarea, { key: "Escape" });
     fireEvent.keyDown(textarea, { key: "Enter" });
-    await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledWith("/sessions/s1.jsonl", true));
-    expect(chat.prompt).not.toHaveBeenCalled();
-  });
-
-  it("shows archive failures without prompting the agent", async () => {
-    chat.state.sessionPath = "/sessions/s1.jsonl";
-    chat.archiveSession.mockRejectedValueOnce(new Error("Cannot save archive metadata"));
-    mount();
-    const textarea = type("/archive");
-    fireEvent.keyDown(textarea, { key: "Enter" });
-    expect(await screen.findByText("Cannot save archive metadata")).toBeTruthy();
+    await waitFor(() => expect(chat.inbox.archive).toHaveBeenCalledWith("/sessions/s1.jsonl"));
     expect(chat.prompt).not.toHaveBeenCalled();
   });
 
@@ -96,7 +82,7 @@ describe("composer session actions", () => {
     const textarea = type("/archive");
     expect(screen.getByRole("option", { name: /Archive Session/ }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.keyDown(textarea, { key: "Enter" });
-    expect(chat.archiveSession).not.toHaveBeenCalled();
+    expect(chat.inbox.archive).not.toHaveBeenCalled();
     expect(chat.prompt).not.toHaveBeenCalled();
   });
 
@@ -105,12 +91,11 @@ describe("composer session actions", () => {
     const textarea = type("/close");
     fireEvent.keyDown(textarea, { key: "Escape" });
     fireEvent.keyDown(textarea, { key: "Enter" });
-    expect(chat.closeTab).toHaveBeenCalledWith("s1");
+    expect(chat.closeView).toHaveBeenCalledOnce();
     expect(chat.prompt).not.toHaveBeenCalled();
   });
 
   it("runs /close through the header close-view action in Inbox mode", () => {
-    chat.inboxEnabled = true;
     mount();
     const textarea = type("/close");
     fireEvent.keyDown(textarea, { key: "Escape" });
@@ -122,7 +107,6 @@ describe("composer session actions", () => {
   });
 
   it("enables Later once a running Inbox session completes, then parks it", () => {
-    chat.inboxEnabled = true;
     (chat.app as { catalogue?: unknown }).catalogue = { projects: [{ path: "/repo", name: "repo", sessions: [{ path: "/sessions/s1.jsonl", title: "One", modified: 0, messageCount: 1 }] }] };
     chat.state.sessionPath = "/sessions/s1.jsonl";
     chat.state.status = "running";

@@ -5,7 +5,7 @@ export class BrowserThemeDriver {
   constructor(private readonly page: Page) {}
   async shouldUseAppTheme(): Promise<void> {
     await this.shouldUseAppThemeShell();
-    await expect(this.page.locator("[data-status]").first()).toHaveCSS("background-color", "rgb(123, 189, 164)");
+    await expect(this.page.getByRole("img", { name: "Ready", exact: true }).first()).toHaveCSS("background-color", "rgb(123, 189, 164)");
   }
   async shouldUseAppThemeShell(): Promise<void> {
     await expect(this.page.locator("html")).toHaveAttribute("data-mantine-color-scheme", "dark");

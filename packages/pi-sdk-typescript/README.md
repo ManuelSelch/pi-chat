@@ -44,7 +44,7 @@ Node types in declarations.
 
 - Construction is inert. `start()` schedules connection one tick later. Phases:
   `stopped`, `connecting`, `synchronizing`, `ready`, `reconnecting`,
-  `superseded`, `failed`, `disposed`.
+  `failed`, `disposed`.
 - The first wire request is `server.initialize`. `ready` is published only after
   the correlated result has been method-validated and its inventory, selected
   capabilities and exactly matching snapshots have been atomically applied.
@@ -54,8 +54,7 @@ Node types in declarations.
   local; an application can retain its selected `sessionId` if present in the
   new inventory, otherwise choose a remaining runtime. Disconnect does not close
   runtimes.
-- Close code `4001` enters `superseded` without retry. Only explicit user action
-  calls `takeControl()`; it never starts automatic controller-fighting loops.
+- Socket closures use ordinary reconnect/backoff. There is no exclusive-controller state or takeover API; multiple clients can stay connected.
 - `getState()`/`getSession(id)` return deeply frozen projections. `subscribe`,
   `onMessage` and `onError` listeners are synchronous and isolated. Listener
   failures report `listenerError` without breaking transport cleanup.
@@ -95,7 +94,7 @@ close/reopen; in-place resource reload and reconnect retain it.
 | `restartServer()` | `server.restart` | Accepted restart attempt; disconnect is not proof of success |
 | `completeCommandArguments(id, name, prefix)` | `command.complete` | Session-scoped completion items |
 | `archiveSession(path, archived)` | `session.archive` | Completed saved-history metadata mutation; may report persistence uncertainty |
-| `pinProject(path, pinned)`, `removeProject(path)` | `project.pin`, `project.remove` | Completed project metadata mutations |
+| `removeProject(path)` | `project.remove` | Completed project membership removal |
 | `request("server.ping", {})` | `server.ping` | Explicit liveness operation; no automatic heartbeat |
 
 The generic `request<M extends Method>(method, params, sessionId?, options?)`

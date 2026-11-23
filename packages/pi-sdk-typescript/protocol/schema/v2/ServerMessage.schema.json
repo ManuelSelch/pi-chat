@@ -3483,9 +3483,6 @@
                             "minimum": 0,
                             "maximum": 9007199254740991
                           },
-                          "pinned": {
-                            "type": "boolean"
-                          },
                           "quickChats": {
                             "type": "boolean"
                           },

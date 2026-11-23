@@ -61,12 +61,6 @@ export class QuickOpenFolderPathDriver {
     expect(worktree).toContain("palette-repo");
   }
 
-  async shouldShowFolderAndWorktreePaths(): Promise<void> {
-    const { folder, worktree } = await this.scopes();
-    expect(folder).toMatch(/New session ·/);
-    expect(worktree).toContain("palette-checkout");
-  }
-
   async searchByFolderPath(): Promise<void> {
     await this.input().fill("%palette-checkout");
   }

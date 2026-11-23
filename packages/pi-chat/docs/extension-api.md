@@ -8,4 +8,4 @@
 - Pi runtime theme colors are produced server-side. The application theme does not reinterpret literal RGB/ANSI strings.
 - Built-in browser contributions use the separate [plugin system](../../../docs/plugins.md).
 
-See [presentation ownership](../../../docs/architecture.md#runtime-prompts-widgets-and-themes), [user interactions](usage.md#extension-prompts-and-widgets) and [browser contracts](../testing/e2e/prompt-presentation.spec.ts).
+See [presentation ownership](../../../docs/architecture-details.md#runtime-prompts-widgets-and-themes), [user interactions](usage.md#extension-prompts-and-widgets) and [browser contracts](../testing/e2e/prompt-presentation.spec.ts).

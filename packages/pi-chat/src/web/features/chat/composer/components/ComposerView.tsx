@@ -1,4 +1,4 @@
-import { Anchor, Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
+import { Box, Container, Group, Paper, Text, Textarea } from "@mantine/core";
 import { PendingPrompt } from "../../../extensions/prompts/components/PendingPrompt.js";
 import { THEME } from "../../../../config/theme.js";
 import { Notice } from "../../../../components/Notice.js";
@@ -11,7 +11,6 @@ import type { FooterItem, Widget } from "../../../../types/view-types.js";
 
 export interface ComposerViewModel {
   home: boolean;
-  connection: "connecting" | "open" | "superseded";
   connecting: boolean;
   loading: boolean;
   promptPending?: boolean;
@@ -29,7 +28,6 @@ export interface ComposerViewModel {
 }
 
 export interface ComposerViewActions {
-  takeControl(): void;
   dismissError(): void;
   changeInput(value: string, start?: number, end?: number): void;
   selectionChanged(): void;
@@ -48,7 +46,7 @@ interface ComposerViewProps {
 }
 
 export function ComposerView({ model, actions, footerRef, composerRef }: ComposerViewProps) {
-  const { home, connection, connecting, loading, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow } = model;
+  const { home, connecting, loading, error, busy, steering, steeringMessages, input, activeCommand, matches, footerItems, widgetsAbove, widgetsBelow } = model;
   const menuOpen = matches.length > 0;
   const bashInput = input.trimStart().startsWith("!");
 
@@ -66,11 +64,7 @@ export function ComposerView({ model, actions, footerRef, composerRef }: Compose
       style={{ background: `linear-gradient(transparent, ${THEME.surface.page} 30%)`, pointerEvents: "none" }}
     >
       <Container size="sm" style={{ pointerEvents: "auto" }}>
-        {connection === "superseded" ? (
-          <Text size="sm" c="dimmed" mb="xs">
-            Another browser tab is using this Pi session. <Anchor component="button" type="button" onClick={actions.takeControl}>Take control here</Anchor>
-          </Text>
-        ) : connecting ? (
+        {connecting ? (
           <Text size="sm" c="dimmed" mb="xs">Connecting to the Pi Chat server… the runtime takes a few seconds to start.</Text>
         ) : null}
 

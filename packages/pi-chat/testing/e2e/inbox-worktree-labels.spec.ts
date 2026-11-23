@@ -6,16 +6,15 @@ const repositoryName = "my-project";
 const branch = "feature/csmm-6-setup-shadcn";
 const title = "Set up shadcn components";
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, repositoryName, projectName: "worktree-labels", projectBranch: branch, linkedWorktree: true });
+  app = await PiChatBrowserDriver.start(page, { repositoryName, projectName: "worktree-labels", projectBranch: branch, linkedWorktree: true });
   await app.browser.setViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });
 
 test("a single worktree session uses two lines while retaining title-based discovery and actions", async () => {
-  await app.tabs.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
+  await app.sessions.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
   await app.chat.sendPrompt(title);
   await app.chat.shouldShowAssistantReply("Setup complete");
-  await app.inbox.setEnabled(true);
 
   await app.inbox.shouldShowCompactWorktreeLabels(title, branch);
   await app.inbox.shouldShowHeaderWorktree(branch, title);
@@ -43,11 +42,10 @@ test("a single worktree session uses two lines while retaining title-based disco
 test("shared worktrees retain distinct conversation subtitles across Ready, Later and restart", async () => {
   const sibling = "Review setup checks";
   for (const prompt of [title, sibling]) {
-    await app.tabs.create({ responses: [{ prompt, reply: "Done" }] });
+    await app.sessions.create({ responses: [{ prompt, reply: "Done" }] });
     await app.chat.sendPrompt(prompt);
     await app.chat.shouldShowAssistantReply("Done");
   }
-  await app.inbox.setEnabled(true);
 
   await app.inbox.shouldShowWorktreeLabels(title, branch);
   await app.inbox.shouldShowWorktreeLabels(sibling, branch);
@@ -67,10 +65,9 @@ test("shared worktrees retain distinct conversation subtitles across Ready, Late
 });
 
 test("linked worktrees show the repository in group headings and ungrouped Later rows", async () => {
-  await app.tabs.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
+  await app.sessions.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
   await app.chat.sendPrompt(title);
   await app.chat.shouldShowAssistantReply("Setup complete");
-  await app.inbox.setEnabled(true);
 
   await app.inbox.shouldShowProjectName(title, repositoryName);
   await app.inbox.shouldShowCompactWorktreeLabels(title, branch);
@@ -94,13 +91,12 @@ test("linked worktrees show the repository in group headings and ungrouped Later
 });
 
 test("linked worktrees keep branch-first labels across running, Ready and Later on desktop and phones", async () => {
-  await app.tabs.create({ responses: [
+  await app.sessions.create({ responses: [
     { prompt: title, reply: "Setup complete" },
     { prompt: "Continue working", reply: "Checks complete", hold: true },
   ] });
   await app.chat.sendPrompt(title);
   await app.chat.shouldShowAssistantReply("Setup complete");
-  await app.inbox.setEnabled(true);
 
   await app.inbox.shouldShowCompactWorktreeLabels(title, branch);
   await app.inbox.shouldHaveTightProjectHeadings({ working: false, later: false });

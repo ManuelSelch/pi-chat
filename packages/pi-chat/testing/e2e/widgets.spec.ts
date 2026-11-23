@@ -4,9 +4,10 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 test.describe("widget grid above the composer", () => {
   let app: PiChatBrowserDriver;
   test.beforeEach(async ({ page }) => {
-    app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+    app = await PiChatBrowserDriver.start(page, {});
     await app.widgets.useLayout("composer");
-    await app.tabs.create({ responses: [] });
+    await app.sessions.create({ responses: [] });
+    await app.inbox.close();
   });
   test.afterEach(async () => { await app?.dispose(); });
 
@@ -29,9 +30,9 @@ for (const layout of ["docked", "composer"] as const) {
   test.describe(`${layout} widgets`, () => {
     let app: PiChatBrowserDriver;
     test.beforeEach(async ({ page }) => {
-      app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+      app = await PiChatBrowserDriver.start(page, {});
       await app.widgets.useLayout(layout);
-      await app.tabs.create({ responses: [] });
+      await app.sessions.create({ responses: [] });
     });
     test.afterEach(async () => { await app?.dispose(); });
 

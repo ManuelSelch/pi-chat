@@ -15,7 +15,6 @@ Every arrow means “source imports target”, including type-only imports; it d
 | `plugins` | Per-server host plugin activation, local validated contracts and rollback/cleanup; shared declarations belong to the SDK. The transport's explicit [RPC allowlist](PLUGINS.md) exposes selected contracts over the existing WebSocket. |
 | `extensions` | Native Pi UI prompt/status/widget registries. |
 | `bootstrap` | Process restart planning/execution and PID-file publication. |
-| `files` | File-open validation and delegation to the system opener. |
 | `logging` | Buffered file logging and explicit flush/close. |
 | `testing` | Exported fake runtime, protocol fixtures and isolated loopback host; not the test suite itself. |
 

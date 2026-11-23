@@ -95,7 +95,7 @@ execFileSync(process.execPath, [${JSON.stringify(resolveNpmCli())}, 'run', 'buil
     });
     // Restart has no session-scoped operation.finished event. Observe the exited build,
     // retained PID/listener and a fresh SDK handshake instead of inventing a wire outcome.
-    assert.equal(client.getState().connection.phase, 'ready', 'Signal must not displace the browser controller');
+    assert.equal(client.getState().connection.phase, 'ready', 'Failed build must retain the browser connection');
     assert.equal((await this.pid()).pid, this.initialPid);
     assert.equal((await readFile(join(this.directory, 'build-attempts'), 'utf8')).trim().split('\n').length, 2);
     await this.ShouldServeUI(); client.dispose(); this.clients.delete(client);
@@ -103,14 +103,11 @@ execFileSync(process.execPath, [${JSON.stringify(resolveNpmCli())}, 'run', 'buil
   }
   async RestartShouldRewritePid() {
     const client = await this.client();
-    let superseded = false;
-    const unsubscribe = client.subscribe(state => { if (state.connection.phase === 'superseded') superseded = true; });
-    try {
-      const output = await this.launcher('restart');
-      assert.match(output, /Pi Chat restarted:/);
-      await until('original browser reconnect after command restart', () => client.getState().connection.phase === 'ready');
-      assert.equal(superseded, false, 'Command restart must not take browser control');
-    } finally { unsubscribe(); }
+    const previousServer = client.getState().serverInstanceId;
+    const output = await this.launcher('restart');
+    assert.match(output, /Pi Chat restarted:/);
+    await until('original browser reconnect to successor after command restart', () =>
+      client.getState().connection.phase === 'ready' && client.getState().serverInstanceId !== previousServer);
     await until('successor PID rewrite after a real build', async () => {
       try { return (await this.pid()).pid !== this.initialPid && await this.healthy(); } catch { return false; }
     }, 120000);

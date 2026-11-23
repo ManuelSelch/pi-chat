@@ -2,14 +2,14 @@ import { expect, it, vi } from "vitest";
 import { buildSessionActions, type SessionActionState } from "../utils/session-actions.js";
 
 function setup(overrides: Partial<SessionActionState> = {}) {
-  let state: SessionActionState = { sessionId: "one", projectPath: "/repo", sessionPath: "/sessions/one", connected: true, busy: false, navigation: "tabs", ...overrides };
+  let state: SessionActionState = { sessionId: "one", projectPath: "/repo", sessionPath: "/sessions/one", connected: true, busy: false, ...overrides };
   const operations = { newSession: vi.fn(), closeSession: vi.fn(), parkSession: vi.fn(), archiveSession: vi.fn(), openFolder: vi.fn(), openSettings: vi.fn() };
   const actions = buildSessionActions(state, operations, () => state, [{ id: "folder-opening.open", name: "Open folder…", description: "Choose a folder", run: operations.openFolder }]);
   return { actions, operations, update: (changes: Partial<SessionActionState>) => { state = { ...state, ...changes }; } };
 }
 it("defines the stable session actions and invokes existing operations", () => {
   const { actions, operations } = setup();
-  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "archive-session", "folder-opening.open", "settings"]);
+  expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "later-session", "archive-session", "folder-opening.open", "settings"]);
   for (const action of actions) action.run();
   expect(operations.newSession).toHaveBeenCalledWith("/repo");
   expect(operations.closeSession).toHaveBeenCalledWith("one");
@@ -24,33 +24,30 @@ it("only offers New session and UI actions on Home", () => {
   expect(operations.newSession).toHaveBeenCalledWith(undefined);
 });
 it("labels the three Inbox-mode actions Close Session, Later and Archive Session", () => {
-  const { actions } = setup({ navigation: "inbox" });
+  const { actions } = setup({});
   expect(actions.map(action => action.id)).toEqual(["new-session", "close-session", "later-session", "archive-session", "folder-opening.open", "settings"]);
   expect(actions.find(action => action.id === "close-session")!.name).toBe("Close Session");
   expect(actions.find(action => action.id === "later-session")!.name).toBe("Later");
   expect(actions.find(action => action.id === "archive-session")!.name).toBe("Archive Session");
 });
 it("routes close and Later through separate operations", () => {
-  const { actions, operations } = setup({ navigation: "inbox" });
+  const { actions, operations } = setup({});
   actions.find(action => action.id === "close-session")!.run();
   actions.find(action => action.id === "later-session")!.run();
   expect(operations.closeSession).toHaveBeenCalledWith("one");
   expect(operations.parkSession).toHaveBeenCalledWith("one");
 });
-it("hides Later outside Inbox mode", () => {
-  expect(setup().actions.some(action => action.id === "later-session")).toBe(false);
-});
 it("keeps Later and Archive listed but disabled while busy or unsaved", () => {
-  const running = setup({ navigation: "inbox", busy: true }).actions;
+  const running = setup({ busy: true }).actions;
   expect(running.find(action => action.id === "later-session")!.disabled).toBe(true);
   expect(running.find(action => action.id === "archive-session")!.disabled).toBe(true);
   expect(running.find(action => action.id === "close-session")!.disabled).toBeUndefined();
-  const unsaved = setup({ navigation: "inbox", sessionPath: undefined }).actions;
+  const unsaved = setup({ sessionPath: undefined }).actions;
   expect(unsaved.find(action => action.id === "later-session")!.disabled).toBe(true);
   expect(unsaved.find(action => action.id === "archive-session")!.disabled).toBe(true);
 });
 it("guards stale session targets and live busy/connection changes", () => {
-  const { actions, operations, update } = setup({ navigation: "inbox" });
+  const { actions, operations, update } = setup({});
   update({ sessionId: "two" });
   for (const action of actions.filter(action => ["new-session", "close-session", "later-session", "archive-session"].includes(action.id))) action.run();
   expect(operations.newSession).not.toHaveBeenCalled();

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { useLocalStorage } from "@mantine/hooks";
 import { useInboxLifecycle } from "../../features/sessions/inbox/hooks/use-inbox-lifecycle.js";
-import { PiClient, SDKError, type CancellationSignal, type ThinkingLevel, type UiPromptResult } from "@manuelselch/pi-sdk";
+import { PiClient, SDKError, type CancellationSignal, type UiPromptResult } from "@manuelselch/pi-sdk";
 import { activeSession, initialAppState, reduceAppMessage } from "../stores/app-state.js";
 import { browserTransport } from "../lib/browser-transport.js";
 import { bindPiChat } from "../lib/sdk-binding.js";
@@ -48,8 +47,6 @@ export function usePiChat() {
   }, [request]);
   const completeCommandArguments = useCallback((sessionId: string, name: string, prefix: string, signal?: AbortSignal) => request((client) => client.completeCommandArguments(sessionId, name, prefix, { signal })), [request]);
   const archiveSession = useCallback((path: string, archived: boolean) => request((client) => client.archiveSession(path, archived)), [request]);
-  const pinProject = useCallback((path: string, pinned: boolean) => request((client) => client.pinProject(path, pinned)), [request]);
-  const removeProject = useCallback((path: string) => request((client) => client.removeProject(path)), [request]);
   const openRuntime = useCallback((invoke: (client: PiClient) => Promise<string>) => {
     dispatch({ type: "openPending" }); const owner = clientRef.current;
     void request(invoke).then(sessionId => { if (clientRef.current === owner) dispatch({ type: "sessionOpened", sessionId }); }, (error: unknown) => {
@@ -68,11 +65,9 @@ export function usePiChat() {
     dispatch({ type: "closePending", sessionId });
     control((client) => client.closeSession(sessionId), { closingSessionId: sessionId });
   }, [control]);
-  const takeControl = useCallback(() => control((client) => client.takeControl()), [control]);
 
   // User-visible focus remains application-owned; the SDK always gets an ID.
   const target = (sessionId?: string) => sessionId ?? app.activeSessionId;
-  const [inboxEnabled, setInboxEnabled] = useLocalStorage({ key: "pi-chat:session-inbox", defaultValue: true, getInitialValueInEffect: false });
   const inbox = useInboxLifecycle(app, serverEndpoint.endpoint, {
     close: id => request(client => client.closeSession(id)),
     open: path => request(client => client.openSession(path)),
@@ -80,17 +75,17 @@ export function usePiChat() {
     focus: id => dispatch({ type: "focusSession", sessionId: id }),
   });
   const selectedPath = app.tabs.find(tab => tab.sessionId === app.activeSessionId)?.sessionPath;
-  const hidingArchive = inboxEnabled && selectedPath && inbox.archivingPaths.some(path => sameSessionPath(path, selectedPath));
+  const hidingArchive = selectedPath && inbox.archivingPaths.some(path => sameSessionPath(path, selectedPath));
   const presentedApp = hidingArchive ? { ...app, activeSessionId: "", viewClosed: true } : app;
   const session = activeSession(presentedApp);
   return {
-    app: presentedApp, state: session, serverEndpoint, inboxEnabled, setInboxEnabled, inbox, request,
+    app: presentedApp, state: session, serverEndpoint, inbox, request,
     showHome: () => dispatch({ type: "closeView" }),
     closeView: () => {
       if (!session.draft && !session.prompts.length && session.messages.every(message => message.role === "notice" || message.role === "bash")) closeTab(app.activeSessionId);
       dispatch({ type: "closeView" });
     }, createAndFocusSession, completeCommandArguments,
-    archiveSession, pinProject, removeProject, openSession, openProject, newSession, closeTab, takeControl,
+    openSession, openProject, newSession, closeTab,
     prompt: (message: string, sessionId?: string) => {
       const id = target(sessionId); dispatch({ type: "clearError", sessionId: id });
       control((client) => client.prompt(id, message));
@@ -104,9 +99,6 @@ export function usePiChat() {
       throw error;
     }),
     focusTab: (sessionId: string) => dispatch({ type: "focusSession", sessionId }),
-    setModel: (model: string) => control((client) => client.selectModel(app.activeSessionId, model)),
-    compactSession: () => control((client) => client.compactSession(app.activeSessionId)),
-    setThinkingLevel: (level: ThinkingLevel) => control((client) => client.setThinkingLevel(app.activeSessionId, level)),
     dismissError: (sessionId?: string) => dispatch({ type: "clearError", sessionId: target(sessionId) }),
   };
 }

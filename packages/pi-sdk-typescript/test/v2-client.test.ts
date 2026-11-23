@@ -53,7 +53,7 @@ it("rejects pending work as unknown on disconnect and initializes again without 
 });
 it("keeps local cancellation/timeouts uncertain and preserves structured server rejection", async () => {
   const t = setup({ requestTimeoutMs: 20 }); t.ready();
-  const wait = t.client.pinProject("/project", true); const timed = expect(wait).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); vi.advanceTimersByTime(20); await timed;
+  const wait = t.client.removeProject("/project"); const timed = expect(wait).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); vi.advanceTimersByTime(20); await timed;
   const abort = new AbortController(); const pending = t.client.request("project.list", {}, undefined, { signal: abort.signal }); const cancelled = expect(pending).rejects.toMatchObject({ code: "cancelled", outcome: "unknown" }); abort.abort(); await cancelled;
   const denied = t.client.completeCommandArguments("s", "example", "x"); const result = expect(denied).rejects.toMatchObject({ code: "notFound", outcome: "rejected", details: { reason: "missing" } });
   t.socket.message({ version: 2, type: "response", requestId: t.requests().at(-1).requestId, ok: false, error: { code: "notFound", message: "Missing", details: { reason: "missing" } } }); await result; t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
@@ -155,7 +155,13 @@ it("does not populate palettes from initialization", () => {
   const t = setup(); t.ready();
   expect(t.client.getState().themes).toEqual({}); expect(t.client.getState().connection.phase).toBe("ready"); t.client.dispose();
 });
-it("does not automatically fight a replacement controller", () => {
-  const t = setup(); t.ready(); t.socket.end(4001); vi.advanceTimersByTime(20_000); expect(t.sockets).toHaveLength(1);
-  t.client.takeControl(); vi.advanceTimersByTime(0); expect(t.sockets).toHaveLength(2); t.client.dispose();
+it("reconnects normally after close code 4001 without a control-ownership state", () => {
+  const t = setup(); t.ready();
+
+  t.socket.end(4001);
+
+  expect(t.client.getState().connection.phase).toBe("reconnecting");
+  vi.advanceTimersByTime(250);
+  expect(t.sockets).toHaveLength(2);
+  t.client.dispose();
 });

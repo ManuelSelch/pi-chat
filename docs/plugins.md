@@ -18,7 +18,7 @@ flowchart TD
     State["FolderOpeningProvider<br/>private opened state + host context"]
     Command["Open folder command"]
     Picker["FolderPickerContainer"]
-    Menus["Existing menus / Projects"]
+    Menus["Existing action menus"]
     Outlet["PluginOverlayOutlet"]
 
     Chat --> Composition
@@ -33,7 +33,7 @@ flowchart TD
 
 - [RegisteredPlugins](../packages/pi-chat/src/web/app/plugins/RegisteredPlugins.tsx) loads the explicit declarations and supplies `PluginUIHost`: read-only session ID/status summaries, connection/project context, current-client requests, session creation/navigation and shared modal focus handling.
 - [PluginProvider](../packages/pi-chat/src/web/app/plugins/PluginProvider.tsx) nests the registered providers. Small context bindings read command actions and overlay-open state inside those providers; nothing is published or synchronized through effects.
-- Static command definitions contain namespaced IDs, labels, placements (`menus` / `projects`) and an action hook reading plugin-local context. Menus/Projects receive ordinary actions, including their current disabled state.
+- Static command definitions contain namespaced IDs, labels, placements and an action hook reading plugin-local context. Current action menus receive ordinary actions, including disabled state. The declaration still permits `projects`, but its legacy Projects UI consumer has been retired.
 - The outlet mounts each plugin's Overlay component. Overlay-open hooks feed generic keyboard/focus guards; exiting dialogs retain DOM focus ownership until removal.
 - Registration is static application composition, not an install/uninstall API. Changing provider ancestry follows normal React remount rules; callbacks are ordinary render-bound handlers, not persistent command handles.
 - No contribution registry state, effect-based registration, stale-callback dispatcher, dynamic installation or browser event-hook framework is needed. Memoization only avoids unrelated shell/list rerenders; correctness does not depend on it.

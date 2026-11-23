@@ -6,7 +6,6 @@ let startupGate: Promise<void> | undefined;
 test.beforeEach(async ({ page }) => {
   startupGate = undefined;
   app = await PiChatBrowserDriver.start(page, {
-    inboxEnabled: false,
     // Expose the real Settings confirmation without ever restarting a test process.
     restart: { restart: async () => { throw new Error("The cancelled restart must not execute"); } },
     extensions: [async pi => {
@@ -25,19 +24,18 @@ test.beforeEach(async ({ page }) => {
 });
 test.afterEach(async () => { await app?.dispose(); });
 
-for (const overlay of ["settings", "projects", "folder picker", "quick open"] as const) {
+for (const overlay of ["settings", "sessions", "folder picker", "quick open"] as const) {
   test(`returns focus after closing ${overlay}, then accepts typing without a click`, async () => {
-    await app.tabs.create({ responses: [] });
+    await app.sessions.create({ responses: [] });
     if (overlay === "settings") {
-      await app.focus.openSettingsFromHeader();
+      await app.focus.openSettings();
       await app.focus.dismissDialog("Settings");
-    } else if (overlay === "projects" || overlay === "folder picker") {
-      await app.projects.open();
+    } else if (overlay === "sessions" || overlay === "folder picker") {
       if (overlay === "folder picker") {
         // This also exercises handover: the older drawer exits while a new modal opens.
-        await app.focus.openFolderFromProjects();
+        await app.focus.openFolderFromMenu();
         await app.focus.dismissDialog("Open server folder", "Cancel");
-      } else await app.projects.close();
+      } else { await app.inbox.open(); await app.inbox.close(); }
     } else {
       await app.focus.openQuickOpen();
       await app.focus.dismissQuickOpen();
@@ -49,18 +47,17 @@ for (const overlay of ["settings", "projects", "folder picker", "quick open"] as
 }
 
 test("returns focus after accepting the folder picker and creating a session", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.projects.open();
-  await app.focus.openFolderFromProjects();
+  await app.sessions.create({ responses: [] });
+  await app.focus.openFolderFromMenu();
   await app.focus.openFolderAsSession();
-  await app.tabs.shouldHaveCount(2);
+  await app.sessions.shouldHaveCount(2);
   await app.focus.typeWithoutRefocusing("New folder session draft");
   await app.focus.shouldHaveDraft("New folder session draft");
 });
 
 test("restores composer focus after Settings closes", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.focus.openSettingsFromHeader();
+  await app.sessions.create({ responses: [] });
+  await app.focus.openSettings();
   await app.focus.shouldBeInsideDialog("Settings");
   await app.focus.dismissDialog("Settings");
   await app.focus.typeWithoutRefocusing("After Settings");
@@ -68,7 +65,7 @@ test("restores composer focus after Settings closes", async () => {
 });
 
 test("restores focus after the final extension prompt closes", async () => {
-  await app.tabs.create({ responses: [] });
+  await app.sessions.create({ responses: [] });
   await app.chat.sendPrompt("/focus-question ");
   await app.focus.shouldBeInsideDialog("Focus question");
   await app.focus.answerPrompt("Focus question", "Answer");
@@ -78,7 +75,7 @@ test("restores focus after the final extension prompt closes", async () => {
 });
 
 test("keeps consecutive extension prompts focused before restoring the composer", async () => {
-  await app.tabs.create({ responses: [] });
+  await app.sessions.create({ responses: [] });
   await app.chat.sendPrompt("/focus-handover ");
   await app.focus.shouldBeInsideDialog("First focus question");
   await app.focus.answerPrompt("First focus question", "First answer");
@@ -89,33 +86,33 @@ test("keeps consecutive extension prompts focused before restoring the composer"
   await app.focus.shouldHaveDraft("After both questions");
 });
 
-test("returns Home after closing a running session and focuses the remaining conversation on explicit selection", async () => {
-  const remaining = await app.tabs.create({ responses: [] });
-  const running = await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+test("closing a running view keeps background work and allows explicit selection", async () => {
+  const remaining = await app.sessions.create({ responses: [] });
+  const running = await app.sessions.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.chat.sendPrompt("Start working");
   await app.chat.shouldBeSteering();
-  await app.tabs.requestClose(running);
+  await app.sessions.close(running);
 
   await app.home.shouldBeVisible();
-  await app.tabs.shouldHaveCount(1);
+  await app.sessions.shouldHaveCount(2);
 
-  await app.tabs.switchTo(remaining);
+  await app.sessions.switchTo(remaining);
   await app.focus.typeWithoutRefocusing("Remaining conversation draft");
   await app.focus.shouldHaveDraft("Remaining conversation draft");
 });
 
-test("closes the last running session immediately from its tab button", async () => {
-  const tab = await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+test("returns Home without stopping the last running session", async () => {
+  const tab = await app.sessions.create({ responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.chat.sendPrompt("Start working");
   await app.chat.shouldBeSteering();
-  await app.tabs.requestClose(tab);
+  await app.sessions.close(tab);
   await app.home.shouldBeVisible();
 });
 
 test("disables input during controlled slow startup, then focuses the ready composer", async () => {
   let release!: () => void;
   startupGate = new Promise<void>(resolve => { release = resolve; });
-  const creating = app.tabs.create({ responses: [] });
+  const creating = app.sessions.create({ responses: [] });
   try {
     await app.focus.shouldBeLoading();
     await app.focus.tryTypingWhileLoading("Too early");
@@ -127,15 +124,15 @@ test("disables input during controlled slow startup, then focuses the ready comp
   await app.focus.shouldHaveDraft("Ready after slow startup");
 });
 
-test("focuses ready sessions and preserves drafts while switching tabs", async () => {
-  const first = await app.tabs.create({ responses: [] });
+test("focuses ready sessions and preserves drafts while switching sessions", async () => {
+  const first = await app.sessions.create({ responses: [] });
   await app.focus.typeWithoutRefocusing("First draft");
-  const second = await app.tabs.create({ responses: [] });
+  const second = await app.sessions.create({ responses: [] });
   await app.focus.typeWithoutRefocusing("Second draft");
-  await app.tabs.switchTo(first);
+  await app.sessions.switchTo(first);
   await app.focus.shouldBeOnComposer();
   await app.focus.shouldHaveDraft("First draft");
-  await app.tabs.switchTo(second);
+  await app.sessions.switchTo(second);
   await app.focus.shouldBeOnComposer();
   await app.focus.shouldHaveDraft("Second draft");
   await app.focus.shouldAllowTabAwayFromComposer();

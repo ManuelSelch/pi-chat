@@ -8,7 +8,7 @@ const archiveSchema = z.object({
   archivedAt: z.number().finite().nonnegative(),
   repositoryPath: z.string().optional(), repositoryName: z.string().optional(), branch: z.string().optional(),
 });
-const metadataSchema = z.object({ version: z.literal(1), pins: z.array(z.string().min(1)), archives: z.array(archiveSchema), removedProjects: z.array(z.string().min(1)).default([]) });
+const metadataSchema = z.object({ version: z.literal(1), archives: z.array(archiveSchema), removedProjects: z.array(z.string().min(1)).default([]) });
 export type ProjectMetadata = z.infer<typeof metadataSchema>;
 export type ArchiveDescriptor = Omit<ProjectMetadata["archives"][number], "archivedAt">;
 
@@ -24,21 +24,12 @@ export class ProjectMetadataStore {
     return this.load();
   }
 
-  pin(path: string, pinned: boolean): Promise<void> {
-    return this.update(data => {
-      data.pins = data.pins.filter(pin => pin !== path);
-      if (pinned) data.pins.push(path);
-      data.removedProjects = data.removedProjects.filter(removed => removed !== path);
-    });
-  }
-
   rememberProject(path: string): Promise<void> {
     return this.update(data => { data.removedProjects = data.removedProjects.filter(removed => removed !== path); });
   }
 
   removeProject(path: string): Promise<void> {
     return this.update(data => {
-      data.pins = data.pins.filter(pin => pin !== path);
       if (!data.removedProjects.includes(path)) data.removedProjects.push(path);
     });
   }
@@ -55,11 +46,11 @@ export class ProjectMetadataStore {
     let content: string;
     try { content = await readFile(this.path, "utf8"); }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, pins: [], archives: [], removedProjects: [] };
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return { version: 1, archives: [], removedProjects: [] };
       throw new Error("Unable to read Pi Chat project metadata.", { cause: error });
     }
     try { return metadataSchema.parse(JSON.parse(content)); }
-    catch (error) { throw new Error("Pi Chat project metadata is malformed or unsupported. Repair it before changing pins or archives.", { cause: error }); }
+    catch (error) { throw new Error("Pi Chat project metadata is malformed or unsupported. Repair it before changing project or archive metadata.", { cause: error }); }
   }
 
   private update(change: (data: ProjectMetadata) => void): Promise<void> {

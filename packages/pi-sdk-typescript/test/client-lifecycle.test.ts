@@ -61,14 +61,14 @@ it("bounds reentrant required event queues", () => {
 });
 it("disposes transports closed synchronously during construction", () => {
   const close = vi.fn(); const dispose = vi.fn(); const client = new PiClient({ endpoint: "ws://example/ws", transport: (_url, events) => { events.close({ code: 4001 }); return { send() {}, close, dispose }; } });
-  client.start(); vi.advanceTimersByTime(0); expect(client.getState().connection.phase).toBe("superseded"); expect(close).toHaveBeenCalledOnce(); expect(dispose).toHaveBeenCalledOnce(); client.dispose();
+  client.start(); vi.advanceTimersByTime(0); expect(client.getState().connection.phase).toBe("reconnecting"); expect(close).toHaveBeenCalledOnce(); expect(dispose).toHaveBeenCalledOnce(); client.dispose();
 });
 it("supports an open callback synchronous with transport construction", () => {
   const send = vi.fn(); const client = new PiClient({ endpoint: "ws://example/ws", transport: (_url, events) => { events.open(); return { send, close() {}, dispose() {} }; } });
   client.start(); vi.advanceTimersByTime(0); expect(send).toHaveBeenCalledOnce(); expect(JSON.parse(send.mock.calls[0]![0])).toMatchObject({ method: "server.initialize" }); client.dispose();
 });
-it("does not schedule duplicate connections during subscriber takeover", () => {
-  const t = setup(); t.client.subscribe(state => { if (state.connection.phase === "reconnecting") t.client.takeControl(); }); t.socket.end(); vi.advanceTimersByTime(1000); expect(t.sockets).toHaveLength(2); t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
+it("does not schedule duplicate connections during subscriber start", () => {
+  const t = setup(); t.client.subscribe(state => { if (state.connection.phase === "reconnecting") t.client.start(); }); t.socket.end(); vi.advanceTimersByTime(1000); expect(t.sockets).toHaveLength(2); t.client.dispose(); expect(vi.getTimerCount()).toBe(0);
 });
 it("makes stop terminal for synchronous subscriber reentry", () => {
   const t = setup(); t.client.subscribe(state => { if (state.connection.phase === "stopped") { t.client.stop(); t.client.start(); } }); t.client.stop(); vi.advanceTimersByTime(1000); expect(t.client.getState().connection.phase).toBe("stopped"); expect(t.sockets).toHaveLength(1); t.client.dispose();

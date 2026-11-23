@@ -4,7 +4,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 let app: PiChatBrowserDriver;
 
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+  app = await PiChatBrowserDriver.start(page, {});
 });
 
 test.afterEach(async () => {
@@ -12,7 +12,7 @@ test.afterEach(async () => {
 });
 
 test("restores the visible conversation after a browser reload", async () => {
-  await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Welcome back" }] });
+  await app.sessions.create({ responses: [{ prompt: "Hello", reply: "Welcome back" }] });
   await app.chat.sendPrompt("Hello");
   await app.chat.shouldShowAssistantReply("Welcome back");
 

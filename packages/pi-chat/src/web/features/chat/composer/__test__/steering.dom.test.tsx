@@ -136,7 +136,7 @@ describe("steering composer", () => {
     expect(enter(text).value).toBe(text);
     expect(chat.prompt).not.toHaveBeenCalled();
   });
-  it.each(["aborting", "connecting", "superseded"] as const)("does not submit while %s", status => {
+  it.each(["aborting", "connecting"] as const)("does not submit while %s", status => {
     chat.state = { ...chat.state, status };
     mount();
     expect(enter("Wait").value).toBe("Wait");

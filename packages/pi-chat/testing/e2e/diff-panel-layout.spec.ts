@@ -2,7 +2,7 @@ import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 test("a narrow workspace shows changes separately and restores the chat draft",async({page})=>{
-  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature",inboxEnabled:true});
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
   try {
     await app.changes.useCompactViewport();
     await app.changes.prepareChanges();

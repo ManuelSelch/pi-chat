@@ -15,7 +15,7 @@ interface InboxRowViewProps {
   onArchive(): void;
 }
 export function InboxRowView({ row, active, later = false, pending, onSelect, onPark, onArchive }: InboxRowViewProps) {
-  return <div className={`${styles.row} rounded-md border border-transparent ${active ? styles.selected : ""}`} data-session-inbox-row={row.key} data-session-path={row.path} data-later={later || undefined}>
+  return <div className={`${styles.row} rounded-md border border-transparent ${active ? styles.selected : ""}`} data-session-inbox-row={row.key} data-session-id={row.sessionId} data-session-path={row.path} data-later={later || undefined}>
     <UnstyledButton display="block" w="100%" px={10} py={8} style={{ borderRadius: "var(--mantine-radius-md)", textAlign: "left" }} aria-label={`${later ? "Resume" : "Open"} ${row.title}`}
       aria-current={active ? "true" : undefined} disabled={pending && (later || !row.sessionId)} onClick={onSelect}>
       {later && <Text component="span" display="block" size="xs" c="dimmed" truncate mb={4}>{row.project}</Text>}

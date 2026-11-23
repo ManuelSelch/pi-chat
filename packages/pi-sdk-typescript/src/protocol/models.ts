@@ -8,7 +8,6 @@ import { modelScopeSchema, validateModelScope } from "./model-scope.js";
  * slot. The displaced client must not reconnect automatically: both tabs would
  * keep kicking each other in a loop.
  */
-export const CONTROLLER_REPLACED_CODE = 4001;
 
 /**
  * Compact representation of one Pi tool call, correlated by `toolCallId`.
@@ -119,7 +118,6 @@ export const chatProjectSummarySchema = z.object({
   exists: z.boolean(),
   modified: z.number(),
   sessionCount: z.number().int().nonnegative(),
-  pinned: z.boolean().optional(),
   quickChats: z.boolean().optional(),
   sessions: z.array(chatSessionSummarySchema),
   repositoryPath: z.string().min(1).optional(),

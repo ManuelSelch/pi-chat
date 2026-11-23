@@ -54,7 +54,7 @@ Common typed operations used by Chat:
 | Folder-picker plugin client | `plugin.call` with `folderOpeningContract.browse` | Server-local directory listing returned |
 | Chat file-link action | `plugin.call` with `fileOpeningContract.open` | Structured file result; default server OS application, no bytes transferred or display guarantee |
 | `archiveSession` | `session.archive` | Saved-history metadata changed; persistence uncertainty must remain visible |
-| `pinProject`, `removeProject` | `project.pin`, `project.remove` | Catalogue metadata changed, not filesystem deletion |
+| `removeProject` | `project.remove` | Catalogue membership changed, not filesystem deletion |
 | `restartServer` | `server.restart` | Restart attempt admitted, not healthy-successor confirmation |
 | `plugin(contract)` methods | `plugin.call` | Allowlisted server plugin handler completed and returned validated JSON; no Pi session or operation event |
 

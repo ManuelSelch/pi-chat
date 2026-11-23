@@ -7,7 +7,7 @@ import { initialChatState } from "../../stores/chat-state.js";
 import { HeaderContainer } from "../HeaderContainer.js";
 
 const chat = {
-  app: initialAppState as AppState, state: initialChatState, inboxEnabled: true,
+  app: initialAppState as AppState, state: initialChatState,
   inbox: { pending: false },
 };
 vi.mock("../../AppControllerContext.js", () => ({ useAppController: () => chat }));

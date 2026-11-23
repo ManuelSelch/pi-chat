@@ -5,19 +5,19 @@ import { PromptExtensionFixture } from "../infra/pi-chat/fixtures/prompt-extensi
 for (const width of [1280, 390]) {
   test(`rich prompts preserve evidence while reading and switching tabs (${width}px)`, async ({ page }) => {
     const fixture = new PromptExtensionFixture();
-    const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [fixture.extension] });
+    const app = await PiChatBrowserDriver.start(page, { extensions: [fixture.extension] });
     try {
       await app.browser.setViewport(width);
-      const other = await app.tabs.create({ responses: [] });
-      const learning = await app.tabs.create({ responses: [] });
+      const other = await app.sessions.create({ responses: [] });
+      const learning = await app.sessions.create({ responses: [] });
       await app.chat.sendPrompt("/prompt-checks ");
       await app.prompts.shouldShowRichQuestion("Check 1");
       await app.prompts.choose("Check 1", "8");
       await app.prompts.minimize("Check 1");
       fixture.shouldHaveAnswers([]);
       await app.prompts.shouldFitViewport();
-      await app.tabs.switchTo(other);
-      await app.tabs.switchTo(learning);
+      await app.sessions.switchTo(other);
+      await app.sessions.switchTo(learning);
       await app.prompts.reopen("Check 1");
       await app.prompts.shouldHaveChoice("Check 1", "8");
       await app.prompts.continue("Check 1");
@@ -46,9 +46,9 @@ for (const width of [1280, 390]) {
 
 test("explicit Stop releases a minimized native prompt without submitting evidence", async ({ page }) => {
   const fixture = new PromptExtensionFixture();
-  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [fixture.extension] });
+  const app = await PiChatBrowserDriver.start(page, { extensions: [fixture.extension] });
   try {
-    await app.tabs.create({ responses: [] });
+    await app.sessions.create({ responses: [] });
     await app.chat.sendPrompt("/prompt-checks ");
     await app.prompts.shouldShowRichQuestion("Check 1");
     await app.prompts.minimize("Check 1");

@@ -18,6 +18,5 @@ export class FakeBrowserWebSocket extends EventTarget {
   reject(code: string, message: string, requestId = this.requests.at(-1)!.requestId): void { this.deliver({ version: 2, type: "response", requestId, ok: false, error: { code, message } }); }
   deliver(value: unknown): void { this.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(value) })); }
   close(code = 1000, reason = "", wasClean = true): void { if (this.readyState === 0) this.closedWhileConnecting = true; if (this.readyState === 3) return; this.readyState = 3; this.dispatchEvent(new CloseEvent("close", { code, reason, wasClean })); }
-  replaceByNewController(): void { this.close(4001); }
   refuseConnection(): void { this.dispatchEvent(new Event("error")); this.close(); }
 }

@@ -114,7 +114,6 @@ opening assertion.
   [takeover](../../testing/scenarios/browser/takeover.test.ts) and
   [persisted reopening](../../testing/scenarios/tabs/persisted-open.test.ts).
 - [Project archive](../../testing/e2e/project-archive.spec.ts),
-  [pinning](../../testing/e2e/project-pin.spec.ts),
   [responsive Projects](../../testing/e2e/projects-sidebar.spec.ts),
   [Inbox](../../testing/e2e/session-inbox.spec.ts) and
   [worktree labels](../../testing/e2e/inbox-worktree-labels.spec.ts).
@@ -140,7 +139,7 @@ npm test -- testing/scenarios
 npm test -- testing/infra-tests
 npm test -- __test__
 npm run build
-npx playwright test testing/e2e/project-archive.spec.ts testing/e2e/project-pin.spec.ts
+npx playwright test testing/e2e/project-archive.spec.ts testing/e2e/sessions.spec.ts
 ```
 
 Browser tests require Chromium. Run shared-build-output workflows serially; see

@@ -10,14 +10,9 @@ export class BrowserInboxDriver {
   }
   private later(): Locator { return this.panel().getByRole("button", { name: /^Later/ }); }
 
-  async shouldUseMode(enabled: boolean): Promise<void> {
-    await expect(this.page.getByRole("banner").getByRole("button", { name: "Sessions", exact: true })).toHaveCount(enabled ? 1 : 0);
-    if (enabled) await expect(this.panel()).toBeVisible();
-    await this.page.getByRole("button", { name: "Settings", exact: true }).click();
-    const settings = this.page.getByRole("dialog", { name: "Settings", exact: true });
-    await expect(settings.getByRole("switch", { name: "Show open sessions in sidebar", exact: true })).toBeChecked({ checked: enabled });
-    await this.page.keyboard.press("Escape");
-    await expect(settings).toHaveCount(0);
+  async shouldUseSidebar(): Promise<void> {
+    await expect(this.page.getByRole("banner").getByRole("button", { name: "Sessions", exact: true })).toBeVisible();
+    await expect(this.panel()).toBeVisible();
   }
   async shouldHaveHeaderSessionActions(visible: boolean): Promise<void> {
     const header = this.page.getByRole("banner");
@@ -35,15 +30,6 @@ export class BrowserInboxDriver {
     await expect(header.getByText("Pi Chat", { exact: true })).toHaveCount(0);
     await expect(header.getByRole("button", { name: "Sessions", exact: true })).toBeVisible();
     await expect(header.getByRole("button", { name: "New session", exact: true })).toBeVisible();
-  }
-  async setEnabled(enabled: boolean): Promise<void> {
-    if (!(await this.page.getByRole("button", { name: "Settings", exact: true }).isVisible())) await this.open();
-    await this.page.getByRole("button", { name: "Settings", exact: true }).click();
-    const settings = this.page.getByRole("dialog", { name: "Settings", exact: true });
-    await settings.getByRole("switch", { name: "Show open sessions in sidebar", exact: true }).setChecked(enabled);
-    await this.page.keyboard.press("Escape");
-    await expect(settings).toHaveCount(0);
-    if (enabled) await expect(this.panel()).toBeVisible();
   }
   async open(): Promise<void> {
     if (!(await this.panel().isVisible())) await this.page.getByRole("button", { name: "Sessions", exact: true }).click();
@@ -316,12 +302,11 @@ export class BrowserInboxDriver {
     await expect(this.page.getByRole("status").filter({ hasText: "Session archived." })).toHaveCount(0);
     await expect(this.page.getByRole("button", { name: "Undo archive", exact: true })).toHaveCount(0);
   }
-  async reload(inboxEnabled = true): Promise<void> {
+  async reload(): Promise<void> {
     await pageCoverage.get(this.page)?.checkpoint();
     await this.page.reload({ waitUntil: "networkidle" });
     await expect(this.page.getByRole("banner")).toBeVisible();
-    if (inboxEnabled) await expect(this.panel()).toBeVisible();
-    else await expect(this.page.getByRole("banner").getByRole("button", { name: "Projects and sessions", exact: true })).toBeVisible();
+    await expect(this.panel()).toBeVisible();
   }
   async shouldBeDrawer(): Promise<void> { await expect(this.page.getByRole("dialog", { name: "Sessions", exact: true })).toBeVisible(); }
   async openSettings(): Promise<void> {
@@ -331,6 +316,10 @@ export class BrowserInboxDriver {
   }
   async shouldHaveNoSearch(): Promise<void> {
     await expect(this.panel().getByRole("textbox", { name: "Search sessions", exact: true })).toHaveCount(0);
+  }
+  async shouldNotShowSession(title: string): Promise<void> {
+    await expect(this.panel().getByRole("button", { name: new RegExp(`^(Open|Resume) ${title}$`) })).toHaveCount(0);
+    await expect(this.panel().getByRole("button", { name: /^Archived/ })).toHaveCount(0);
   }
   async shouldHideLater(): Promise<void> {
     await expect(this.later()).toHaveCount(0);

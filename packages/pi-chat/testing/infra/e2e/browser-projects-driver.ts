@@ -1,5 +1,4 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { basename } from "node:path";
 import type { TestWorld } from "../pi-chat/test-world.js";
 
 /** Assertions use the rendered panel; no catalogue or socket state is mocked. */
@@ -7,30 +6,30 @@ export class BrowserProjectsDriver {
   private readonly panel: Locator;
 
   constructor(private readonly page: Page, private readonly world: TestWorld) {
-    this.panel = page.getByRole("dialog", { name: "Projects", exact: true }).or(page.getByRole("navigation", { name: "Projects", exact: true }));
+    this.panel = page.getByRole("dialog", { name: "Sessions", exact: true }).or(page.getByRole("navigation", { name: "Sessions", exact: true }));
   }
 
   async open(): Promise<void> {
-    if (!await this.panel.isVisible()) await this.page.getByRole("button", { name: "Projects and sessions", exact: true }).click();
+    if (!await this.panel.isVisible()) await this.page.getByRole("button", { name: "Sessions", exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
   async close(): Promise<void> {
-    await this.panel.getByRole("button", { name: "Close projects", exact: true }).click();
+    await this.panel.getByRole("button", { name: "Close sessions", exact: true }).click();
     await expect(this.panel).not.toBeVisible();
   }
 
   async shouldBeSidebar(): Promise<void> {
-    await expect(this.page.getByRole("navigation", { name: "Projects", exact: true })).toBeVisible();
-    await expect(this.page.getByRole("dialog", { name: "Projects", exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("navigation", { name: "Sessions", exact: true })).toBeVisible();
+    await expect(this.page.getByRole("dialog", { name: "Sessions", exact: true })).toHaveCount(0);
     await expect(this.page.locator("body")).not.toHaveAttribute("data-scroll-locked");
   }
 
   async shouldBeDrawer(): Promise<void> {
-    const drawer = this.page.getByRole("dialog", { name: "Projects", exact: true });
+    const drawer = this.page.getByRole("dialog", { name: "Sessions", exact: true });
     await expect(drawer).toBeVisible();
     await expect(drawer).toHaveAttribute("aria-modal", "true");
-    await expect(this.page.getByRole("navigation", { name: "Projects", exact: true })).toHaveCount(0);
+    await expect(this.page.getByRole("navigation", { name: "Sessions", exact: true })).toHaveCount(0);
     await expect.poll(() => drawer.evaluate(node => node.contains(document.activeElement))).toBe(true);
   }
 
@@ -66,16 +65,19 @@ export class BrowserProjectsDriver {
   }
 
   async selectSession(title: string): Promise<void> {
-    await this.panel.getByRole("button", { name: title, exact: true }).click();
+    await this.panel.getByRole("button", { name: `Open ${title}`, exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
   async createSession(): Promise<void> {
     const release = this.world.reserveSession([]);
     try {
-      await this.panel.getByRole("button", { name: `New session in ${basename(this.world.projectPath)}`, exact: true }).click();
+      const drawer = this.page.getByRole("dialog", { name: "Sessions", exact: true });
+      const phone = await drawer.isVisible();
+      if (phone) await this.close();
+      await this.page.getByRole("banner").getByRole("button", { name: "New session", exact: true }).click();
       await expect(this.page.getByRole("textbox", { name: "Message Pi" })).toBeEnabled();
-      await expect(this.panel).toBeVisible();
+      await this.open();
     } finally { release(); }
   }
 
@@ -89,54 +91,4 @@ export class BrowserProjectsDriver {
     await expect(this.panel).toBeVisible();
   }
 
-  async pin(): Promise<void> {
-    await this.panel.getByRole("button", { name: /^Pin / }).click();
-  }
-
-  async unpin(): Promise<void> {
-    await this.panel.getByRole("button", { name: /^Unpin / }).click();
-  }
-
-  async shouldBePinned(): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: /^Unpin / })).toBeEnabled();
-    await expect(this.panel.getByRole("button", { name: /^Pin / })).toHaveCount(0);
-  }
-
-  async shouldBeUnpinned(): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: /^Pin / })).toBeEnabled();
-    await expect(this.panel.getByRole("button", { name: /^Unpin / })).toHaveCount(0);
-  }
-
-  async archive(title: string): Promise<void> {
-    await this.panel.getByRole("button", { name: title, exact: true }).hover();
-    await this.panel.getByRole("button", { name: `Archive ${title}`, exact: true }).click();
-  }
-
-  async shouldShowActiveSession(title: string): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: title, exact: true })).toBeVisible();
-    await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toBeEnabled();
-    await expect(this.panel.getByRole("button", { name: `Restore ${title}`, exact: true })).toHaveCount(0);
-  }
-
-  async shouldNotShowSession(title: string): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: title, exact: true })).toHaveCount(0);
-    await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
-  }
-
-  async shouldHideArchivedSection(): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: /^Archived/ })).toHaveCount(0);
-  }
-
-  async showArchivedSessions(): Promise<void> {
-    const toggle = this.panel.getByRole("button", { name: /^Archived/ });
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  }
-
-  async shouldShowArchivedSession(title: string): Promise<void> {
-    await expect(this.panel.getByRole("button", { name: title, exact: true })).toBeVisible();
-    await expect(this.panel.getByRole("button", { name: `Restore ${title}`, exact: true })).toBeEnabled();
-    await expect(this.panel.getByRole("button", { name: `Archive ${title}`, exact: true })).toHaveCount(0);
-  }
 }

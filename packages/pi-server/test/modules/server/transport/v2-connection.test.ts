@@ -134,13 +134,13 @@ describe("v2 connection admission and correlation", () => {
 
   it("keeps a completed mutation successful when a later catalogue refresh fails", async () => {
     const refresh = vi.fn(() => { throw new Error("Catalogue unavailable"); });
-    const { connection, sent } = setup({ capabilities: ["presentation", "project.pin"],
-      prepareInitialize: async () => () => ({ ...initialized, capabilities: ["presentation", "project.pin"] }),
+    const { connection, sent } = setup({ capabilities: ["presentation", "project.remove"],
+      prepareInitialize: async () => () => ({ ...initialized, capabilities: ["presentation", "project.remove"] }),
       execute: async () => ({ kind: "completed", result: { state: "completed" }, afterResponse: refresh }),
     });
-    connection.receive(JSON.stringify({ version: 2, type: "request", requestId: "init", method: "server.initialize", params: { client: { name: "test", version: "1" }, capabilities: ["presentation", "project.pin"] } }));
+    connection.receive(JSON.stringify({ version: 2, type: "request", requestId: "init", method: "server.initialize", params: { client: { name: "test", version: "1" }, capabilities: ["presentation", "project.remove"] } }));
     await settle();
-    connection.receive(request("project.pin", "pin", { path: "/p", pinned: true })); await settle();
+    connection.receive(request("project.remove", "pin", { path: "/p" })); await settle();
     expect(refresh).toHaveBeenCalledOnce();
     expect(sent.filter((message) => message.requestId === "pin")).toEqual([expect.objectContaining({ ok: true, result: { state: "completed" } })]);
     connection.dispose();

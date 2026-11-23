@@ -2,7 +2,7 @@ import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 let app: PiChatBrowserDriver;
-test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page, { inboxEnabled: false }); });
+test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page, {}); });
 test.afterEach(async () => { await app?.dispose(); });
 
 const instructions = "Review the fixture calendar and prepare a briefing.";
@@ -10,7 +10,7 @@ const fixture = { name: "browser-briefing", instructions };
 
 for (const via of ["Enter", "Tab", "mouse"] as const) {
   test(`selects a skill with ${via} without executing, then submits a separate task`, async () => {
-    await app.tabs.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing Today's report", reply: "Briefing complete" }] });
+    await app.sessions.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing Today's report", reply: "Briefing complete" }] });
 
     await app.skills.type("/skill:browser-br");
     await app.skills.shouldOffer(fixture.name);
@@ -30,7 +30,7 @@ for (const via of ["Enter", "Tab", "mouse"] as const) {
 }
 
 test("dismisses skill discovery, invokes without task text, and restores invocation/read cards after reload", async ({ page }) => {
-  await app.tabs.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing", readSkill: fixture.name, reply: "Fixture skill read" }] });
+  await app.sessions.create({ skills: [fixture], responses: [{ prompt: "/skill:browser-briefing", readSkill: fixture.name, reply: "Fixture skill read" }] });
   await app.skills.type("/skill:");
   await app.skills.shouldOffer(fixture.name);
   await app.skills.dismissMenu();
@@ -59,31 +59,31 @@ test("dismisses skill discovery, invokes without task text, and restores invocat
 });
 
 test("keeps discovery tab-specific, including after browser reload", async () => {
-  const first = await app.tabs.create({ skills: [{ name: "first-skill", instructions: "First session" }], responses: [] });
+  const first = await app.sessions.create({ skills: [{ name: "first-skill", instructions: "First session" }], responses: [] });
   await app.skills.type("/skill:");
   await app.skills.shouldOffer("first-skill");
   await app.skills.shouldNotOffer("second-skill");
 
-  const second = await app.tabs.create({ skills: [{ name: "second-skill", instructions: "Second session" }], responses: [] });
+  const second = await app.sessions.create({ skills: [{ name: "second-skill", instructions: "Second session" }], responses: [] });
   await app.skills.type("/skill:");
   await app.skills.shouldOffer("second-skill");
   await app.skills.shouldNotOffer("first-skill");
 
-  await app.tabs.switchTo(first);
+  await app.sessions.switchTo(first);
   await app.skills.shouldOffer("first-skill");
   await app.skills.shouldNotOffer("second-skill");
   await app.browser.reload();
   await app.skills.type("/skill:");
   await app.skills.shouldOffer("first-skill");
   await app.skills.shouldNotOffer("second-skill");
-  await app.tabs.switchTo(second);
+  await app.sessions.switchTo(second);
   await app.skills.type("/skill:");
   await app.skills.shouldOffer("second-skill");
   await app.skills.shouldNotOffer("first-skill");
 });
 
 test("allows manual invocation when skill discovery is disabled", async () => {
-  await app.tabs.create({ skills: [fixture], enableSkillCommands: false, responses: [{ prompt: "/skill:browser-briefing Manual report", reply: "Manual invocation complete" }] });
+  await app.sessions.create({ skills: [fixture], enableSkillCommands: false, responses: [{ prompt: "/skill:browser-briefing Manual report", reply: "Manual invocation complete" }] });
   await app.skills.type("/skill:");
   await app.skills.shouldNotOffer(fixture.name);
 
@@ -95,7 +95,7 @@ test("allows manual invocation when skill discovery is disabled", async () => {
 });
 
 test("selects and queues a skill command while streaming and restores it after reload", async () => {
-  await app.tabs.create({ skills: [fixture], responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
+  await app.sessions.create({ skills: [fixture], responses: [{ prompt: "Start working", reply: "Held response", hold: true }] });
   await app.chat.sendPrompt("Start working");
   await app.chat.shouldBeSteering();
 

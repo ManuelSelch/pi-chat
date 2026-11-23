@@ -27,19 +27,20 @@ function reopen() { fireEvent.click(screen.getByRole("button", { name: "Reopen" 
 beforeEach(() => {
   vi.useFakeTimers();
   localStorage.clear();
+  const matchMedia = window.matchMedia;
+  vi.spyOn(window, "matchMedia").mockImplementation(query => ({ ...matchMedia(query), matches: query === "(min-width: 640px)" }));
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   const state = { ...initialChatState, sessionId: "one", status: "running" as const };
   controller = {
     app: { ...initialAppState, serverInstanceId: "server", connection: "open", tabsKnown: true, activeSessionId: "one", sessions: { one: state },
       tabs: [{ sessionId: "one", title: "One", projectPath: "/project", projectName: "project", status: "running" }] },
     state, serverEndpoint: { endpoint: "ws://localhost:3000/ws", override: "", hasStoredOverride: false },
-    inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(), showHome: vi.fn(),
+    closeView: vi.fn(), showHome: vi.fn(),
     inbox: { later: [], archivingPaths: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     createAndFocusSession: vi.fn(), completeCommandArguments: vi.fn(async () => []),
     request: async () => { throw new Error("SDK requests are not configured in this fixture."); }, prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn().mockResolvedValue(undefined),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
-    archiveSession: vi.fn(), pinProject: vi.fn(), removeProject: vi.fn(), setModel: vi.fn(), compactSession: vi.fn(),
-    setThinkingLevel: vi.fn(), dismissError: vi.fn(), takeControl: vi.fn(),
+    dismissError: vi.fn(),
   };
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });

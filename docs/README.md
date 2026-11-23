@@ -4,8 +4,9 @@ These guides describe the implemented system, not feature proposals or historica
 verification runs. Executable scenarios remain the behavioral contract; links
 below do not imply that tests or visual acceptance have just run.
 
-- [Architecture](architecture.md): package boundaries, ownership, state lifetimes,
-  runtime flows and failure handling.
+- [Architecture map](architecture.md): state owners and code-reading paths for startup, sending and reopening history.
+- [Core scope](core.md): essential/optional capabilities and evidence-based removal candidates; proposals, not removal approval.
+- [Architecture details](architecture-details.md): retained browser behavior, state lifetimes and failure handling.
 - [Usage](../packages/pi-chat/docs/usage.md): navigation, commands, prompts, widgets and file interactions.
 - [Configuration](../packages/pi-chat/docs/configuration.md): server lifecycle, endpoint/security settings,
   themes and diagnostics.

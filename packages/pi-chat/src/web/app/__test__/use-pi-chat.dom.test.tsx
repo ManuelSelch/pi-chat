@@ -26,10 +26,9 @@ it("uses SDK deadlines instead of keeping folder waits indefinitely", async () =
   const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); connect([]); const pending = createFolderClient(result.current.request).browseDirectories({ path: "/p" }); const rejected = expect(pending).rejects.toMatchObject({ code: "timeout", outcome: "unknown" }); await act(async () => vi.advanceTimersByTime(10_000)); await rejected;
 });
 it("routes typed controls and rejects creation without leaking a navigation placeholder", async () => {
-  const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => { result.current.prompt("hello", "background"); result.current.setModel("provider/model"); result.current.newSession("/new"); });
-  expect(socket.requests.slice(1)).toMatchObject([{ method: "message.send", sessionId: "background", params: { message: "hello" } }, { method: "model.select", sessionId: "s", params: { model: "provider/model" } }, { method: "session.create", params: { projectPath: "/new" } }]);
+  const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => { result.current.prompt("hello", "background"); result.current.newSession("/new"); });
+  expect(socket.requests.slice(1)).toMatchObject([{ method: "message.send", sessionId: "background", params: { message: "hello" } }, { method: "session.create", params: { projectPath: "/new" } }]);
   expect(result.current.app.openingTabs).toBe(1); await act(async () => socket.reject("permissionDenied", "Permission denied")); expect(result.current.app.openingTabs).toBe(0); expect(result.current.app.error).toBe("Permission denied");
-  const pinned = result.current.pinProject("/p", true); expect(socket.requests.at(-1)).toMatchObject({ method: "project.pin", params: { path: "/p", pinned: true } }); await act(async () => socket.reply({ state: "completed" })); await pinned; expect(result.current.app.error).toBe("Permission denied");
 });
 it("rolls back optimistic open/close failures while offline", async () => {
   const { result } = renderHook(() => usePiChat()); await act(async () => result.current.openProject("/p")); expect(result.current.app.openingTabs).toBe(0); expect(result.current.app.error).toContain("Not connected");
@@ -222,9 +221,20 @@ it("propagates folder browsing failures and cancellation without falling back", 
   expect(socket.requests.slice(1).map(request => request.method)).toEqual(["plugin.call", "plugin.call"]);
 });
 
-it("does not let a disposed socket's late close cancel requests on its replacement", async () => {
-  const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider }); const old = connect(); const close = vi.spyOn(old, "close").mockImplementation(() => {}); act(() => result.current.takeControl());
-  const next = connect(); const pending = createFolderClient(result.current.request).browseDirectories({ path: "/" }); close.mockRestore(); await act(async () => { old.close(); next.reply({ value: { ok: true, listing: { path: "/new", entries: [], breadcrumbs: [] } } }); }); await expect(pending).resolves.toMatchObject({ path: "/new" });
+it("does not let a disconnected socket's late close cancel replacement requests", async () => {
+  const { result } = renderHook(() => useAppController(), { wrapper: AppControllerProvider });
+  const old = connect();
+  act(() => old.close());
+  await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+  const next = connect();
+  const pending = createFolderClient(result.current.request).browseDirectories({ path: "/" });
+
+  await act(async () => {
+    old.dispatchEvent(new CloseEvent("close", { code: 1006 }));
+    next.reply({ value: { ok: true, listing: { path: "/new", entries: [], breadcrumbs: [] } } });
+  });
+
+  await expect(pending).resolves.toMatchObject({ path: "/new" });
 });
 it("selects project history in the app, not through a wire-level continuation method", () => {
   const { result } = renderHook(() => usePiChat()); const socket = connect([]);
@@ -261,9 +271,15 @@ it("ignores invalid persisted endpoints without crashing initialization", () => 
   expect(result.current.serverEndpoint.warning).toBeTruthy();
   expect(result.current.app.connection).toBe("open");
 });
-it("never fights a displaced controller and reconnects only on explicit takeover", () => {
-  const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => socket.replaceByNewController()); expect(result.current.app.connection).toBe("superseded"); act(() => void vi.advanceTimersByTime(30_000)); expect(Socket.instances).toHaveLength(1);
-  act(() => result.current.takeControl()); act(() => void vi.advanceTimersByTime(0)); expect(Socket.instances).toHaveLength(2);
+it("reconnects after close code 4001 without a take-control workflow", () => {
+  const { result } = renderHook(() => usePiChat());
+  const socket = connect();
+
+  act(() => socket.close(4001));
+
+  expect(result.current.app.connection).toBe("connecting");
+  act(() => void vi.advanceTimersByTime(250));
+  expect(Socket.instances).toHaveLength(2);
 });
 it("logs physical close details while the SDK owns reconnect", () => {
   const log = vi.spyOn(console, "info").mockImplementation(() => {}); const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => socket.close(1006, "abnormal closure", false));
