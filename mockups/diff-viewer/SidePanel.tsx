@@ -13,7 +13,7 @@ export function SidePanel({ tab, onClose, children }: SidePanelProps) {
     <Tabs defaultValue={tab.id} className="side-panel-tabs">
       <div className="side-panel-header">
         <Tabs.List aria-label="Panel views">
-          <Tabs.Tab value={tab.id} leftSection={tab.icon}>{tab.label}</Tabs.Tab>
+          <Tabs.Tab value={tab.id} leftSection={tab.icon} style={{borderBottomColor:"transparent"}}>{tab.label}</Tabs.Tab>
         </Tabs.List>
         <ActionIcon variant="subtle" color="gray" aria-label="Close side panel" onClick={onClose}><IconX size={18}/></ActionIcon>
       </div>

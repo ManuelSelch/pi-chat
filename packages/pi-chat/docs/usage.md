@@ -111,9 +111,9 @@ Later is also accessible from the sidebar while viewing a conversation.
 
 ## Changes panel
 
-- Toggle the right side panel using the header’s sidebar icon, then select **Changes**. Chat and its composer stay usable alongside the panel.
+- Toggle **Changes** using the header’s sidebar icon. On wide screens it sits beside chat; in a narrow workspace it replaces chat until closed, preserving the draft and scroll position.
 - **Uncommitted** shows staged, unstaged and non-ignored untracked changes.
-- **Branch** defaults to local `main` (or `origin/main` if local `main` is absent) and compares its merge-base with HEAD against the working tree. Select another local or remote-tracking branch if needed; no branches are fetched.
+- **Branch** is the default mode. It defaults to local `main` (or `origin/main` if local `main` is absent) and compares its merge-base with HEAD against the working tree. Select another local or remote-tracking branch if needed; no branches are fetched.
 - **Commit** defaults to the latest commit and shows only the selected commit against its first parent, excluding uncommitted changes. Search history or use Older/Newer to select another commit.
 - Scroll through all unified diffs, or click a filename to jump. Binary files and metadata-only changes show placeholders.
 - Use Refresh to reread Git. There is no editing, staging, reverting or automatic polling. Large comparisons fail with an actionable limit message.

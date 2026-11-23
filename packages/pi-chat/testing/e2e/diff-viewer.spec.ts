@@ -14,7 +14,6 @@ test("plugin diffs scroll continuously beside chat and support named branch and 
     await app.changes.shouldKeepSelected("two.ts");
     await app.changes.shouldLeaveChatUsable();
 
-    await app.changes.selectBranchMode();
     await app.changes.shouldDefaultToMain();
     await app.changes.shouldShowBeforeAndAfter();
     await app.changes.selectCommitMode();

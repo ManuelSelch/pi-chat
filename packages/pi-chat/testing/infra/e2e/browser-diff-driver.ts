@@ -97,12 +97,15 @@ export class BrowserDiffDriver {
     await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
   }
   async useCompactViewport() { await this.page.setViewportSize({width:1000,height:900}); }
-  async shouldStackWithoutOverlay() {
+  async shouldShowFullWidthView() {
     const panel = this.page.getByRole("complementary",{name:"Side panel"});
     await expect(panel).toHaveAttribute("data-stacked","true");
-    await expect(panel).toHaveCSS("position","relative");
+    await expect(panel).toHaveCSS("position","fixed");
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
-    await expect(this.page.getByRole("textbox",{name:"Message Pi",exact:true})).toBeEnabled();
+    await expect(this.page.getByRole("textbox",{name:"Message Pi",exact:true})).toHaveCount(0);
+    const box = await panel.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeCloseTo(this.page.viewportSize()!.height, 0);
   }
   async shouldBeClosed() { await expect(this.page.getByRole("complementary",{name:"Side panel"})).toHaveCount(0); }
 }

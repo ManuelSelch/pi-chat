@@ -5,7 +5,7 @@ export type Mode = "uncommitted" | "branch" | "commit";
 export interface Preferences { mode: Mode; branch: string | null; commit: string | null; commitSubject: string }
 interface State { host: PluginUIHost; preferences: Preferences; update(patch: Partial<Preferences>): void }
 const Context = createContext<State | null>(null);
-const defaults: Preferences = {mode:"uncommitted",branch:null,commit:null,commitSubject:""};
+const defaults: Preferences = {mode:"branch",branch:null,commit:null,commitSubject:""};
 
 export function DiffViewerProvider({host,children}:PluginUIProviderProps<ReactNode>) {
   const [projects,setProjects] = useState<Record<string,Preferences>>({});

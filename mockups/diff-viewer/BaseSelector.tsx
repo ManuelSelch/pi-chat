@@ -18,7 +18,7 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
   const mode = base.startsWith("branch:") ? "branch" : base.startsWith("commit:") ? "commit" : "uncommitted";
   return <Group gap="xs">
     <Select aria-label="Comparison mode" size="xs" w={145} value={mode} allowDeselect={false}
-      onChange={value=>{if(value) onChange(value==="uncommitted" ? "HEAD" : value+":");}}
+      onChange={value=>{if(value) onChange(value==="uncommitted" ? "HEAD" : value==="branch" ? "branch:refs/heads/main" : "commit:72ac6c4");}}
       data={[{value:"branch",label:"Branch"},{value:"uncommitted",label:"Uncommitted"},{value:"commit",label:"Commit"}]}
     />
     {mode!=="uncommitted" && <Select aria-label={mode==="branch" ? "Comparison branch" : "Comparison commit"}

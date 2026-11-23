@@ -12,7 +12,8 @@
 
 /* General plugin panel, independent of contributed feature content. */
 .pi-side-panel { position: fixed; top: var(--pi-header-height); right: 0; bottom: 0; width: var(--pi-workspace-right); display: flex; flex-direction: column; z-index: 101; }
-.pi-side-panel[data-stacked="true"] { position: relative; top: auto; width: auto; margin-left: var(--pi-workspace-left); height: 65dvh; min-height: 400px; margin-bottom: var(--pi-side-panel-bottom-gap); border-top: 1px solid var(--mantine-color-default-border); }
+.pi-side-panel[data-stacked="true"] { left: var(--pi-workspace-left); width: auto; overflow: hidden; overscroll-behavior: contain; }
+.pi-side-panel[data-single-tab="true"] .mantine-Tabs-list::before { display: none; }
 
 /* Keep the minimal chat chrome clean while preserving wheel/touch scrolling. */
 html {

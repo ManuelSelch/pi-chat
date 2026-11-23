@@ -24,7 +24,7 @@ export function DiffStream({files}:{files:ChangedFile[]}) {
     if(section) setSelected(section.getAttribute("data-diff-file")!);
   }
   const resume = ()=>{clickedSelection.current=false;};
-  return <div className="grid min-h-0 flex-1 grid-cols-[180px_minmax(0,1fr)] min-[1200px]:grid-cols-[220px_minmax(0,1fr)]">
+  return <div className="grid min-h-0 flex-1 grid-cols-[clamp(112px,29vw,180px)_minmax(0,1fr)] min-[1200px]:grid-cols-[220px_minmax(0,1fr)]">
     <FileNavigation files={files} selected={active} onSelect={jump}/>
     <div ref={stream} role="region" aria-label="All file diffs" tabIndex={0} className="min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain bg-(--mantine-color-body)"
       onScroll={track} onWheel={resume} onTouchMove={resume} onPointerDown={resume}

@@ -63,7 +63,6 @@ function AppContent() {
       "--pi-header-height": `${headerHeight}px`,
       "--pi-workspace-left": workspaceLeft,
       "--pi-workspace-right": `${panelWidth}px`,
-      "--pi-side-panel-bottom-gap": `${footerHeight + FOOTER_GAP}px`,
       "--pi-projects-width": layout.sidebarWidth,
     } as CSSProperties}>
       <AgentationFeedback />
@@ -73,7 +72,7 @@ function AppContent() {
 
       <AppOverlays />
 
-      <AppShell.Main ml={workspaceLeft} w={`calc(100% - ${workspaceLeft} - ${panelWidth}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
+      <AppShell.Main inert={layout.panelStacked || undefined} style={layout.panelStacked ? {visibility:"hidden"} : undefined} ml={workspaceLeft} w={`calc(100% - ${workspaceLeft} - ${panelWidth}px)`} pb={home ? 0 : footerHeight + FOOTER_GAP} h={home ? `calc(100dvh - ${headerHeight}px)` : undefined}>
         <InboxNoticeContainer />
         {home ? (
           <Home search={<QuickOpenContainer inline />}>
@@ -84,7 +83,9 @@ function AppContent() {
         )}
       </AppShell.Main>
 
-      <ComposerContainer onHeightChange={setFooterHeight} widgetsDocked={widgetsCanDock} />
+      <div inert={layout.panelStacked || undefined} style={layout.panelStacked ? {visibility:"hidden"} : undefined}>
+        <ComposerContainer onHeightChange={setFooterHeight} widgetsDocked={widgetsCanDock} />
+      </div>
       <PluginSidePanel stacked={layout.panelStacked} />
     </AppShell>
   );

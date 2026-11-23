@@ -9,7 +9,7 @@ import { BaseSelector } from "./BaseSelector";
 export function DiffViewerMockup() {
   const state = new URLSearchParams(location.search).get("state");
   const [opened,setOpened] = useState(true);
-  const [base,setBase] = useState("HEAD");
+  const [base,setBase] = useState("branch:refs/heads/main");
   const [refreshing,setRefreshing] = useState(false);
   const choosingBase = base.endsWith(":");
   const noDiff = choosingBase || state==="empty" || state==="error" || state==="not-git" || state==="loading";
