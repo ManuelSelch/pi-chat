@@ -2,10 +2,10 @@ import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 test("plugin diffs scroll continuously beside chat and support named branch and commit bases",async({page})=>{
-  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature",inboxEnabled:false});
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
   try {
     await app.changes.prepareChanges();
-    await app.tabs.create({responses:[]});
+    await app.sessions.create({responses:[]});
     await app.changes.open();
 
     await app.changes.shouldShowEveryDiff();

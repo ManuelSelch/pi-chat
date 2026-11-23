@@ -14,7 +14,7 @@ export class ChimesPluginDriver {
   constructor(available = true) {
     vi.useFakeTimers();
     localStorage.clear();
-    localStorage.setItem("pi-chat:session-inbox", "false");
+
     Socket.instances = [];
     vi.stubGlobal("WebSocket", Socket);
     Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
@@ -49,16 +49,20 @@ export class ChimesPluginDriver {
   }
 
   async openSettings() {
+    if (!screen.queryByRole("button", { name: "Settings" })) {
+      fireEvent.click(screen.getByRole("button", { name: "Sessions" }));
+      await this.settle();
+    }
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     await this.settle();
   }
 
   shouldKeepExistingFeatureToggles() {
     const switches = within(screen.getByRole("group", { name: "Feature Toggles" })).getAllByRole("switch");
-    expect(switches).toHaveLength(6);
-    for (const name of ["Agentation UI feedback", "Show open sessions in sidebar", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript"])
+    expect(switches).toHaveLength(3);
+    for (const name of ["Agentation UI feedback", "Compact transcript"])
       expect(within(screen.getByRole("group", { name: "Feature Toggles" })).getByRole("switch", { name })).toBeTruthy();
-    expect(switches[2]).toBe(this.toggle());
+    expect(switches[1]).toBe(this.toggle());
     expect(screen.queryByRole("group", { name: "Sounds" })).toBeNull();
   }
 

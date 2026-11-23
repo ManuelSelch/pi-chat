@@ -3,7 +3,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 let app: PiChatBrowserDriver;
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, projectName: "sidebar-project" });
+  app = await PiChatBrowserDriver.start(page, { projectName: "sidebar-project" });
 });
 test.afterEach(async () => { await app?.dispose(); });
 
@@ -11,7 +11,7 @@ for (const width of [1680, 1024, 1280]) {
   test(`keeps the session usable beside Projects at ${width}px`, async () => {
     await app.browser.setViewport(width);
     const reply = Array.from({ length: 50 }, (_, i) => `Paragraph ${i + 1}: the session remains usable with Projects open.`).join("\n\n");
-    await app.tabs.create({ responses: [{ prompt: "Keep projects open", reply }] });
+    await app.sessions.create({ responses: [{ prompt: "Keep projects open", reply }] });
     await app.widgets.named("status").show("Still working");
 
     await app.projects.open();
@@ -31,7 +31,8 @@ for (const width of [1680, 1024, 1280]) {
 
     await app.projects.createSession();
 
-    await app.tabs.shouldHaveCount(2);
+    await app.sessions.shouldHaveCount(2);
+  await app.projects.open();
     await app.projects.shouldBeSidebar();
     await app.focus.typeWithoutRefocusing("New session draft");
     await app.projects.selectSession("Keep projects open");
@@ -52,7 +53,7 @@ test("centers home beside the open sidebar on a wide screen", async () => {
 
 test("keeps phone navigation modal and open through session selection and creation", async () => {
   await app.browser.setViewport(390, 844);
-  await app.tabs.create({ responses: [{ prompt: "Phone conversation", reply: "Phone reply" }] });
+  await app.sessions.create({ responses: [{ prompt: "Phone conversation", reply: "Phone reply" }] });
   await app.chat.sendPrompt("Phone conversation");
   await app.chat.shouldShowAssistantReply("Phone reply");
 
@@ -61,17 +62,18 @@ test("keeps phone navigation modal and open through session selection and creati
   await app.projects.selectSession("Phone conversation");
   await app.projects.shouldBeDrawer();
   await app.projects.createSession();
-  await app.tabs.shouldHaveCount(2);
+  await app.sessions.shouldHaveCount(2);
+  await app.projects.open();
   await app.projects.shouldBeDrawer();
 
-  await app.focus.dismissDialog("Projects");
+  await app.focus.dismissDialog("Sessions");
 
   await app.focus.typeWithoutRefocusing("Phone draft");
 });
 
 test("transfers focus and keeps one navigation surface when resizing", async () => {
   await app.browser.setViewport(1024);
-  await app.tabs.create({ responses: [] });
+  await app.sessions.create({ responses: [] });
   await app.focus.typeWithoutRefocusing("Preserved draft");
   await app.projects.open();
   await app.projects.shouldBeSidebar();

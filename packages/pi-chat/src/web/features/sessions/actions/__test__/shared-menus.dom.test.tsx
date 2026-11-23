@@ -16,23 +16,22 @@ import { QuickOpenContainer } from "../../quick-open/components/QuickOpenContain
 const chat = vi.hoisted(() => ({
   promptPresentation: { minimized: false, prompt: undefined },
   app: {} as AppState, state: {} as ChatState,
-  inboxEnabled: false, inbox: { park: vi.fn(), later: [] as { path: string }[] },
-  newSession: vi.fn(), closeTab: vi.fn(), closeView: vi.fn(), archiveSession: vi.fn(), restartServer: vi.fn(),
+  inbox: { park: vi.fn(), archive: vi.fn(), later: [] as { path: string }[] },
+  newSession: vi.fn(), closeTab: vi.fn(), closeView: vi.fn(), restartServer: vi.fn(),
   openSession: vi.fn(), openProject: vi.fn(), prompt: vi.fn(), dismissError: vi.fn(),
   completeCommandArguments: vi.fn(async () => []),
 }));
 vi.mock("../../../../app/AppControllerContext.js", () => ({ useAppController: () => chat }));
 beforeEach(() => {
   vi.clearAllMocks();
-  chat.inboxEnabled = false;
   Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
   chat.app = { ...initialAppState, activeSessionId: "one", tabsKnown: true, connection: "open",
     tabs: [{ sessionId: "one", title: "One", projectPath: "/repo", projectName: "repo", status: "idle" }],
+    catalogue: { projects: [{ path: "/repo", displayPath: "~/repo", name: "repo", exists: true, modified: 0, sessionCount: 1, sessions: [{ path: "/sessions/one", id: "one", title: "One", nameSource: "manual", modified: 0, created: 0, messageCount: 1 }] }] },
     appFeatures: [{ id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } }],
   };
   chat.state = { ...initialChatState, status: "idle", projectPath: "/repo", sessionPath: "/sessions/one" };
   chat.inbox.later = [];
-  chat.archiveSession.mockResolvedValue(undefined);
 });
 afterEach(cleanup);
 function Contents() {
@@ -61,16 +60,15 @@ for (const menu of ["composer", "palette"] as const) {
     mount();
     await select(menu, name);
     if (name === "New session") expect(chat.newSession).toHaveBeenCalledExactlyOnceWith("/repo");
-    if (name === "Close Session") expect(chat.closeTab).toHaveBeenCalledExactlyOnceWith("one");
-    if (name === "Archive Session") await waitFor(() => expect(chat.archiveSession).toHaveBeenCalledExactlyOnceWith("/sessions/one", true));
+    if (name === "Close Session") expect(chat.closeView).toHaveBeenCalledOnce();
+    if (name === "Archive Session") await waitFor(() => expect(chat.inbox.archive).toHaveBeenCalledExactlyOnceWith("/sessions/one"));
     if (name === "Open folder…") expect(await screen.findByRole("dialog", { name: "Open server folder" })).toBeTruthy();
     if (name === "Settings") expect(screen.getByRole("status").textContent).toContain('"settings":true');
     if (menu === "composer") expect((screen.getByRole("textbox", { name: "Message Pi" }) as HTMLTextAreaElement).value).toBe("");
     else expect(screen.getByRole("status").textContent).toContain('"quickOpen":false');
     expect(chat.prompt).not.toHaveBeenCalled();
   });
-  it(`${menu}: uses the header close behavior in Inbox mode`, async () => {
-    chat.inboxEnabled = true;
+  it(`${menu}: uses the header close-view behavior`, async () => {
     mount();
     await select(menu, "Close Session");
     expect(chat.closeView).toHaveBeenCalledOnce();
@@ -87,31 +85,7 @@ for (const menu of ["composer", "palette"] as const) {
     expect(screen.queryByRole("option", { name: /Restart server/ })).toBeNull();
     expect(chat.restartServer).not.toHaveBeenCalled();
   });
-  it(`${menu}: archive failures use the composer error display and dismissal`, async () => {
-    chat.archiveSession.mockRejectedValue(new Error("Archive failed"));
-    mount(); await select(menu, "Archive Session");
-    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Archive failed");
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss error" }));
-    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-  });
 }
-it("keeps palette archive errors session-scoped across catalogue/state refreshes", async () => {
-  chat.archiveSession.mockRejectedValue(new Error("Archive failed"));
-  const view = mount();
-  await select("palette", "Archive Session");
-  await screen.findByRole("alert");
-  const refresh = () => view.rerender(<MantineProvider><ConfirmDialogProvider><RegisteredPlugins><OverlayController><Contents /></OverlayController></RegisteredPlugins></ConfirmDialogProvider></MantineProvider>);
-  chat.app = { ...chat.app, catalogue: { projects: [] } };
-  refresh();
-  expect(screen.getByRole("alert").textContent).toBe("Archive failed");
-  chat.app = { ...chat.app, activeSessionId: "two" };
-  chat.state = { ...chat.state, sessionPath: "/sessions/two" };
-  refresh();
-  expect(screen.queryByRole("alert")).toBeNull();
-  chat.app = { ...chat.app, activeSessionId: "one" };
-  refresh();
-  expect(screen.getByRole("alert").textContent).toBe("Archive failed");
-});
 
 it("keeps Archive Session listed but disabled when the active session starts running", async () => {
   const view = mount();
@@ -126,9 +100,7 @@ it("keeps Archive Session listed but disabled when the active session starts run
   expect(screen.getByRole("option", { name: /Action: Close Session/ })).toBeTruthy();
 });
 
-it("lists Later in Inbox mode and runs it through inbox.park", async () => {
-  chat.inboxEnabled = true;
-  chat.app = { ...chat.app, catalogue: { projects: [{ path: "/repo", displayPath: "~/repo", name: "repo", exists: true, modified: 0, sessionCount: 1, sessions: [{ path: "/sessions/one", id: "one", title: "One", nameSource: "manual", modified: 0, created: 0, messageCount: 1 }] }] } }; 
+it("runs Later through inbox.park", async () => {
   mount();
   await select("palette", "Later");
   expect(chat.inbox.park).toHaveBeenCalledExactlyOnceWith("one");

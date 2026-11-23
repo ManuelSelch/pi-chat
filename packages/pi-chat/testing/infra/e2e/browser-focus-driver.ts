@@ -41,15 +41,16 @@ export class BrowserFocusDriver {
     await expect(this.composer).not.toBeFocused();
   }
 
-  async openSettingsFromHeader(): Promise<void> {
+  async openSettings(): Promise<void> {
+    if (!await this.page.getByRole("button", { name: "Settings", exact: true }).isVisible()) await this.page.getByRole("button", { name: "Sessions", exact: true }).click();
     await this.page.getByRole("button", { name: "Settings", exact: true }).click();
     await this.shouldBeInsideDialog("Settings");
   }
 
-  async openFolderFromProjects(): Promise<void> {
-    const panel = this.page.getByRole("dialog", { name: "Projects", exact: true }).or(this.page.getByRole("navigation", { name: "Projects", exact: true }));
-    await panel.getByRole("button", { name: "Open folder", exact: true }).click();
-    await expect(panel).toHaveCount(0);
+  async openFolderFromMenu(): Promise<void> {
+    await this.page.keyboard.press("ControlOrMeta+o");
+    await this.page.getByRole("button", { name: "/ Actions", exact: true }).click();
+    await this.page.getByRole("option", { name: /Action: Open folder/ }).click();
     await this.shouldBeInsideDialog("Open server folder");
   }
 
@@ -79,12 +80,6 @@ export class BrowserFocusDriver {
 
   async waitForPromptToClose(title: string): Promise<void> {
     await expect(this.page.getByRole("dialog", { name: title, exact: true })).toHaveCount(0);
-  }
-
-  async acceptCloseRunningSession(): Promise<void> {
-    const dialog = this.page.getByRole("dialog", { name: "Close running session?", exact: true });
-    await dialog.getByRole("button", { name: "Stop and close", exact: true }).click();
-    await expect(dialog).toHaveCount(0);
   }
 
   async openFolderAsSession(): Promise<void> {

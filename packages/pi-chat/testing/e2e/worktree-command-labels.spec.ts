@@ -6,7 +6,7 @@ let app: PiChatBrowserDriver;
 
 test.beforeEach(async ({ page }) => {
   app = await PiChatBrowserDriver.start(page, {
-    inboxEnabled: false, projectName: "command-repository", projectBranch: "main",
+    projectName: "command-repository", projectBranch: "main",
     extensions: [worktreeCommandFixture],
   });
   await app.browser.setViewport(1024);
@@ -14,8 +14,7 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async () => { await app.dispose(); });
 
 test("creating a worktree via a slash command updates labels before the first message", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.inbox.setEnabled(true);
+  await app.sessions.create({ responses: [] });
 
   await app.chat.sendPrompt("/worktree create feature/new-checkout");
 

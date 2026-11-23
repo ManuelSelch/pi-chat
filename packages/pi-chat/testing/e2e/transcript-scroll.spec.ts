@@ -6,7 +6,7 @@ const latestReply = "Latest message at the end of the conversation.";
 const longReply = [...Array.from({ length: 60 }, (_, index) => `Transcript paragraph ${index + 1}.`), latestReply].join("\n\n");
 
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: true });
+  app = await PiChatBrowserDriver.start(page, {});
   await app.inbox.create({ responses: [
     { prompt: "Long conversation", reply: longReply },
     { prompt: "Continue working", reply: "Background completion while reading history.", hold: true },

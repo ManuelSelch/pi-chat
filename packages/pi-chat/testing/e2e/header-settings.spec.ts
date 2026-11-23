@@ -3,13 +3,13 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 let app: PiChatBrowserDriver;
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page);
+  app = await PiChatBrowserDriver.start(page, { storedPreferences: { "pi-chat:session-inbox": false, "pi-chat:displayPath": true, "pi-chat:hideArchivedSessions": false } });
   await app.browser.setViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });
 
 test("fresh browsers default to sidebar sessions without header branding", async () => {
-  await app.inbox.shouldUseMode(true);
+  await app.inbox.shouldUseSidebar();
   await app.inbox.shouldHaveUnbrandedHeader();
   await app.inbox.shouldShowHome();
 
@@ -19,14 +19,12 @@ test("fresh browsers default to sidebar sessions without header branding", async
 });
 
 test("running sessions hide header pause and archive actions until completion", async () => {
-  await app.inbox.setEnabled(true);
   await app.inbox.create({ responses: [
     { prompt: "Header actions", reply: "Saved response" },
     { prompt: "Keep working", reply: "Finished", hold: true },
   ] });
   await app.chat.sendPrompt("Header actions");
   await app.chat.shouldShowAssistantReply("Saved response");
-  await app.inbox.setEnabled(true);
   await app.inbox.shouldHaveHeaderSessionActions(true);
 
   await app.chat.sendPrompt("Keep working");
@@ -42,18 +40,11 @@ test("running sessions hide header pause and archive actions until completion", 
   await app.inbox.shouldHaveHeaderSessionActions(true);
 });
 
-test("explicit sidebar preferences survive reload in either direction", async () => {
-  await app.inbox.setEnabled(false);
-
-  await app.inbox.reload(false);
-
-  await app.inbox.shouldUseMode(false);
-  await app.inbox.shouldShowHome();
-
-  await app.inbox.setEnabled(true);
-
+test("retired sidebar preferences cannot restore tabs after reload", async () => {
   await app.inbox.reload();
 
-  await app.inbox.shouldUseMode(true);
+  await app.inbox.shouldUseSidebar();
   await app.inbox.shouldShowHome();
+  await app.settings.open();
+  await app.settings.shouldOmitRetiredPreferences();
 });

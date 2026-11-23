@@ -49,7 +49,7 @@ function AppContent() {
   const overlays = useOverlays();
   const [footerHeight, setFooterHeight] = useState(170);
   const home = atHome(app);
-  const headerHeight = chat.inboxEnabled ? 58 : 96;
+  const headerHeight = 58;
   const { width } = useViewportSize();
   const panel = useSidePanel();
   const layout = workspaceLayout(width, overlays.state.projects, panel.opened);
@@ -77,7 +77,7 @@ function AppContent() {
         <InboxNoticeContainer />
         {home ? (
           <Home search={<QuickOpenContainer inline />}>
-            {chat.inboxEnabled && <InboxPageContainer />}
+            <InboxPageContainer />
           </Home>
         ) : (
           <MessageListContainer footerHeight={footerHeight + FOOTER_GAP} />

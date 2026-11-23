@@ -1,21 +1,18 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import { usePluginOverlayOpen } from "../plugins/PluginProvider.js";
-import type { Tab } from "../../types/view-types.js";
 
-export type OverlayName = "projects" | "settings" | "quickOpen" | "closingTab";
+export type OverlayName = "projects" | "settings" | "quickOpen";
 
 export interface OverlayState {
   projects: boolean;
   settings: boolean;
   quickOpen: boolean;
-  closingTab?: Tab;
 }
 
 interface OverlayAction {
-  type: "open" | "close" | "toggle" | "closeAll" | "requestCloseTab";
+  type: "open" | "close" | "toggle" | "closeAll";
   name?: OverlayName;
-  tab?: Tab;
 }
 
 const initialState: OverlayState = {
@@ -26,13 +23,9 @@ const initialState: OverlayState = {
 
 function reduce(state: OverlayState, action: OverlayAction): OverlayState {
   if (action.type === "closeAll") return initialState;
-  if (action.type === "requestCloseTab") return { ...state, closingTab: action.tab };
   if (!action.name) return state;
-  if (action.type === "open") {
-    if (action.name === "closingTab") return state;
-    return { ...state, [action.name]: true } as OverlayState;
-  }
-  if (action.type === "close") return { ...state, [action.name]: action.name === "closingTab" ? undefined : false };
+  if (action.type === "open") return { ...state, [action.name]: true };
+  if (action.type === "close") return { ...state, [action.name]: false };
   return { ...state, [action.name]: !state[action.name] } as OverlayState;
 }
 
@@ -44,7 +37,6 @@ interface OverlayControllerValue {
   open(name: OverlayName): void;
   close(name: OverlayName): void;
   toggle(name: OverlayName): void;
-  requestCloseTab(tab: Tab): void;
   closeAll(): void;
 }
 
@@ -57,11 +49,10 @@ export function OverlayController({ children }: { children: ReactNode }) {
   const value = useMemo<OverlayControllerValue>(() => ({
     state,
     projectsPresentation: desktop ? "sidebar" : "drawer",
-    anyOpen: (!desktop && state.projects) || blocking || state.settings || state.quickOpen || state.closingTab !== undefined,
+    anyOpen: (!desktop && state.projects) || blocking || state.settings || state.quickOpen,
     open: (name) => dispatch({ type: "open", name }),
     close: (name) => dispatch({ type: "close", name }),
     toggle: (name) => dispatch({ type: "toggle", name }),
-    requestCloseTab: (tab) => dispatch({ type: "requestCloseTab", tab }),
     closeAll: () => dispatch({ type: "closeAll" }),
   }), [state, desktop, blocking]);
 

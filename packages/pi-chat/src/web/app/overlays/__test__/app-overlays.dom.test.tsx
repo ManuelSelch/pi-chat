@@ -6,8 +6,6 @@ import { AppOverlays } from "../AppOverlays.js";
 
 const mocks = vi.hoisted(() => ({
   respondToPrompt: vi.fn(),
-  closeTab: vi.fn(),
-  closeOverlay: vi.fn(),
   settingsMounted: vi.fn(),
   settingsUnmounted: vi.fn(),
 }));
@@ -18,13 +16,6 @@ vi.mock("../../AppControllerContext.js", () => ({
     state: { prompts: [{ id: "older" }, { id: "latest" }] },
     promptPresentation: { prompt: { id: "latest" }, respond: mocks.respondToPrompt },
     respondToPrompt: mocks.respondToPrompt,
-    closeTab: mocks.closeTab,
-  }),
-}));
-vi.mock("../OverlayController.js", () => ({
-  useOverlays: () => ({
-    state: { closingTab: { sessionId: "session-1" } },
-    close: mocks.closeOverlay,
   }),
 }));
 vi.mock("../../../features/extensions/prompts/components/PromptModal.js", () => ({
@@ -32,13 +23,8 @@ vi.mock("../../../features/extensions/prompts/components/PromptModal.js", () => 
     <button data-overlay="prompt" onClick={() => onRespond(prompt.id, { cancelled: true })}>Answer prompt</button>
   ),
 }));
-vi.mock("../../../features/sessions/dialogs/components/CloseSessionDialog.js", () => ({
-  CloseSessionDialog: ({ tab, onConfirm, onClose }: { tab: { sessionId: string }; onConfirm: (id: string) => void; onClose: () => void }) => (
-    <div data-overlay="close"><button onClick={() => onConfirm(tab.sessionId)}>Confirm close</button><button onClick={onClose}>Cancel close</button></div>
-  ),
-}));
 vi.mock("../../../features/sessions/quick-open/components/QuickOpenContainer.js", () => ({ QuickOpenContainer: () => <div data-overlay="quick-open" /> }));
-vi.mock("../../../features/sessions/projects/components/ProjectSessionContainer.js", () => ({ ProjectSessionContainer: () => <div data-overlay="projects" /> }));
+vi.mock("../../../features/sessions/inbox/components/InboxContainer.js", () => ({ InboxContainer: () => <div data-overlay="sessions" /> }));
 vi.mock("../../plugins/PluginProvider.js", () => ({ PluginOverlayOutlet: () => <div data-overlay="plugin" /> }));
 vi.mock("../../../features/settings/components/SettingsContainer.js", () => ({
   SettingsContainer: () => {
@@ -57,23 +43,19 @@ describe("AppOverlays composition", () => {
   it("assembles every overlay in the existing relative order", () => {
     const { container } = render(<AppOverlays />);
     expect([...container.querySelectorAll("[data-overlay]")].map((node) => node.getAttribute("data-overlay")))
-      .toEqual(["prompt", "close", "quick-open", "projects", "plugin", "settings"]);
+      .toEqual(["prompt", "quick-open", "sessions", "plugin", "settings"]);
   });
 
-  it("keeps Settings mounted across rerenders so its chime hook remains active", () => {
+  it("keeps Settings mounted across rerenders", () => {
     const { rerender } = render(<AppOverlays />);
     rerender(<AppOverlays />);
     expect(mocks.settingsMounted).toHaveBeenCalledTimes(1);
     expect(mocks.settingsUnmounted).not.toHaveBeenCalled();
   });
 
-  it("routes the latest runtime prompt and session dialog actions to their owners", () => {
+  it("routes the latest runtime prompt to its owner", () => {
     render(<AppOverlays />);
     fireEvent.click(screen.getByText("Answer prompt"));
     expect(mocks.respondToPrompt).toHaveBeenCalledWith("latest", { cancelled: true });
-    fireEvent.click(screen.getByText("Confirm close"));
-    expect(mocks.closeTab).toHaveBeenCalledWith("session-1");
-    fireEvent.click(screen.getByText("Cancel close"));
-    expect(mocks.closeOverlay).toHaveBeenCalledWith("closingTab");
   });
 });

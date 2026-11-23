@@ -11,6 +11,7 @@
 
 - Follows [Bulletproof React’s folder conventions](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md), without changing runtime behavior or existing dependency boundaries.
 - `src/web/app/` owns startup, composition, transport binding (`lib/`), application state (`stores/`), hooks, shell and overlays.
+- Session navigation has one path: `sessions/inbox/`. The retired tabs/Projects UI and its preference hooks are removed; SDK-backed runtime inventory still uses existing internal `tabs` names.
 - `src/web/features/` contains `chat/`, `sessions/`, `settings/` and `extensions/`. Each retains its capability modules, such as `sessions/inbox/` and `chat/composer/`.
 - Within a capability, `components/` owns views and containers, `hooks/` owns React coordination, `stores/` owns stateful providers, `lib/` owns storage/I/O adapters and `utils/` owns pure rules. Only needed folders exist; there are no `domain/`, `infra/` or nested feature `app/` layers.
 - Shared `components/`, `hooks/`, `config/`, `lib/`, `types/` and `utils/` sit directly under `src/web/`. Shared primitives and theme modules do not import app or feature presentation.
@@ -18,7 +19,7 @@
 - Module tests and local fixtures live in `__test__/` inside their module, for example `features/chat/composer/__test__/`. Cross-feature scenarios, reusable drivers and runner setup live in this package's `testing/`.
 - Prefer direct file imports. Server settings retains its existing entry at `features/settings/server/index.ts`; no new barrel files or cross-feature import restrictions are introduced.
 - Existing composition remains explicit: `usePiChat` coordinates Inbox lifecycle and endpoint loading; `AppControllerProvider` composes prompt presentation, theme, drafts and file actions. Feature containers still consume app context, and rich prompts still reuse chat’s lazy Markdown renderer.
-- `AppOverlays` assembles prompts, session dialogs, navigation, folders and Settings. Settings stays mounted while closed; chime playback now belongs to the independent [chimes plugin provider](../../../plugins/chimes/README.md), not the drawer lifetime. App owns Home/transcript selection, responsive workspace geometry and composer height.
+- `AppOverlays` assembles prompts, session navigation, plugin overlays and Settings. Settings stays mounted while closed; chime playback now belongs to the independent [chimes plugin provider](../../../plugins/chimes/README.md), not the drawer lifetime. App owns Home/transcript selection, responsive workspace geometry and composer height.
 - Global layer order, Markdown styles, widget container queries and shared animations remain in `app/styles.css`; widget rendering, geometry and placement remain separate modules under `features/extensions/widgets/`.
 
 See the [architecture overview](../../../docs/architecture.md) for state ownership and runtime flow, and the [testing guide](../testing/README.md) for placement and workflow coverage.

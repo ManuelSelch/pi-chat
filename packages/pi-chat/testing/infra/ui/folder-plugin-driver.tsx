@@ -10,7 +10,7 @@ export class FolderPluginDriver {
   constructor() {
     vi.useFakeTimers();
     localStorage.clear();
-    localStorage.setItem("pi-chat:session-inbox", "false");
+
     Socket.instances = [];
     vi.stubGlobal("WebSocket", Socket);
     Object.defineProperty(document, "fonts", { configurable: true, value: { addEventListener: vi.fn(), removeEventListener: vi.fn() } });
@@ -22,16 +22,11 @@ export class FolderPluginDriver {
     act(() => { Socket.current.acceptConnection(); Socket.current.initialize([]); });
   }
 
-  async openPicker(entry: "menus" | "projects" = "menus") {
-    if (entry === "menus") {
+  async openPicker() {
       fireEvent.click(screen.getByRole("textbox", { name: "Search sessions and projects" }));
       fireEvent.click(screen.getByRole("button", { name: "/ Actions" }));
       fireEvent.click(screen.getByRole("option", { name: /Action: Open folder/ }));
-    } else {
-      fireEvent.click(screen.getByRole("button", { name: "Projects and sessions" }));
-      await this.settleTransitions();
-      fireEvent.click(screen.getByRole("button", { name: "Open folder" }));
-    }
+
     await this.settleTransitions();
   }
 

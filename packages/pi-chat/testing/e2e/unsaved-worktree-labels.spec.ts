@@ -7,15 +7,14 @@ const branch = "feature/fresh-checkout";
 
 test.beforeEach(async ({ page }) => {
   app = await PiChatBrowserDriver.start(page, {
-    inboxEnabled: false, repositoryName, projectName: "fresh-checkout", projectBranch: branch, linkedWorktree: true,
+    repositoryName, projectName: "fresh-checkout", projectBranch: branch, linkedWorktree: true,
   });
   await app.browser.setViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });
 
 test("an unsaved worktree session shows repository and branch labels before any message", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.inbox.setEnabled(true);
+  await app.sessions.create({ responses: [] });
 
   await app.inbox.shouldShowWorktreeSession(repositoryName, branch);
 
@@ -26,8 +25,7 @@ test("an unsaved worktree session shows repository and branch labels before any 
 
 test("persisting the first conversation preserves worktree labels and title-based discovery", async () => {
   const title = "Implement checkout setup";
-  await app.tabs.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
-  await app.inbox.setEnabled(true);
+  await app.sessions.create({ responses: [{ prompt: title, reply: "Setup complete" }] });
 
   await app.inbox.shouldShowWorktreeSession(repositoryName, branch);
 

@@ -9,8 +9,8 @@ beforeEach(async () => {
 });
 afterEach(() => app.dispose());
 
-it.each(["menus", "projects"] as const)("opens the contributed picker from %s and navigates only after successful creation", async entry => {
-  await app.openPicker(entry);
+it("opens the contributed picker from menus and navigates only after successful creation", async () => {
+  await app.openPicker();
   app.shouldBrowseThroughPlugin();
   await app.showFolder();
 

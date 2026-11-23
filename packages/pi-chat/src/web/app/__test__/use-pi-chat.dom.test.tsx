@@ -29,7 +29,6 @@ it("routes typed controls and rejects creation without leaking a navigation plac
   const { result } = renderHook(() => usePiChat()); const socket = connect(); act(() => { result.current.prompt("hello", "background"); result.current.setModel("provider/model"); result.current.newSession("/new"); });
   expect(socket.requests.slice(1)).toMatchObject([{ method: "message.send", sessionId: "background", params: { message: "hello" } }, { method: "model.select", sessionId: "s", params: { model: "provider/model" } }, { method: "session.create", params: { projectPath: "/new" } }]);
   expect(result.current.app.openingTabs).toBe(1); await act(async () => socket.reject("permissionDenied", "Permission denied")); expect(result.current.app.openingTabs).toBe(0); expect(result.current.app.error).toBe("Permission denied");
-  const pinned = result.current.pinProject("/p", true); expect(socket.requests.at(-1)).toMatchObject({ method: "project.pin", params: { path: "/p", pinned: true } }); await act(async () => socket.reply({ state: "completed" })); await pinned; expect(result.current.app.error).toBe("Permission denied");
 });
 it("rolls back optimistic open/close failures while offline", async () => {
   const { result } = renderHook(() => usePiChat()); await act(async () => result.current.openProject("/p")); expect(result.current.app.openingTabs).toBe(0); expect(result.current.app.error).toContain("Not connected");

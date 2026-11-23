@@ -31,5 +31,5 @@ it("keeps the Chat host separate and consumes Server/SDK only through public pac
       }
     }
   }
-  for (const path of ["src", "testing", "scripts", "extension", "examples"]) scan(path);
+  for (const path of ["src", "testing", "scripts", "extension"]) scan(path);
 });

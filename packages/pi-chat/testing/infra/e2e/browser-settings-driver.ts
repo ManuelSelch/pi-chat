@@ -11,22 +11,15 @@ export class BrowserSettingsDriver {
   }
 
   async open(): Promise<void> {
+    if (!await this.page.getByRole("button", { name: "Settings", exact: true }).isVisible()) await this.page.getByRole("button", { name: "Sessions", exact: true }).click();
     await this.page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(this.panel).toBeVisible();
   }
 
-  async setFolderPathsVisible(visible: boolean): Promise<void> {
-    await this.panel.getByRole("switch", { name: "Show folder path in projects panel", exact: true }).setChecked(visible);
+  async shouldOmitRetiredPreferences(): Promise<void> {
+    for (const name of ["Show open sessions in sidebar", "Show folder path in projects panel", "Hide archived sessions"])
+      await expect(this.panel.getByRole("switch", { name, exact: true })).toHaveCount(0);
   }
-
-  async setHideArchivedSessions(hide: boolean): Promise<void> {
-    await this.panel.getByRole("switch", { name: "Hide archived sessions", exact: true }).setChecked(hide);
-  }
-
-  async shouldHideArchivedSessions(hide: boolean): Promise<void> {
-    await expect(this.panel.getByRole("switch", { name: "Hide archived sessions", exact: true })).toBeChecked({ checked: hide });
-  }
-
   private endpoint(mode: "page" | "unreachable" | "other-host"): string {
     const url = new URL(this.page.url());
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -65,7 +58,7 @@ export class BrowserSettingsDriver {
       this.page.waitForEvent("load"),
       dialog.getByRole("button", { name: /^(Save|Reset) and reload$/ }).click(),
     ]);
-    await expect(this.page.getByRole("button", { name: "Settings", exact: true })).toBeVisible();
+    await expect(this.page.getByRole("banner")).toBeVisible();
   }
 
   async resetEndpoint(): Promise<void> {

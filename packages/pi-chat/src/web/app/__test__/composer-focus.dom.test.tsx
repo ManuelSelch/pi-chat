@@ -28,7 +28,13 @@ function update(state: Partial<ChatState>) {
 function click(element: HTMLElement) { element.focus(); fireEvent.click(element); }
 function escape() { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape", code: "Escape", bubbles: true }); }
 function expectDialogFocus(name: string) { expect(dialog(name).contains(document.activeElement)).toBe(true); }
-function mount() { view = render(<MantineProvider><App /></MantineProvider>); }
+function mount() {
+  if (!vi.isMockFunction(window.matchMedia)) {
+    const matchMedia = window.matchMedia;
+    vi.spyOn(window, "matchMedia").mockImplementation(query => ({ ...matchMedia(query), matches: query === "(min-width: 640px)" }));
+  }
+  view = render(<MantineProvider><App /></MantineProvider>);
+}
 async function finishBatchedExit(beforeCommit?: () => void) {
   // Deliberately batch the exit and any post-exit frame before React commits.
   await act(async () => {
@@ -46,13 +52,12 @@ beforeEach(() => {
       appFeatures: [{ id: "app.restart", group: "app", kind: "action", title: "Restart server", state: { label: "Restart" } }] },
     state: session(),
     serverEndpoint: { endpoint: "ws://localhost:3000/ws", override: "", hasStoredOverride: false },
-    inboxEnabled: false, setInboxEnabled: vi.fn(), closeView: vi.fn(), showHome: vi.fn(),
+    closeView: vi.fn(), showHome: vi.fn(),
     inbox: { later: [], archivingPaths: [], pending: false, error: undefined, select: vi.fn(async () => {}), park: vi.fn(async () => {}), resume: vi.fn(async () => {}), archive: vi.fn(async () => {}), dismissError: vi.fn() },
     browseDirectories: vi.fn(async () => ({ path: "/project", parentPath: "/", breadcrumbs: [{ name: "project", path: "/project" }], entries: [] })),
     createAndFocusSession: vi.fn(async () => "s2"), completeCommandArguments: vi.fn(async () => []),
     request: async invoke => invoke({ plugin: () => ({ browse: async () => ({ ok: true, listing: await controller.browseDirectories() }) }) } as unknown as import("@manuelselch/pi-sdk").PiClient), prompt: vi.fn(), abort: vi.fn(), respondToPrompt: vi.fn(),
     openProject: vi.fn(), openSession: vi.fn(), newSession: vi.fn(), focusTab: vi.fn(), closeTab: vi.fn(),
-    archiveSession: vi.fn(async () => {}), pinProject: vi.fn(async () => {}), removeProject: vi.fn(async () => {}),
     setModel: vi.fn(), compactSession: vi.fn(), setThinkingLevel: vi.fn(),
     dismissError: vi.fn(), takeControl: vi.fn(),
   };
@@ -65,9 +70,10 @@ function mountDesktop() {
     ...matchMedia(query), matches: query === "(min-width: 640px)",
   }));
   mount();
+  click(screen.getByRole("button", { name: "Sessions" }));
 }
-function openProjects() { click(screen.getByRole("button", { name: "Projects and sessions" })); }
-function projects() { return screen.getByRole("navigation", { name: "Projects" }); }
+function openProjects() { click(screen.getByRole("button", { name: "Sessions" })); }
+function projects() { return screen.getByRole("navigation", { name: "Sessions" }); }
 
 describe("desktop projects sidebar focus", () => {
   it("keeps typing usable with projects open and preserves the draft", () => {
@@ -89,10 +95,10 @@ describe("desktop projects sidebar focus", () => {
     mountDesktop();
     openProjects();
     openProjects();
-    expect(screen.queryByRole("navigation", { name: "Projects" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Sessions" })).toBeNull();
 
     openProjects();
-    click(within(projects()).getByRole("button", { name: "Close projects" }));
+    click(within(projects()).getByRole("button", { name: "Close sessions" }));
     expect(document.activeElement).toBe(composer());
   });
 
@@ -100,12 +106,12 @@ describe("desktop projects sidebar focus", () => {
     mountDesktop();
     update({ status: "running" });
     openProjects();
-    within(projects()).getByRole("button", { name: "Open folder" }).focus();
+    within(projects()).getByRole("button", { name: "Close sessions" }).focus();
 
     escape();
 
     expect(controller.abort).not.toHaveBeenCalled();
-    expect(screen.queryByRole("navigation", { name: "Projects" })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: "Sessions" })).toBeNull();
     expect(document.activeElement).toBe(composer());
     escape();
     expect(controller.abort).toHaveBeenCalledOnce();
@@ -114,7 +120,7 @@ describe("desktop projects sidebar focus", () => {
   it("keeps navigation focus across background updates and gives a real modal ownership", async () => {
     mountDesktop();
     openProjects();
-    const folder = within(projects()).getByRole("button", { name: "Open folder" });
+    const folder = within(projects()).getByRole("button", { name: "Close sessions" });
     folder.focus();
 
     update({ status: "running", steeringMessages: ["Keep working"] });
@@ -155,17 +161,16 @@ describe("desktop projects sidebar focus", () => {
       removeEventListener: vi.fn(),
     } as MediaQueryList : matchMedia(query));
     mount();
-    openProjects();
     await finishTransitions();
-    expectDialogFocus("Projects");
+    expectDialogFocus("Sessions");
 
     act(() => { desktop = true; change?.({ matches: true } as MediaQueryListEvent); });
     await finishTransitions();
 
     expect(projects().contains(document.activeElement)).toBe(true);
-    expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Sessions" })).toBeNull();
     expect(document.body.hasAttribute("data-scroll-locked")).toBe(false);
-    click(within(projects()).getByRole("button", { name: "Close projects" }));
+    click(within(projects()).getByRole("button", { name: "Close sessions" }));
     expect(document.activeElement).toBe(composer());
   });
 
@@ -176,14 +181,14 @@ describe("desktop projects sidebar focus", () => {
     mountDesktop();
     openProjects();
 
-    click(within(projects()).getByRole("button", { name: "Close projects" }));
+    click(within(projects()).getByRole("button", { name: "Close sessions" }));
 
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Projects and sessions" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Sessions" }));
   });
 });
 
 describe("composer focus across real app overlays", () => {
-  it.each([["Settings", "Settings"], ["Projects and sessions", "Projects"]])("restores composer focus after closing %s from its header button", async (button, name) => {
+  it.each([["Settings", "Settings"]])("restores composer focus after closing %s from its header button", async (button, name) => {
     mount();
     click(screen.getByRole("button", { name: button }));
     await finishTransitions();
@@ -196,7 +201,7 @@ describe("composer focus across real app overlays", () => {
     expect(document.activeElement).toBe(composer());
   });
 
-  it.each([["Settings", "Settings"], ["Projects and sessions", "Projects"]])("restores focus after %s exits even when React commits after the animation-frame window", async (button, name) => {
+  it.each([["Settings", "Settings"]])("restores focus after %s exits even when React commits after the animation-frame window", async (button, name) => {
     mount();
     click(screen.getByRole("button", { name: button }));
     await finishTransitions();
@@ -277,18 +282,6 @@ describe("composer focus across real app overlays", () => {
     expect(document.activeElement).toBe(composer());
   });
 
-  it("keeps focus in the folder picker after the older projects drawer exits", async () => {
-    mount();
-    click(screen.getByRole("button", { name: "Projects and sessions" }));
-    await finishTransitions();
-    click(within(dialog("Projects")).getByRole("button", { name: "Open folder" }));
-    await finishTransitions();
-    expect(screen.queryByRole("dialog", { name: "Projects" })).toBeNull();
-    expectDialogFocus("Open server folder");
-    click(within(dialog("Open server folder")).getByRole("button", { name: "Cancel" }));
-    await finishTransitions();
-    expect(document.activeElement).toBe(composer());
-  });
 
   it("restores the composer after cancelling quick open launched from a toolbar control", async () => {
     mount();
@@ -396,28 +389,15 @@ describe("composer focus across real app overlays", () => {
     expect([composer().selectionStart, composer().selectionEnd]).toEqual([5, 9]);
   });
 
-  it("closes a running session immediately from its tab button", async () => {
+  it("closes only the view of a running session", () => {
     controller.app.tabs = [tab("s1", "running")];
     controller.state = { ...controller.state, status: "running" };
     mount();
-    click(screen.getByRole("button", { name: "Close s1" }));
-    expect(controller.closeTab).toHaveBeenCalledWith("s1");
-    expect(screen.queryByRole("dialog", { name: "Close running session?" })).toBeNull();
-  });
 
-  it("restores the remaining session after closing a running session", async () => {
-    controller.app.tabs = [tab("s2"), tab("s1", "running")];
-    controller.state = { ...controller.state, status: "running" };
-    mount();
-    click(screen.getByRole("button", { name: "Close s1" }));
-    await finishTransitions();
-    expect(controller.closeTab).toHaveBeenCalledWith("s1");
-    // The authoritative tab reply arrives while the dialog is exiting.
-    controller.app.activeSessionId = "s2";
-    controller.app.tabs = [tab("s2")];
-    update({ sessionId: "s2", status: "idle" });
-    await finishTransitions();
-    expect(document.activeElement).toBe(composer());
+    click(screen.getByRole("button", { name: "Close current session view" }));
+
+    expect(controller.closeView).toHaveBeenCalledOnce();
+    expect(controller.closeTab).not.toHaveBeenCalled();
   });
 
   it("returns Home without attempting to refocus an unmounted composer", async () => {

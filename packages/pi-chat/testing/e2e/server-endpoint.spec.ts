@@ -2,7 +2,7 @@ import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 let app: PiChatBrowserDriver;
-test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page, { inboxEnabled: false }); });
+test.beforeEach(async ({ page }) => { app = await PiChatBrowserDriver.start(page, {}); });
 test.afterEach(async () => { await app?.dispose(); });
 
 test("saves the explicit endpoint, restores after reload, and resets to the page server", async () => {
@@ -30,7 +30,7 @@ test("storage failure leaves the current connection and preference unchanged", a
 });
 
 test("a failed endpoint clears stale UI but leaves server runtimes alive and reset accessible", async () => {
-  await app.tabs.create({ responses: [] });
+  await app.sessions.create({ responses: [] });
   await app.chat.editDraft("Unsent text must not be replayed");
   await app.settings.open();
   await app.settings.editEndpoint("unreachable");
@@ -38,9 +38,9 @@ test("a failed endpoint clears stale UI but leaves server runtimes alive and res
   await app.settings.confirmEndpointChange();
   await app.settings.open();
   await app.settings.shouldShowEndpointFailure();
-  await app.tabs.shouldHaveCount(0);
+  await app.sessions.shouldHaveCount(0);
   await app.settings.resetEndpoint();
-  await app.tabs.shouldHaveCount(1);
+  await app.sessions.shouldHaveCount(1);
   await app.chat.shouldHaveDraft("");
   await app.chat.shouldNotShowMessage("Unsent text must not be replayed");
   await app.settings.open();

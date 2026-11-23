@@ -12,102 +12,19 @@
 
 ## Sessions
 
-Use Projects to browse projects and persistent sessions, or open a server folder
-to start a session without previous Pi history. Tabs keep conversations separate.
-
-Session actions are available from the ⌘K menu, the Quick Switcher `/` scope, and
-typed exactly as `/close`, `/later`, or `/archive`:
-
-- **Close Session** uses the same behavior as the close button: in Inbox mode it
-  returns Home, closing only sessions without conversation messages, prompts or
-  drafts; in tab mode it closes the runtime immediately.
-- **Later** parks a saved, idle conversation into Later (Inbox mode only).
-- **Archive Session** archives the current idle session without deleting its
-  transcript. Archived sessions remain available under **Archived** in Projects,
-  where they can be restored.
-
-Later and Archive Session stay listed while a session is running, blocked or
-unsaved but are disabled until it becomes an idle saved conversation. There is no
-delete-session command or custom rename action; titles come from Pi.
-
-In Inbox mode, the header close button returns to Home and automatically closes
-a session runtime with no conversation messages, including one containing only
-bash commands; non-empty sessions remain available in the session panel.
-
-Projects keeps Quick Chats separate from repository groups. Pinned projects
-come before recent projects, whose order uses latest unarchived conversation
-activity across their checkouts. Archived activity does not promote a project.
-Other projects contains visible projects without unarchived conversations;
-removing project-history membership there does not delete files.
-
-Related Git checkouts share a repository group while retaining checkout-specific
-sessions/actions. Registered worktrees can appear before they have conversations.
-Unavailable Git/path metadata degrades to the available project information;
-opening a group alone does not start a session. Folder-path visibility is a
-browser preference, not a change to checkout identity.
-
-Desktop navigation stays open alongside the conversation; compact desktop
-layouts reserve sidebar space, while phones use a modal drawer. Selecting or
-creating a session keeps navigation open. Real dialogs still take focus.
-
-### Session inbox
-
-**Settings → Feature Toggles → Show open sessions in sidebar** replaces horizontal
-tabs with project-grouped sidebar sessions and is on by default. Explicit browser preferences are preserved.
-Home combines search and new-session access with compact **Blocked**, **Ready**,
-collapsed **Working** and collapsed **Later** lists. Typing replaces activity with matching sessions/projects;
-clearing search restores it. Press Enter on an empty search to start a session.
-The sidebar contains project sessions and Settings, without Home/Inbox buttons.
-Use the header close button to return Home; it closes sessions without conversation messages while preserving nonempty sessions, prompts and drafts. Bash commands alone do not count as conversation messages. Selecting a card opens the existing session view.
-The header shows the branch instead of the conversation title for a linked worktree; other sessions show their conversation title.
-Project and worktree branch labels are prominent, with the smaller, gray
-conversation name underneath, including in Later. Working sessions also remain in their
-sidebar project. Sidebar dots sit beside the session or worktree name without timestamps;
-a worktree shows conversation names only when it has multiple sessions. Ready is not an unread-response list.
-Change totals are omitted because the current session data does not supply them.
-The same group contains chimes, folder paths, archived-session visibility and
-**Compact transcript**, which is on by default; explicitly stored choices are
-preserved. In compact mode, transcript notices use minimal severity-colored lines
-while preserving their full text. **Blocked** contains blocked
-questions/approvals. **Ready** includes all unarchived idle conversations except
-those in Later, including saved history after a server restart. Selecting an
-unloaded conversation opens it; history is never reopened automatically.
-Sidebar project groups can be collapsed independently. Selecting a session does not answer
-or dismiss a prompt. Use Home search or Quick Switcher for discovery.
-Empty activity status groups and an empty Later shelf are hidden.
-Later is also accessible from the sidebar while viewing a conversation.
-
-- **Later** parks a saved, idle conversation, closing its runtime if loaded.
-  Later is untimed, collapsed by default, and remembered in this browser for
-  this server. Expand it and select a conversation to reopen it explicitly.
-  Unsaved, working and blocked sessions cannot be parked; Later is hidden when
-  Inbox is off.
-- The header **×** returns to the original Home search. Nonempty sessions,
-  background work and their drafts stay unchanged; select a sidebar row to
-  return. Empty idle sessions are closed and removed from live inventory.
-- **Archive** is separate from Later. It preserves the saved transcript without
-  showing a success notice or Undo action. Restore sessions through archived history.
-- Closing, moving to Later or archiving the current session returns to Home,
-  even when other sessions are open. Acting on a different session in the sidebar
-  leaves the current conversation visible.
-- Drafts survive switching and parking/resuming during the page lifetime,
-  but not browser reloads.
-- Worktree labels in the sidebar, Later and Projects omit leading `feature/`,
-  `feat/`, `fix/` and `bugfix/`; hover the label for the full branch name.
-  Conversation titles and actual Git branch names are unchanged.
-- Single-session linked-worktree rows show just the project and branch. Hover
-  the row for its conversation title; action names are unchanged.
-  Worktrees with multiple unarchived conversations retain smaller title subtitles
-  to distinguish them, including conversations in Later. Main checkouts keep
-  the conversation title prominent. Recency uses compact `1m`, `2h`, `3d` labels.
-  Status dots sit beside project names. While a session is running, its row and
-  header hide Move to Later (pause icon) and Archive actions; Close view remains available.
-- The sidebar's bottom gear opens Settings. If the sidebar is hidden, reopen
-  it with the header toggle. Phone navigation remains a modal drawer until
-  dismissed; opening Settings dismisses it.
-- Turning Inbox off restores tabs without losing open sessions or Later
-  membership. Use Quick Switcher for projects and history, or disable Inbox
-  to use Projects browsing and its Archived sections.
+- **Sessions** is the only navigation mode: a project-grouped sidebar on desktop and a modal drawer on phones. The header toggle shows/hides it; there is no tab bar or mode preference.
+- Home combines search with **Blocked**, **Ready**, collapsed **Working** and collapsed **Later** activity. Empty groups are hidden. Enter on an untouched empty search starts a session.
+- Use Home search or Quick Switcher to find sessions/projects; **Open folder…** in the action menu starts a session in another server folder. Folder paths stay hidden in search results but remain searchable.
+- Selecting a live conversation focuses it; selecting saved history opens it. History is never reopened automatically. Session navigation does not answer or dismiss pending prompts.
+- The header close button and **Close Session** return Home. Empty idle runtimes are closed; nonempty sessions, background work and page-lifetime drafts remain available.
+- **Later** parks a saved idle conversation and closes its runtime if loaded. Membership is untimed and stored in this browser for this server. Resume explicitly reopens it; drafts survive parking/resuming until browser reload.
+- **Archive Session** preserves the saved transcript but hides the conversation from the sidebar, Home and Quick Switcher. There is no Archived section, restore control, success notice or Undo action in Chat. Archived files are not deleted.
+- Closing a view, parking or archiving the selected conversation returns Home even with other sessions open. Background actions leave the current selection unchanged.
+- New session, Close Session, Later, Archive Session, Open folder and Settings are shared by the composer and Quick Switcher. Type exact `/close`, `/later` or `/archive` commands, or use the action menu.
+- Later and Archive remain listed but disabled for unsaved, running or blocked conversations. Titles come from Pi; there is no custom rename or delete-session command.
+- Linked-worktree rows emphasize branch names; conversation subtitles appear when multiple conversations need disambiguation. Main checkouts emphasize conversation titles. Actual Git branch names and session identities are unchanged.
+- The bottom gear opens Settings. On phones it dismisses navigation; real dialogs retain focus ownership.
+- **Feature Toggles** retains chimes, Agentation feedback and Compact transcript. Sidebar navigation, hidden paths and hidden archived history are fixed behavior; old stored preferences are ignored.
 
 ## Changes panel
 
@@ -131,9 +48,7 @@ On Home, focus or type in Search to use the inline Quick Switcher; ⌘O and
 ⌘⇧O focus it there. Activity remains visible below. In a conversation, the
 shortcuts open the Quick Switcher dialog. Search names, paths, project
 context and branches; results distinguish folders, worktrees, sessions and
-available local actions. Empty unscoped search shows recent sessions. The
-**Show folder path in projects panel** setting also controls folder and worktree
-paths in Quick Switcher; hidden paths remain searchable.
+available local actions. Empty unscoped search shows recent sessions. Folder and worktree paths are hidden in results but remain searchable.
 
 | Prefix | Restricts results to |
 | --- | --- |
@@ -149,9 +64,9 @@ titles; selecting one focuses it. Saved-only sessions are reopened. A folder or
 worktree follows the existing project-opening behavior. A no-match query can be
 edited without closing the switcher.
 
-Composer and Quick Switcher share New session, Close Session, Later (Inbox mode),
+Composer and Quick Switcher share New session, Close Session, Later,
 Archive Session, Open folder and Settings actions. Availability follows the current
-session, connection and navigation mode; Later and Archive Session are listed but
+session and connection; Later and Archive Session are listed but
 disabled while the session cannot be parked or archived. Restart is not a
 session-menu action; use `/pi-chat restart`. Quick Switcher activates
 local actions directly, not arbitrary extension commands or argument completion.

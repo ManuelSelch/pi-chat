@@ -9,8 +9,8 @@ Existing committed PNGs are presentation assets, not proof of current UI state.
 ## Current limitation
 
 Source inspection shows stale UI assumptions: the script expects Projects as a
-`dialog` at its desktop viewport and does not explicitly select tabs mode, while
-current desktop navigation is a sidebar and Inbox defaults on. Its light capture
+`dialog` at its desktop viewport and still references the retired Projects UI, while
+current navigation is always the Sessions sidebar/drawer. Its light capture
 also assumes a browser color-scheme change controls appearance, which is not a
 runtime-theme guarantee. The complete capture has **not** been revalidated for
 this UI. Do not treat the command or retained screenshots as a current successful
@@ -41,8 +41,7 @@ The script creates a private agent directory before SDK/driver imports, fixture
 projects and an ephemeral loopback backend. Cleanup attempts driver, browser and
 agent-directory disposal even after failure. Only model replies/sample skill are
 fictional; tool execution, transport and rendering use real application code.
-Folder paths are hidden using the application's preference rather than editing
-image pixels or production styles.
+Folder paths are always hidden by the application; old capture preference code is obsolete.
 
 ## Outputs
 

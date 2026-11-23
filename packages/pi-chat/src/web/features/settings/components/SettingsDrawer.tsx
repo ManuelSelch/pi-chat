@@ -19,18 +19,12 @@ interface SettingsDrawerProps {
   compactSession: () => void;
   agentationEnabled: boolean;
   setAgentationEnabled: (value: boolean) => void;
-  inboxEnabled: boolean;
-  setInboxEnabled: (value: boolean) => void;
   pluginFeatureToggles: ReactNode;
-  displayPathShow: boolean;
-  setDisplayPathShow: (value: boolean) => void;
-  hideArchivedSessions: boolean;
-  setHideArchivedSessions: (value: boolean) => void;
   transcriptDensity: "comfortable" | "compact";
   setTranscriptDensity: (value: "comfortable" | "compact") => void;
 }
 
-export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, pluginFeatureToggles, displayPathShow, setDisplayPathShow, hideArchivedSessions, setHideArchivedSessions, transcriptDensity, setTranscriptDensity, inboxEnabled, setInboxEnabled, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
+export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, versions, setThinkingLevel, setModel, compactSession, pluginFeatureToggles, transcriptDensity, setTranscriptDensity, agentationEnabled, setAgentationEnabled }: SettingsDrawerProps) {
   const focusReturn = useComposerFocusReturn(opened);
   const thinkingFeature = state.actions.features.find((feature) => feature.id === "thinking.level");
   const modelFeature = state.actions.features.find((feature) => feature.id === "model.select");
@@ -79,21 +73,7 @@ export function SettingsDrawer({ opened, onClose, state, busy, serverSettings, v
           <div role="group" aria-label="Feature Toggles">
             <SectionHeader icon={<IconAdjustments size={16} />}>Feature Toggles</SectionHeader>
             <Switch label="Agentation UI feedback" checked={agentationEnabled} onChange={(event) => setAgentationEnabled(event.currentTarget.checked)} />
-            <Switch mt="sm" label="Show open sessions in sidebar" checked={inboxEnabled} onChange={event => setInboxEnabled(event.currentTarget.checked)} />
             {pluginFeatureToggles}
-            <Switch
-              mt="sm"
-              checked={displayPathShow}
-              onChange={(event) => setDisplayPathShow(event.currentTarget.checked)}
-              label="Show folder path in projects panel"
-            />
-            <Switch
-              mt="sm"
-              checked={hideArchivedSessions}
-              onChange={(event) => setHideArchivedSessions(event.currentTarget.checked)}
-              label="Hide archived sessions"
-              aria-label="Hide archived sessions"
-            />
             <Switch
               mt="sm"
               checked={transcriptDensity === "compact"}

@@ -3,5 +3,5 @@ import { InboxNotice } from "./InboxNotice.js";
 
 export function InboxNoticeContainer() {
   const chat = useAppController();
-  return chat.inboxEnabled ? <InboxNotice error={chat.inbox.error} onDismiss={chat.inbox.dismissError} /> : null;
+  return <InboxNotice error={chat.inbox.error} onDismiss={chat.inbox.dismissError} />;
 }

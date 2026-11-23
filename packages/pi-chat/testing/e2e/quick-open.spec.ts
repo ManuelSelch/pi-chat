@@ -2,9 +2,9 @@ import { expect, test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
 test("shares session actions between composer and quickswitcher", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+  const app = await PiChatBrowserDriver.start(page, {});
   try {
-    await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
+    await app.sessions.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
     await app.chat.sendPrompt("Hello");
     await app.chat.shouldShowAssistantReply("Ready");
     const composer = page.getByRole("textbox", { name: "Message Pi" });
@@ -37,7 +37,7 @@ test("shares session actions between composer and quickswitcher", async ({ page 
 });
 
 test("lists Close Session, Later and Archive Session in Inbox mode", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: true });
+  const app = await PiChatBrowserDriver.start(page, {});
   try {
     await app.inbox.create({ responses: [{ prompt: "Hello", reply: "Ready" }] });
     await app.chat.sendPrompt("Hello");
@@ -62,7 +62,7 @@ test("lists Close Session, Later and Archive Session in Inbox mode", async ({ pa
 
 // Run against the complete production stylesheet stack, not just component CSS.
 test("shows keyboard selection and compact mockup scope controls", async ({ page }) => {
-  const app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+  const app = await PiChatBrowserDriver.start(page, {});
   try {
     await page.locator("body").press("Meta+o");
     const input = page.getByRole("textbox", { name: /^(Search folders, worktrees, sessions and actions|Search sessions and projects)$/ });
@@ -82,7 +82,7 @@ test("shows keyboard selection and compact mockup scope controls", async ({ page
     await page.getByRole("button", { name: "# Folders", exact: true }).click();
     const projectRow = page.getByRole("option").first();
     await expect(projectRow).toBeVisible();
-    await expect(projectRow.getByText(/^New session ·/)).toHaveCSS("font-size", "12px");
+    await expect(projectRow.getByText("New session", { exact: true })).toHaveCSS("font-size", "12px");
     await expect(projectRow.locator("p").first()).toHaveCSS("font-size", "16px");
     await expect(page.getByText("Open latest session", { exact: true })).toHaveCount(0);
     await actions.click();

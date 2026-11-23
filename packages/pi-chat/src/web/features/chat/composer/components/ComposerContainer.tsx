@@ -23,7 +23,7 @@ const DEFAULT_FOOTER_HEIGHT = 170;
 export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerContainerProps) {
   const chat = useAppController();
   const overlays = useOverlays();
-  const { actions: sessionActions, error: actionError, clearError: clearActionError } = useSessionActions();
+  const { actions: sessionActions } = useSessionActions();
   const { app, state } = chat;
   const { input, setInput: saveDraft } = useSessionDrafts(app.activeSessionId, state.sessionPath);
   const [activeCommand, setActiveCommand] = useState(0);
@@ -216,7 +216,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
           stop: () => chat.abort(),
           stopDisabled: app.connection !== "open" || state.status === "aborting",
         } : undefined,
-        error: actionError ?? visibleError(app, state),
+        error: visibleError(app, state),
         busy,
         steering: state.status === "running",
         steeringMessages: state.steeringMessages,
@@ -229,7 +229,7 @@ export function ComposerContainer({ onHeightChange, widgetsDocked }: ComposerCon
       }}
       actions={{
         takeControl: chat.takeControl,
-        dismissError: () => { clearActionError(); chat.dismissError(); },
+        dismissError: chat.dismissError,
         changeInput,
         selectionChanged,
         compositionChanged: setComposing,

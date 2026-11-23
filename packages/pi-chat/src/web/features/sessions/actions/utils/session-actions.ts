@@ -13,7 +13,6 @@ export interface SessionActionState {
   sessionPath?: string;
   connected: boolean;
   busy: boolean;
-  navigation: "tabs" | "inbox";
 }
 
 export interface SessionActionOperations {
@@ -35,11 +34,11 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
     if (state.sessionId) {
       actions.push({
         id: "close-session", name: "Close Session",
-        description: state.navigation === "inbox" ? "Return Home, keeping non-empty sessions open" : "Close this session's tab", run: () => {
+        description: "Return Home, keeping non-empty sessions open", run: () => {
           if (sessionCurrent()) operations.closeSession(state.sessionId);
         },
       });
-      if (state.navigation === "inbox") actions.push({
+      actions.push({
         id: "later-session", name: "Later",
         description: "Park this idle conversation for later",
         disabled: state.busy || !state.sessionPath,
@@ -49,7 +48,7 @@ export function buildSessionActions(state: SessionActionState, operations: Sessi
         },
       });
       actions.push({
-        id: "archive-session", name: "Archive Session", description: "Keep this session in Archived and close its tab",
+        id: "archive-session", name: "Archive Session", description: "Archive this session and close its runtime",
         disabled: state.busy || !state.sessionPath,
         run: () => {
           const latest = current();

@@ -74,8 +74,8 @@ message identity prevents duplicated history; a reconnect does not promise to
 recover an unobserved partial streaming prefix.
 
 [SessionActionsProvider](../packages/pi-chat/src/web/features/sessions/actions/stores/SessionActionsProvider.tsx)
-shares local action definitions and session-scoped errors between composer and
-Quick Switcher. Availability and execution guards recheck the current session,
+shares local action definitions between composer and
+Quick Switcher. Inbox lifecycle owns parking/archive errors; the application notice renders them. Availability and execution guards recheck the current session,
 connection and busy state. Menu clearing/dismissal stays with each menu.
 Extension commands keep their native Pi path. Restart is available through
 the `/pi-chat restart` backend command.
@@ -87,9 +87,10 @@ replacement value; selecting it inserts without executing.
 
 ### Session navigation and drafts
 
-Inbox is enabled by default via browser-local `pi-chat:session-inbox`; an explicit
-opt-out retains tabs/Projects navigation. Both modes reuse the same SDK runtimes
-and catalogue rather than introducing another server-side session store.
+Inbox is the only session navigation: a desktop sidebar and phone drawer over SDK runtimes
+and catalogue. There is no tab-bar/legacy Projects branch or navigation-mode preference.
+Folder paths are hidden in search presentation (still searchable); archived history is always
+excluded. The three retired browser preferences are ignored, not migrated.
 
 Inbox and Quick Switcher share a projection of saved, unarchived history and
 runtime inventory, deduplicated by session path. Live rows use runtime titles
@@ -165,7 +166,7 @@ labels. This presentation does not modify runtime inventory. Row actions continu
 ### Focus and overlays
 
 [AppOverlays](../packages/pi-chat/src/web/app/overlays/AppOverlays.tsx) assembles prompts, session
-dialogs, navigation, a generic plugin overlay outlet and Settings. Desktop navigation is non-modal;
+navigation, a generic plugin overlay outlet and Settings. Desktop navigation is non-modal;
 phone navigation is a modal drawer. Real dialogs retain focus/scroll ownership.
 Settings remains mounted while closed, but no longer owns audio lifetime. The [chimes plugin](../plugins/chimes/README.md) owns playback/preferences in its app-lifetime provider and contributes its existing switch to `settings.feature-toggles`.
 

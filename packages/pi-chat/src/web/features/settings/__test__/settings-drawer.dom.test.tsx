@@ -10,7 +10,7 @@ afterEach(cleanup);
 
 const noop = () => {};
 
-function renderDrawer(setHideArchivedSessions = vi.fn(), transcriptDensity: "comfortable" | "compact" = "compact", setTranscriptDensity = vi.fn(), overrides: Partial<ComponentProps<typeof SettingsDrawer>> = {}) {
+function renderDrawer(transcriptDensity: "comfortable" | "compact" = "compact", setTranscriptDensity = vi.fn(), overrides: Partial<ComponentProps<typeof SettingsDrawer>> = {}) {
   render(
     <MantineProvider>
       <SettingsDrawer
@@ -23,15 +23,9 @@ function renderDrawer(setHideArchivedSessions = vi.fn(), transcriptDensity: "com
         setThinkingLevel={noop}
         setModel={noop}
         compactSession={noop}
-        inboxEnabled={false}
-        setInboxEnabled={noop}
         agentationEnabled={false}
         setAgentationEnabled={noop}
         pluginFeatureToggles={<Switch label="Example plugin" />}
-        displayPathShow={true}
-        setDisplayPathShow={noop}
-        hideArchivedSessions={true}
-        setHideArchivedSessions={setHideArchivedSessions}
         transcriptDensity={transcriptDensity}
         setTranscriptDensity={setTranscriptDensity}
         {...overrides}
@@ -49,7 +43,7 @@ const sessionFeatures: typeof initialChatState.actions.features = [
 describe("SettingsDrawer groups", () => {
   it("renders plugin controls inside Feature Toggles without owning their state", () => {
     const toggle = vi.fn();
-    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
+    renderDrawer("comfortable", vi.fn(), {
       pluginFeatureToggles: <Switch label="Example plugin" onChange={event => toggle(event.currentTarget.checked)} />,
     });
 
@@ -61,7 +55,8 @@ describe("SettingsDrawer groups", () => {
     renderDrawer();
     expect(screen.queryByRole("textbox", { name: "Session name" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save session name" })).toBeNull();
-    expect(screen.getByRole("switch", { name: "Show folder path in projects panel" })).toBeTruthy();
+    for (const name of ["Show open sessions in sidebar", "Show folder path in projects panel", "Hide archived sessions"])
+      expect(screen.queryByRole("switch", { name })).toBeNull();
     expect(screen.getByRole("switch", { name: "Example plugin" })).toBeTruthy();
   });
 
@@ -69,8 +64,8 @@ describe("SettingsDrawer groups", () => {
     renderDrawer();
     const group = screen.getByRole("group", { name: "Feature Toggles" });
 
-    expect(within(group).getAllByRole("switch")).toHaveLength(6);
-    for (const name of ["Show open sessions in sidebar", "Example plugin", "Show folder path in projects panel", "Hide archived sessions", "Compact transcript", "Agentation UI feedback"]) {
+    expect(within(group).getAllByRole("switch")).toHaveLength(3);
+    for (const name of ["Example plugin", "Compact transcript", "Agentation UI feedback"]) {
       expect(within(group).getByRole("switch", { name })).toBeTruthy();
     }
     for (const name of ["Sessions", "Sounds", "Projects"]) {
@@ -82,7 +77,7 @@ describe("SettingsDrawer groups", () => {
 
   it("toggles Agentation feedback", () => {
     const setAgentationEnabled = vi.fn();
-    renderDrawer(vi.fn(), "compact", vi.fn(), { setAgentationEnabled });
+    renderDrawer("compact", vi.fn(), { setAgentationEnabled });
     const toggle = screen.getByRole("switch", { name: "Agentation UI feedback" }) as HTMLInputElement;
 
     expect(toggle.checked).toBe(false);
@@ -96,7 +91,7 @@ describe("SettingsDrawer groups", () => {
     ["compact", true, "comfortable"],
   ] as const)("reflects %s density and switches to %s", (density, checked, nextDensity) => {
     const setTranscriptDensity = vi.fn();
-    renderDrawer(vi.fn(), density, setTranscriptDensity);
+    renderDrawer(density, setTranscriptDensity);
     const group = screen.getByRole("group", { name: "Feature Toggles" });
     const toggle = within(group).getByRole("switch", { name: "Compact transcript" }) as HTMLInputElement;
 
@@ -108,7 +103,7 @@ describe("SettingsDrawer groups", () => {
 
   it("orders Session, Feature Toggles, then Backend server and retains actions", () => {
     const compactSession = vi.fn();
-    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
+    renderDrawer("comfortable", vi.fn(), {
       state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } },
       serverSettings: <span>Endpoint settings</span>, compactSession,
     });
@@ -131,7 +126,7 @@ describe("SettingsDrawer groups", () => {
   });
 
   it("omits Session without advertised session features and does not offer restart", () => {
-    renderDrawer(vi.fn(), "comfortable", vi.fn(), { serverSettings: <span>Endpoint settings</span> });
+    renderDrawer("comfortable", vi.fn(), { serverSettings: <span>Endpoint settings</span> });
 
     expect(screen.queryByRole("group", { name: "Session" })).toBeNull();
     expect(within(screen.getByRole("group", { name: "Backend server" })).queryByRole("button", { name: "Restart" })).toBeNull();
@@ -139,7 +134,7 @@ describe("SettingsDrawer groups", () => {
 
   it("keeps session controls disabled while busy", () => {
     const compactSession = vi.fn();
-    renderDrawer(vi.fn(), "comfortable", vi.fn(), {
+    renderDrawer("comfortable", vi.fn(), {
       state: { ...initialChatState, actions: { ...initialChatState.actions, features: sessionFeatures } }, busy: true, compactSession,
     });
     const session = screen.getByRole("group", { name: "Session" });
@@ -150,12 +145,4 @@ describe("SettingsDrawer groups", () => {
     expect(compactSession).not.toHaveBeenCalled();
   });
 
-  it("shows the enabled archive visibility switch and dispatches changes", () => {
-    const setHideArchivedSessions = vi.fn();
-    renderDrawer(setHideArchivedSessions);
-    const toggle = screen.getByRole("switch", { name: "Hide archived sessions" }) as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
-    fireEvent.click(toggle);
-    expect(setHideArchivedSessions).toHaveBeenCalledWith(false);
-  });
 });

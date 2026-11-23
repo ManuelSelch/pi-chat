@@ -6,16 +6,15 @@ let app: PiChatBrowserDriver;
 let prompts: PromptExtensionFixture;
 test.beforeEach(async ({ page }) => {
   prompts = new PromptExtensionFixture();
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false, extensions: [prompts.extension], projectName: "a-very-long-checkout-name-that-must-truncate-before-controls", projectBranch: "fix/a-very-long-branch-name-that-must-truncate-before-controls" });
+  app = await PiChatBrowserDriver.start(page, { extensions: [prompts.extension], projectName: "a-very-long-checkout-name-that-must-truncate-before-controls", projectBranch: "fix/a-very-long-branch-name-that-must-truncate-before-controls" });
   await app.browser.setViewport(1024);
 });
 test.afterEach(async () => { await app.dispose(); });
 
 async function savedConversation() {
-  await app.tabs.create({ responses: [{ prompt: "Inbox conversation", reply: "Saved response" }] });
+  await app.sessions.create({ responses: [{ prompt: "Inbox conversation", reply: "Saved response" }] });
   await app.chat.sendPrompt("Inbox conversation");
   await app.chat.shouldShowAssistantReply("Saved response");
-  await app.inbox.setEnabled(true);
 }
 
 test("parks and explicitly resumes a saved conversation without losing its draft", async () => {
@@ -83,14 +82,13 @@ test("remembers Later across reload without sidebar search and hides it after th
 });
 
 test("closing the view preserves background work and completion becomes Ready without reopening it", async () => {
-  await app.tabs.create({ responses: [
+  await app.sessions.create({ responses: [
     { prompt: "Background conversation", reply: "Ready to work" },
     { prompt: "Background work", reply: "Finished in background", hold: true },
   ] });
   await app.chat.sendPrompt("Background conversation");
   await app.chat.shouldShowAssistantReply("Ready to work");
   await app.chat.sendPrompt("Background work");
-  await app.inbox.setEnabled(true);
   await app.inbox.shouldHaveStatusCount("Working", 1);
   await app.inbox.shouldHaveStatus("Background conversation", "Working");
 
@@ -106,14 +104,13 @@ test("closing the view preserves background work and completion becomes Ready wi
 });
 
 test("working sessions stay accessible in projects but enter Inbox only when ready, including after reload", async () => {
-  await app.tabs.create({ responses: [
+  await app.sessions.create({ responses: [
     { prompt: "Folding conversation", reply: "Ready to work" },
     { prompt: "First run", reply: "First finished", hold: true },
     { prompt: "Second run", reply: "Second finished", hold: true },
   ] });
   await app.chat.sendPrompt("Folding conversation");
   await app.chat.shouldShowAssistantReply("Ready to work");
-  await app.inbox.setEnabled(true);
 
   await app.chat.sendPrompt("First run");
 
@@ -210,8 +207,7 @@ test("archiving a parked conversation removes it from Later without an archive n
 });
 
 test("does not park an unsaved session and removes an empty runtime from the session panel on close", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.inbox.setEnabled(true);
+  await app.sessions.create({ responses: [] });
   await app.focus.typeWithoutRefocusing("Unsaved conversation draft");
 
   await app.inbox.shouldPreventParking();
@@ -224,8 +220,7 @@ test("does not park an unsaved session and removes an empty runtime from the ses
 });
 
 test("blocked prompts remain in Needs you when selected, and closing the view retains the chosen answer", async () => {
-  await app.tabs.create({ responses: [] });
-  await app.inbox.setEnabled(true);
+  await app.sessions.create({ responses: [] });
   await app.chat.sendPrompt("/prompt-checks ");
   await app.prompts.shouldShowRichQuestion("Check 1");
   await app.prompts.choose("Check 1", "8");
@@ -275,10 +270,9 @@ test("archiving unloaded Ready history stays at Home without an archive notice",
 
 test("row hitboxes and header controls do not overlap at desktop and phone widths", async () => {
   const title = "A long conversation title that truncates before actions";
-  await app.tabs.create({ responses: [{ prompt: title, reply: "Saved response" }] });
+  await app.sessions.create({ responses: [{ prompt: title, reply: "Saved response" }] });
   await app.chat.sendPrompt(title);
   await app.chat.shouldShowAssistantReply("Saved response");
-  await app.inbox.setEnabled(true);
 
   for (const width of [1680, 1024, 640, 390]) {
     await app.browser.setViewport(width, 844);
@@ -289,13 +283,11 @@ test("row hitboxes and header controls do not overlap at desktop and phone width
   }
 });
 
-test("mode toggling preserves selection and drafts, and phones retain a modal navigation drawer", async () => {
+test("resizing preserves selection and drafts, and phones retain a modal navigation drawer", async () => {
   await savedConversation();
   await app.focus.typeWithoutRefocusing("Mode-independent draft");
-  await app.inbox.setEnabled(false);
-  await app.tabs.shouldHaveCount(1);
+  await app.sessions.shouldHaveCount(1);
   await app.focus.shouldHaveDraft("Mode-independent draft");
-  await app.inbox.setEnabled(true);
 
   await app.browser.setViewport(390, 844);
   await app.inbox.shouldBeDrawer();

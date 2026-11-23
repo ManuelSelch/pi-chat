@@ -4,7 +4,7 @@ import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 let app: PiChatBrowserDriver;
 
 test.beforeEach(async ({ page }) => {
-  app = await PiChatBrowserDriver.start(page, { inboxEnabled: false });
+  app = await PiChatBrowserDriver.start(page, {});
 });
 
 test.afterEach(async () => {
@@ -12,7 +12,7 @@ test.afterEach(async () => {
 });
 
 test("steers a running Pi session and restores the queue after browser reload", async () => {
-  await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
+  await app.sessions.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
   await app.chat.sendPrompt("Start working");
   await app.chat.shouldBeSteering();
   await app.chat.sendPrompt("Keep the existing shortcuts");
@@ -26,7 +26,7 @@ test("steers a running Pi session and restores the queue after browser reload", 
 
 for (const command of ["!pwd", "!!pwd"]) {
   test(`keeps ${command} blocked while steering`, async () => {
-    await app.tabs.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
+    await app.sessions.create({ responses: [{ prompt: "Start working", reply: "Held response.", hold: true }] });
     await app.chat.sendPrompt("Start working");
     await app.chat.shouldBeSteering();
     await app.chat.sendPrompt(command);
@@ -37,7 +37,7 @@ for (const command of ["!pwd", "!!pwd"]) {
 
 test("creates a session from home and sends a prompt through the visible app", async () => {
   await app.home.shouldBeVisible();
-  await app.tabs.create({ responses: [{ prompt: "Hello", reply: "Hello from the visible Pi Chat app." }] });
+  await app.sessions.create({ responses: [{ prompt: "Hello", reply: "Hello from the visible Pi Chat app." }] });
 
   await app.chat.sendPrompt("Hello");
   await app.chat.shouldShowUserMessage("Hello");
