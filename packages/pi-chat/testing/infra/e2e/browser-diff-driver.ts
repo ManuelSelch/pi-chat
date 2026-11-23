@@ -107,5 +107,13 @@ export class BrowserDiffDriver {
     expect(box).not.toBeNull();
     expect(box!.y + box!.height).toBeCloseTo(this.page.viewportSize()!.height, 0);
   }
+  async shouldBeUnavailable() {
+    await expect(this.page.getByRole("button",{name:"Toggle side panel"})).toHaveCount(0);
+    await this.shouldBeClosed();
+  }
+  async shouldBeAvailableAndClosed() {
+    await expect(this.page.getByRole("button",{name:"Toggle side panel"})).toHaveAttribute("aria-expanded","false");
+    await this.shouldBeClosed();
+  }
   async shouldBeClosed() { await expect(this.page.getByRole("complementary",{name:"Side panel"})).toHaveCount(0); }
 }

@@ -1,14 +1,17 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { PluginUIContext, PluginUIContribution } from "@manuelselch/pi-sdk/plugins";
 import { ActionIcon, Tabs, Tooltip } from "@mantine/core";
 import { IconLayoutSidebarRight, IconX } from "@tabler/icons-react";
 import { usePluginSidePanels } from "./PluginProvider.js";
 
-const PanelState = createContext({ opened: false, available: false, toggle() {}, close() {} });
+type Panel = Extract<PluginUIContribution<ReactNode>, {placement:"side-panel"}>;
+const PanelState = createContext<{opened:boolean; available:boolean; panels:readonly Panel[]; toggle():void; close():void}>({ opened: false, available: false, panels:[], toggle() {}, close() {} });
 
-export function SidePanelProvider({children}:{children:ReactNode}) {
-  const panels = usePluginSidePanels();
+export function SidePanelProvider({children,view}:{children:ReactNode; view:PluginUIContext["view"]}) {
+  const panels = usePluginSidePanels({view});
   const [opened,setOpened] = useState(false);
-  return <PanelState.Provider value={{opened:opened && panels.length>0,available:panels.length>0,toggle:()=>setOpened(value=>!value),close:()=>setOpened(false)}}>{children}</PanelState.Provider>;
+  useEffect(()=>{if (!panels.length) setOpened(false);},[panels.length]);
+  return <PanelState.Provider value={{opened:opened && panels.length>0,available:panels.length>0,panels,toggle:()=>setOpened(value=>!value),close:()=>setOpened(false)}}>{children}</PanelState.Provider>;
 }
 export const useSidePanel = () => useContext(PanelState);
 
@@ -20,7 +23,7 @@ export function SidePanelToggle() {
 
 export function PluginSidePanel({stacked = false}:{stacked?:boolean}) {
   const panel = useSidePanel();
-  const panels = usePluginSidePanels();
+  const {panels} = panel;
   const [active,setActive] = useState<string | null>(null);
   if (!panel.opened || !panels.length) return null;
   const value = panels.some(item=>item.id===active) ? active : panels[0]!.id;

@@ -47,9 +47,9 @@ flowchart TD
 
 ## Side-panel contributions
 
-- `PluginUI.contributions` with `placement: "side-panel"` requires a label and an `Icon` component as well as ID/content. IDs remain plugin-namespaced; startup validates required metadata.
-- [SidePanelProvider](../packages/pi-chat/src/web/app/plugins/SidePanelProvider.tsx) owns a neutral header toggle, open state and active tab. Tabs render under plugin providers; closing removes tab content but preserves provider-owned preferences. No modal focus trap or global keyboard blocker is added.
-- Chat reserves panel width for the transcript, fixed composer and widget gutters. The panel uses 46% of the available workspace; when navigation leaves less than 760px, it stacks in document flow without hiding existing navigation or chat.
+- `PluginUI.contributions` with `placement: "side-panel"` requires a label and an `Icon` component as well as ID/content. An optional `available({ view })` predicate restricts availability to Home or transcript; absent predicates are always available. IDs remain plugin-namespaced; startup validates required metadata.
+- [SidePanelProvider](../packages/pi-chat/src/web/app/plugins/SidePanelProvider.tsx) filters tabs by view and owns a neutral header toggle, open state and active tab. Closing or losing all available tabs unmounts content; provider-owned preferences remain. The panel stays closed when tabs become available again. No modal focus trap or global keyboard blocker is added.
+- Chat reserves panel width for the transcript, fixed composer and widget gutters. The panel uses 46% of the available workspace; below 760px available it replaces chat and composer within the workspace, retaining navigation and the chat draft.
 - The shell knows no Git methods or diff state. Omitting all panel contributions removes the toggle; adding another tab needs no feature-specific shell button.
 - Browser consumers must scan contributed Tailwind classes; Chat explicitly scans the diff-viewer’s compiled web entry in its stylesheet, after the plugin build.
 
@@ -59,6 +59,6 @@ flowchart TD
 - The plugin owns its container, browsing client and error handling. Chat has no picker import, feature overlay field or folder RPC methods.
 - [File opening](../plugins/file-opening/README.md) owns its contract, browser actions and host/filesystem implementation in a standalone workspace; Chat explicitly composes `createFileOpeningActions(request)` rather than registering an empty browser provider.
 - [Chimes](../plugins/chimes/README.md) contributes `chimes.enabled` at `settings.feature-toggles`; its provider owns browser-local preferences, transition tracking and audio cleanup independently of Settings visibility.
-- [Diff viewer](../plugins/diff-viewer/README.md) contributes `diff-viewer.changes` at `side-panel`; its package owns Git reads, comparison selection and the continuous diff/file navigation. [Browser scenario](../packages/pi-chat/testing/e2e/diff-viewer.spec.ts) exercises real Git/RPC alongside chat.
+- [Diff viewer](../plugins/diff-viewer/README.md) contributes `diff-viewer.changes` at `side-panel` only in transcript view; its package owns Git reads, comparison selection and the continuous diff/file navigation. [Browser scenario](../packages/pi-chat/testing/e2e/diff-viewer.spec.ts) exercises real Git/RPC alongside chat.
 - Host plugins and RPC allowlists are configured separately. Browser composition does not activate or disable server capabilities.
 - Native Pi prompts, widgets and footer status remain separate from browser plugin contributions.

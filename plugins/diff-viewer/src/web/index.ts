@@ -10,6 +10,7 @@ export const diffViewerUI: PluginUI<ReactNode> = {
   contributions: [{
     id:"diff-viewer.changes",
     placement:"side-panel",
+    available:context=>context.view==="transcript",
     label:"Changes",
     Icon:()=>createElement(IconGitCompare,{size:16}),
     Component:DiffViewerContainer

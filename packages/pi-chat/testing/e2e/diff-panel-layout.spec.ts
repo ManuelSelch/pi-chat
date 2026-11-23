@@ -6,6 +6,7 @@ test("a narrow workspace shows changes separately and restores the chat draft",a
   try {
     await app.changes.useCompactViewport();
     await app.changes.prepareChanges();
+    await app.changes.shouldBeUnavailable();
     await app.inbox.create({responses:[]});
     await app.inbox.open();
     await app.chat.editDraft("Draft before changes");
@@ -16,5 +17,10 @@ test("a narrow workspace shows changes separately and restores the chat draft",a
     await app.changes.shouldScrollDiffWithoutScrollingChat();
     await app.changes.close();
     await app.chat.shouldHaveDraft("Draft before changes");
+    await app.changes.open();
+    await app.inbox.closeView();
+    await app.changes.shouldBeUnavailable();
+    await app.inbox.create({responses:[]});
+    await app.changes.shouldBeAvailableAndClosed();
   } finally { await app.dispose(); }
 });

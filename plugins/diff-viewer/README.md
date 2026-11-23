@@ -2,7 +2,7 @@
 - Independent workspace: `@manuelselch/pi-plugin-diff-viewer`; no Chat or Server imports.
 - Conditional root exports load host or web declarations. Explicit `/host` and `/web` exports are also available.
 - Browser consumers supply React/Mantine/Tabler peers, scan web entry classes with Tailwind v4 and provide the `--pi-*` theme tokens used by Chat.
-- Web entry contributes the **Changes** tab at the generic `side-panel` placement. Its provider owns per-project comparison preferences; unmounting the panel cancels local waits.
+- Web entry contributes the **Changes** tab at the generic `side-panel` placement only while a transcript is open. Its provider owns per-project comparison preferences; unmounting the panel cancels local waits.
 - Host entry provides read-only context, commit-history and diff RPC methods. Chat explicitly registers both environments and allowlists the contract.
 - **Uncommitted** compares HEAD (or an unborn repository’s empty tree) with the working tree. **Branch** is the default mode and defaults to `main` and compares its merge-base with HEAD against the working tree. **Commit** defaults to the latest commit and compares the selected commit with its first parent (or the empty tree for a root commit).
 - Branches include local and locally available remote-tracking refs, without fetching or guessing a parent. Commit choices search HEAD ancestry by message and paginate in pages of 50; labels never display hashes.

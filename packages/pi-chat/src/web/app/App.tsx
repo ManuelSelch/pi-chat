@@ -34,13 +34,19 @@ export function App() {
           <OverlayController>
             <SessionActionsProvider>
               <GlobalKeyboardController />
-              <SidePanelProvider><WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider></SidePanelProvider>
+              <Workspace />
             </SessionActionsProvider>
           </OverlayController>
         </ConfirmDialogProvider>
       </RegisteredPlugins>
     </AppControllerProvider>
   );
+}
+
+function Workspace() {
+  const {app} = useAppController();
+  const view = app.activeSessionId && !app.viewClosed && !app.closingSessionIds.includes(app.activeSessionId) ? "transcript" : "home";
+  return <SidePanelProvider view={view}><WidgetDisclosureProvider><AppContent /></WidgetDisclosureProvider></SidePanelProvider>;
 }
 
 function AppContent() {

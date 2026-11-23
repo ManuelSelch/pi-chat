@@ -4,6 +4,10 @@ import type { CancellationSignal } from "../platform.js";
 export type CommandPlacement = "menus" | "projects";
 export type PluginUIPlacement = "settings.feature-toggles" | "side-panel";
 
+export interface PluginUIContext {
+  readonly view: "home" | "transcript";
+}
+
 /** Minimal browser session projection; no application navigation or transcript state. */
 export interface PluginSessionSummary {
   readonly sessionId: string;
@@ -18,6 +22,7 @@ export type PluginUIContribution<View> = {
 } | {
   readonly placement: "side-panel";
   readonly label: string;
+  readonly available?: (context: PluginUIContext) => boolean;
   Icon(): View;
 });
 

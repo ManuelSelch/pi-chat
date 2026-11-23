@@ -1,6 +1,6 @@
 import { createContext, memo, useContext, useMemo, type ReactNode } from "react";
 import { Stack } from "@mantine/core";
-import type { CommandPlacement, PluginCommand, PluginCommandDefinition, PluginUIHost, PluginUIPlacement } from "@manuelselch/pi-sdk/plugins";
+import type { CommandPlacement, PluginCommand, PluginCommandDefinition, PluginUIHost, PluginUIPlacement, PluginUIContext } from "@manuelselch/pi-sdk/plugins";
 
 import type { LoadedPluginUI } from "./load-plugin-ui.js";
 
@@ -44,9 +44,9 @@ function CommandBinding({ command, children }: { command: PluginCommandDefinitio
   return <PluginContext.Provider value={{ ...parent, commands: [...parent.commands, bound] }}>{children}</PluginContext.Provider>;
 }
 
-export function usePluginSidePanels() {
+export function usePluginSidePanels(context: PluginUIContext) {
   const { plugins } = useContext(PluginContext);
-  return useMemo(() => plugins.flatMap(plugin => plugin.ui.contributions ?? []).filter(item => item.placement === "side-panel"), [plugins]);
+  return useMemo(() => plugins.flatMap(plugin => plugin.ui.contributions ?? []).filter(item => item.placement === "side-panel").filter(item => item.available?.(context) ?? true), [plugins, context.view]);
 }
 
 export function usePluginCommands(placement: CommandPlacement): readonly PluginCommand[] {
