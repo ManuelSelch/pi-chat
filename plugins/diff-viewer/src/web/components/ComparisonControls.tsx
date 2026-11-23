@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActionIcon, Button, Group, Select, Text, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Select, Text } from "@mantine/core";
 import { IconGitBranch, IconRefresh } from "@tabler/icons-react";
 import type { CommitPage, RepositoryContext } from "../../contract.js";
 import type { Mode, Preferences } from "../stores/DiffViewerProvider.js";
@@ -46,6 +46,6 @@ export function ComparisonControls(p:Props) {
       </Group>
       {p.commits.status==="error" && <Text size="xs" c="red" role="alert">{p.commits.message}</Text>}
     </div>}
-    <Tooltip label="Refresh changes"><ActionIcon className="ml-auto" variant="subtle" color="gray" aria-label="Refresh changes" loading={p.loading} disabled={p.disabled} onClick={p.onRefresh}><IconRefresh size={17}/></ActionIcon></Tooltip>
+    <ActionIcon className="ml-auto" variant="subtle" color="gray" aria-label="Refresh changes" loading={p.loading} disabled={p.disabled} onClick={p.onRefresh}><IconRefresh size={17}/></ActionIcon>
   </div>;
 }
