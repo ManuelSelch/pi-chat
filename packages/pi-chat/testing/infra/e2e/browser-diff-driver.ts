@@ -47,6 +47,33 @@ export class BrowserDiffDriver {
     expect(composerBox!.x+composerBox!.width).toBeLessThanOrEqual(panelBox!.x+1);
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
   }
+  async selectBranchMode() {
+    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("option",{name:"Branch",exact:true}).click();
+  }
+  async shouldDefaultToMain() {
+    const picker = this.page.getByRole("combobox",{name:"Comparison branch",exact:true});
+    await expect(picker).toHaveValue("main");
+    await picker.click();
+    await expect(this.page.getByRole("option",{name:"feature",exact:true})).toBeVisible();
+    await picker.press("Escape");
+  }
+  async selectCommitMode() {
+    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("option",{name:"Commit",exact:true}).click();
+  }
+  async shouldShowLatestCommit() {
+    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue("Prepare viewer");
+    const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
+    await expect(diff.getByText("before",{exact:true})).toBeVisible();
+    await expect(diff.getByText("committed",{exact:true})).toBeVisible();
+    await expect(diff.getByText("after",{exact:true})).toHaveCount(0);
+  }
+  async shouldShowInitialCommit() {
+    const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
+    await expect(diff.getByText("before",{exact:true})).toBeVisible();
+    await expect(diff.getByText("after",{exact:true})).toHaveCount(0);
+  }
   async chooseBranch(name:string) {
     await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
     await this.page.getByRole("option",{name:"Branch",exact:true}).click();
@@ -54,8 +81,8 @@ export class BrowserDiffDriver {
     await this.page.getByRole("option",{name,exact:true}).click();
   }
   async chooseCommit(subject:string) {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Commit",exact:true}).click();
+    await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).click();
+    await expect(this.page.getByRole("option",{name:subject,exact:true})).toBeVisible();
     await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).fill(subject);
     await this.page.getByRole("option",{name:subject,exact:true}).click();
     await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);

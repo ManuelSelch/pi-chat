@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ActionIcon, Button, Group, Select, Text, Tooltip } from "@mantine/core";
 import { IconGitBranch, IconRefresh } from "@tabler/icons-react";
 import type { CommitPage, RepositoryContext } from "../../contract.js";
@@ -10,7 +11,11 @@ interface Props {
   loading:boolean; disabled:boolean; onRefresh():void;
 }
 export function ComparisonControls(p:Props) {
+  const [branchSearch,setBranchSearch] = useState("");
+  const [commitSearch,setCommitSearch] = useState("");
   const branches = p.context.status==="ready" ? p.context.value.branches : [];
+  useEffect(()=>{setBranchSearch(branches.find(branch=>branch.ref===p.preferences.branch)?.name ?? "");},[p.preferences.branch,p.context]);
+  useEffect(()=>{setCommitSearch(p.preferences.commitSubject);},[p.preferences.commit,p.preferences.commitSubject]);
   const commits = p.commits.status==="ready" ? p.commits.value.commits : [];
   const commitOptions = commits.map(commit=>({value:commit.sha,label:commit.subject || "(no commit message)"}));
   if (p.preferences.commit && !commitOptions.some(option=>option.value===p.preferences.commit)) commitOptions.push({value:p.preferences.commit,label:p.preferences.commitSubject || "(no commit message)"});
@@ -21,6 +26,8 @@ export function ComparisonControls(p:Props) {
       data={[{value:"branch",label:"Branch"},{value:"uncommitted",label:"Uncommitted"},{value:"commit",label:"Commit"}]}/>
     {p.preferences.mode==="branch" && <Select aria-label="Comparison branch" placeholder="Select a branch" size="xs" w={230} searchable allowDeselect={false}
       disabled={p.disabled} value={p.preferences.branch} onChange={branch=>p.update({branch})} nothingFoundMessage="No matching branches"
+      searchValue={branchSearch} onSearchChange={setBranchSearch} onDropdownOpen={()=>setBranchSearch("")}
+      onDropdownClose={()=>setBranchSearch(branches.find(branch=>branch.ref===p.preferences.branch)?.name ?? "")}
       data={[
         {group:"Local branches",items:branches.filter(branch=>!branch.remote).map(branch=>({value:branch.ref,label:branch.name}))},
         {group:"Remote branches",items:branches.filter(branch=>branch.remote).map(branch=>({value:branch.ref,label:branch.name}))},
@@ -28,7 +35,9 @@ export function ComparisonControls(p:Props) {
     {p.preferences.mode==="commit" && <div className="min-w-0">
       <Select aria-label="Comparison commit" placeholder="Select a commit" size="xs" w={280} maw="100%" searchable allowDeselect={false}
         disabled={p.disabled} value={p.preferences.commit} onChange={commit=>p.update({commit,commitSubject:commitOptions.find(option=>option.value===commit)?.label ?? ""})}
-        onSearchChange={p.onQuery} filter={({options})=>options}
+        searchValue={commitSearch} onSearchChange={value=>{setCommitSearch(value);p.onQuery(value);}} filter={({options})=>options}
+        onDropdownOpen={()=>{setCommitSearch("");p.onQuery("");}}
+        onDropdownClose={()=>{setCommitSearch(p.preferences.commitSubject);p.onQuery("");}}
         nothingFoundMessage={p.commits.status==="loading" ? "Loading commits…" : "No matching commits"}
         data={commitOptions}/>
       <Group gap="xs" mt={4}>

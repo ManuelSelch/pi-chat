@@ -4,7 +4,7 @@
 - Browser consumers supply React/Mantine/Tabler peers, scan web entry classes with Tailwind v4 and provide the `--pi-*` theme tokens used by Chat.
 - Web entry contributes the **Changes** tab at the generic `side-panel` placement. Its provider owns per-project comparison preferences; unmounting the panel cancels local waits.
 - Host entry provides read-only context, commit-history and diff RPC methods. Chat explicitly registers both environments and allowlists the contract.
-- **Uncommitted** compares HEAD (or an unborn repository’s empty tree) with the working tree. **Branch** compares its merge-base with HEAD against the working tree. **Commit** compares a selected commit against the working tree, not just that commit’s own patch.
+- **Uncommitted** compares HEAD (or an unborn repository’s empty tree) with the working tree. **Branch** defaults to `main` and compares its merge-base with HEAD against the working tree. **Commit** defaults to the latest commit and compares the selected commit with its first parent (or the empty tree for a root commit).
 - Branches include local and locally available remote-tracking refs, without fetching or guessing a parent. Commit choices search HEAD ancestry by message and paginate in pages of 50; labels never display hashes.
 - Includes staged, unstaged and non-ignored untracked files. Renames appear as deletion/addition. Binary and metadata-only changes have explicit placeholders; symlinks display link text.
 - Git uses argument arrays, disabled external diff/textconv, timeouts and bounded output. Comparisons over 200 files or 2 MiB fail clearly rather than silently truncating. No staging, reverting, editing, polling or remote network operations.

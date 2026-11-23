@@ -57,6 +57,7 @@ export class GitService {
   async diff(projectPath: string, comparison: Comparison): Promise<DiffSnapshot> {
     const root = await this.root(projectPath);
     let baseCommit: string;
+    let commitDiffArgs: string[] | null = null;
     if (comparison.kind === "uncommitted") {
       try { baseCommit = await this.resolveCommit(root, "HEAD"); }
       catch {
@@ -68,11 +69,17 @@ export class GitService {
       if (comparison.kind === "branch") {
         try { baseCommit = (await runGit(root, ["merge-base", "HEAD", ref])).trim(); }
         catch { throw new GitError("invalidBase", "This branch has no common ancestor with HEAD."); }
-      } else baseCommit = ref;
+      } else {
+        const parents = (await runGit(root, ["rev-list", "--parents", "-n", "1", ref])).trim().split(" ");
+        baseCommit = parents[1] ?? ref;
+        commitDiffArgs = parents[1] ? [baseCommit, ref] : ["--root", "--no-commit-id", "-r", ref];
+      }
     }
+    const diffCommand = commitDiffArgs && comparison.kind === "commit" && commitDiffArgs[0] === "--root" ? "diff-tree" : "diff";
+    const diffArgs = commitDiffArgs ?? [baseCommit];
     const [names, untracked, branch] = await Promise.all([
-      runGit(root, ["diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-status", "-z", baseCommit, "--"]),
-      runGit(root, ["ls-files", "--others", "--exclude-standard", "-z"]), this.branch(root),
+      runGit(root, [diffCommand, "--no-ext-diff", "--no-textconv", "--no-renames", "--name-status", "-z", ...diffArgs, "--"]),
+      commitDiffArgs ? Promise.resolve("") : runGit(root, ["ls-files", "--others", "--exclude-standard", "-z"]), this.branch(root),
     ]);
     const entries = new Map<string, ChangedFile["status"]>();
     const fields = names.split("\0");
@@ -89,7 +96,7 @@ export class GitService {
     for (const [path, status] of [...entries].sort(([a], [b]) => a.localeCompare(b))) {
       const patch = untrackedPaths.has(path)
         ? await this.untrackedPatch(root, path)
-        : await runGit(root, ["diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=3", baseCommit, "--", path]);
+        : await runGit(root, [diffCommand, "--no-ext-diff", "--no-textconv", "--no-renames", ...(diffCommand === "diff-tree" ? ["-p"] : []), "--unified=3", ...diffArgs, "--", path]);
       bytes += Buffer.byteLength(patch);
       if (bytes > MAX_BYTES) throw new GitError("tooLarge", "The comparison exceeds 2 MiB. Choose a more recent base.");
       const lines = parsePatch(patch);

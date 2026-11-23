@@ -28,13 +28,24 @@ it("compares from a branch merge-base rather than its advanced tip", async()=>{
   git.shouldShowFiles(["feature"]);
   await git.shouldListBranches(["feature","main"]);
 });
-it("uses the selected commit as the base against the current working tree", async()=>{
-  await git.write("file","first\n"); const sha = git.commit("First");
-  await git.write("file","second\n"); git.commit("Second"); await git.write("file","third\n");
+it("shows only the selected commit, excluding later and uncommitted changes", async()=>{
+  await git.write("file","first\n"); git.commit("First");
+  await git.write("file","second\n"); const sha = git.commit("Second");
+  await git.write("file","third\n"); git.commit("Third"); await git.write("file","working\n");
+  await git.write("untracked","not committed\n");
 
   await git.compare({kind:"commit",sha});
 
-  git.shouldShowPatch("file","-first\n+third");
+  git.shouldShowFiles(["file"]);
+  git.shouldShowPatch("file","-first\n+second");
+});
+it("shows the initial commit against an empty tree", async()=>{
+  await git.write("file","first\n"); const sha = git.commit("First");
+
+  await git.compare({kind:"commit",sha});
+
+  git.shouldShowFiles(["file"]);
+  git.shouldShowPatch("file","+first");
 });
 it("lists commit names newest first and filters history", async()=>{
   git.commit("First"); git.commit("Second"); git.commit("Third");
