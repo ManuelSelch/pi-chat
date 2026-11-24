@@ -15,7 +15,7 @@ export function createDiffViewerHost(service = new GitService()): HostPluginEntr
   return { setup(ctx) {
     ctx.provide(diffViewerContract, {
       context: input => safely(() => service.context(input.projectPath)),
-      commits: input => safely(() => service.commits(input.projectPath, input.query, input.offset)),
+      commits: input => safely(() => service.commits(input.projectPath)),
       diff: input => safely(() => service.diff(input.projectPath, input.comparison)),
     });
   } };

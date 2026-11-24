@@ -27,9 +27,9 @@ it("sanitizes filesystem and unexpected process errors",async()=>{
 });
 it("returns commit choices without changing their opaque identities",async()=>{
   const service = new GitService();
-  const page = {commits:[{sha:"a".repeat(40),subject:"Fix things",author:"Test",date:"2026-01-01"}],nextOffset:null};
+  const page = {commits:[{sha:"a".repeat(40),subject:"Fix things",author:"Test",date:"2026-01-01"}]};
   vi.spyOn(service,"commits").mockResolvedValue(page);
   const methods = await handlers(service);
 
-  expect(await methods.commits({projectPath:"/repo",query:"fix",offset:0})).toEqual({ok:true,value:page});
+  expect(await methods.commits({projectPath:"/repo"})).toEqual({ok:true,value:page});
 });

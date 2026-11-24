@@ -33,7 +33,7 @@ describe("server host binding", () => {
     expect(options.pluginRpcContracts).toEqual([
       expect.objectContaining({ id: "file-opening", version: 1 }),
       expect.objectContaining({ id: "folder-opening", version: 1 }),
-      expect.objectContaining({ id: "diff-viewer", version: 1 }),
+      expect.objectContaining({ id: "diff-viewer", version: 2 }),
     ]);
   });
 

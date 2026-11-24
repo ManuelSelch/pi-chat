@@ -1,6 +1,6 @@
 # Rendering and inline review
 
-- The lazily loaded `@pierre/diffs` CodeView owns multi-file/row virtualization, sticky headings, wrapping and scroll geometry. Navigation uses item IDs; selecting a file does not replace the comparison.
+- The lazily loaded `@pierre/diffs` CodeView owns multi-file/row virtualization, sticky headings, wrapping and scroll geometry. Navigation uses item IDs; selecting a file does not replace the comparison. Main’s grouped/resizable file explorer and path filter are preserved: filtering narrows navigation, virtualized items and summary totals, while kind/folder collapse only affects navigation. Filtering does not delete review drafts or remove them from the batch.
 - Two bundled module workers highlight visible diffs, with a 32-entry AST cache and 2-second initialization timeout. Closing the panel tears down the pool. The library shows plain text before highlighting and falls back on worker failure.
 - Files over 2,000 rendered patch rows or 128,000 patch characters stay plain. Long-line highlighting is bounded. These limits never truncate content; parser/render failures expose complete plain patches.
 - Renderer shadow-root CSS consumes host Mantine, `--pi-*` and `--hljs-*` variables. No global theme mutations. Browser consumers must bundle the module worker referenced with `new URL(..., import.meta.url)`; Chat uses Vite ES-format workers so highlighter language/backends remain lazy chunks.

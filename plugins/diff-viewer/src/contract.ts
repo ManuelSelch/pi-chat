@@ -23,17 +23,18 @@ export const diffSnapshotSchema = z.object({
 });
 export const repositoryContextSchema = z.object({
   branch: z.string(),
+  defaultBranch: z.string().nullable(),
+  suggestedBranches: z.array(z.string()).max(2),
   branches: z.array(z.object({ ref: z.string(), name: z.string(), remote: z.boolean() })),
 });
 export const commitPageSchema = z.object({
-  commits: z.array(z.object({ sha: objectId, subject: z.string(), author: z.string(), date: z.string() })),
-  nextOffset: z.number().int().nonnegative().nullable(),
+  commits: z.array(z.object({ sha: objectId, subject: z.string(), author: z.string(), date: z.string() })).max(5),
 });
 export const diffViewerContract = defineRemoteContract({
-  id: "diff-viewer", version: 1,
+  id: "diff-viewer", version: 2,
   methods: {
     context: { input: z.object({ projectPath }).strict(), output: result(repositoryContextSchema) },
-    commits: { input: z.object({ projectPath, query: z.string().max(200), offset: z.number().int().min(0).max(100000) }).strict(), output: result(commitPageSchema) },
+    commits: { input: z.object({ projectPath }).strict(), output: result(commitPageSchema) },
     diff: { input: z.object({ projectPath, comparison: comparisonSchema }).strict(), output: result(diffSnapshotSchema) },
   },
 });

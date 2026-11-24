@@ -34,7 +34,7 @@ it("publishes versioned collapsed state and preserves deleted counts",()=>{
   let props=received.mock.calls.at(-1)![0] as CodeViewProps<ReviewComment,undefined>;
   const firstVersion=props.items?.[0]?.version;
   expect(props.items?.[0]?.collapsed).toBe(true);
-  expect(screen.getByText("−1")).toBeTruthy();
+  expect(screen.getAllByText("−1")).toHaveLength(2);
 
   fireEvent.click(screen.getByRole("button",{name:"Expand first.ts"}));
 

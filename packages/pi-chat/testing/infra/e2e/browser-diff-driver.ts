@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFile, unlink, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 
@@ -28,7 +28,9 @@ export class BrowserDiffDriver {
   async addLineComment(path:string,body:string) {
     await this.chooseFile(path);
     const diff=this.diff(path);
-    await diff.locator("[data-column-number]").first().hover();
+    const gutter=diff.locator("[data-column-number]").first();
+    await gutter.evaluate(element=>element.scrollIntoView({block:"center",inline:"nearest"}));
+    await gutter.hover();
     await diff.getByRole("button",{name:"Add line comment",exact:true}).click();
     const editor=this.page.getByRole("textbox",{name:"Review comment"});
     await editor.fill(body);
@@ -67,6 +69,69 @@ export class BrowserDiffDriver {
     git("add","-A");git("commit","-m","Prepare viewer");
     await writeFile(join(this.projectPath,"one.ts"),Array.from({length:80},(_,i)=>"after "+i).join("\n")+"\n");
     await writeFile(join(this.projectPath,"two.ts"),"after\n");
+  }
+  async prepareGroupedChanges() {
+    await this.prepareChanges();
+    await appendFile(join(this.projectPath,".gitignore"),"!src/\n!src/**\n!tests/\n!tests/**\n!docs/\n!docs/**\n!package.json\n");
+    const paths = ["src/features/checkout/Checkout.tsx","src/features/checkout/__tests__/Checkout.test.tsx","src/styles/global.css","tests/e2e/checkout.spec.ts","docs/checkout.md","package.json"];
+    for (const path of paths) {
+      await mkdir(join(this.projectPath,path,".."),{recursive:true});
+      await writeFile(join(this.projectPath,path),path.endsWith(".json") ? "{}\n" : "new content\n");
+    }
+  }
+  async shouldGroupByKind() {
+    const nav = this.page.getByRole("navigation",{name:"Changed files"});
+    for (const name of ["Source","Tests","Docs","Config"]) await expect(nav.getByRole("button",{name,exact:true})).toHaveAttribute("aria-expanded","true");
+    await expect(nav.getByRole("button",{name:"Folder src/features/checkout",exact:true})).toBeVisible();
+    await expect(nav.getByRole("button",{name:"src/styles/global.css",exact:true})).toBeVisible();
+    await expect(nav.getByText("Files",{exact:true})).toHaveCount(0);
+    await expect(nav.getByText("Checkout.tsx",{exact:true})).toHaveCSS("font-size","11px");
+    await expect(nav.getByRole("button",{name:"Folder src/features/checkout",exact:true}).locator("span").first()).toHaveCSS("font-size","11px");
+    await expect(nav.getByRole("button",{name:"Source",exact:true}).locator("strong")).toHaveCSS("font-size","11px");
+    const paths = await nav.locator("[aria-pressed]").evaluateAll(buttons=>buttons.map(button=>button.getAttribute("aria-label")));
+    expect(paths).toHaveLength(9);
+    for (const path of paths) {
+      await this.chooseFile(path!);
+      await expect(this.page.getByRole("region",{name:"Diff for "+path,exact:true})).toBeVisible();
+      const rendered=await this.page.getByRole("region",{name:"All file diffs"}).locator("[data-diff-file]").evaluateAll(sections=>sections.map(section=>section.getAttribute("data-diff-file")));
+      const positions=rendered.map(path=>paths.indexOf(path));
+      expect(positions).toEqual([...positions].sort((a,b)=>a-b));
+    }
+    await this.chooseFile(paths[0]!);
+  }
+  async collapseSourceGroup() {
+    await this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:"Source",exact:true}).click();
+  }
+  async shouldCollapseNavigationOnly() {
+    const nav = this.page.getByRole("navigation",{name:"Changed files"});
+    await expect(nav.getByRole("button",{name:"src/features/checkout/Checkout.tsx",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("region",{name:"Diff for src/features/checkout/Checkout.tsx",exact:true})).toHaveCount(1);
+    await expect(this.page.getByText("9 files changed",{exact:true})).toBeVisible();
+    await expect(nav.getByRole("button",{name:"src/features/checkout/__tests__/Checkout.test.tsx",exact:true})).toBeVisible();
+  }
+  async filterFiles(query:string) {
+    await this.page.getByRole("textbox",{name:"Filter files by path"}).fill(query);
+  }
+  async shouldShowFilteredCheckoutChanges() {
+    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    await expect(stream.locator("[data-diff-file]")).toHaveCount(4);
+    await expect(this.page.getByText("4 files changed",{exact:true})).toBeVisible();
+    await expect(this.page.getByRole("button",{name:"src/styles/global.css",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("region",{name:"Diff for src/styles/global.css",exact:true})).toHaveCount(0);
+  }
+  async shouldKeepUnmatchedFilterUsable() {
+    await expect(this.page.getByRole("textbox",{name:"Filter files by path"})).toBeVisible();
+    await expect(this.page.getByRole("status")).toHaveText("No matching diffs");
+    await expect(this.page.getByText("0 files changed",{exact:true})).toBeVisible();
+  }
+  async shouldRestoreAllGroupedChanges() {
+    await expect(this.page.getByText("9 files changed",{exact:true})).toBeVisible();
+    const nav=this.page.getByRole("navigation",{name:"Changed files"});
+    const source=nav.getByRole("button",{name:"Source",exact:true});
+    if (await source.getAttribute("aria-expanded")==="false") await source.click();
+    await expect(nav.locator("[aria-pressed]")).toHaveCount(9);
+    await this.chooseFile("src/features/checkout/Checkout.tsx");
+    await expect(this.diff("src/features/checkout/Checkout.tsx").locator("[data-line]").first()).toHaveText("new content");
   }
   async prepareLongAndDeletedChanges() {
     await this.prepareChanges();
@@ -224,22 +289,24 @@ export class BrowserDiffDriver {
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
   }
   async selectBranchMode() {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Branch",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("menuitem",{name:"Branch",exact:true}).click();
   }
   async shouldDefaultToMain() {
-    const picker = this.page.getByRole("combobox",{name:"Comparison branch",exact:true});
-    await expect(picker).toHaveValue("main");
+    const picker = this.page.getByRole("button",{name:"Comparison branch",exact:true});
+    await expect(picker).toHaveText("Againstmain");
     await picker.click();
-    await expect(this.page.getByRole("option",{name:"feature",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"main",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"feature",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("textbox",{name:"Search all branches",exact:true})).toHaveCount(0);
     await picker.press("Escape");
   }
   async selectCommitMode() {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Commit",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("menuitem",{name:"Commit",exact:true}).click();
   }
   async shouldShowLatestCommit() {
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue("Prepare viewer");
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText("Prepare viewer");
     const diff=this.diff("two.ts");
     await expect(diff.locator("[data-line]").filter({hasText:/^before\s*$/})).toBeVisible();
     await expect(diff.locator("[data-line]").filter({hasText:/^committed\s*$/})).toBeVisible();
@@ -252,17 +319,17 @@ export class BrowserDiffDriver {
     await expect(diff.locator("[data-line]").filter({hasText:/^after\s*$/})).toHaveCount(0);
   }
   async chooseBranch(name:string) {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Branch",exact:true}).click();
-    await this.page.getByRole("combobox",{name:"Comparison branch",exact:true}).fill(name);
+    await this.selectBranchMode();
+    await this.page.getByRole("button",{name:"Comparison branch",exact:true}).click();
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    await this.page.getByRole("textbox",{name:"Search all branches",exact:true}).fill(name);
     await this.page.getByRole("option",{name,exact:true}).click();
   }
   async chooseCommit(subject:string) {
-    await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison commit",exact:true}).click();
     await expect(this.page.getByRole("option",{name:subject,exact:true})).toBeVisible();
-    await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).fill(subject);
     await this.page.getByRole("option",{name:subject,exact:true}).click();
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText(subject);
   }
   async shouldShowBeforeAndAfter() {
     const diff=this.diff("two.ts");
@@ -270,8 +337,55 @@ export class BrowserDiffDriver {
     await expect(diff.locator("[data-line]").filter({hasText:/^after\s*$/})).toBeVisible();
   }
   async shouldRememberCommit(subject:string) {
-    await expect(this.page.getByRole("combobox",{name:"Comparison mode",exact:true})).toHaveValue("Commit");
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
+    await expect(this.page.getByRole("button",{name:"Comparison mode",exact:true})).toHaveText("Commit");
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText(subject);
+  }
+  async preparePickerChoices() {
+    await this.prepareChanges();
+    const git = (...args:string[])=>execFileSync("git",["-C",this.projectPath,"-c","user.name=Test","-c","user.email=test@example.invalid",...args],{stdio:"pipe"});
+    git("branch","unrelated","main");
+    for (let index=1;index<=6;index++) git("commit","--allow-empty","-m","Recent change "+index);
+    git("branch","parent","HEAD~2");
+  }
+  async shouldSearchBranchesWithKeyboard() {
+    const trigger = this.page.getByRole("button",{name:"Comparison branch",exact:true});
+    await expect(trigger).toHaveText("Againstmain");
+    await trigger.click();
+    await expect(this.page.getByRole("option",{name:"parent",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toHaveCount(0);
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    const search = this.page.getByRole("textbox",{name:"Search all branches",exact:true});
+    await expect(search).toBeFocused();
+    await search.fill("no-such-branch");
+    await expect(this.page.getByText("No matching branches",{exact:true})).toBeVisible();
+    await expect(trigger).toHaveText("Againstmain");
+    await this.page.getByRole("button",{name:"Back to suggestions",exact:true}).click();
+    await expect(search).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    await search.fill("unrelated");
+    await search.press("ArrowDown");
+    await search.press("Enter");
+    await expect(trigger).toHaveText("Againstunrelated");
+    await expect(trigger).toBeFocused();
+    await trigger.click();
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toBeVisible();
+    await trigger.press("Escape");
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toBeHidden();
+  }
+  async shouldOfferOnlyFiveRecentCommits() {
+    const trigger = this.page.getByRole("button",{name:"Comparison commit",exact:true});
+    await expect(trigger).toHaveText("Recent change 6");
+    await trigger.click();
+    await expect(this.page.getByRole("option")).toHaveCount(5);
+    await expect(this.page.getByRole("option",{name:"Recent change 2",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"Recent change 1",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("textbox",{name:/Search.*commits/})).toHaveCount(0);
+    await expect(this.page.getByRole("button",{name:"Older",exact:true})).toHaveCount(0);
+    await trigger.press("ArrowDown");
+    await trigger.press("Enter");
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveText("Recent change 6");
   }
   async useCompactViewport() { await this.page.setViewportSize({width:1000,height:900}); }
   async shouldShowFullWidthView() {

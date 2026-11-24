@@ -13,14 +13,14 @@ export function DiffViewerContainer() {
   const {host,context,diff,comparison,preferences,update} = data;
   useEffect(()=>{
     if (preferences.mode!=="branch" || preferences.branch || context.status!=="ready") return;
-    const main = context.value.branches.find(branch=>branch.ref==="refs/heads/main") ?? context.value.branches.find(branch=>branch.ref==="refs/remotes/origin/main");
-    if (main) update({branch:main.ref});
+    const base = context.value.defaultBranch ?? context.value.suggestedBranches[0];
+    if (base) update({branch:base});
   },[preferences.mode,preferences.branch,context,update]);
   useEffect(()=>{
-    if (preferences.mode!=="commit" || preferences.commit || commits.page.status!=="ready" || commits.query || commits.offset!==0) return;
-    const latest = commits.page.value.commits[0];
+    if (preferences.mode!=="commit" || preferences.commit || commits.status!=="ready") return;
+    const latest = commits.value.commits[0];
     if (latest) update({commit:latest.sha,commitSubject:latest.subject});
-  },[preferences.mode,preferences.commit,commits.page,commits.query,commits.offset,update]);
+  },[preferences.mode,preferences.commit,commits,update]);
   const available = host.connected && !!host.projectPath;
   const snapshot = available && comparison && diff.status==="ready" ? diff.value : null;
   const review = useReview(snapshot,comparison);
@@ -29,8 +29,7 @@ export function DiffViewerContainer() {
     diff.status==="error" ? diff.message : diff.status==="loading" ? "Loading changes…" : null;
   return <>
     <ComparisonControls wrap={wrap} onToggleWrap={()=>setWrap(current=>!current)} context={context}
-      preferences={data.preferences} update={data.update} commits={commits.page} onQuery={commits.setQuery}
-      offset={commits.offset} onNext={commits.next} onPrevious={commits.previous} loading={available && !!comparison && diff.status==="loading"} disabled={!available} onRefresh={data.refresh}/>
+      preferences={data.preferences} update={data.update} commits={commits} loading={available && !!comparison && diff.status==="loading"} disabled={!available} onRefresh={data.refresh}/>
     <DiffViewer key={JSON.stringify([host.activeSessionId,host.projectPath,comparison,snapshot?.baseCommit])} wrap={wrap} snapshot={snapshot} review={review} message={message} error={available && (context.status==="error" || (!!comparison && diff.status==="error"))} onRetry={data.refresh}/>
     <ReviewFooter review={review}/>
   </>;

@@ -1,0 +1,16 @@
+# File navigation alternatives
+- Revision: 3. Option B approved for implementation. User: “apporved. implement option B”. Options A and C are not approved for implementation.
+- Goal: compare how changed-file navigation communicates feature concentration and global outliers.
+- Same nine fake checkout changes in all variants, including colocated tests, separate e2e tests, docs, a global stylesheet and root config.
+- A: compact folder tree with changed-file counts, keeping repository boundaries visible.
+- B: Source / Tests / Docs / Config sections, each with a compact folder tree; no dividers between kinds.
+- C: feature-area sections with filename and parent path; Checkout includes related docs and external tests. Shared styles and Project config remain separate.
+- Direct states: `?view=folders`, `?view=kinds`, `?view=areas`.
+- Interactions: switch variants, collapse sections/folders, filter by full path, jump to diff, scroll selection, wrap lines, resize navigation with its native lower-right handle, hide navigation, expand viewer, simulated refresh.
+- Filtering affects navigation, diff stream and footer counts. Folder collapse affects navigation only.
+- Explorer starts with the filter field; no Files header or expand-all icon. Total file count remains in the footer.
+- Responsive: chat beside Changes on wide screens; Changes replaces chat below 1050px. Narrow screens retain a smaller navigation pane with a hide control.
+- Area assignments are manually authored fixture data, not inferred feature detection. Production grouping rules are unresolved.
+- Comparison buttons are visual context, not functional selectors. No backend, real Git, persistence or production changes. Existing production comparison flows are not proposed removals.
+- Borrowed diff presentation from the preserved polish mockup. Agentation uses local copy-and-paste annotations.
+- HTTP/module serving checks do not establish browser rendering or interaction correctness; user review pending.

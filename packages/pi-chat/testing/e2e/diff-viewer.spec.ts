@@ -22,12 +22,35 @@ test("inline comments survive panel toggles and send one contextual batch withou
     await app.changes.close();
     await app.changes.open();
     await app.changes.shouldHaveComments(2);
+    await app.changes.filterFiles("one.ts");
+    await app.changes.shouldHaveComments(2);
     await app.changes.sendComments();
 
     await app.changes.shouldClearSubmittedComments();
     await app.changes.shouldShowBatchOnce(batch);
     await app.chat.shouldShowAssistantReply("Feedback received.");
     await app.chat.shouldHaveDraft("Keep my chat draft");
+  } finally { await app.dispose(); }
+});
+
+test("file kinds preserve folder structure and filter the continuous diff stream",async({page})=>{
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.prepareGroupedChanges();
+    await app.sessions.create({responses:[]});
+    await app.changes.open();
+
+    await app.changes.shouldGroupByKind();
+    await app.changes.collapseSourceGroup();
+    await app.changes.shouldCollapseNavigationOnly();
+    await app.changes.filterFiles("CHECKOUT");
+    await app.changes.shouldShowFilteredCheckoutChanges();
+    await app.changes.chooseFile("tests/e2e/checkout.spec.ts");
+    await app.changes.shouldKeepSelected("tests/e2e/checkout.spec.ts");
+    await app.changes.filterFiles("no-matching-path");
+    await app.changes.shouldKeepUnmatchedFilterUsable();
+    await app.changes.filterFiles("");
+    await app.changes.shouldRestoreAllGroupedChanges();
   } finally { await app.dispose(); }
 });
 
@@ -70,6 +93,23 @@ test("diff readability supports wrapping, fixed gutters and collapsed deleted fi
     await app.changes.expandDeletedFileWithKeyboard();
     await app.changes.shouldHaveNoTooltips();
     await app.changes.shouldRenderHtmlSafely();
+  } finally { await app.dispose(); }
+});
+
+test("comparison pickers keep the base visible, support keyboard search and limit recent commits",async({page})=>{
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.preparePickerChoices();
+    await app.sessions.create({responses:[]});
+    await app.changes.open();
+
+    await app.changes.shouldSearchBranchesWithKeyboard();
+    await app.changes.selectCommitMode();
+    await app.changes.shouldOfferOnlyFiveRecentCommits();
+    await app.changes.chooseCommit("Recent change 2");
+    await app.changes.close();
+    await app.changes.open();
+    await app.changes.shouldRememberCommit("Recent change 2");
   } finally { await app.dispose(); }
 });
 

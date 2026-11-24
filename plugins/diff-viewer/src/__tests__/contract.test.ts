@@ -9,5 +9,6 @@ it("rejects unknown modes, option-like branches and non-object commit identities
 });
 it("accepts opaque full commit IDs while keeping labels out of RPC comparison identity",()=>{
   expect(comparisonSchema.parse({kind:"commit",sha:"a".repeat(40)})).toEqual({kind:"commit",sha:"a".repeat(40)});
-  expect(diffViewerContract.methods.commits.input.parse({projectPath:"/repo",query:"fix tests",offset:50})).toEqual({projectPath:"/repo",query:"fix tests",offset:50});
+  expect(diffViewerContract.methods.commits.input.parse({projectPath:"/repo"})).toEqual({projectPath:"/repo"});
+  expect(diffViewerContract.methods.commits.input.safeParse({projectPath:"/repo",query:"fix",offset:50}).success).toBe(false);
 });
