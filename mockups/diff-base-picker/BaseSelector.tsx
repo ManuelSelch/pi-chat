@@ -15,23 +15,24 @@ const branches = [
   {ref:"refs/remotes/upstream/main",name:"upstream/main",note:"Remote, different tip"},
 ];
 const commits = [
-  {ref:"72ac6c4",name:"Add browser contributions",note:"2 hours ago"},
+  {ref:"72ac6c4",name:"Add browser contributions",note:"Latest"},
   {ref:"4e521b8",name:"Isolate folder opening",note:"Yesterday"},
   {ref:"13bf0d2",name:"Preserve composer focus",note:"Yesterday"},
   {ref:"9bd20a1",name:"Add chimes plugin",note:"2 days ago"},
+  {ref:"51e7a02",name:"Register plugin panel slots",note:"2 days ago"},
 ];
 type Mode = "branch" | "uncommitted" | "commit";
 const labels: Record<Mode,string> = {branch:"Branch",uncommitted:"Uncommitted",commit:"Commit"};
 
 export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)=>void}) {
-  const [mode,setMode] = useState<Mode>("branch");
-  const [branch,setBranch] = useState(base.replace("branch:",""));
+  const [mode,setMode] = useState<Mode>(base.startsWith("commit:") ? "commit" : "branch");
+  const [branch,setBranch] = useState(base.startsWith("branch:") ? base.replace("branch:","") : branches[0].ref);
   const [commit,setCommit] = useState(commits[0].ref);
   const [all,setAll] = useState(false);
   const [query,setQuery] = useState("");
   const search = useRef<HTMLInputElement>(null);
   const picker = useCombobox({onDropdownClose:()=>{setQuery("");setAll(false);picker.resetSelectedOption();}});
-  const searching = all || mode === "commit";
+  const searching = all && mode === "branch";
   useEffect(()=>{
     if (picker.dropdownOpened && searching) search.current?.focus();
   },[picker.dropdownOpened,searching]);
@@ -39,6 +40,7 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
   const options = mode === "branch" ? branches : commits;
   const filtered = options.filter(option=>{
     if (!searching && mode === "branch") return option.ref === selected || ("suggested" in option && option.suggested);
+    if (mode === "commit") return true;
     return option.name.toLowerCase().includes(query.toLowerCase());
   });
   const name = options.find(option=>option.ref===selected)?.name ?? selected;
@@ -64,7 +66,7 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
         </Button>
       </Combobox.Target>
       <Combobox.Dropdown className="base-popup">
-        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder={mode === "branch" ? "Search all branches…" : "Search commits…"} aria-label={mode === "branch" ? "Search all branches" : "Search commits"} leftSection={<IconSearch size={14}/>} /> : <Text className="base-popup-heading" size="xs" c="dimmed">Compare against</Text>}
+        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder="Search all branches…" aria-label="Search all branches" leftSection={<IconSearch size={14}/>} /> : <Text className="base-popup-heading" size="xs" c="dimmed">{mode === "commit" ? "Recent commits" : "Compare against"}</Text>}
         <Combobox.Options className="base-options">
           {filtered.length ? filtered.map(option=><Combobox.Option key={option.ref} value={option.ref} active={option.ref===selected} className="base-option">
             <span className="base-option-check">{option.ref===selected && <IconCheck size={14}/>}</span>

@@ -11,7 +11,7 @@ export function DiffViewerMockup() {
   const [opened,setOpened] = useState(true);
   const [wrap,setWrap] = useState(new URLSearchParams(location.search).get("wrap") !== "off");
   const [session,setSession] = useState(1);
-  const [base,setBase] = useState(new URLSearchParams(location.search).get("state")==="stacked" ? "branch:refs/heads/feature/plugin-shell" : "branch:refs/heads/main");
+  const [base,setBase] = useState(new URLSearchParams(location.search).get("mode")==="commit" ? "commit:72ac6c4" : new URLSearchParams(location.search).get("state")==="stacked" ? "branch:refs/heads/feature/plugin-shell" : "branch:refs/heads/main");
   const [refreshing,setRefreshing] = useState(false);
   const choosingBase = base.endsWith(":");
   const noDiff = choosingBase || state==="empty" || state==="error" || state==="not-git" || state==="loading";
