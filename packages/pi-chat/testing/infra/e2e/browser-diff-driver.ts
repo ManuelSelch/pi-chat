@@ -42,6 +42,14 @@ export class BrowserDiffDriver {
     expect(await code.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
     await expect(this.page.getByRole("button",{name:"Wrap lines"})).toHaveAttribute("aria-pressed","true");
   }
+  async shouldHighlightSyntax() {
+    const code = this.page.getByRole("region",{name:"Diff for one.ts",exact:true}).locator("code").filter({hasText:"const longValue"});
+    const keyword = code.locator(".hljs-keyword");
+    await expect(keyword).toHaveText("const");
+    expect(await keyword.evaluate(element=>getComputedStyle(element).color!==getComputedStyle(element.parentElement!).color)).toBe(true);
+    await expect(code.locator(".hljs-string")).toContainText("x".repeat(400));
+    expect(await code.textContent()).toBe('const longValue = "'+"x".repeat(400)+'";');
+  }
   async toggleWrapping() { await this.page.getByRole("button",{name:"Wrap lines"}).click(); }
   async shouldScrollWithConsistentBackgrounds() {
     const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});

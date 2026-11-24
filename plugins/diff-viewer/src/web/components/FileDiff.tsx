@@ -3,10 +3,12 @@ import { UnstyledButton } from "@mantine/core";
 import { IconChevronDown, IconChevronRight } from "@tabler/icons-react";
 import type { ChangedFile } from "../../contract.js";
 import { parsePatch } from "../../domain/parse-patch.js";
+import { highlightPatch } from "../lib/highlight-patch.js";
 
 export function FileDiff({file,wrap=true}:{file:ChangedFile;wrap?:boolean}) {
   const lines = useMemo(()=>parsePatch(file.patch),[file.patch]);
   const [expanded,setExpanded] = useState(file.status!=="D");
+  const highlighted = useMemo(()=>expanded && !file.binary ? highlightPatch(file.path,lines) : [],[expanded,file.binary,file.path,lines]);
   const headingClass = "sticky top-0 z-1 flex w-full items-center justify-between gap-3 border-b border-(--mantine-color-default-border) bg-(--mantine-color-default) px-4 py-3 font-mono text-[11px]";
   const heading = <>
     <span className="flex min-w-0 items-center gap-2 wrap-anywhere">{file.status==="D" && (expanded ? <IconChevronDown size={14} className="shrink-0"/> : <IconChevronRight size={14} className="shrink-0"/>)}<span>{file.path}</span></span>
@@ -23,7 +25,7 @@ export function FileDiff({file,wrap=true}:{file:ChangedFile;wrap?:boolean}) {
             <span aria-hidden="true" className="sticky left-0 bg-(--diff-row-bg) text-right text-[10px] text-(--mantine-color-dimmed) select-none">{line.old}</span>
             <span aria-hidden="true" className="sticky left-[34px] bg-(--diff-row-bg) text-right text-[10px] text-(--mantine-color-dimmed) select-none">{line.next}</span>
             <span aria-hidden="true" className="sticky left-[68px] bg-(--diff-row-bg) text-center select-none">{line.kind==="add" ? "+" : line.kind==="remove" ? "−" : " "}</span>
-            <code className={`min-w-0 pr-5 ${wrap ? "whitespace-pre-wrap wrap-anywhere" : "whitespace-pre"}`}>{line.text || " "}</code>
+            <code className={`min-w-0 pr-5 ${wrap ? "whitespace-pre-wrap wrap-anywhere" : "whitespace-pre"}`}>{line.text ? highlighted[index]?.map((segment,key)=>segment.classes.length ? <span key={key} className={segment.classes.join(" ")}>{segment.text}</span> : segment.text) ?? line.text : " "}</code>
           </div>)}
       </div>
     </div>)}

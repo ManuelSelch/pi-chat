@@ -49,6 +49,19 @@ it("can disable wrapping without changing content",()=>{
   expect(code.parentElement?.parentElement?.classList.contains("w-max")).toBe(true);
 });
 
+it("highlights code safely without changing its text or diff layout",()=>{
+  const patch = '@@ -1 +1 @@\n-const before = "<script>bad()</script>";\n+const after = "safe";\n';
+  render(<MantineProvider><FileDiff file={{...file,status:"M",patch}}/></MantineProvider>);
+
+  const code = screen.getAllByRole("code");
+  expect(code[0]!.textContent).toBe('const before = "<script>bad()</script>";');
+  expect(code[1]!.textContent).toBe('const after = "safe";');
+  expect(code[0]!.querySelector(".hljs-keyword")?.textContent).toBe("const");
+  expect(code[1]!.querySelector(".hljs-string")?.textContent).toBe('"safe"');
+  expect(code[0]!.querySelector("script")).toBeNull();
+  expect(code[1]!.classList.contains("whitespace-pre-wrap")).toBe(true);
+});
+
 it("keeps modified patches expanded",()=>{
   render(<MantineProvider><FileDiff file={{...file,status:"M"}}/></MantineProvider>);
 

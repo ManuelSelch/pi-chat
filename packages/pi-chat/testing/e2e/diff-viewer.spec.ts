@@ -10,8 +10,10 @@ test("diff readability supports wrapping, fixed gutters and collapsed deleted fi
     await app.changes.open();
 
     await app.changes.shouldWrapLongLines();
+    await app.changes.shouldHighlightSyntax();
     await app.changes.toggleWrapping();
     await app.changes.shouldScrollWithConsistentBackgrounds();
+    await app.changes.shouldHighlightSyntax();
     await app.changes.shouldCollapseDeletedFile();
     await app.changes.chooseFile("deleted.ts");
     await app.changes.shouldKeepSelected("deleted.ts");
