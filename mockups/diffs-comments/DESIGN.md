@@ -1,0 +1,14 @@
+# Diffs comments
+- Revision: 1. Status: in review; no production approval.
+- Goal: evaluate actual @pierre/diffs 1.7.1 inside the existing chat/Changes split, with inline draft comments and simulated batch delivery.
+- Uses virtualized CodeView, two highlighting workers, unified view, wrapping toggle, sticky custom headers, collapse/expand and file navigation. Deleted fixture starts collapsed.
+- Hover gutter comment control opens an inline editor; drag line selection uses the library selection UI. This revision comments on a single line, not a selected range. File-heading comment button provides keyboard-accessible first-line entry.
+- Save/edit/delete drafts; Send batches saved comments into the fake transcript without touching the chat composer. Disabled while editing. Closing/reopening the panel preserves drafts.
+- Existing branch/commit/uncommitted picker is reused for layout only; selections do not change fixtures. Refresh scrolls to the start, not a real Git reload.
+- Narrow layouts replace chat with the Changes panel as in the prior mockup; close panel to see simulated sent feedback.
+- URLs: default empty review; ?state=comments starts with one saved draft; ?state=large adds a 6,000-line file with 2,000 changed lines.
+- Fixture diffs are computed locally, not loaded from Git. No backend, persistence, stale-anchor handling, session switching, acknowledgement or retries. No actual agent messages.
+- Large fixture supports manual exploration, not a performance benchmark. Production requires representative before/after measurements and bounded highlighting/failure checks.
+- Existing production comparison, binary/metadata placeholders, syntax fallback, full-path navigation and cancellation behaviors remain requirements; omitted prototype states are not approved removals.
+- Agentation: bottom-right toolbar; copy a batch of annotations into chat. No browser automation or screenshots requested.
+- Approval: pending user review of revision 1.
