@@ -27,7 +27,8 @@
 .explorer-file{color:#c8cad4}.explorer-file[data-active=true]{background:var(--selected);color:#eef0f6;box-shadow:inset 2px 0 #a4b9d0}
 .explorer-label{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}.explorer-label>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .explorer-label small{color:var(--muted);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.group-title{margin:9px 0 4px;color:var(--text)}.group-title strong{font-weight:600;font-size:11px}.explorer-group:has(.group-title){border-bottom:1px solid #25262d;padding-bottom:9px}
+.group-title{margin:9px 0 4px;color:var(--text)}.group-title strong{font-weight:600;font-size:11px}.explorer-group:has(.group-title){padding-bottom:9px}
+.explorer-group:has(.explorer-label small){border-bottom:1px solid #25262d}
 .explorer-group:has(.explorer-label small) .explorer-file{padding-top:9px;padding-bottom:9px}
 .study-diff-stream{position:relative}.study-diff-stream .file-heading{padding:13px 15px;font-size:10px}
 .study-diff-stream .code-line{font-size:11px;line-height:25px}.study-diff-stream .diff-scroll{padding-bottom:22px}

@@ -1,9 +1,9 @@
 # File navigation alternatives
-- Revision: 1. Status: in review; no implementation approval.
+- Revision: 2. Status: in review; no implementation approval.
 - Goal: compare how changed-file navigation communicates feature concentration and global outliers.
 - Same nine fake checkout changes in all variants, including colocated tests, separate e2e tests, docs, a global stylesheet and root config.
 - A: compact folder tree with changed-file counts, keeping repository boundaries visible.
-- B: Source / Tests / Docs / Config sections, each with a compact folder tree.
+- B: Source / Tests / Docs / Config sections, each with a compact folder tree; no dividers between kinds.
 - C: feature-area sections with filename and parent path; Checkout includes related docs and external tests. Shared styles and Project config remain separate.
 - Direct states: `?view=folders`, `?view=kinds`, `?view=areas`.
 - Interactions: switch variants, collapse sections/folders, expand all, filter by full path, jump to diff, scroll selection, wrap lines, resize navigation with its native lower-right handle, hide navigation, expand viewer, simulated refresh.
