@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Combobox, Menu, Text, useCombobox } from "@mantine/core";
-import { IconCheck, IconChevronDown, IconSearch } from "@tabler/icons-react";
+import { ActionIcon, Button, Combobox, Menu, Text, useCombobox } from "@mantine/core";
+import { IconArrowLeft, IconCheck, IconChevronDown, IconSearch } from "@tabler/icons-react";
 
 const branches = [
   {ref:"refs/heads/main",name:"main",note:"Default",suggested:true},
@@ -66,7 +66,7 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
         </Button>
       </Combobox.Target>
       <Combobox.Dropdown className="base-popup">
-        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder="Search all branches…" aria-label="Search all branches" leftSection={<IconSearch size={14}/>} /> : <Text className="base-popup-heading" size="xs" c="dimmed">{mode === "commit" ? "Recent commits" : "Compare against"}</Text>}
+        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder="Search all branches…" aria-label="Search all branches" leftSectionPointerEvents="all" leftSection={<ActionIcon variant="subtle" color="gray" size="sm" aria-label="Back to suggestions" onClick={()=>{setAll(false);setQuery("");picker.resetSelectedOption();picker.focusTarget();}}><IconArrowLeft size={15}/></ActionIcon>} /> : <Text className="base-popup-heading" size="xs" c="dimmed">{mode === "commit" ? "Recent commits" : "Compare against"}</Text>}
         <Combobox.Options className="base-options">
           {filtered.length ? filtered.map(option=><Combobox.Option key={option.ref} value={option.ref} active={option.ref===selected} className="base-option">
             <span className="base-option-check">{option.ref===selected && <IconCheck size={14}/>}</span>
@@ -75,7 +75,6 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
           </Combobox.Option>) : <Combobox.Empty>No matching {mode === "branch" ? "branches" : "commits"}</Combobox.Empty>}
         </Combobox.Options>
         {mode === "branch" && !all && <div className="base-popup-footer"><Button fullWidth variant="subtle" color="gray" justify="start" size="compact-sm" leftSection={<IconSearch size={14}/>} onClick={()=>{setAll(true);picker.resetSelectedOption();}}>Search all branches…</Button></div>}
-        {mode === "branch" && all && <div className="base-popup-footer"><Button variant="subtle" color="gray" size="compact-xs" onClick={()=>{setAll(false);setQuery("");picker.focusTarget();}}>Back to suggestions</Button></div>}
       </Combobox.Dropdown>
     </Combobox>}
   </div>;
