@@ -67,7 +67,7 @@ export function ReviewMockup() {
         <div className="review-workspace">
           <nav className="file-list-wrapper" aria-label="Changed files"><div className="file-list"><div className="list-heading">Files <span>{files.length}</span></div>
             {files.map(file=><UnstyledButton key={file.path} className="file-item" data-selected={active===file.path} aria-label={file.path} onClick={()=>{setActive(file.path);viewer.current?.scrollTo({type:"item",id:file.path,align:"start"});}}>
-              <span className="file-name">{file.path.split("/").at(-1)}</span><span className={!file.after ? "removed" : "added"}>{!file.after ? "D" : "M"}</span>
+              <span className="file-name">{file.path.split("/").at(-1)}</span><span className={"status "+(!file.after ? "removed" : "added")}>{!file.after ? "D" : "M"}</span>
             </UnstyledButton>)}
           </div></nav>
           <CodeView<Comment> ref={viewer} className="pierre-view" items={items} options={options}

@@ -1,5 +1,6 @@
 # Diffs comments
-- Revision: 7. Status: in review; no production approval.
+- Revision: 8. Status: in review; no production approval.
+- File-list M/D status labels use the existing compact 10px status style rather than inherited button text size.
 - Saving/cancelling clears CodeView line selection so the gutter plus is not pinned to the completed comment line; normal hover affordance remains.
 - Borderless comment surface and transparent textarea replace nested boxes. A subtle neutral left inset marks focus without a surrounding border.
 - Comment cards: no line/Draft labels; compact 6px/8px padding, one-row autosizing editor, neutral annotation background even when selected. Save checkmark and cancel X sit inside the editor at bottom-right, with accessible names and no separate action row. Text reserves space for controls. Cmd/Ctrl+Enter saves; Escape cancels. Saved edit/delete actions unchanged. Global preview theme retained as requested.
@@ -16,4 +17,4 @@
 - Large fixture supports manual exploration, not a performance benchmark. Production requires representative before/after measurements and bounded highlighting/failure checks.
 - Existing production comparison, binary/metadata placeholders, syntax fallback, full-path navigation and cancellation behaviors remain requirements; omitted prototype states are not approved removals.
 - Agentation: bottom-right toolbar; copy a batch of annotations into chat. No browser automation or screenshots requested.
-- Approval: pending user review of revision 7. Initial scrolling feedback was positive; theme refinement and working-comment confirmation requested.
+- Approval: pending user review of revision 8. Initial scrolling feedback was positive; theme refinement and working-comment confirmation requested.
