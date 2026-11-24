@@ -7,7 +7,10 @@
   --mantine-color-dimmed:var(--muted); --mantine-color-default:var(--panel);
   --mantine-color-default-border:var(--border); --mantine-color-default-hover:var(--hover);
 }
-.review-comment .mantine-Textarea-input { background:var(--page); border-color:var(--border); color:var(--text); }
+.review-comment .mantine-Textarea-input { background:var(--page); border-color:var(--border); color:var(--text); padding:5px 8px; min-height:30px; }
+.comment-save.mantine-Button-root { background:var(--hover); border-color:var(--border); color:var(--text); font-size:11px; font-weight:500; border-radius:4px; }
+.comment-save.mantine-Button-root:hover:not(:disabled) { background:var(--border); }
+.comment-save.mantine-Button-root:disabled { background:var(--panel); color:var(--muted); }
 .review-panel-heading { display:flex; align-items:center; gap:8px; padding:16px; border-bottom:1px solid var(--border); }
 .review-workspace { display:grid; grid-template-columns:150px minmax(0,1fr); flex:1; min-height:0; }
 .pierre-view { min-width:0; min-height:0; height:100%; overflow:auto; background:var(--page); }
@@ -16,9 +19,9 @@
 .review-file-toggle span { overflow-wrap:anywhere; }
 .review-file-toggle svg { flex-shrink:0; }
 .review-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-top:1px solid var(--border); }
-.review-comment { margin:8px 12px; padding:12px; border:1px solid var(--border); border-radius:6px; background:var(--panel); color:var(--text); font-family:var(--mantine-font-family); }
+.review-comment { margin:4px 6px; padding:6px 8px; border:1px solid var(--border); border-radius:4px; background:var(--panel); color:var(--text); font-family:var(--mantine-font-family); }
 .comment-body { white-space:pre-wrap; overflow-wrap:anywhere; }
 .gutter-comment { display:flex; align-items:center; justify-content:center; width:22px; height:22px; padding:0; border:1px solid var(--border); border-radius:4px; background:var(--selected); color:var(--text); cursor:pointer; }
 .gutter-comment:focus-visible,.review-file-toggle:focus-visible { outline:2px solid #839bb6; outline-offset:2px; }
 @media(max-width:1047px) { .review-workspace { grid-template-columns:140px minmax(0,1fr); } }
-@media(max-width:520px) { .review-workspace { grid-template-columns:100px minmax(0,1fr); } .review-comment { margin:8px 4px; padding:8px; } }
+@media(max-width:520px) { .review-workspace { grid-template-columns:100px minmax(0,1fr); } .review-comment { margin:4px; padding:6px; } }

@@ -29,4 +29,9 @@ export const diffCSS = `
   --diffs-modified-color-override:#228be6;
   --diffs-bg-hover-override:var(--hover);
 }
+[data-line-annotation], [data-gutter-buffer="annotation"] {
+  background:var(--page);
+  --diffs-computed-selected-line-bg:var(--page);
+  --diffs-computed-hovered-line-bg:var(--page);
+}
 `;

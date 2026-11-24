@@ -1,5 +1,6 @@
 # Diffs comments
-- Revision: 3. Status: in review; no production approval.
+- Revision: 4. Status: in review; no production approval.
+- Comment cards: compact 6px/8px padding, one-row autosizing editor, tighter header/actions, neutral annotation background even when selected. Small neutral bordered Save button replaces the filled Save comment action. Global preview theme retained as requested.
 - Comment integration corrected: controlled CodeView items publish increasing versions when annotations/collapse change; gutter uses the built-in onGutterUtilityClick callback. Previous revision omitted item version updates, so new comments could remain invisible. Browser interaction verification pending.
 - Theme: Pi Chat Classic Dark surface/text/border/change colors and syntax palette replace Pierre Dark. CSS-variable highlighter theme plus shadow-root surface/gutter/separator overrides keep the renderer aligned with the shell. No pure-black code canvas. Light mode is not included in this revision.
 - Goal: evaluate actual @pierre/diffs 1.7.1 inside the existing chat/Changes split, with inline draft comments and simulated batch delivery.
@@ -13,4 +14,4 @@
 - Large fixture supports manual exploration, not a performance benchmark. Production requires representative before/after measurements and bounded highlighting/failure checks.
 - Existing production comparison, binary/metadata placeholders, syntax fallback, full-path navigation and cancellation behaviors remain requirements; omitted prototype states are not approved removals.
 - Agentation: bottom-right toolbar; copy a batch of annotations into chat. No browser automation or screenshots requested.
-- Approval: pending user review of revision 3. Initial scrolling feedback was positive; theme refinement and working-comment confirmation requested.
+- Approval: pending user review of revision 4. Initial scrolling feedback was positive; theme refinement and working-comment confirmation requested.
