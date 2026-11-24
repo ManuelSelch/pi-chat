@@ -45,6 +45,7 @@ export function ReviewMockup() {
   function cancel(comment:Comment) {
     if(!comment.body) setComments(current=>current.filter(item=>item.id!==comment.id));
     setEditing(null);
+    viewer.current?.clearSelectedLines();
   }
   function send() {
     if(!pending.length || editing) return;
@@ -77,7 +78,7 @@ export function ReviewMockup() {
               <ActionIcon variant="subtle" color="gray" size="sm" aria-label={"Comment on "+item.id} onClick={()=>{setCollapsed(current=>current.filter(path=>path!==item.id));begin(item.id,files.find(file=>file.path===item.id)?.after ? "additions" : "deletions",1);}}><IconMessagePlus size={15}/></ActionIcon>
             </div>}
             renderAnnotation={annotation=><CommentCard key={annotation.metadata.id+String(editing===annotation.metadata.id)} comment={annotation.metadata} editing={editing===annotation.metadata.id}
-              onSave={body=>{setComments(current=>current.map(comment=>comment.id===annotation.metadata.id ? {...comment,body} : comment));setEditing(null);}}
+              onSave={body=>{setComments(current=>current.map(comment=>comment.id===annotation.metadata.id ? {...comment,body} : comment));setEditing(null);viewer.current?.clearSelectedLines();}}
               onCancel={()=>cancel(annotation.metadata)} onEdit={()=>setEditing(annotation.metadata.id)}
               onDelete={()=>{setComments(current=>current.filter(comment=>comment.id!==annotation.metadata.id));setEditing(null);}}/>}
           />
