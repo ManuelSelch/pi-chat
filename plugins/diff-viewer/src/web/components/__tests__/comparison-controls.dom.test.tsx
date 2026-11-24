@@ -6,14 +6,27 @@ import { ComparisonControls } from "../ComparisonControls.js";
 import type { Preferences } from "../../stores/DiffViewerProvider.js";
 
 afterEach(cleanup);
-function controls(preferences:Preferences) {
+function controls(preferences:Preferences, onToggleWrap=vi.fn()) {
   const update = vi.fn();
   render(<MantineProvider><ComparisonControls preferences={preferences} update={update} branch="feature"
     context={{status:"ready",value:{branch:"feature",branches:[]}}}
     commits={{status:"ready",value:{commits:[{sha:"a".repeat(40),subject:"Improve viewer",author:"Test",date:"2026-01-01"}],nextOffset:null}}}
-    onQuery={vi.fn()} offset={0} onNext={vi.fn()} onPrevious={vi.fn()} loading={false} disabled={false} onRefresh={vi.fn()}/></MantineProvider>);
+    wrap={true} onToggleWrap={onToggleWrap} onQuery={vi.fn()} offset={0} onNext={vi.fn()} onPrevious={vi.fn()} loading={false} disabled={false} onRefresh={vi.fn()}/></MantineProvider>);
   return update;
 }
+it("offers an accessible wrap toggle without a duplicate branch icon",()=>{
+  const toggle = vi.fn();
+  controls({mode:"branch",branch:null,commit:null,commitSubject:""},toggle);
+
+  const button = screen.getByRole("button",{name:"Wrap lines"});
+  expect(button.getAttribute("aria-pressed")).toBe("true");
+  expect(document.querySelector(".tabler-icon-git-branch")).toBeNull();
+
+  fireEvent.click(button);
+
+  expect(toggle).toHaveBeenCalledOnce();
+});
+
 it("shows commit messages without hashes and selects their opaque identity",()=>{
   const update = controls({mode:"commit",branch:null,commit:null,commitSubject:""});
   fireEvent.click(screen.getByRole("combobox",{name:"Comparison commit"}));

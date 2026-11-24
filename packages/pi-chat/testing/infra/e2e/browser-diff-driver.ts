@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { appendFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 
@@ -15,6 +15,76 @@ export class BrowserDiffDriver {
     git("add","-A");git("commit","-m","Prepare viewer");
     await writeFile(join(this.projectPath,"one.ts"),Array.from({length:80},(_,i)=>"after "+i).join("\n")+"\n");
     await writeFile(join(this.projectPath,"two.ts"),"after\n");
+  }
+  async prepareLongAndDeletedChanges() {
+    await this.prepareChanges();
+    await writeFile(join(this.projectPath,"deleted.ts"),"deleted content\n");
+    execFileSync("git",["-C",this.projectPath,"add","-f","deleted.ts"]);
+    execFileSync("git",["-C",this.projectPath,"-c","user.name=Test","-c","user.email=test@example.invalid","commit","-m","Track deleted fixture"],{stdio:"pipe"});
+    execFileSync("git",["-C",this.projectPath,"branch","-f","main","HEAD"],{stdio:"pipe"});
+    await unlink(join(this.projectPath,"deleted.ts"));
+    await appendFile(join(this.projectPath,"one.ts"),"const longValue = \""+"x".repeat(400)+"\";\n");
+  }
+  async shouldPlaceToggleLast() {
+    const plus = this.page.getByRole("button",{name:"New session",exact:true});
+    const toggle = this.page.getByRole("button",{name:"Toggle side panel"});
+    const plusBox = await plus.boundingBox();
+    const toggleBox = await toggle.boundingBox();
+    expect(plusBox).not.toBeNull();
+    expect(toggleBox).not.toBeNull();
+    expect(toggleBox!.x).toBeGreaterThan(plusBox!.x);
+  }
+  async shouldWrapLongLines() {
+    const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});
+    const code = diff.locator("code").filter({hasText:"const longValue"});
+    await expect(code).toHaveCSS("white-space","pre-wrap");
+    expect(await code.evaluate(element=>element.getBoundingClientRect().height)).toBeGreaterThan(24);
+    expect(await code.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
+    await expect(this.page.getByRole("button",{name:"Wrap lines"})).toHaveAttribute("aria-pressed","true");
+  }
+  async toggleWrapping() { await this.page.getByRole("button",{name:"Wrap lines"}).click(); }
+  async shouldScrollWithConsistentBackgrounds() {
+    const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});
+    const code = diff.locator("code").filter({hasText:"const longValue"});
+    await expect(code).toHaveCSS("white-space","pre");
+    const dimensions = await code.evaluate(element=>{
+      const row = element.parentElement!;
+      const lines = row.parentElement!;
+      const scroll = lines.parentElement!;
+      const short = Array.from(lines.children).find(child=>child.querySelector("code")?.textContent==="after 0")!;
+      scroll.scrollLeft=100;
+      const gutter = row.firstElementChild!;
+      return {
+        overflow:scroll.scrollWidth>scroll.clientWidth,
+        rowWidth:row.getBoundingClientRect().width,
+        shortWidth:short.getBoundingClientRect().width,
+        background:getComputedStyle(row).backgroundColor,
+        gutterBackground:getComputedStyle(gutter).backgroundColor,
+        gutterX:gutter.getBoundingClientRect().left,
+        viewportX:scroll.getBoundingClientRect().left,
+      };
+    });
+    expect(dimensions.overflow).toBe(true);
+    expect(dimensions.rowWidth).toBeCloseTo(dimensions.shortWidth,0);
+    expect(dimensions.background).not.toBe("rgba(0, 0, 0, 0)");
+    expect(dimensions.gutterBackground).toBe(dimensions.background);
+    expect(dimensions.gutterX).toBeCloseTo(dimensions.viewportX,0);
+  }
+  async shouldCollapseDeletedFile() {
+    const diff = this.page.getByRole("region",{name:"Diff for deleted.ts",exact:true});
+    await expect(diff.getByText("deleted content",{exact:true})).toHaveCount(0);
+    await expect(diff.getByRole("button",{name:"Expand deleted.ts"})).toHaveAttribute("aria-expanded","false");
+  }
+  async expandDeletedFileWithKeyboard() {
+    const heading = this.page.getByRole("button",{name:"Expand deleted.ts"});
+    await heading.focus();
+    await heading.press("Enter");
+    await expect(this.page.getByRole("region",{name:"Diff for deleted.ts",exact:true}).getByText("deleted content",{exact:true})).toBeVisible();
+  }
+  async shouldHaveNoTooltips() {
+    const panel = this.page.getByRole("complementary",{name:"Side panel"});
+    await expect(panel.locator("[title]")).toHaveCount(0);
+    await expect(panel.getByRole("tooltip")).toHaveCount(0);
   }
   async open() { await this.page.getByRole("button",{name:"Toggle side panel"}).click(); }
   async close() { await this.page.getByRole("button",{name:"Close side panel"}).click(); }

@@ -1,5 +1,5 @@
 # Diff viewer polish
-- Revision: 2. Status: in review; not approved for production.
+- Revision: 2. Status: approved for implementation. User: “approved. implement”.
 - Separate from the preserved approved `../diff-viewer/` mockup.
 - Scope: long-line readability, consistent row backgrounds, quieter comparison dropdowns, no duplicate branch icon, header control ordering.
 - Deleted files start collapsed with path and counts visible. Click the chevron/header (or use Enter/Space) to expand or collapse their removed lines; file navigation still jumps to the heading. This is an intentional behavior change for production approval.
@@ -10,5 +10,6 @@
 - Preserve side-panel close/reopen, responsive replacement of chat below 1048px, file jumping, sticky headings, refresh, and comparison modes.
 - Review fixtures: long configuration line and unbroken URL in the first file; added, deleted and binary files. `?wrap=off` opens unwrapped. Existing `?state=empty|error|not-git|loading` states retained.
 - Fake data only. Comparison selection does not change patches; refresh simulates activity. Commit history pagination and full projects/session navigation are omitted, not proposed removals.
+- Subsequent user direction: remove all diff-viewer tooltips; retain accessible labels and full paths in headings.
 - Browser rendering and interactions are user-reviewed. Agentation uses local copy-and-paste annotations.
-- No production files or application dependencies changed. Approval pending.
+- Approved source preserved as the production implementation reference.

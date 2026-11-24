@@ -1,6 +1,25 @@
 import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
+test("diff readability supports wrapping, fixed gutters and collapsed deleted files",async({page})=>{
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.prepareLongAndDeletedChanges();
+    await app.sessions.create({responses:[]});
+    await app.changes.shouldPlaceToggleLast();
+    await app.changes.open();
+
+    await app.changes.shouldWrapLongLines();
+    await app.changes.toggleWrapping();
+    await app.changes.shouldScrollWithConsistentBackgrounds();
+    await app.changes.shouldCollapseDeletedFile();
+    await app.changes.chooseFile("deleted.ts");
+    await app.changes.shouldKeepSelected("deleted.ts");
+    await app.changes.expandDeletedFileWithKeyboard();
+    await app.changes.shouldHaveNoTooltips();
+  } finally { await app.dispose(); }
+});
+
 test("plugin diffs scroll continuously beside chat and support named branch and commit bases",async({page})=>{
   const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
   try {

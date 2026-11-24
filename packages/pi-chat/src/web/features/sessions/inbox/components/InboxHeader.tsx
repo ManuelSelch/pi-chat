@@ -29,8 +29,8 @@ export function InboxHeader(p: InboxHeaderProps) {
           <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Close current session view" onClick={p.onCloseView}><IconX size={17} /></ActionIcon>
         </div>
       </>}
-      <SidePanelToggle />
       <ActionIcon style={{ flexShrink: 0 }} variant="subtle" color="gray" aria-label="New session" disabled={p.disabled} onClick={p.onNew}><IconPlus size={19} /></ActionIcon>
+      <SidePanelToggle />
     </Group>
   </AppShell.Header>;
 }

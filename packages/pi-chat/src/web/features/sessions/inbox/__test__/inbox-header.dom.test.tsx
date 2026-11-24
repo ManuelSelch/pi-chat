@@ -6,6 +6,8 @@ import type { ComponentProps } from "react";
 import type { Tab } from "../../../../types/view-types.js";
 import { InboxHeader } from "../components/InboxHeader.js";
 
+vi.mock("../../../../app/plugins/SidePanelProvider.js",()=>({SidePanelToggle:()=> <button aria-label="Toggle side panel"/>}));
+
 afterEach(cleanup);
 
 function renderHeader(status: Tab["status"], saved = true, branch: string | undefined = undefined) {
@@ -16,6 +18,15 @@ function renderHeader(status: Tab["status"], saved = true, branch: string | unde
   };
   render(<MantineProvider><AppShell><InboxHeader {...props} /></AppShell></MantineProvider>);
 }
+
+it("places the side-panel toggle after New session at the far right",()=>{
+  renderHeader("idle");
+
+  const plus = screen.getByRole("button",{name:"New session"});
+  const toggle = screen.getByRole("button",{name:"Toggle side panel"});
+  expect(plus.nextElementSibling).toBe(toggle);
+  expect(toggle.nextElementSibling).toBeNull();
+});
 
 it("removes header branding without removing breadcrumbs or navigation", () => {
   renderHeader("idle");
