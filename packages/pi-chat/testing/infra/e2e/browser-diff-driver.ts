@@ -31,6 +31,9 @@ export class BrowserDiffDriver {
     await expect(nav.getByRole("button",{name:"Folder src/features/checkout",exact:true})).toBeVisible();
     await expect(nav.getByRole("button",{name:"src/styles/global.css",exact:true})).toBeVisible();
     await expect(nav.getByText("Files",{exact:true})).toHaveCount(0);
+    await expect(nav.getByText("Checkout.tsx",{exact:true})).toHaveCSS("font-size","11px");
+    await expect(nav.getByRole("button",{name:"Folder src/features/checkout",exact:true}).locator("span").first()).toHaveCSS("font-size","11px");
+    await expect(nav.getByRole("button",{name:"Source",exact:true}).locator("strong")).toHaveCSS("font-size","11px");
     const paths = await nav.locator("[aria-pressed]").evaluateAll(buttons=>buttons.map(button=>button.getAttribute("aria-label")));
     const diffs = await this.page.getByRole("region",{name:"All file diffs"}).locator("[data-diff-file]").evaluateAll(sections=>sections.map(section=>section.getAttribute("data-diff-file")));
     expect(paths).toEqual(diffs);
