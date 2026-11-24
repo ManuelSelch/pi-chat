@@ -31,7 +31,7 @@ flowchart TD
     Picker -->|browse, create session, restore focus| Chat
 ```
 
-- [RegisteredPlugins](../packages/pi-chat/src/web/app/plugins/RegisteredPlugins.tsx) loads the explicit declarations and supplies `PluginUIHost`: read-only session ID/status summaries, connection/project context, current-client requests, session creation/navigation and shared modal focus handling.
+- [RegisteredPlugins](../packages/pi-chat/src/web/app/plugins/RegisteredPlugins.tsx) loads the explicit declarations and supplies `PluginUIHost`: read-only session ID/status summaries, explicit active-session ID (null outside a session), connection/project context, current-client requests, session creation/navigation and shared modal focus handling.
 - [PluginProvider](../packages/pi-chat/src/web/app/plugins/PluginProvider.tsx) nests the registered providers. Small context bindings read command actions and overlay-open state inside those providers; nothing is published or synchronized through effects.
 - Static command definitions contain namespaced IDs, labels, placements and an action hook reading plugin-local context. Current action menus receive ordinary actions, including disabled state. The declaration still permits `projects`, but its legacy Projects UI consumer has been retired.
 - The outlet mounts each plugin's Overlay component. Overlay-open hooks feed generic keyboard/focus guards; exiting dialogs retain DOM focus ownership until removal.
@@ -59,6 +59,6 @@ flowchart TD
 - The plugin owns its container, browsing client and error handling. Chat has no picker import, feature overlay field or folder RPC methods.
 - [File opening](../plugins/file-opening/README.md) owns its contract, browser actions and host/filesystem implementation in a standalone workspace; Chat explicitly composes `createFileOpeningActions(request)` rather than registering an empty browser provider.
 - [Chimes](../plugins/chimes/README.md) contributes `chimes.enabled` at `settings.feature-toggles`; its provider owns browser-local preferences, transition tracking and audio cleanup independently of Settings visibility.
-- [Diff viewer](../plugins/diff-viewer/README.md) contributes `diff-viewer.changes` at `side-panel` only in transcript view; its package owns Git reads, comparison selection and the continuous diff/file navigation. [Browser scenario](../packages/pi-chat/testing/e2e/diff-viewer.spec.ts) exercises real Git/RPC alongside chat.
+- [Diff viewer](../plugins/diff-viewer/README.md) contributes `diff-viewer.changes` at `side-panel` only in transcript view; its package owns Git reads, comparison selection, the virtualized Diffs renderer and inline review drafts/batch delivery. [Review lifecycle](../plugins/diff-viewer/docs/review.md) documents anchors, state ownership and delivery confirmation. [Browser scenario](../packages/pi-chat/testing/e2e/diff-viewer.spec.ts) exercises real Git/RPC alongside chat.
 - Host plugins and RPC allowlists are configured separately. Browser composition does not activate or disable server capabilities.
 - Native Pi prompts, widgets and footer status remain separate from browser plugin contributions.

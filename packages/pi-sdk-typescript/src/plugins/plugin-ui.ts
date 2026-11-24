@@ -38,6 +38,8 @@ export interface PluginCommand {
 /** Browser shell capabilities, not access to its controller or feature stores. */
 export interface PluginUIHost {
   readonly connected: boolean;
+  /** Selected transcript destination; null outside a session view. */
+  readonly activeSessionId: string | null;
   readonly sessions: readonly PluginSessionSummary[];
   readonly projectPath?: string;
   request<T>(invoke: (client: PiClient) => Promise<T>): Promise<T>;

@@ -4,7 +4,59 @@ import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 
 export class BrowserDiffDriver {
-  constructor(private readonly page:Page,private readonly projectPath:string) {}
+  private readonly workers:string[]=[];
+  constructor(private readonly page:Page,private readonly projectPath:string) { page.on("worker",worker=>this.workers.push(worker.url())); }
+  private diff(path:string) { return this.page.locator("diffs-container").filter({has:this.page.locator("[data-diff-file]").filter({has:this.page.getByText(path,{exact:true})})}); }
+  private stream() { return this.page.getByRole("region",{name:"All file diffs"}).locator(":scope > div").first(); }
+  private async revealEndLine(path:string,text:string) {
+    const line=this.diff(path).locator("[data-line]").filter({hasText:text});
+    await expect.poll(async()=>{await this.stream().evaluate(element=>{element.scrollTop=element.scrollHeight;});return line.isVisible();}).toBe(true);
+    return line;
+  }
+  async shouldUseBundledWorkers() { expect(this.workers.some(url=>url.includes("diff.worker"))).toBe(true); }
+  async expectedReviewBatch() {
+    const sha=execFileSync("git",["-C",this.projectPath,"merge-base","HEAD","main"],{encoding:"utf8"}).trim();
+    return 'Please address these diff review comments.\nComparison: refs/heads/main\n\n"one.ts":1 (old)\nBase: '+sha+'\n> before 0\nHandle the empty case.\n\n"two.ts":1 (old)\nBase: '+sha+'\n> before\nKeep validation.';
+  }
+  async beginCommentDraft(path:string,body:string) {
+    await this.chooseFile(path);
+    await this.page.getByRole("button",{name:"Comment on "+path,exact:true}).click();
+    await this.page.getByRole("textbox",{name:"Review comment"}).fill(body);
+  }
+  async shouldHaveCommentDraft(body:string) { await expect(this.page.getByRole("textbox",{name:"Review comment"})).toHaveValue(body); }
+  async cancelComment() { await this.page.getByRole("button",{name:"Cancel comment"}).click(); }
+  async addLineComment(path:string,body:string) {
+    await this.chooseFile(path);
+    const diff=this.diff(path);
+    await diff.locator("[data-column-number]").first().hover();
+    await diff.getByRole("button",{name:"Add line comment",exact:true}).click();
+    const editor=this.page.getByRole("textbox",{name:"Review comment"});
+    await editor.fill(body);
+    await this.page.getByRole("button",{name:"Save comment",exact:true}).click();
+    await expect(this.page.getByRole("textbox",{name:"Review comment"})).toHaveCount(0);
+    await expect(diff.getByText(body,{exact:true})).toBeVisible();
+    await this.page.getByRole("tab",{name:"Changes",exact:true}).hover();
+    await expect(diff.getByRole("button",{name:"Add line comment",exact:true})).not.toBeVisible();
+  }
+  async editComment(original:string,replacement:string) {
+    const card=this.page.getByText(original,{exact:true}).locator("..");
+    await card.getByRole("button",{name:"Edit",exact:true}).click();
+    await this.page.getByRole("textbox",{name:"Review comment"}).fill(replacement);
+    await this.page.getByRole("textbox",{name:"Review comment"}).press("Control+Enter");
+    await expect(this.page.getByText(replacement,{exact:true})).toBeVisible();
+  }
+  async shouldHaveComments(count:number) {
+    await expect(this.page.getByText(count+" comments",{exact:true})).toBeVisible();
+  }
+  async sendComments() { await this.page.getByRole("button",{name:"Send comments",exact:true}).click(); }
+  async shouldClearSubmittedComments() { await expect(this.page.getByRole("button",{name:"Send comments",exact:true})).toHaveCount(0); }
+  async shouldShowBatchOnce(text:string) {
+    const batch=this.page.locator("[data-pi-user-message]").filter({hasText:"Please address these diff review comments."});
+    await expect(batch).toHaveCount(1);
+    for (const line of text.split("\n").filter(Boolean)) await expect(batch).toContainText(line.replace(/^> /,""));
+  }
+
+
   async prepareChanges() {
     const git = (...args:string[])=>execFileSync("git",["-C",this.projectPath,"-c","user.name=Test","-c","user.email=test@example.invalid",...args],{stdio:"pipe"});
     await writeFile(join(this.projectPath,".gitignore"),"*\n!.gitignore\n!one.ts\n!two.ts\n");
@@ -23,7 +75,7 @@ export class BrowserDiffDriver {
     execFileSync("git",["-C",this.projectPath,"-c","user.name=Test","-c","user.email=test@example.invalid","commit","-m","Track deleted fixture"],{stdio:"pipe"});
     execFileSync("git",["-C",this.projectPath,"branch","-f","main","HEAD"],{stdio:"pipe"});
     await unlink(join(this.projectPath,"deleted.ts"));
-    await appendFile(join(this.projectPath,"one.ts"),"const longValue = \""+"x".repeat(400)+"\";\n");
+    await appendFile(join(this.projectPath,"one.ts"),"const longValue = \""+"x".repeat(400)+"\";\n"+'const html = "<script>window.diffInjected=true</script>";\n');
   }
   async prepareManyChanges() {
     await this.prepareChanges();
@@ -35,27 +87,28 @@ export class BrowserDiffDriver {
     await writeFile(join(this.projectPath,"zz-generated.ts"),Array.from({length:2200},(_,line)=>"export const generated"+line+" = "+line+";").join("\n")+"\n");
   }
   async shouldDeferOffscreenHighlighting() {
-    const offscreen = this.page.getByRole("region",{name:"Diff for perf-23.ts",exact:true});
-    await expect(offscreen).toHaveCount(1);
-    await expect(offscreen.locator(".hljs-keyword")).toHaveCount(0);
+    await expect(this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:"perf-23.ts",exact:true})).toBeVisible();
+    await expect(this.diff("perf-23.ts").locator("[data-line]")).toHaveCount(0);
   }
   async shouldHighlightSelectedFile() {
-    const selected = this.page.getByRole("region",{name:"Diff for perf-00.ts",exact:true});
-    await expect(selected.locator(".hljs-keyword").first()).toBeVisible();
+    const keyword=this.diff("perf-00.ts").locator('[data-line] span').filter({hasText:/^export$/}).first();
+    await expect(keyword).toBeVisible();
+    await expect.poll(()=>keyword.evaluate(element=>getComputedStyle(element).color!==getComputedStyle(element.parentElement!).color)).toBe(true);
   }
   async shouldKeepGeneratedFileReadable() {
-    const generated = this.page.getByRole("region",{name:"Diff for zz-generated.ts",exact:true});
-    await expect(generated.locator("code")).toHaveCount(2200);
-    await expect(generated.locator(".hljs-keyword")).toHaveCount(0);
-    await expect(generated.locator("code").last()).toHaveText("export const generated2199 = 2199;");
-    const composer = this.page.getByRole("textbox",{name:"Message Pi",exact:true});
-    const start = Date.now();
+    const generated=this.diff("zz-generated.ts");
+    await expect(generated.locator("[data-line]").first()).toContainText("generated0");
+    expect(await generated.locator("[data-line]").count()).toBeLessThan(300);
+    await this.stream().evaluate(element=>{element.scrollTop=element.scrollHeight;});
+    await expect(generated.locator("[data-line]").last()).toContainText("generated2199");
+    const composer=this.page.getByRole("textbox",{name:"Message Pi",exact:true});
+    const start=Date.now();
     await composer.fill("Responsive with large changes");
     await expect(composer).toHaveValue("Responsive with large changes");
     expect(Date.now()-start).toBeLessThan(1500);
   }
   async shouldScrollLargeDiffSmoothly() {
-    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    const stream = this.stream();
     const stats = await stream.evaluate(async element=>{
       const frames:number[] = [];
       const start = element.scrollTop;
@@ -83,79 +136,75 @@ export class BrowserDiffDriver {
     expect(toggleBox!.x).toBeGreaterThan(plusBox!.x);
   }
   async shouldWrapLongLines() {
-    const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});
-    const code = diff.locator("code").filter({hasText:"const longValue"});
-    await code.scrollIntoViewIfNeeded();
+    await this.chooseFile("one.ts");
+    const code=await this.revealEndLine("one.ts","const longValue");
     await expect(code).toHaveCSS("white-space","pre-wrap");
     expect(await code.evaluate(element=>element.getBoundingClientRect().height)).toBeGreaterThan(24);
     expect(await code.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
     await expect(this.page.getByRole("button",{name:"Wrap lines"})).toHaveAttribute("aria-pressed","true");
   }
   async shouldHighlightSyntax() {
-    const code = this.page.getByRole("region",{name:"Diff for one.ts",exact:true}).locator("code").filter({hasText:"const longValue"});
-    const keyword = code.locator(".hljs-keyword");
+    const code=this.diff("one.ts").locator("[data-line]").filter({hasText:"const longValue"});
+    const keyword=code.locator("span").filter({hasText:/^const$/});
     await expect(keyword).toHaveText("const");
-    expect(await keyword.evaluate(element=>getComputedStyle(element).color!==getComputedStyle(element.parentElement!).color)).toBe(true);
-    await expect(code.locator(".hljs-string")).toContainText("x".repeat(400));
-    expect(await code.textContent()).toBe('const longValue = "'+"x".repeat(400)+'";');
+    await expect.poll(()=>keyword.evaluate(element=>getComputedStyle(element).color!==getComputedStyle(element.parentElement!).color)).toBe(true);
+    await expect(code).toHaveText('const longValue = "'+"x".repeat(400)+'";');
   }
   async toggleWrapping() { await this.page.getByRole("button",{name:"Wrap lines"}).click(); }
   async shouldScrollWithConsistentBackgrounds() {
-    const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});
-    const code = diff.locator("code").filter({hasText:"const longValue"});
+    const diff=this.diff("one.ts");
+    const code=diff.locator("[data-line]").filter({hasText:"const longValue"});
     await expect(code).toHaveCSS("white-space","pre");
-    const dimensions = await code.evaluate(element=>{
-      const row = element.parentElement!;
-      const lines = row.parentElement!;
-      const scroll = lines.parentElement!;
-      const short = Array.from(lines.children).find(child=>child.querySelector("code")?.textContent==="after 0")!;
-      scroll.scrollLeft=100;
-      const gutter = row.firstElementChild!;
-      return {
-        overflow:scroll.scrollWidth>scroll.clientWidth,
-        rowWidth:row.getBoundingClientRect().width,
-        shortWidth:short.getBoundingClientRect().width,
-        background:getComputedStyle(row).backgroundColor,
-        gutterBackground:getComputedStyle(gutter).backgroundColor,
-        gutterX:gutter.getBoundingClientRect().left,
-        viewportX:scroll.getBoundingClientRect().left,
-      };
-    });
-    expect(dimensions.overflow).toBe(true);
-    expect(dimensions.rowWidth).toBeCloseTo(dimensions.shortWidth,0);
-    expect(dimensions.background).not.toBe("rgba(0, 0, 0, 0)");
-    expect(dimensions.gutterBackground).toBe(dimensions.background);
-    expect(dimensions.gutterX).toBeCloseTo(dimensions.viewportX,0);
+    const columns=diff.locator("[data-code]").first();
+    await expect.poll(()=>columns.evaluate(element=>element.scrollWidth>element.clientWidth)).toBe(true);
+    await columns.evaluate(element=>{element.scrollLeft=100;});
+    const gutter=diff.locator("[data-gutter]").first();
+    const before=await gutter.boundingBox();
+    await columns.evaluate(element=>{element.scrollLeft=200;});
+    const after=await gutter.boundingBox();
+    expect(before).not.toBeNull();expect(after).not.toBeNull();
+    expect(after!.x).toBeCloseTo(before!.x,0);
+    const background=await code.evaluate(element=>getComputedStyle(element).backgroundColor);
+    expect(background).not.toBe("rgba(0, 0, 0, 0)");
+    const row=diff.locator('[data-column-number][data-line-type="change-addition"]').last();
+    await expect(row).toHaveCSS("background-color",background);
   }
   async shouldCollapseDeletedFile() {
-    const diff = this.page.getByRole("region",{name:"Diff for deleted.ts",exact:true});
+    await this.chooseFile("deleted.ts");
+    const diff=this.diff("deleted.ts");
     await expect(diff.getByText("deleted content",{exact:true})).toHaveCount(0);
     await expect(diff.getByRole("button",{name:"Expand deleted.ts"})).toHaveAttribute("aria-expanded","false");
   }
   async expandDeletedFileWithKeyboard() {
-    const heading = this.page.getByRole("button",{name:"Expand deleted.ts"});
-    await heading.focus();
-    await heading.press("Enter");
-    await expect(this.page.getByRole("region",{name:"Diff for deleted.ts",exact:true}).getByText("deleted content",{exact:true})).toBeVisible();
+    const heading=this.page.getByRole("button",{name:"Expand deleted.ts"});
+    await heading.focus();await heading.press("Enter");
+    await expect(this.diff("deleted.ts").locator("[data-line]").filter({hasText:"deleted content"})).toBeVisible();
   }
   async shouldHaveNoTooltips() {
     const panel = this.page.getByRole("complementary",{name:"Side panel"});
     await expect(panel.locator("[title]")).toHaveCount(0);
     await expect(panel.getByRole("tooltip")).toHaveCount(0);
   }
+  async shouldRenderHtmlSafely() {
+    await this.chooseFile("one.ts");
+    const line=await this.revealEndLine("one.ts","window.diffInjected=true");
+    await expect(line).toContainText("<script>window.diffInjected=true</script>");
+    expect(await this.page.evaluate(()=>Object.hasOwn(window,"diffInjected"))).toBe(false);
+  }
   async open() { await this.page.getByRole("button",{name:"Toggle side panel"}).click(); }
   async close() { await this.page.getByRole("button",{name:"Toggle side panel"}).click(); }
   async chooseFile(path:string) { await this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:path,exact:true}).click(); }
   async shouldShowEveryDiff() {
-    await expect(this.page.getByRole("region",{name:"Diff for one.ts",exact:true})).toBeVisible();
-    await expect(this.page.getByRole("region",{name:"Diff for two.ts",exact:true})).toHaveCount(1);
+    await expect(this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:"one.ts",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:"two.ts",exact:true})).toBeVisible();
+    await expect(this.diff("one.ts").locator("[data-line]").first()).toBeVisible();
     await expect(this.page.getByText("2 files changed",{exact:true})).toBeVisible();
   }
   async shouldScrollDiffWithoutScrollingChat() {
-    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    const stream=this.stream();
     await stream.hover();
-    const before = await this.page.evaluate(()=>window.scrollY);
-    await this.page.mouse.wheel(0, 500);
+    const before=await this.page.evaluate(()=>window.scrollY);
+    await this.page.mouse.wheel(0,500);
     await expect.poll(()=>stream.evaluate(element=>element.scrollTop)).toBeGreaterThan(0);
     expect(await this.page.evaluate(()=>window.scrollY)).toBe(before);
   }
@@ -191,15 +240,16 @@ export class BrowserDiffDriver {
   }
   async shouldShowLatestCommit() {
     await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue("Prepare viewer");
-    const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
-    await expect(diff.getByText("before",{exact:true})).toBeVisible();
-    await expect(diff.getByText("committed",{exact:true})).toBeVisible();
-    await expect(diff.getByText("after",{exact:true})).toHaveCount(0);
+    const diff=this.diff("two.ts");
+    await expect(diff.locator("[data-line]").filter({hasText:/^before\s*$/})).toBeVisible();
+    await expect(diff.locator("[data-line]").filter({hasText:/^committed\s*$/})).toBeVisible();
+    await expect(diff.locator("[data-line]").filter({hasText:/^after\s*$/})).toHaveCount(0);
   }
   async shouldShowInitialCommit() {
-    const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
-    await expect(diff.getByText("before",{exact:true})).toBeVisible();
-    await expect(diff.getByText("after",{exact:true})).toHaveCount(0);
+    await this.chooseFile("two.ts");
+    const diff=this.diff("two.ts");
+    await expect(diff.locator("[data-line]").filter({hasText:/^before\s*$/})).toBeVisible();
+    await expect(diff.locator("[data-line]").filter({hasText:/^after\s*$/})).toHaveCount(0);
   }
   async chooseBranch(name:string) {
     await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
@@ -215,9 +265,9 @@ export class BrowserDiffDriver {
     await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
   }
   async shouldShowBeforeAndAfter() {
-    const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
-    await expect(diff.getByText("before",{exact:true})).toBeVisible();
-    await expect(diff.getByText("after",{exact:true})).toBeVisible();
+    const diff=this.diff("two.ts");
+    await expect(diff.locator("[data-line]").filter({hasText:/^before\s*$/})).toBeVisible();
+    await expect(diff.locator("[data-line]").filter({hasText:/^after\s*$/})).toBeVisible();
   }
   async shouldRememberCommit(subject:string) {
     await expect(this.page.getByRole("combobox",{name:"Comparison mode",exact:true})).toHaveValue("Commit");

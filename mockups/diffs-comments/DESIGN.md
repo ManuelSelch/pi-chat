@@ -1,5 +1,5 @@
 # Diffs comments
-- Revision: 8. Status: in review; no production approval.
+- Revision: 8. Status: approved for implementation.
 - File-list M/D status labels use the existing compact 10px status style rather than inherited button text size.
 - Saving/cancelling clears CodeView line selection so the gutter plus is not pinned to the completed comment line; normal hover affordance remains.
 - Borderless comment surface and transparent textarea replace nested boxes. A subtle neutral left inset marks focus without a surrounding border.
@@ -17,4 +17,4 @@
 - Large fixture supports manual exploration, not a performance benchmark. Production requires representative before/after measurements and bounded highlighting/failure checks.
 - Existing production comparison, binary/metadata placeholders, syntax fallback, full-path navigation and cancellation behaviors remain requirements; omitted prototype states are not approved removals.
 - Agentation: bottom-right toolbar; copy a batch of annotations into chat. No browser automation or screenshots requested.
-- Approval: pending user review of revision 8. Initial scrolling feedback was positive; theme refinement and working-comment confirmation requested.
+- Approval: user explicitly approved revision 8: “approved. now implement it”. Preserve current comparison behavior; implement the reviewed renderer, theme integration and single-line comment/batch-send flow.

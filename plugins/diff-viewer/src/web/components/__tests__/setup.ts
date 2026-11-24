@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 if (typeof window !== "undefined") {
+  Object.defineProperty(document,"fonts",{configurable:true,value:{addEventListener:vi.fn(),removeEventListener:vi.fn()}});
   window.matchMedia = (media: string) => ({
     matches: false, media, onchange: null,
     addListener: vi.fn(), removeListener: vi.fn(),

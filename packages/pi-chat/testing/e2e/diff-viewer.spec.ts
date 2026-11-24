@@ -1,10 +1,38 @@
 import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
+test("inline comments survive panel toggles and send one contextual batch without changing the composer",async({page})=>{
+  const app=await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.prepareChanges();
+    const batch=await app.changes.expectedReviewBatch();
+    await app.sessions.create({responses:[{prompt:batch,reply:"Feedback received."}]});
+    await app.chat.editDraft("Keep my chat draft");
+    await app.changes.open();
+
+    await app.changes.beginCommentDraft("one.ts","Unfinished note");
+    await app.changes.close();
+    await app.changes.open();
+    await app.changes.shouldHaveCommentDraft("Unfinished note");
+    await app.changes.cancelComment();
+    await app.changes.addLineComment("one.ts","Initial note");
+    await app.changes.editComment("Initial note","Handle the empty case.");
+    await app.changes.addLineComment("two.ts","Keep validation.");
+    await app.changes.shouldHaveComments(2);
+    await app.changes.close();
+    await app.changes.open();
+    await app.changes.shouldHaveComments(2);
+    await app.changes.sendComments();
+
+    await app.changes.shouldClearSubmittedComments();
+    await app.changes.shouldShowBatchOnce(batch);
+    await app.chat.shouldShowAssistantReply("Feedback received.");
+    await app.chat.shouldHaveDraft("Keep my chat draft");
+  } finally { await app.dispose(); }
+});
+
 test("large comparisons highlight on demand and keep generated files responsive",async({page})=>{
   const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
-  const workers:string[] = [];
-  page.on("worker",worker=>workers.push(worker.url()));
   try {
     await app.changes.prepareManyChanges();
     await app.sessions.create({responses:[]});
@@ -19,7 +47,7 @@ test("large comparisons highlight on demand and keep generated files responsive"
     await app.changes.shouldScrollLargeDiffSmoothly();
     await app.changes.close();
     await app.changes.shouldBeClosed();
-    if (!workers.some(url=>url.includes("highlight.worker"))) throw new Error("Highlighting must run in a bundled worker");
+    await app.changes.shouldUseBundledWorkers();
   } finally { await app.dispose(); }
 });
 
@@ -41,6 +69,7 @@ test("diff readability supports wrapping, fixed gutters and collapsed deleted fi
     await app.changes.shouldKeepSelected("deleted.ts");
     await app.changes.expandDeletedFileWithKeyboard();
     await app.changes.shouldHaveNoTooltips();
+    await app.changes.shouldRenderHtmlSafely();
   } finally { await app.dispose(); }
 });
 

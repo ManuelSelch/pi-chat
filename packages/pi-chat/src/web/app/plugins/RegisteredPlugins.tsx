@@ -17,11 +17,12 @@ export function RegisteredPlugins({ children }: { children: ReactNode }) {
   const sessions = useMemo(() => chat.app.tabs.map(({ sessionId, status }) => ({ sessionId, status })), [chat.app.tabs]);
   const host = useMemo<PluginUIHost>(() => ({
     sessions,
+    activeSessionId: chat.app.activeSessionId || null,
     connected: chat.app.connection === "open",
     projectPath: chat.state.projectPath || undefined,
     request: chat.request,
     createSession: chat.createAndFocusSession,
     useOverlayFocus: useComposerFocusReturn,
-  }), [sessions, chat.app.connection, chat.state.projectPath, chat.request, chat.createAndFocusSession]);
+  }), [sessions, chat.app.activeSessionId, chat.app.connection, chat.state.projectPath, chat.request, chat.createAndFocusSession]);
   return <PluginProvider plugins={plugins} host={host}>{children}</PluginProvider>;
 }

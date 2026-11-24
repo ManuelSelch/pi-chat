@@ -12,7 +12,12 @@ export function isAppSource(path) {
 }
 
 export function isUnmappedRuntime(pathname, source) {
-  return /^\/assets\/rolldown-runtime-[\w-]+\.js$/.test(pathname) && !source.includes("sourceMappingURL=");
+  if (source.includes("sourceMappingURL=")) return false;
+  if (/^\/assets\/(?:rolldown-runtime|preload-helper)-[\w-]+\.js$/.test(pathname)) return true;
+  // Mapless re-export facades contain no implementation; imported chunks remain mapped.
+  // Calls, initializers and function bodies must never qualify.
+  return /^\/assets\/[\w-]+\.js$/.test(pathname)
+    && /^(?:import\s*\{[^{}]*\}\s*from\s*["'][^"']+["'];?\s*)+export\s*\{[^{}]*\};?\s*$/.test(source);
 }
 
 function appUrl(url) {
@@ -101,7 +106,7 @@ export async function generateReport() {
       if (relative(resolve("dist/web"), bundle).startsWith("..")) throw new Error("Invalid bundle path");
       const source = await readFile(bundle, "utf8");
       if (source !== entry.source) throw new Error(`Coverage bundle does not match local build: ${pathname}`);
-      // Rolldown's generated helper has no original source or source map.
+      // Generated helpers and pure re-export facades have no original source/map.
       if (isUnmappedRuntime(pathname, source)) continue;
       const map = JSON.parse(await readFile(`${bundle}.map`, "utf8"));
       if (!map.mappings || !map.sourcesContent?.length) throw new Error(`Missing browser source map: ${pathname}`);
