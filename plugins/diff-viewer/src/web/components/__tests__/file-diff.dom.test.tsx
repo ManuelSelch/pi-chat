@@ -2,7 +2,15 @@
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { FileDiff } from "../FileDiff.js";
+import { FileDiff as FileDiffView } from "../FileDiff.js";
+import { DiffLines } from "../DiffLines.js";
+import { parsePatch } from "../../../domain/parse-patch.js";
+import { highlightPatch } from "../../lib/highlight-patch.js";
+
+const noHighlight = ()=>()=>{};
+function FileDiff(props:{file:ChangedFile;wrap?:boolean}) {
+  return <FileDiffView {...props} onHighlight={noHighlight}/>;
+}
 import type { ChangedFile } from "../../../contract.js";
 
 const file: ChangedFile = {path:"deleted.ts",status:"D",patch:"@@ -1 +0,0 @@\n-removed content\n",binary:false,added:0,removed:1};
@@ -51,7 +59,8 @@ it("can disable wrapping without changing content",()=>{
 
 it("highlights code safely without changing its text or diff layout",()=>{
   const patch = '@@ -1 +1 @@\n-const before = "<script>bad()</script>";\n+const after = "safe";\n';
-  render(<MantineProvider><FileDiff file={{...file,status:"M",patch}}/></MantineProvider>);
+  const lines = parsePatch(patch);
+  render(<MantineProvider><DiffLines lines={lines} highlighted={highlightPatch(file.path,lines)} wrap={true}/></MantineProvider>);
 
   const code = screen.getAllByRole("code");
   expect(code[0]!.textContent).toBe('const before = "<script>bad()</script>";');

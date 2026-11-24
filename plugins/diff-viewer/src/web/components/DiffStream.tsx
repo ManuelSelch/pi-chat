@@ -1,10 +1,13 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangedFile } from "../../contract.js";
 import { FileNavigation } from "./FileNavigation.js";
 import { FileDiff } from "./FileDiff.js";
+import { HighlightWorkerClient } from "../lib/highlight-worker-client.js";
 
 export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}) {
   const stream = useRef<HTMLDivElement>(null);
+  const [highlighter] = useState(()=>new HighlightWorkerClient());
+  useEffect(()=>()=>highlighter.dispose(),[highlighter]);
   const clickedSelection = useRef(false);
   const [selected,setSelected] = useState(files[0]?.path ?? "");
   const active = files.some(file=>file.path===selected) ? selected : files[0]?.path ?? "";
@@ -29,7 +32,7 @@ export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}
     <div ref={stream} role="region" aria-label="All file diffs" tabIndex={0} className="min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain bg-(--mantine-color-body)"
       onScroll={track} onWheel={resume} onTouchMove={resume} onPointerDown={resume}
       onKeyDown={event=>{if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(event.key)) resume();}}>
-      {files.map(file=><FileDiff key={file.path} file={file} wrap={wrap}/>)}
+      {files.map(file=><FileDiff key={file.path} file={file} wrap={wrap} onHighlight={highlighter.request}/>)}
     </div>
   </div>;
 }

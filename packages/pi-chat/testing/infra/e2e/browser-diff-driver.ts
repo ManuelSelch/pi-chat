@@ -25,6 +25,35 @@ export class BrowserDiffDriver {
     await unlink(join(this.projectPath,"deleted.ts"));
     await appendFile(join(this.projectPath,"one.ts"),"const longValue = \""+"x".repeat(400)+"\";\n");
   }
+  async prepareManyChanges() {
+    await this.prepareChanges();
+    await appendFile(join(this.projectPath,".gitignore"),"!perf-*.ts\n!zz-generated.ts\n");
+    await Promise.all(Array.from({length:24},(_,index)=>writeFile(
+      join(this.projectPath,"perf-"+String(index).padStart(2,"0")+".ts"),
+      Array.from({length:60},(_,line)=>'export const value'+line+' = "example";').join("\n")+"\n",
+    )));
+    await writeFile(join(this.projectPath,"zz-generated.ts"),Array.from({length:2200},(_,line)=>"export const generated"+line+" = "+line+";").join("\n")+"\n");
+  }
+  async shouldDeferOffscreenHighlighting() {
+    const offscreen = this.page.getByRole("region",{name:"Diff for perf-23.ts",exact:true});
+    await expect(offscreen).toHaveCount(1);
+    await expect(offscreen.locator(".hljs-keyword")).toHaveCount(0);
+  }
+  async shouldHighlightSelectedFile() {
+    const selected = this.page.getByRole("region",{name:"Diff for perf-00.ts",exact:true});
+    await expect(selected.locator(".hljs-keyword").first()).toBeVisible();
+  }
+  async shouldKeepGeneratedFileReadable() {
+    const generated = this.page.getByRole("region",{name:"Diff for zz-generated.ts",exact:true});
+    await expect(generated.locator("code")).toHaveCount(2200);
+    await expect(generated.locator(".hljs-keyword")).toHaveCount(0);
+    await expect(generated.locator("code").last()).toHaveText("export const generated2199 = 2199;");
+    const composer = this.page.getByRole("textbox",{name:"Message Pi",exact:true});
+    const start = Date.now();
+    await composer.fill("Responsive with large changes");
+    await expect(composer).toHaveValue("Responsive with large changes");
+    expect(Date.now()-start).toBeLessThan(1500);
+  }
   async shouldPlaceToggleLast() {
     const plus = this.page.getByRole("button",{name:"New session",exact:true});
     const toggle = this.page.getByRole("button",{name:"Toggle side panel"});
