@@ -1,0 +1,13 @@
+# Diff viewer polish
+- Revision: 1. Status: in review; not approved for production.
+- Separate from the preserved approved `../diff-viewer/` mockup.
+- Scope: long-line readability, consistent row backgrounds, quieter comparison dropdowns, no duplicate branch icon, header control ordering.
+- Default: wrap code at any character when necessary, preserving whitespace. Continuations keep the same gutter without repeating numbers.
+- Wrap lines toggles per-file horizontal scrolling; all rows share the widest content width so diff colors remain full width. Gutters stay fixed horizontally.
+- Current branch remains plain text; comparison mode and searchable branch/commit controls use matching heights, borders and menu styling. Local/remote groups retained.
+- Header: New session plus followed by the sidebar toggle at the far right. New session resets preview chat only.
+- Preserve side-panel close/reopen, responsive replacement of chat below 1048px, file jumping, sticky headings, refresh, and comparison modes.
+- Review fixtures: long configuration line and unbroken URL in the first file; added, deleted and binary files. `?wrap=off` opens unwrapped. Existing `?state=empty|error|not-git|loading` states retained.
+- Fake data only. Comparison selection does not change patches; refresh simulates activity. Commit history pagination and full projects/session navigation are omitted, not proposed removals.
+- Browser rendering and interactions are user-reviewed. Agentation uses local copy-and-paste annotations.
+- No production files or application dependencies changed. Approval pending.
