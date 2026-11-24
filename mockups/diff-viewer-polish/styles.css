@@ -54,7 +54,11 @@ body { margin:0; background:var(--page); color:var(--text); }
 .status-D,.removed { color:var(--removed); }
 .diff-content { display:flex; flex-direction:column; min-width:0; min-height:0; }
 .file-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 18px; border-bottom:1px solid var(--border); font-family:var(--mantine-font-family-monospace); font-size:11px; }
-.file-heading > span:first-child { overflow-wrap:anywhere; }
+.file-heading-path { display:flex; align-items:center; gap:8px; min-width:0; overflow-wrap:anywhere; }
+.file-heading-path svg { flex-shrink:0; }
+.deleted-heading { width:100%; color:var(--text); }
+.deleted-heading:hover { background:var(--hover); }
+.deleted-heading:focus-visible { outline:2px solid #839bb6; outline-offset:-2px; }
 .counts { display:flex; gap:10px; font-family:var(--mantine-font-family-monospace); }
 .diff-scroll { overflow:auto; flex:1; padding-bottom:24px; }
 .hunk { background:var(--selected); color:var(--muted); padding:9px 18px; font:11px var(--mantine-font-family-monospace); }

@@ -1,7 +1,8 @@
 # Diff viewer polish
-- Revision: 1. Status: in review; not approved for production.
+- Revision: 2. Status: in review; not approved for production.
 - Separate from the preserved approved `../diff-viewer/` mockup.
 - Scope: long-line readability, consistent row backgrounds, quieter comparison dropdowns, no duplicate branch icon, header control ordering.
+- Deleted files start collapsed with path and counts visible. Click the chevron/header (or use Enter/Space) to expand or collapse their removed lines; file navigation still jumps to the heading. This is an intentional behavior change for production approval.
 - Default: wrap code at any character when necessary, preserving whitespace. Continuations keep the same gutter without repeating numbers.
 - Wrap lines toggles per-file horizontal scrolling; all rows share the widest content width so diff colors remain full width. Gutters stay fixed horizontally.
 - Current branch remains plain text; comparison mode and searchable branch/commit controls use matching heights, borders and menu styling. Local/remote groups retained.
