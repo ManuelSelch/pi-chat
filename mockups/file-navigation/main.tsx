@@ -1,0 +1,10 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
+import { MantineProvider, createTheme } from "@mantine/core";
+import { Agentation } from "agentation";
+import "@mantine/core/styles.css";
+import "../diff-viewer-polish/styles.css";
+import "./styles.css";
+import { NavigationMockup } from "./NavigationMockup";
+const theme = createTheme({primaryColor:"gray",defaultRadius:"sm",fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'});
+createRoot(document.getElementById("root")!).render(<React.StrictMode><MantineProvider theme={theme} forceColorScheme="dark"><NavigationMockup/>{import.meta.env.DEV && <Agentation/>}</MantineProvider></React.StrictMode>);
