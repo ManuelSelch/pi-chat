@@ -1,6 +1,27 @@
 import { test } from "../infra/e2e/coverage/fixtures.js";
 import { PiChatBrowserDriver } from "../infra/e2e/pi-chat-browser-driver.js";
 
+test("file kinds preserve folder structure and filter the continuous diff stream",async({page})=>{
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.prepareGroupedChanges();
+    await app.sessions.create({responses:[]});
+    await app.changes.open();
+
+    await app.changes.shouldGroupByKind();
+    await app.changes.collapseSourceGroup();
+    await app.changes.shouldCollapseNavigationOnly();
+    await app.changes.filterFiles("CHECKOUT");
+    await app.changes.shouldShowFilteredCheckoutChanges();
+    await app.changes.chooseFile("tests/e2e/checkout.spec.ts");
+    await app.changes.shouldKeepSelected("tests/e2e/checkout.spec.ts");
+    await app.changes.filterFiles("no-matching-path");
+    await app.changes.shouldKeepUnmatchedFilterUsable();
+    await app.changes.filterFiles("");
+    await app.changes.shouldRestoreAllGroupedChanges();
+  } finally { await app.dispose(); }
+});
+
 test("large comparisons highlight on demand and keep generated files responsive",async({page})=>{
   const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
   const workers:string[] = [];

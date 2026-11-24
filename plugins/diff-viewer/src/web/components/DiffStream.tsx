@@ -1,10 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Text, TextInput } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
+import { groupFiles } from "../../domain/file-navigation.js";
+import { DiffSummary } from "./DiffSummary.js";
 import type { ChangedFile } from "../../contract.js";
 import { FileNavigation } from "./FileNavigation.js";
 import { FileDiff } from "./FileDiff.js";
 import { HighlightWorkerClient } from "../lib/highlight-worker-client.js";
 
 export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}) {
+  const [query,setQuery] = useState("");
+  const visibleFiles = useMemo(()=>groupFiles(files.filter(file=>file.path.toLowerCase().includes(query.toLowerCase()))).flatMap(group=>group.files),[files,query]);
   const stream = useRef<HTMLDivElement>(null);
   const [highlighter] = useState(()=>new HighlightWorkerClient());
   useEffect(()=>()=>highlighter.dispose(),[highlighter]);
@@ -13,7 +19,7 @@ export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}
   useLayoutEffect(()=>{
     const container = stream.current;
     if (!container) return;
-    const sections = Array.from(container.children) as HTMLElement[];
+    const sections = Array.from(container.querySelectorAll<HTMLElement>("[data-diff-file]"));
     const measure = ()=>{
       positions.current = sections.map(section=>({path:section.dataset.diffFile!,bottom:section.offsetTop+section.offsetHeight}));
     };
@@ -22,9 +28,9 @@ export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}
     observer.observe(container);
     sections.forEach(section=>observer.observe(section));
     return ()=>observer.disconnect();
-  },[files]);
-  const [selected,setSelected] = useState(files[0]?.path ?? "");
-  const active = files.some(file=>file.path===selected) ? selected : files[0]?.path ?? "";
+  },[visibleFiles]);
+  const [selected,setSelected] = useState(visibleFiles[0]?.path ?? "");
+  const active = visibleFiles.some(file=>file.path===selected) ? selected : visibleFiles[0]?.path ?? "";
   function jump(path:string) {
     const container = stream.current;
     const section = Array.from(container?.children ?? []).find(element=>element.getAttribute("data-diff-file")===path);
@@ -49,12 +55,19 @@ export function DiffStream({files,wrap=true}:{files:ChangedFile[];wrap?:boolean}
     if (path) setSelected(current=>current===path ? current : path);
   }
   const resume = ()=>{clickedSelection.current=false;};
-  return <div className="grid min-h-0 flex-1 grid-cols-[clamp(112px,29vw,180px)_minmax(0,1fr)] min-[1200px]:grid-cols-[220px_minmax(0,1fr)]">
-    <FileNavigation files={files} selected={active} onSelect={jump}/>
+  return <>
+  <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)]">
+    <aside className="flex min-h-0 w-[205px] min-w-[170px] max-w-[min(420px,55vw)] resize-x flex-col overflow-auto border-r border-(--mantine-color-default-border) bg-(--pi-sidebar-bg) min-[1200px]:w-[270px]">
+      <TextInput aria-label="Filter files by path" placeholder="Filter files…" size="xs" leftSection={<IconSearch size={13}/>} value={query} onChange={event=>{clickedSelection.current=false;setQuery(event.currentTarget.value);if(stream.current)stream.current.scrollTop=0;}} className="shrink-0 px-2.5 py-2.5"/>
+      <FileNavigation files={visibleFiles} selected={active} onSelect={jump}/>
+    </aside>
     <div ref={stream} role="region" aria-label="All file diffs" tabIndex={0} className="relative min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain bg-(--mantine-color-body)"
       onScroll={track} onWheel={resume} onTouchMove={resume} onPointerDown={resume}
       onKeyDown={event=>{if(["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(event.key)) resume();}}>
-      {files.map(file=><FileDiff key={file.path} file={file} wrap={wrap} onHighlight={highlighter.request}/>)}
+      {visibleFiles.map(file=><FileDiff key={file.path} file={file} wrap={wrap} onHighlight={highlighter.request}/>)}
+      {!visibleFiles.length && <Text role="status" size="xs" c="dimmed" className="p-6 text-center">No matching diffs</Text>}
     </div>
-  </div>;
+  </div>
+  <DiffSummary files={visibleFiles}/>
+  </>;
 }

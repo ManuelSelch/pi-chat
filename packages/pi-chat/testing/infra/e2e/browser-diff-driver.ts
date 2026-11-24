@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFile, unlink, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 
@@ -15,6 +15,54 @@ export class BrowserDiffDriver {
     git("add","-A");git("commit","-m","Prepare viewer");
     await writeFile(join(this.projectPath,"one.ts"),Array.from({length:80},(_,i)=>"after "+i).join("\n")+"\n");
     await writeFile(join(this.projectPath,"two.ts"),"after\n");
+  }
+  async prepareGroupedChanges() {
+    await this.prepareChanges();
+    await appendFile(join(this.projectPath,".gitignore"),"!src/\n!src/**\n!tests/\n!tests/**\n!docs/\n!docs/**\n!package.json\n");
+    const paths = ["src/features/checkout/Checkout.tsx","src/features/checkout/__tests__/Checkout.test.tsx","src/styles/global.css","tests/e2e/checkout.spec.ts","docs/checkout.md","package.json"];
+    for (const path of paths) {
+      await mkdir(join(this.projectPath,path,".."),{recursive:true});
+      await writeFile(join(this.projectPath,path),path.endsWith(".json") ? "{}\n" : "new content\n");
+    }
+  }
+  async shouldGroupByKind() {
+    const nav = this.page.getByRole("navigation",{name:"Changed files"});
+    for (const name of ["Source","Tests","Docs","Config"]) await expect(nav.getByRole("button",{name,exact:true})).toHaveAttribute("aria-expanded","true");
+    await expect(nav.getByRole("button",{name:"Folder src/features/checkout",exact:true})).toBeVisible();
+    await expect(nav.getByRole("button",{name:"src/styles/global.css",exact:true})).toBeVisible();
+    await expect(nav.getByText("Files",{exact:true})).toHaveCount(0);
+    const paths = await nav.locator("[aria-pressed]").evaluateAll(buttons=>buttons.map(button=>button.getAttribute("aria-label")));
+    const diffs = await this.page.getByRole("region",{name:"All file diffs"}).locator("[data-diff-file]").evaluateAll(sections=>sections.map(section=>section.getAttribute("data-diff-file")));
+    expect(paths).toEqual(diffs);
+  }
+  async collapseSourceGroup() {
+    await this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:"Source",exact:true}).click();
+  }
+  async shouldCollapseNavigationOnly() {
+    const nav = this.page.getByRole("navigation",{name:"Changed files"});
+    await expect(nav.getByRole("button",{name:"src/features/checkout/Checkout.tsx",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("region",{name:"Diff for src/features/checkout/Checkout.tsx",exact:true})).toHaveCount(1);
+    await expect(this.page.getByText("9 files changed",{exact:true})).toBeVisible();
+    await expect(nav.getByRole("button",{name:"src/features/checkout/__tests__/Checkout.test.tsx",exact:true})).toBeVisible();
+  }
+  async filterFiles(query:string) {
+    await this.page.getByRole("textbox",{name:"Filter files by path"}).fill(query);
+  }
+  async shouldShowFilteredCheckoutChanges() {
+    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    await expect(stream.locator("[data-diff-file]")).toHaveCount(4);
+    await expect(this.page.getByText("4 files changed",{exact:true})).toBeVisible();
+    await expect(this.page.getByRole("button",{name:"src/styles/global.css",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("region",{name:"Diff for src/styles/global.css",exact:true})).toHaveCount(0);
+  }
+  async shouldKeepUnmatchedFilterUsable() {
+    await expect(this.page.getByRole("textbox",{name:"Filter files by path"})).toBeVisible();
+    await expect(this.page.getByRole("status")).toHaveText("No matching diffs");
+    await expect(this.page.getByText("0 files changed",{exact:true})).toBeVisible();
+  }
+  async shouldRestoreAllGroupedChanges() {
+    await expect(this.page.getByRole("region",{name:"All file diffs"}).locator("[data-diff-file]")).toHaveCount(9);
+    await expect(this.page.getByText("9 files changed",{exact:true})).toBeVisible();
   }
   async prepareLongAndDeletedChanges() {
     await this.prepareChanges();

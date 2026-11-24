@@ -1,5 +1,5 @@
 # File navigation alternatives
-- Revision: 3. Status: in review; no implementation approval.
+- Revision: 3. Option B approved for implementation. User: “apporved. implement option B”. Options A and C are not approved for implementation.
 - Goal: compare how changed-file navigation communicates feature concentration and global outliers.
 - Same nine fake checkout changes in all variants, including colocated tests, separate e2e tests, docs, a global stylesheet and root config.
 - A: compact folder tree with changed-file counts, keeping repository boundaries visible.

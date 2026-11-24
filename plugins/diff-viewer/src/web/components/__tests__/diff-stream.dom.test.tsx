@@ -23,6 +23,44 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 
+it("filters paths, diffs and totals without losing the filter when nothing matches",()=>{
+  fireEvent.change(screen.getByRole("textbox",{name:"Filter files by path"}),{target:{value:"LAST"}});
+
+  expect(screen.queryByRole("button",{name:"first.ts"})).toBeNull();
+  expect(screen.queryByRole("region",{name:"Diff for first.ts"})).toBeNull();
+  expect(screen.getByRole("region",{name:"Diff for last.ts"})).toBeTruthy();
+  expect(screen.getByText("1 file changed")).toBeTruthy();
+  expect(screen.getByRole("contentinfo").textContent).toContain("+1");
+
+  fireEvent.change(screen.getByRole("textbox",{name:"Filter files by path"}),{target:{value:"missing"}});
+
+  expect(screen.getByText("0 files changed")).toBeTruthy();
+  expect(screen.getByRole("textbox",{name:"Filter files by path"})).toBeTruthy();
+
+  fireEvent.change(screen.getByRole("textbox",{name:"Filter files by path"}),{target:{value:""}});
+
+  expect(screen.getByText("2 files changed")).toBeTruthy();
+  expect(screen.getByRole("region",{name:"Diff for first.ts"})).toBeTruthy();
+});
+
+it("uses the same kind and folder order for navigation and the continuous diff stream",()=>{
+  cleanup();
+  const paths = ["package.json","src/root.ts","src/feature/z.ts","docs/guide.md","tests/feature.test.ts","src/feature/a.ts"];
+  render(<MantineProvider><DiffStream files={paths.map(path=>({...files[0]!,path}))}/></MantineProvider>);
+  const expected = ["src/feature/a.ts","src/feature/z.ts","src/root.ts","tests/feature.test.ts","docs/guide.md","package.json"];
+
+  expect(Array.from(screen.getByRole("region",{name:"All file diffs"}).children).map(child=>child.getAttribute("data-diff-file"))).toEqual(expected);
+  expect(Array.from(screen.getByRole("navigation",{name:"Changed files"}).querySelectorAll("[aria-pressed]")).map(button=>button.getAttribute("aria-label"))).toEqual(expected);
+});
+
+it("collapsing kind navigation does not hide diffs or change totals",()=>{
+  fireEvent.click(screen.getByRole("button",{name:"Source"}));
+
+  expect(screen.queryByRole("button",{name:"first.ts"})).toBeNull();
+  expect(screen.getByRole("region",{name:"Diff for first.ts"})).toBeTruthy();
+  expect(screen.getByText("2 files changed")).toBeTruthy();
+});
+
 it("does not measure every file during scrolling",()=>{
   Object.defineProperties(region,{scrollHeight:{value:1200},clientHeight:{value:800}});
   const measure = vi.fn(()=>({top:0,bottom:200} as DOMRect));
