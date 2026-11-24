@@ -47,16 +47,47 @@ it("shows the initial commit against an empty tree", async()=>{
   git.shouldShowFiles(["file"]);
   git.shouldShowPatch("file","+first");
 });
-it("lists commit names newest first and filters history", async()=>{
-  git.commit("First"); git.commit("Second"); git.commit("Third");
+it("lists only the five most recent commits, newest first", async()=>{
+  for (let index=0;index<7;index++) git.commit("Commit "+index);
 
-  await git.shouldListCommits("",["Third","Second","First"]);
-  await git.shouldListCommits("second",["Second"]);
+  await git.shouldListCommits(["Commit 6","Commit 5","Commit 4","Commit 3","Commit 2"]);
 });
-it("paginates older commits without duplicates", async()=>{
-  for (let index=0;index<51;index++) git.commit("Commit "+index);
+it("suggests the default and nearest two local ancestor branches, not unrelated branches", async()=>{
+  git.commit("Initial"); git.branch("old-parent"); git.commit("Old parent");
+  git.branch("parent"); git.commit("Parent"); git.branch("nearest"); git.commit("Nearest");
+  git.branch("feature"); git.commit("Feature");
+  git.checkout("main"); git.branch("unrelated"); git.commit("Unrelated"); git.checkout("feature");
 
-  await git.shouldPaginateCommits();
+  await git.shouldSuggestBases("refs/heads/main",["refs/heads/nearest","refs/heads/parent"]);
+});
+it("deduplicates matching local/remote tips but retains diverged remote branches", async()=>{
+  git.commit("Initial"); git.trackRemote("origin/main");
+  git.branch("parent"); git.commit("Parent"); git.trackRemote("origin/parent");
+  git.branch("feature"); git.commit("Feature"); git.trackRemote("origin/feature");
+  git.trackRemote("upstream/parent","main");
+
+  await git.shouldIncludeRefs(["refs/heads/main","refs/heads/parent","refs/heads/feature","refs/remotes/upstream/parent"],["refs/remotes/origin/main","refs/remotes/origin/parent","refs/remotes/origin/feature"]);
+});
+it("uses the remote default and supports master repositories",async()=>{
+  git.commit("Initial"); git.branch("master"); git.trackRemote("origin/master");
+  git.setRemoteDefault("refs/remotes/origin/master"); git.branch("feature"); git.commit("Feature");
+
+  await git.shouldSuggestBases("refs/heads/master",[]);
+});
+it("uses master without remote metadata",async()=>{
+  git.commit("Initial"); git.renameBranch("master");
+  git.branch("feature"); git.commit("Feature");
+
+  await git.shouldSuggestBases("refs/heads/master",[]);
+});
+it("returns ancestor suggestions without inventing a repository default",async()=>{
+  git.commit("Initial"); git.renameBranch("trunk");
+  git.branch("feature"); git.commit("Feature");
+
+  await git.shouldSuggestBases(null,["refs/heads/trunk"]);
+});
+it("returns no suggestions for unborn repositories",async()=>{
+  await git.shouldSuggestBases(null,[]);
 });
 it("supports unborn repositories and empty added files", async()=>{
   await git.write("empty","");
@@ -66,7 +97,7 @@ it("supports unborn repositories and empty added files", async()=>{
 
   git.shouldShowFiles(["empty","new"]);
   git.shouldHaveCounts("empty",0,0);
-  await git.shouldListCommits("",[]);
+  await git.shouldListCommits([]);
 });
 it("preserves unusual filenames and missing newline markers", async()=>{
   git.commit("Initial"); await git.write("space ü\tline\nfile","hello");

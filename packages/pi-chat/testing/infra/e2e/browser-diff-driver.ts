@@ -175,22 +175,24 @@ export class BrowserDiffDriver {
     await expect(this.page.getByRole("dialog")).toHaveCount(0);
   }
   async selectBranchMode() {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Branch",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("menuitem",{name:"Branch",exact:true}).click();
   }
   async shouldDefaultToMain() {
-    const picker = this.page.getByRole("combobox",{name:"Comparison branch",exact:true});
-    await expect(picker).toHaveValue("main");
+    const picker = this.page.getByRole("button",{name:"Comparison branch",exact:true});
+    await expect(picker).toHaveText("Againstmain");
     await picker.click();
-    await expect(this.page.getByRole("option",{name:"feature",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"main",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"feature",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("textbox",{name:"Search all branches",exact:true})).toHaveCount(0);
     await picker.press("Escape");
   }
   async selectCommitMode() {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Commit",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison mode",exact:true}).click();
+    await this.page.getByRole("menuitem",{name:"Commit",exact:true}).click();
   }
   async shouldShowLatestCommit() {
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue("Prepare viewer");
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText("Prepare viewer");
     const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
     await expect(diff.getByText("before",{exact:true})).toBeVisible();
     await expect(diff.getByText("committed",{exact:true})).toBeVisible();
@@ -202,17 +204,17 @@ export class BrowserDiffDriver {
     await expect(diff.getByText("after",{exact:true})).toHaveCount(0);
   }
   async chooseBranch(name:string) {
-    await this.page.getByRole("combobox",{name:"Comparison mode",exact:true}).click();
-    await this.page.getByRole("option",{name:"Branch",exact:true}).click();
-    await this.page.getByRole("combobox",{name:"Comparison branch",exact:true}).fill(name);
+    await this.selectBranchMode();
+    await this.page.getByRole("button",{name:"Comparison branch",exact:true}).click();
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    await this.page.getByRole("textbox",{name:"Search all branches",exact:true}).fill(name);
     await this.page.getByRole("option",{name,exact:true}).click();
   }
   async chooseCommit(subject:string) {
-    await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).click();
+    await this.page.getByRole("button",{name:"Comparison commit",exact:true}).click();
     await expect(this.page.getByRole("option",{name:subject,exact:true})).toBeVisible();
-    await this.page.getByRole("combobox",{name:"Comparison commit",exact:true}).fill(subject);
     await this.page.getByRole("option",{name:subject,exact:true}).click();
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText(subject);
   }
   async shouldShowBeforeAndAfter() {
     const diff = this.page.getByRole("region",{name:"Diff for two.ts",exact:true});
@@ -220,8 +222,55 @@ export class BrowserDiffDriver {
     await expect(diff.getByText("after",{exact:true})).toBeVisible();
   }
   async shouldRememberCommit(subject:string) {
-    await expect(this.page.getByRole("combobox",{name:"Comparison mode",exact:true})).toHaveValue("Commit");
-    await expect(this.page.getByRole("combobox",{name:"Comparison commit",exact:true})).toHaveValue(subject);
+    await expect(this.page.getByRole("button",{name:"Comparison mode",exact:true})).toHaveText("Commit");
+    await expect(this.page.getByRole("button",{name:"Comparison commit",exact:true})).toHaveText(subject);
+  }
+  async preparePickerChoices() {
+    await this.prepareChanges();
+    const git = (...args:string[])=>execFileSync("git",["-C",this.projectPath,"-c","user.name=Test","-c","user.email=test@example.invalid",...args],{stdio:"pipe"});
+    git("branch","unrelated","main");
+    for (let index=1;index<=6;index++) git("commit","--allow-empty","-m","Recent change "+index);
+    git("branch","parent","HEAD~2");
+  }
+  async shouldSearchBranchesWithKeyboard() {
+    const trigger = this.page.getByRole("button",{name:"Comparison branch",exact:true});
+    await expect(trigger).toHaveText("Againstmain");
+    await trigger.click();
+    await expect(this.page.getByRole("option",{name:"parent",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toHaveCount(0);
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    const search = this.page.getByRole("textbox",{name:"Search all branches",exact:true});
+    await expect(search).toBeFocused();
+    await search.fill("no-such-branch");
+    await expect(this.page.getByText("No matching branches",{exact:true})).toBeVisible();
+    await expect(trigger).toHaveText("Againstmain");
+    await this.page.getByRole("button",{name:"Back to suggestions",exact:true}).click();
+    await expect(search).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await this.page.getByRole("button",{name:"Search all branches…",exact:true}).click();
+    await search.fill("unrelated");
+    await search.press("ArrowDown");
+    await search.press("Enter");
+    await expect(trigger).toHaveText("Againstunrelated");
+    await expect(trigger).toBeFocused();
+    await trigger.click();
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toBeVisible();
+    await trigger.press("Escape");
+    await expect(this.page.getByRole("option",{name:"unrelated",exact:true})).toBeHidden();
+  }
+  async shouldOfferOnlyFiveRecentCommits() {
+    const trigger = this.page.getByRole("button",{name:"Comparison commit",exact:true});
+    await expect(trigger).toHaveText("Recent change 6");
+    await trigger.click();
+    await expect(this.page.getByRole("option")).toHaveCount(5);
+    await expect(this.page.getByRole("option",{name:"Recent change 2",exact:true})).toBeVisible();
+    await expect(this.page.getByRole("option",{name:"Recent change 1",exact:true})).toHaveCount(0);
+    await expect(this.page.getByRole("textbox",{name:/Search.*commits/})).toHaveCount(0);
+    await expect(this.page.getByRole("button",{name:"Older",exact:true})).toHaveCount(0);
+    await trigger.press("ArrowDown");
+    await trigger.press("Enter");
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toHaveText("Recent change 6");
   }
   async useCompactViewport() { await this.page.setViewportSize({width:1000,height:900}); }
   async shouldShowFullWidthView() {

@@ -1,60 +1,50 @@
-import { useEffect, useState } from "react";
-import { ActionIcon, Button, Group, Select, Text } from "@mantine/core";
-import { IconTextWrap, IconRefresh } from "@tabler/icons-react";
+import { ActionIcon, Button, Menu, Text } from "@mantine/core";
+import { IconCheck, IconChevronDown, IconTextWrap, IconRefresh } from "@tabler/icons-react";
 import type { CommitPage, RepositoryContext } from "../../contract.js";
 import type { Mode, Preferences } from "../stores/DiffViewerProvider.js";
 import type { QueryState } from "../hooks/use-remote-query.js";
+import { comparisonButtonStyles, ReferencePicker } from "./ReferencePicker.js";
 
 interface Props {
   context: QueryState<RepositoryContext>; preferences: Preferences; update(patch:Partial<Preferences>):void;
-  commits: QueryState<CommitPage>; onQuery(value:string):void; offset:number; onNext():void; onPrevious():void;
+  commits: QueryState<CommitPage>;
   loading:boolean; disabled:boolean; onRefresh():void; wrap:boolean; onToggleWrap():void;
 }
+const modes: {value:Mode;label:string}[] = [{value:"branch",label:"Branch"},{value:"uncommitted",label:"Uncommitted"},{value:"commit",label:"Commit"}];
 export function ComparisonControls(p:Props) {
-  const [branchSearch,setBranchSearch] = useState("");
-  const [commitSearch,setCommitSearch] = useState("");
-  const branches = p.context.status==="ready" ? p.context.value.branches : [];
-  useEffect(()=>{setBranchSearch(branches.find(branch=>branch.ref===p.preferences.branch)?.name ?? "");},[p.preferences.branch,p.context]);
-  useEffect(()=>{setCommitSearch(p.preferences.commitSubject);},[p.preferences.commit,p.preferences.commitSubject]);
+  const context = p.context.status==="ready" ? p.context.value : null;
+  const branches = context?.branches ?? [];
   const commits = p.commits.status==="ready" ? p.commits.value.commits : [];
-  const commitOptions = commits.map(commit=>({value:commit.sha,label:commit.subject || "(no commit message)"}));
-  if (p.preferences.commit && !commitOptions.some(option=>option.value===p.preferences.commit)) commitOptions.push({value:p.preferences.commit,label:p.preferences.commitSubject || "(no commit message)"});
-  const pickerStyles = {
-    input: {height:30,minHeight:30,borderRadius:5,fontSize:12,background:"var(--mantine-color-body)",borderColor:"var(--mantine-color-default-border)"},
-    dropdown: {padding:4,borderRadius:6,background:"var(--mantine-color-default)",borderColor:"var(--mantine-color-default-border)",boxShadow:"var(--mantine-shadow-md)"},
-    option: {fontSize:12,minHeight:30,borderRadius:3,overflowWrap:"anywhere" as const},
-  };
+  const priority = [context?.defaultBranch,...(context?.suggestedBranches ?? [])];
+  const rank = (ref:string)=>{const index=priority.indexOf(ref);return index===-1 ? priority.length : index;};
+  const branchOptions = [...branches].sort((a,b)=>rank(a.ref)-rank(b.ref)).map(branch=>({value:branch.ref,label:branch.name,
+    note:branch.ref===context?.defaultBranch ? "Default" : context?.suggestedBranches.includes(branch.ref) ? "Suggested" : "",
+    suggested:branch.ref===context?.defaultBranch || context?.suggestedBranches.includes(branch.ref)}));
+  const commitOptions = commits.map((commit,index)=>({value:commit.sha,label:commit.subject || "(no commit message)",note:index===0 ? "Latest" : new Date(commit.date).toLocaleDateString(undefined,{month:"short",day:"numeric"})}));
   return <div className="flex flex-wrap items-center gap-2 border-b border-(--mantine-color-default-border) px-3 py-2.5">
     <div className="flex min-w-0 flex-1 items-start gap-1.5">
-    <Select styles={pickerStyles} className="shrink-0" aria-label="Comparison mode" size="xs" w={120} value={p.preferences.mode} allowDeselect={false}
-      onChange={value=>{if(value) p.update({mode:value as Mode});}}
-      data={[{value:"branch",label:"Branch"},{value:"uncommitted",label:"Uncommitted"},{value:"commit",label:"Commit"}]}/>
-    {p.preferences.mode==="branch" && <Select styles={pickerStyles} className="min-w-0 flex-1" aria-label="Comparison branch" placeholder="Select a branch" size="xs" searchable allowDeselect={false}
-      disabled={p.disabled} value={p.preferences.branch} onChange={branch=>p.update({branch})} nothingFoundMessage="No matching branches"
-      searchValue={branchSearch} onSearchChange={setBranchSearch} onDropdownOpen={()=>setBranchSearch("")}
-      onDropdownClose={()=>setBranchSearch(branches.find(branch=>branch.ref===p.preferences.branch)?.name ?? "")}
-      data={[
-        {group:"Local branches",items:branches.filter(branch=>!branch.remote).map(branch=>({value:branch.ref,label:branch.name}))},
-        {group:"Remote branches",items:branches.filter(branch=>branch.remote).map(branch=>({value:branch.ref,label:branch.name}))},
-      ]}/>}
-    {p.preferences.mode==="commit" && <div className="min-w-0 flex-1">
-      <Select styles={pickerStyles} aria-label="Comparison commit" placeholder="Select a commit" size="xs" searchable allowDeselect={false}
-        disabled={p.disabled} value={p.preferences.commit} onChange={commit=>p.update({commit,commitSubject:commitOptions.find(option=>option.value===commit)?.label ?? ""})}
-        searchValue={commitSearch} onSearchChange={value=>{setCommitSearch(value);p.onQuery(value);}} filter={({options})=>options}
-        onDropdownOpen={()=>{setCommitSearch("");p.onQuery("");}}
-        onDropdownClose={()=>{setCommitSearch(p.preferences.commitSubject);p.onQuery("");}}
-        nothingFoundMessage={p.commits.status==="loading" ? "Loading commits…" : "No matching commits"}
-        data={commitOptions}/>
-      <Group gap="xs" mt={4}>
-        <Button size="compact-xs" variant="subtle" color="gray" disabled={p.offset===0 || p.commits.status==="loading"} onClick={p.onPrevious}>Newer</Button>
-        <Button size="compact-xs" variant="subtle" color="gray" disabled={p.commits.status!=="ready" || p.commits.value.nextOffset===null} onClick={p.onNext}>Older</Button>
-      </Group>
-      {p.commits.status==="error" && <Text size="xs" c="red" role="alert">{p.commits.message}</Text>}
-    </div>}
+      <Menu position="bottom-start" withinPortal styles={{item:{fontSize:12,minHeight:32}}}>
+        <Menu.Target><Button variant="default" size="compact-xs" className="shrink-0" styles={comparisonButtonStyles} aria-label="Comparison mode"
+          rightSection={<IconChevronDown size={12}/>}>{modes.find(mode=>mode.value===p.preferences.mode)?.label}</Button></Menu.Target>
+        <Menu.Dropdown styles={{dropdown:{padding:4,borderRadius:7,background:"var(--mantine-color-default)",borderColor:"var(--mantine-color-default-border)"}}}>
+          {modes.map(mode=><Menu.Item key={mode.value} onClick={()=>p.update({mode:mode.value})} rightSection={p.preferences.mode===mode.value ? <IconCheck size={13}/> : null}>{mode.label}</Menu.Item>)}
+        </Menu.Dropdown>
+      </Menu>
+      <div className="min-w-0">
+        {p.preferences.mode==="branch" && <ReferencePicker key="branch" label="Comparison branch" value={p.preferences.branch} prefix="Against"
+          selectedLabel={branches.find(branch=>branch.ref===p.preferences.branch)?.name ?? p.preferences.branch?.replace(/^refs\/(heads|remotes)\//,"") ?? "Select a branch"}
+          options={branchOptions} searchable disabled={p.disabled} message={p.context.status==="loading" ? "Loading branches…" : "No suggested branches"}
+          onSelect={branch=>p.update({branch})}/>}
+        {p.preferences.mode==="commit" && <ReferencePicker key="commit" label="Comparison commit" value={p.preferences.commit}
+          selectedLabel={p.preferences.commitSubject || "Select a commit"} options={commitOptions} searchable={false} heading="Recent commits" disabled={p.disabled}
+          message={p.commits.status==="loading" ? "Loading commits…" : "No recent commits"}
+          onSelect={commit=>p.update({commit,commitSubject:commitOptions.find(option=>option.value===commit)?.label ?? ""})}/>}
+        {p.preferences.mode==="commit" && p.commits.status==="error" && <Text size="xs" c="red" role="alert">{p.commits.message}</Text>}
+      </div>
     </div>
     <div className="ml-auto flex items-center gap-0.5 self-start">
-    <ActionIcon variant={p.wrap ? "light" : "subtle"} color="gray" aria-label="Wrap lines" aria-pressed={p.wrap} onClick={p.onToggleWrap}><IconTextWrap size={17}/></ActionIcon>
-    <ActionIcon variant="subtle" color="gray" aria-label="Refresh changes" loading={p.loading} disabled={p.disabled} onClick={p.onRefresh}><IconRefresh size={17}/></ActionIcon>
+      <ActionIcon variant={p.wrap ? "light" : "subtle"} color="gray" aria-label="Wrap lines" aria-pressed={p.wrap} onClick={p.onToggleWrap}><IconTextWrap size={17}/></ActionIcon>
+      <ActionIcon variant="subtle" color="gray" aria-label="Refresh changes" loading={p.loading} disabled={p.disabled} onClick={p.onRefresh}><IconRefresh size={17}/></ActionIcon>
     </div>
   </div>;
 }

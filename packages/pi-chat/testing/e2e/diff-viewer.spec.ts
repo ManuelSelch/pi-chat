@@ -44,6 +44,23 @@ test("diff readability supports wrapping, fixed gutters and collapsed deleted fi
   } finally { await app.dispose(); }
 });
 
+test("comparison pickers keep the base visible, support keyboard search and limit recent commits",async({page})=>{
+  const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
+  try {
+    await app.changes.preparePickerChoices();
+    await app.sessions.create({responses:[]});
+    await app.changes.open();
+
+    await app.changes.shouldSearchBranchesWithKeyboard();
+    await app.changes.selectCommitMode();
+    await app.changes.shouldOfferOnlyFiveRecentCommits();
+    await app.changes.chooseCommit("Recent change 2");
+    await app.changes.close();
+    await app.changes.open();
+    await app.changes.shouldRememberCommit("Recent change 2");
+  } finally { await app.dispose(); }
+});
+
 test("plugin diffs scroll continuously beside chat and support named branch and commit bases",async({page})=>{
   const app = await PiChatBrowserDriver.start(page,{projectBranch:"feature"});
   try {

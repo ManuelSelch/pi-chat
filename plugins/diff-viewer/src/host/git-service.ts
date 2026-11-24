@@ -7,7 +7,6 @@ import { GitError, runGit } from "./git-command.js";
 
 const MAX_FILES = 200;
 const MAX_BYTES = 2 * 1024 * 1024;
-const PAGE_SIZE = 50;
 
 export class GitService {
   private async root(path: string): Promise<string> {
@@ -33,26 +32,47 @@ export class GitService {
   async context(projectPath: string): Promise<RepositoryContext> {
     const root = await this.root(projectPath);
     const [branch, refs] = await Promise.all([
-      this.branch(root), runGit(root, ["for-each-ref", "--sort=refname", "--format=%(refname)%09%(refname:short)%09%(symref)", "refs/heads/", "refs/remotes/"]),
+      this.branch(root), runGit(root, ["for-each-ref", "--sort=refname", "--format=%(refname)%09%(refname:short)%09%(symref)%09%(objectname)", "refs/heads/", "refs/remotes/"]),
     ]);
-    return { branch, branches: refs.split("\n").filter(Boolean).flatMap(line => {
-      const [ref, name, symbolic] = line.split("\t");
-      return ref && name && !symbolic ? [{ ref, name, remote: ref.startsWith("refs/remotes/") }] : [];
-    }) };
+    const entries = refs.split("\n").filter(Boolean).map(line=>{
+      const [ref="",name="",symbolic="",sha=""] = line.split("\t");
+      return {ref,name,symbolic,sha,remote:ref.startsWith("refs/remotes/")};
+    });
+    const local = entries.filter(entry=>!entry.remote);
+    const branches = entries.filter(entry=>!entry.symbolic &&
+      !(entry.remote && local.some(candidate=>entry.ref.slice("refs/remotes/".length).split("/").slice(1).join("/")===candidate.name && candidate.sha===entry.sha)));
+    const detected = entries.find(entry=>entry.ref==="refs/remotes/origin/HEAD")?.symbolic ?? entries.find(entry=>entry.symbolic)?.symbolic;
+    const remoteDefault = entries.find(entry=>entry.ref===detected);
+    const matchingLocal = remoteDefault && local.find(entry=>entry.name===remoteDefault.ref.slice("refs/remotes/".length).split("/").slice(1).join("/"));
+    const defaultRef = matchingLocal?.ref ?? remoteDefault?.ref ??
+      ["refs/heads/main","refs/remotes/origin/main","refs/heads/master","refs/remotes/origin/master"].find(ref=>branches.some(entry=>entry.ref===ref));
+    const defaultBranch = branches.find(entry=>entry.ref===defaultRef)?.ref ?? null;
+    let merged = new Set<string>();
+    try { merged = new Set((await runGit(root,["for-each-ref","--merged=HEAD","--format=%(refname)","refs/heads/"])).trim().split("\n")); }
+    catch { /* Unborn repositories have no ancestry to suggest. */ }
+    const head = local.find(entry=>entry.ref==="refs/heads/"+branch)?.sha;
+    const defaultTip = branches.find(entry=>entry.ref===defaultBranch)?.sha;
+    const ranked: {ref:string;distance:number}[] = [];
+    for (const entry of branches) {
+      if (entry.remote || entry.sha===defaultTip || entry.sha===head || !merged.has(entry.ref)) continue;
+      const distance = Number((await runGit(root,["rev-list","--count",entry.ref+"..HEAD"])).trim());
+      ranked.push({ref:entry.ref,distance});
+    }
+    const suggestedBranches = ranked.sort((a,b)=>a.distance-b.distance || a.ref.localeCompare(b.ref)).slice(0,2).map(entry=>entry.ref);
+    return {branch,defaultBranch,suggestedBranches,branches:branches.map(({ref,name,remote})=>({ref,name,remote}))};
   }
-  async commits(projectPath: string, query: string, offset: number): Promise<CommitPage> {
+  async commits(projectPath: string): Promise<CommitPage> {
     const root = await this.root(projectPath);
     try { await this.resolveCommit(root, "HEAD"); }
-    catch { return { commits: [], nextOffset: null }; }
-    const output = await runGit(root, ["log", "--no-show-signature", "--format=%H%x00%s%x00%an%x00%aI", "-z", "--max-count=" + (PAGE_SIZE + 1), "--skip=" + offset,
-      ...(query ? ["--fixed-strings", "--regexp-ignore-case", "--grep=" + query] : []), "HEAD", "--"]);
+    catch { return { commits: [] }; }
+    const output = await runGit(root, ["log", "--no-show-signature", "--format=%H%x00%s%x00%an%x00%aI", "-z", "--max-count=5", "HEAD", "--"]);
     const fields = output.split("\0");
     const commits: CommitPage["commits"] = [];
     for (let index = 0; index + 3 < fields.length; index += 4) {
       const [sha, subject, author, date] = fields.slice(index, index + 4);
       if (sha && subject !== undefined && author !== undefined && date !== undefined) commits.push({ sha, subject, author, date });
     }
-    return { commits: commits.slice(0, PAGE_SIZE), nextOffset: commits.length > PAGE_SIZE ? offset + PAGE_SIZE : null };
+    return { commits };
   }
   async diff(projectPath: string, comparison: Comparison): Promise<DiffSnapshot> {
     const root = await this.root(projectPath);
