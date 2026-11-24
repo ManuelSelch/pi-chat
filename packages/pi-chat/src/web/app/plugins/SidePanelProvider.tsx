@@ -1,17 +1,17 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { PluginUIContext, PluginUIContribution } from "@manuelselch/pi-sdk/plugins";
 import { ActionIcon, Tabs } from "@mantine/core";
-import { IconLayoutSidebarRight, IconX } from "@tabler/icons-react";
+import { IconLayoutSidebarRight } from "@tabler/icons-react";
 import { usePluginSidePanels } from "./PluginProvider.js";
 
 type Panel = Extract<PluginUIContribution<ReactNode>, {placement:"side-panel"}>;
-const PanelState = createContext<{opened:boolean; available:boolean; panels:readonly Panel[]; toggle():void; close():void}>({ opened: false, available: false, panels:[], toggle() {}, close() {} });
+const PanelState = createContext<{opened:boolean; available:boolean; panels:readonly Panel[]; toggle():void}>({ opened: false, available: false, panels:[], toggle() {} });
 
 export function SidePanelProvider({children,view}:{children:ReactNode; view:PluginUIContext["view"]}) {
   const panels = usePluginSidePanels({view});
   const [opened,setOpened] = useState(false);
   useEffect(()=>{if (!panels.length) setOpened(false);},[panels.length]);
-  return <PanelState.Provider value={{opened:opened && panels.length>0,available:panels.length>0,panels,toggle:()=>setOpened(value=>!value),close:()=>setOpened(false)}}>{children}</PanelState.Provider>;
+  return <PanelState.Provider value={{opened:opened && panels.length>0,available:panels.length>0,panels,toggle:()=>setOpened(value=>!value)}}>{children}</PanelState.Provider>;
 }
 export const useSidePanel = () => useContext(PanelState);
 
@@ -31,7 +31,6 @@ export function PluginSidePanel({stacked = false}:{stacked?:boolean}) {
     <Tabs value={value} onChange={setActive} style={{display:"flex",flexDirection:"column"}} className="min-h-0 flex-1">
       <div className="flex min-h-12 items-center justify-between px-3">
         <Tabs.List aria-label="Panel views" className="min-w-0 flex-1">{panels.map(item=><Tabs.Tab key={item.id} value={item.id} leftSection={<item.Icon/>} style={panels.length===1 ? {borderBottomColor:"transparent"} : undefined}>{item.label}</Tabs.Tab>)}</Tabs.List>
-        <ActionIcon variant="subtle" color="gray" aria-label="Close side panel" onClick={panel.close}><IconX size={18}/></ActionIcon>
       </div>
       {panels.map(item=><Tabs.Panel key={item.id} value={item.id} keepMounted={false} style={{flex:1}} className="flex min-h-0 flex-col"><item.Component/></Tabs.Panel>)}
     </Tabs>

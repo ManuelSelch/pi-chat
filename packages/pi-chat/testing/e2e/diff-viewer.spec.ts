@@ -16,6 +16,7 @@ test("large comparisons highlight on demand and keep generated files responsive"
     await app.changes.shouldDeferOffscreenHighlighting();
     await app.changes.chooseFile("zz-generated.ts");
     await app.changes.shouldKeepGeneratedFileReadable();
+    await app.changes.shouldScrollLargeDiffSmoothly();
     await app.changes.close();
     await app.changes.shouldBeClosed();
     if (!workers.some(url=>url.includes("highlight.worker"))) throw new Error("Highlighting must run in a bundled worker");

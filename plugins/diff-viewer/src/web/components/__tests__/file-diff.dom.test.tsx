@@ -45,6 +45,8 @@ it("wraps long content without changing whitespace or line numbers",()=>{
   expect(code.textContent).toBe(text);
   expect(code.classList.contains("whitespace-pre-wrap")).toBe(true);
   expect(code.classList.contains("wrap-anywhere")).toBe(true);
+  expect(code.parentElement?.classList.contains("[content-visibility:auto]")).toBe(true);
+  expect(code.parentElement?.querySelector(".sticky")).toBeNull();
 });
 
 it("can disable wrapping without changing content",()=>{
@@ -55,6 +57,8 @@ it("can disable wrapping without changing content",()=>{
   expect(code.classList.contains("whitespace-pre")).toBe(true);
   expect(code.classList.contains("whitespace-pre-wrap")).toBe(false);
   expect(code.parentElement?.parentElement?.classList.contains("w-max")).toBe(true);
+  expect(code.parentElement?.querySelectorAll(".sticky")).toHaveLength(1);
+  expect(code.parentElement?.classList.contains("[content-visibility:auto]")).toBe(false);
 });
 
 it("highlights code safely without changing its text or diff layout",()=>{

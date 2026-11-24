@@ -23,7 +23,9 @@ it("composes generic panel tabs, does not block the composer and removes its tog
   fireEvent.change(screen.getByRole("textbox",{name:"Composer"}),{target:{value:"Still usable"}});
   expect((screen.getByRole("textbox",{name:"Composer"}) as HTMLTextAreaElement).value).toBe("Still usable");
   expect(screen.queryByRole("dialog")).toBeNull();
-  fireEvent.click(screen.getByRole("button",{name:"Close side panel"}));
+  expect(screen.queryByRole("button",{name:"Close side panel"})).toBeNull();
+  fireEvent.click(screen.getByRole("button",{name:"Toggle side panel"}));
+  expect(screen.getByRole("button",{name:"Toggle side panel"}).getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("complementary",{name:"Side panel"})).toBeNull();
   view.rerender(content([{...plugins[0]!,ui:{...plugins[0]!.ui,contributions:[plugins[0]!.ui.contributions[0]!]}}]));
   fireEvent.click(screen.getByRole("button",{name:"Toggle side panel"}));

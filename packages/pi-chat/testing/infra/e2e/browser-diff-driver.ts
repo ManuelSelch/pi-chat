@@ -54,6 +54,25 @@ export class BrowserDiffDriver {
     await expect(composer).toHaveValue("Responsive with large changes");
     expect(Date.now()-start).toBeLessThan(1500);
   }
+  async shouldScrollLargeDiffSmoothly() {
+    const stream = this.page.getByRole("region",{name:"All file diffs"});
+    const stats = await stream.evaluate(async element=>{
+      const frames:number[] = [];
+      const start = element.scrollTop;
+      let previous = performance.now();
+      for (let index=0;index<40;index++) {
+        await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+        const now = performance.now();
+        frames.push(now-previous);
+        previous = now;
+        element.scrollTop = start+index*120;
+      }
+      return {worst:Math.max(...frames),slow:frames.filter(time=>time>100).length};
+    });
+    console.log("Large diff scroll frames:",JSON.stringify(stats));
+    expect(stats.worst).toBeLessThan(500);
+    expect(stats.slow).toBeLessThan(4);
+  }
   async shouldPlaceToggleLast() {
     const plus = this.page.getByRole("button",{name:"New session",exact:true});
     const toggle = this.page.getByRole("button",{name:"Toggle side panel"});
@@ -66,6 +85,7 @@ export class BrowserDiffDriver {
   async shouldWrapLongLines() {
     const diff = this.page.getByRole("region",{name:"Diff for one.ts",exact:true});
     const code = diff.locator("code").filter({hasText:"const longValue"});
+    await code.scrollIntoViewIfNeeded();
     await expect(code).toHaveCSS("white-space","pre-wrap");
     expect(await code.evaluate(element=>element.getBoundingClientRect().height)).toBeGreaterThan(24);
     expect(await code.evaluate(element=>element.scrollWidth<=element.clientWidth+1)).toBe(true);
@@ -124,7 +144,7 @@ export class BrowserDiffDriver {
     await expect(panel.getByRole("tooltip")).toHaveCount(0);
   }
   async open() { await this.page.getByRole("button",{name:"Toggle side panel"}).click(); }
-  async close() { await this.page.getByRole("button",{name:"Close side panel"}).click(); }
+  async close() { await this.page.getByRole("button",{name:"Toggle side panel"}).click(); }
   async chooseFile(path:string) { await this.page.getByRole("navigation",{name:"Changed files"}).getByRole("button",{name:path,exact:true}).click(); }
   async shouldShowEveryDiff() {
     await expect(this.page.getByRole("region",{name:"Diff for one.ts",exact:true})).toBeVisible();

@@ -48,7 +48,7 @@ flowchart TD
 ## Side-panel contributions
 
 - `PluginUI.contributions` with `placement: "side-panel"` requires a label and an `Icon` component as well as ID/content. An optional `available({ view })` predicate restricts availability to Home or transcript; absent predicates are always available. IDs remain plugin-namespaced; startup validates required metadata.
-- [SidePanelProvider](../packages/pi-chat/src/web/app/plugins/SidePanelProvider.tsx) filters tabs by view and owns a neutral header toggle, open state and active tab. Closing or losing all available tabs unmounts content; provider-owned preferences remain. The panel stays closed when tabs become available again. No modal focus trap or global keyboard blocker is added.
+- [SidePanelProvider](../packages/pi-chat/src/web/app/plugins/SidePanelProvider.tsx) filters tabs by view and owns a neutral header toggle, open state and active tab. The header toggle opens and closes the panel; there is no separate panel close button. Closing or losing all available tabs unmounts content; provider-owned preferences remain. The panel stays closed when tabs become available again. No modal focus trap or global keyboard blocker is added.
 - Chat reserves panel width for the transcript, fixed composer and widget gutters. The panel uses 46% of the available workspace; below 760px available it replaces chat and composer within the workspace, retaining navigation and the chat draft.
 - The shell knows no Git methods or diff state. Omitting all panel contributions removes the toggle; adding another tab needs no feature-specific shell button.
 - Browser consumers must scan contributed Tailwind classes; Chat explicitly scans the diff-viewer’s compiled web entry in its stylesheet, after the plugin build.
