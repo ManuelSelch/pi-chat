@@ -6,7 +6,7 @@ import type { Mode, Preferences } from "../stores/DiffViewerProvider.js";
 import type { QueryState } from "../hooks/use-remote-query.js";
 
 interface Props {
-  branch: string; context: QueryState<RepositoryContext>; preferences: Preferences; update(patch:Partial<Preferences>):void;
+  context: QueryState<RepositoryContext>; preferences: Preferences; update(patch:Partial<Preferences>):void;
   commits: QueryState<CommitPage>; onQuery(value:string):void; offset:number; onNext():void; onPrevious():void;
   loading:boolean; disabled:boolean; onRefresh():void; wrap:boolean; onToggleWrap():void;
 }
@@ -25,7 +25,6 @@ export function ComparisonControls(p:Props) {
     option: {fontSize:12,minHeight:30,borderRadius:3,overflowWrap:"anywhere" as const},
   };
   return <div className="flex flex-wrap items-center gap-2 border-b border-(--mantine-color-default-border) px-3 py-2.5">
-    <Text size="xs" c="dimmed" className="w-full wrap-anywhere">{p.branch}</Text>
     <div className="flex min-w-0 flex-1 items-start gap-1.5">
     <Select styles={pickerStyles} className="shrink-0" aria-label="Comparison mode" size="xs" w={120} value={p.preferences.mode} allowDeselect={false}
       onChange={value=>{if(value) p.update({mode:value as Mode});}}

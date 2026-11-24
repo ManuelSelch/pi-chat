@@ -8,12 +8,23 @@ import type { Preferences } from "../../stores/DiffViewerProvider.js";
 afterEach(cleanup);
 function controls(preferences:Preferences, onToggleWrap=vi.fn()) {
   const update = vi.fn();
-  render(<MantineProvider><ComparisonControls preferences={preferences} update={update} branch="feature"
+  render(<MantineProvider><ComparisonControls preferences={preferences} update={update}
     context={{status:"ready",value:{branch:"feature",branches:[]}}}
     commits={{status:"ready",value:{commits:[{sha:"a".repeat(40),subject:"Improve viewer",author:"Test",date:"2026-01-01"}],nextOffset:null}}}
     wrap={true} onToggleWrap={onToggleWrap} onQuery={vi.fn()} offset={0} onNext={vi.fn()} onPrevious={vi.fn()} loading={false} disabled={false} onRefresh={vi.fn()}/></MantineProvider>);
   return update;
 }
+it("omits the duplicate current branch label in every comparison mode",()=>{
+  for (const mode of ["branch","uncommitted","commit"] as const) {
+    controls({mode,branch:null,commit:null,commitSubject:""});
+
+    expect(screen.queryByText("feature")).toBeNull();
+    expect(screen.getByRole("combobox",{name:"Comparison mode"})).toBeTruthy();
+
+    cleanup();
+  }
+});
+
 it("offers an accessible wrap toggle without a duplicate branch icon",()=>{
   const toggle = vi.fn();
   controls({mode:"branch",branch:null,commit:null,commitSubject:""},toggle);
