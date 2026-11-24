@@ -1,8 +1,8 @@
 # Diff base picker
-- Revision: 3. Status: in review; no implementation approval.
+- Revision: 4. Status: in review; no implementation approval.
 - Scope: comparison toolbar only; fork of the preserved approved diff-viewer-polish mockup.
 - Stable `Against main` button. Opening never replaces its text with an input. Separate non-searchable comparison-mode menu.
-- Initial popup: current selection, repository default and two possible stacked bases. Guesses labeled Suggested, not Parent.
+- Initial branch popup has no header: current selection, repository default and two possible stacked bases. Guesses labeled Suggested, not Parent.
 - Search all branches reveals a separate search field and full fixture list; Small back-arrow button inside the search field restores the short list; no search-view footer or text back button. Accessible name: Back to suggestions. Selected base stays checked. Escape/outside click dismisses; Mantine combobox provides arrow-key/Enter navigation.
 - Identical local/remote tips represented once (main fixture); diverged remote refs remain explicit. Current feature branch excluded from this fixture list, not an approved production capability removal.
 - Branch and commit selections retained while switching modes in this preview. Commit mode shows only the five most recent commits, latest selected initially and labeled Latest. Stable subject trigger; no commit search, older-history action or pagination. This narrowing of commit history is proposed by the user for recent agent/PR-change review; production scope still awaits approval.

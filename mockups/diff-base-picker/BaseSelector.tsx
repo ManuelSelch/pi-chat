@@ -66,7 +66,7 @@ export function BaseSelector({base,onChange}:{base:string;onChange:(base:string)
         </Button>
       </Combobox.Target>
       <Combobox.Dropdown className="base-popup">
-        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder="Search all branches…" aria-label="Search all branches" leftSectionPointerEvents="all" leftSection={<ActionIcon variant="subtle" color="gray" size="sm" aria-label="Back to suggestions" onClick={()=>{setAll(false);setQuery("");picker.resetSelectedOption();picker.focusTarget();}}><IconArrowLeft size={15}/></ActionIcon>} /> : <Text className="base-popup-heading" size="xs" c="dimmed">{mode === "commit" ? "Recent commits" : "Compare against"}</Text>}
+        {searching ? <Combobox.Search ref={search} value={query} onChange={event=>{setQuery(event.currentTarget.value);picker.resetSelectedOption();}} placeholder="Search all branches…" aria-label="Search all branches" leftSectionPointerEvents="all" leftSection={<ActionIcon variant="subtle" color="gray" size="sm" aria-label="Back to suggestions" onClick={()=>{setAll(false);setQuery("");picker.resetSelectedOption();picker.focusTarget();}}><IconArrowLeft size={15}/></ActionIcon>} /> : mode === "commit" ? <Text className="base-popup-heading" size="xs" c="dimmed">Recent commits</Text> : null}
         <Combobox.Options className="base-options">
           {filtered.length ? filtered.map(option=><Combobox.Option key={option.ref} value={option.ref} active={option.ref===selected} className="base-option">
             <span className="base-option-check">{option.ref===selected && <IconCheck size={14}/>}</span>
