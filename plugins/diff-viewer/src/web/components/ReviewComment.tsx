@@ -1,5 +1,5 @@
-import { ActionIcon, Button, Group, Text, Textarea } from "@mantine/core";
-import { IconCheck, IconX } from "@tabler/icons-react";
+import { ActionIcon, Group, Text, Textarea } from "@mantine/core";
+import { IconCheck, IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import type { ReviewComment as Comment } from "../../domain/review.js";
 
 interface Props {
@@ -14,13 +14,13 @@ interface Props {
 }
 export function ReviewComment({comment,editor,disabled,onDraft,onSave,onCancel,onEdit,onDelete}:Props) {
   const editing = editor?.id===comment.id;
-  return <div className="mx-1.5 my-1 bg-(--mantine-color-default) px-2 py-1.5 font-sans text-(--mantine-color-text) focus-within:shadow-[inset_2px_0_var(--mantine-color-dimmed)]">
+  return <div className="mx-3 my-2 rounded-md border border-(--mantine-color-default-border) bg-(--mantine-color-default) px-2 py-1.5 font-sans text-(--mantine-color-text) focus-within:border-[#647b8f] focus-within:shadow-[0_0_0_1px_#647b8f]">
     {editing ? <div className="relative">
-      <Textarea aria-label="Review comment" placeholder="What should change?" size="xs" autosize minRows={1}
+      <Textarea autoFocus aria-label="Review comment" placeholder="What should change?" size="xs" autosize minRows={1}
         value={editor.body} disabled={disabled} onChange={event=>onDraft(event.currentTarget.value)}
         styles={{input:{background:"transparent",border:0,borderRadius:0,padding:"6px 64px 6px 8px",minHeight:36}}}
         onKeyDown={event=>{
-          if ((event.metaKey || event.ctrlKey) && event.key==="Enter" && editor.body.trim()) { event.preventDefault();onSave(); }
+          if (event.key==="Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault();event.stopPropagation();if (!disabled && editor.body.trim()) onSave(); }
           if (event.key==="Escape") { event.stopPropagation();onCancel(); }
         }}/>
       <div className="absolute right-1 bottom-1.5 flex gap-0.5">
@@ -29,9 +29,9 @@ export function ReviewComment({comment,editor,disabled,onDraft,onSave,onCancel,o
       </div>
     </div> : <>
       <Text size="sm" className="whitespace-pre-wrap wrap-anywhere">{comment.body}</Text>
-      <Group justify="flex-end" gap={4} mt={4}>
-        <Button size="compact-xs" variant="subtle" color="gray" disabled={disabled} onClick={onEdit}>Edit</Button>
-        <Button size="compact-xs" variant="subtle" color="gray" disabled={disabled} onClick={onDelete}>Delete</Button>
+      <Group justify="flex-end" gap={2} mt={4}>
+        <ActionIcon size={24} variant="subtle" color="gray" aria-label="Edit comment" disabled={disabled} onClick={onEdit}><IconPencil size={14}/></ActionIcon>
+        <ActionIcon size={24} variant="subtle" color="gray" aria-label="Delete comment" disabled={disabled} onClick={onDelete}><IconTrash size={14}/></ActionIcon>
       </Group>
     </>}
   </div>;

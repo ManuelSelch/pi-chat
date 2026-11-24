@@ -1,9 +1,14 @@
 # Diffs comments
-- Revision: 8. Status: approved for implementation.
+- Revision: 11. Status: approved for implementation.
+- Approval: user explicitly approved revision 11: “approved. implement”.
+- Saved comment edit and delete actions use compact, accessible icon buttons.
+- Enter saves a non-empty comment; Shift+Enter inserts a newline. Composition Enter does not save.
+- Comment surface uses a restrained rounded border and focused outline for clearer separation from the diff. Opening an editor requests textarea focus.
+- Revision 11 supersedes the previously approved revision 8.
 - File-list M/D status labels use the existing compact 10px status style rather than inherited button text size.
 - Saving/cancelling clears CodeView line selection so the gutter plus is not pinned to the completed comment line; normal hover affordance remains.
 - Borderless comment surface and transparent textarea replace nested boxes. A subtle neutral left inset marks focus without a surrounding border.
-- Comment cards: no line/Draft labels; compact 6px/8px padding, one-row autosizing editor, neutral annotation background even when selected. Save checkmark and cancel X sit inside the editor at bottom-right, with accessible names and no separate action row. Text reserves space for controls. Cmd/Ctrl+Enter saves; Escape cancels. Saved edit/delete actions unchanged. Global preview theme retained as requested.
+- Comment cards: no line/Draft labels; compact 6px/8px padding, one-row autosizing editor, neutral annotation background even when selected. Save checkmark and cancel X sit inside the editor at bottom-right, with accessible names and no separate action row. Text reserves space for controls. Enter saves; Shift+Enter inserts a newline; Escape cancels. Saved edit/delete actions use compact icons. Global preview theme retained as requested.
 - Comment integration corrected: controlled CodeView items publish increasing versions when annotations/collapse change; gutter uses the built-in onGutterUtilityClick callback. Previous revision omitted item version updates, so new comments could remain invisible. Browser interaction verification pending.
 - Theme: Pi Chat Classic Dark surface/text/border/change colors and syntax palette replace Pierre Dark. CSS-variable highlighter theme plus shadow-root surface/gutter/separator overrides keep the renderer aligned with the shell. No pure-black code canvas. Light mode is not included in this revision.
 - Goal: evaluate actual @pierre/diffs 1.7.1 inside the existing chat/Changes split, with inline draft comments and simulated batch delivery.
