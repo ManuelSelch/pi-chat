@@ -83,6 +83,7 @@ test("diff readability supports wrapping, fixed gutters and collapsed deleted fi
     await app.changes.open();
 
     await app.changes.shouldWrapLongLines();
+    await app.changes.shouldUseCompactDiffLabels();
     await app.changes.shouldHighlightSyntax();
     await app.changes.toggleWrapping();
     await app.changes.shouldScrollWithConsistentBackgrounds();

@@ -245,6 +245,9 @@ export class BrowserDiffDriver {
     await heading.focus();await heading.press("Enter");
     await expect(this.diff("deleted.ts").locator("[data-line]").filter({hasText:"deleted content"})).toBeVisible();
   }
+  async shouldUseCompactDiffLabels() {
+    await expect(this.diff("one.ts").getByRole("button",{name:"Collapse one.ts",exact:true}).getByText("one.ts",{exact:true})).toHaveCSS("font-size","11px");
+  }
   async shouldHaveNoTooltips() {
     const panel = this.page.getByRole("complementary",{name:"Side panel"});
     await expect(panel.locator("[title]")).toHaveCount(0);

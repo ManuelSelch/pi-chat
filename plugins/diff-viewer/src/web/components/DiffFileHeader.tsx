@@ -9,7 +9,7 @@ export function DiffFileHeader({entry,collapsed,onToggle,onComment}:{entry:Rende
   return <div data-diff-file={file.path}>
     <div className="flex items-center justify-between gap-2 border-b border-(--mantine-color-default-border) bg-(--mantine-color-default) px-3 py-3 font-mono text-[11px]">
       <UnstyledButton className="flex min-w-0 items-center gap-1.5 text-[11px]" aria-expanded={!collapsed} aria-label={(collapsed ? "Expand " : "Collapse ")+file.path} onClick={onToggle}>
-        {collapsed ? <IconChevronRight size={14} className="shrink-0"/> : <IconChevronDown size={14} className="shrink-0"/>}<span className="wrap-anywhere">{file.path}</span>
+        {collapsed ? <IconChevronRight size={14} className="shrink-0"/> : <IconChevronDown size={14} className="shrink-0"/>}<span className="text-[11px] wrap-anywhere">{file.path}</span>
       </UnstyledButton>
       <span className="flex shrink-0 items-center gap-2"><span className="text-(--pi-diff-added)">+{file.added}</span><span className="text-(--pi-diff-removed)">−{file.removed}</span>
         {first && <ActionIcon variant="subtle" color="gray" size="sm" aria-label={"Comment on "+file.path} onClick={()=>onComment?.(file.path,first.next!==null ? "additions" : "deletions",first.next ?? first.old!)}><IconMessagePlus size={15}/></ActionIcon>}
