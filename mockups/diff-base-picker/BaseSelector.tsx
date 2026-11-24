@@ -9,10 +9,10 @@ const branches = [
   {ref:"refs/heads/develop",name:"develop",note:"Local"},
   {ref:"refs/heads/fix/composer-focus",name:"fix/composer-focus",note:"Local"},
   {ref:"refs/heads/chore/update-dependencies",name:"chore/update-dependencies",note:"Local"},
-  {ref:"refs/remotes/origin/feature/plugin-shell",name:"origin/feature/plugin-shell",note:"Remote, different tip"},
+  {ref:"refs/remotes/origin/feature/plugin-shell",name:"origin/feature/plugin-shell",note:""},
   {ref:"refs/remotes/origin/release/0.4",name:"origin/release/0.4",note:"Remote"},
   {ref:"refs/remotes/origin/fix/session-reconnect",name:"origin/fix/session-reconnect",note:"Remote"},
-  {ref:"refs/remotes/upstream/main",name:"upstream/main",note:"Remote, different tip"},
+  {ref:"refs/remotes/upstream/main",name:"upstream/main",note:""},
 ];
 const commits = [
   {ref:"72ac6c4",name:"Add browser contributions",note:"Latest"},
