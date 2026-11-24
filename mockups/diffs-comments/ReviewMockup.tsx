@@ -6,6 +6,7 @@ import { BaseSelector } from "../diff-base-picker/BaseSelector";
 import { ChatWorkspace } from "./ChatWorkspace";
 import { CommentCard } from "./CommentCard";
 import { files, formatBatch, type Comment } from "./data";
+import { diffCSS, diffTheme } from "./theme";
 
 export function ReviewMockup() {
   const [opened,setOpened] = useState(true);
@@ -24,17 +25,22 @@ export function ReviewMockup() {
     setEditing(comment.id);
     setComments(current=>[...current,comment]);
   },[comments]);
-  const items = useMemo<CodeViewItem<Comment>[]>(()=>files.map(file=>({
-    id:file.path,type:"diff",fileDiff:file.diff,
-    collapsed:collapsed.includes(file.path),
-    annotations:comments.filter(comment=>comment.path===file.path).map(comment=>({side:comment.side,lineNumber:comment.line,metadata:comment})),
-  })),[comments,collapsed]);
+  const itemRevision = useRef(0);
+  const items = useMemo<CodeViewItem<Comment>[]>(()=>{
+    const version = ++itemRevision.current;
+    return files.map(file=>({
+      id:file.path,type:"diff",fileDiff:file.diff,version,
+      collapsed:collapsed.includes(file.path),
+      annotations:comments.filter(comment=>comment.path===file.path).map(comment=>({side:comment.side,lineNumber:comment.line,metadata:comment})),
+    }));
+  },[comments,collapsed]);
   const options = useMemo(()=>({
-    diffStyle:"unified" as const, theme:"pierre-dark" as const,themeType:"dark" as const,
+    diffStyle:"unified" as const, theme:diffTheme,themeType:"dark" as const,
     overflow:wrap ? "wrap" as const : "scroll" as const,
     enableLineSelection:true,enableGutterUtility:true,stickyHeaders:true,
-    unsafeCSS:":host { --diffs-font-size:12px; --diffs-line-height:24px; }",
-  }),[wrap]);
+    onGutterUtilityClick: (range: {start:number;end:number;side?:Comment["side"]}, context: {item:CodeViewItem<Comment>}) => begin(context.item.id,range.side ?? "additions",range.start),
+    unsafeCSS:diffCSS,
+  }),[wrap,begin]);
   const pending = comments.filter(comment=>comment.body.trim());
   function cancel(comment:Comment) {
     if(!comment.body) setComments(current=>current.filter(item=>item.id!==comment.id));
@@ -70,7 +76,6 @@ export function ReviewMockup() {
               </UnstyledButton>
               <ActionIcon variant="subtle" color="gray" size="sm" aria-label={"Comment on "+item.id} onClick={()=>{setCollapsed(current=>current.filter(path=>path!==item.id));begin(item.id,files.find(file=>file.path===item.id)?.after ? "additions" : "deletions",1);}}><IconMessagePlus size={15}/></ActionIcon>
             </div>}
-            renderGutterUtility={(getHovered,item)=><button className="gutter-comment" aria-label="Comment on hovered line" onClick={()=>{const line=getHovered();if(line && "side" in line) begin(item.id,line.side,line.lineNumber);}}><IconMessagePlus size={14}/></button>}
             renderAnnotation={annotation=><CommentCard key={annotation.metadata.id+String(editing===annotation.metadata.id)} comment={annotation.metadata} editing={editing===annotation.metadata.id}
               onSave={body=>{setComments(current=>current.map(comment=>comment.id===annotation.metadata.id ? {...comment,body} : comment));setEditing(null);}}
               onCancel={()=>cancel(annotation.metadata)} onEdit={()=>setEditing(annotation.metadata.id)}
