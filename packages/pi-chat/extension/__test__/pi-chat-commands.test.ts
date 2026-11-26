@@ -8,16 +8,52 @@ afterEach(() => app.dispose());
 it("registers only pi-chat and completes lifecycle subcommands", async () => {
   await app.shouldOfferLifecycleCommands();
 });
-it.each(["", " \t\r\n\u00a0\u2003 "])("shows status with blank arguments and never signals a restart: %j", async args => {
+it("shows status with no arguments and never signals a restart", async () => {
   app.withRunningServer();
 
-  await app.run(args);
+  await app.run("");
 
   app.shouldNotify("running on", "info");
   app.shouldNotHaveRequestedReplacement();
 });
-it.each(["invalid", "stop extra", "restart extra", "stop\nextra", `restart${" ".repeat(100_000)}extra`])("rejects invalid usage: %s", async args => {
-  await app.run(args);
+it("shows status with only spaces, tabs, line breaks and Unicode whitespace", async () => {
+  app.withRunningServer();
+
+  await app.run(" \t\r\n\u00a0\u2003 ");
+
+  app.shouldNotify("running on", "info");
+  app.shouldNotHaveRequestedReplacement();
+});
+it("rejects an unknown subcommand", async () => {
+  await app.run("invalid");
+
+  app.shouldNotify("Usage:", "warning");
+  app.shouldNotHaveSignaledProcesses();
+  app.shouldNotHaveExecutedCommands();
+});
+it("rejects extra arguments after stop", async () => {
+  await app.run("stop extra");
+
+  app.shouldNotify("Usage:", "warning");
+  app.shouldNotHaveSignaledProcesses();
+  app.shouldNotHaveExecutedCommands();
+});
+it("rejects extra arguments after restart", async () => {
+  await app.run("restart extra");
+
+  app.shouldNotify("Usage:", "warning");
+  app.shouldNotHaveSignaledProcesses();
+  app.shouldNotHaveExecutedCommands();
+});
+it("rejects extra arguments separated from stop by a newline", async () => {
+  await app.run("stop\nextra");
+
+  app.shouldNotify("Usage:", "warning");
+  app.shouldNotHaveSignaledProcesses();
+  app.shouldNotHaveExecutedCommands();
+});
+it("rejects extra arguments after restart even with 100,000 separating spaces", async () => {
+  await app.run(`restart${" ".repeat(100_000)}extra`);
 
   app.shouldNotify("Usage:", "warning");
   app.shouldNotHaveSignaledProcesses();
@@ -32,14 +68,24 @@ it("start preserves already-running behavior without a rebuild or browser when -
   app.shouldNotHaveExecutedCommands();
   app.shouldNotHaveSpawnedProcesses();
 });
-it.each([
-  "start --port 9988 --cwd /chosen --no-open",
-  " \tstart\t\r\n\u00a0\u2003--port 9988 --cwd /chosen --no-open \n",
-  `start${" ".repeat(100_000)}--port 9988 --cwd /chosen --no-open`,
-])("start preserves port and project options when launching: %#", async args => {
+it("start preserves port and project options when launching", async () => {
   app.withFreePort();
 
-  await app.run(args);
+  await app.run("start --port 9988 --cwd /chosen --no-open");
+
+  app.shouldHaveStartedOn(9988, "/chosen");
+});
+it("start accepts tabs, line breaks and Unicode whitespace before its options", async () => {
+  app.withFreePort();
+
+  await app.run(" \tstart\t\r\n\u00a0\u2003--port 9988 --cwd /chosen --no-open \n");
+
+  app.shouldHaveStartedOn(9988, "/chosen");
+});
+it("start accepts 100,000 spaces before its options", async () => {
+  app.withFreePort();
+
+  await app.run(`start${" ".repeat(100_000)}--port 9988 --cwd /chosen --no-open`);
 
   app.shouldHaveStartedOn(9988, "/chosen");
 });
