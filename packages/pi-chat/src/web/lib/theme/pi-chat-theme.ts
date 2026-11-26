@@ -20,8 +20,8 @@ export const PI_CHAT_THEME_COLORS = {
 
 function mix(color: string, target: string, amount: number): string {
   const channels = [1, 3, 5].map(offset => Math.round(
-    parseInt(color.slice(offset, offset + 2), 16) * (1 - amount)
-    + parseInt(target.slice(offset, offset + 2), 16) * amount,
+    Number.parseInt(color.slice(offset, offset + 2), 16) * (1 - amount)
+    + Number.parseInt(target.slice(offset, offset + 2), 16) * amount,
   ).toString(16).padStart(2, "0"));
   return `#${channels.join("")}`;
 }

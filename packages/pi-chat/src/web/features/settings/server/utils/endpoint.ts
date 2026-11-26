@@ -29,7 +29,8 @@ export function endpointError(input: string, pageProtocol: string): string | und
 }
 
 export function redactEndpoint(endpoint: string): string {
-  return endpoint.replace(/\?.*$/, "?…");
+  const queryStart = endpoint.indexOf("?");
+  return queryStart === -1 ? endpoint : `${endpoint.slice(0, queryStart)}?…`;
 }
 
 export function isOtherHost(endpoint: string, pageHost: string): boolean {

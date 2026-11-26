@@ -18,6 +18,23 @@ describe("server endpoint rules", () => {
     expect(endpointError("ws://localhost/ws", "https:")).toContain("wss://");
     expect(endpointError("wss://pi.example/ws", "https:")).toBeUndefined();
   });
+  it("redacts an empty query", () => {
+    expect(redactEndpoint("wss://pi.example/ws?")).toBe("wss://pi.example/ws?…");
+  });
+  it("redacts from the first question mark when the query contains more question marks", () => {
+    expect(redactEndpoint("wss://pi.example/ws?redirect=?token=secret")).toBe("wss://pi.example/ws?…");
+  });
+  it("does not treat an encoded question mark in the path as a query", () => {
+    expect(redactEndpoint("wss://pi.example/a%3Fb")).toBe("wss://pi.example/a%3Fb");
+  });
+  it("redacts long queries", () => {
+    const endpoint = `wss://pi.example/ws?${"?".repeat(100_000)}token=secret`;
+
+    expect(redactEndpoint(endpoint)).toBe("wss://pi.example/ws?…");
+  });
+  it("redacts the whole query even when malformed input contains a line break", () => {
+    expect(redactEndpoint("wss://pi.example/ws?token=secret\nmore=secret")).toBe("wss://pi.example/ws?…");
+  });
   it("redacts the whole query and detects another host/port", () => {
     expect(redactEndpoint("wss://pi.example/ws?token=secret")).toBe("wss://pi.example/ws?…");
     expect(redactEndpoint("ws://localhost/ws")).toBe("ws://localhost/ws");
