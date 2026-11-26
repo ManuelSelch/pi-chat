@@ -385,9 +385,10 @@ export default function piChatExtension(pi: ExtensionAPI): void {
       return matches.length ? matches.map(value => ({ value, label: value })) : null;
     },
     handler: async (args, ctx) => {
-      const match = /^(\S+)(?:\s+([\s\S]*))?$/.exec(args.trim());
-      const subcommand = match?.[1] ?? "";
-      const rest = match?.[2] ?? "";
+      const input = args.trim();
+      const separator = input.search(/\s/);
+      const subcommand = separator === -1 ? input : input.slice(0, separator);
+      const rest = separator === -1 ? "" : input.slice(separator).trimStart();
       if (!subcommand) return status(ctx);
       if (subcommand === "start") return start(rest, ctx);
       if (subcommand === "stop" && !rest) return stop(ctx);

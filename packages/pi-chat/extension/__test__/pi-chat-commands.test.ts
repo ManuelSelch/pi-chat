@@ -8,15 +8,15 @@ afterEach(() => app.dispose());
 it("registers only pi-chat and completes lifecycle subcommands", async () => {
   await app.shouldOfferLifecycleCommands();
 });
-it("shows status with no arguments and never signals a restart", async () => {
+it.each(["", " \t\r\n\u00a0\u2003 "])("shows status with blank arguments and never signals a restart: %j", async args => {
   app.withRunningServer();
 
-  await app.run("");
+  await app.run(args);
 
   app.shouldNotify("running on", "info");
   app.shouldNotHaveRequestedReplacement();
 });
-it.each(["invalid", "stop extra", "restart extra"])("rejects invalid usage: %s", async args => {
+it.each(["invalid", "stop extra", "restart extra", "stop\nextra", `restart${" ".repeat(100_000)}extra`])("rejects invalid usage: %s", async args => {
   await app.run(args);
 
   app.shouldNotify("Usage:", "warning");
@@ -32,10 +32,14 @@ it("start preserves already-running behavior without a rebuild or browser when -
   app.shouldNotHaveExecutedCommands();
   app.shouldNotHaveSpawnedProcesses();
 });
-it("start preserves port and project options when launching", async () => {
+it.each([
+  "start --port 9988 --cwd /chosen --no-open",
+  " \tstart\t\r\n\u00a0\u2003--port 9988 --cwd /chosen --no-open \n",
+  `start${" ".repeat(100_000)}--port 9988 --cwd /chosen --no-open`,
+])("start preserves port and project options when launching: %#", async args => {
   app.withFreePort();
 
-  await app.run("start --port 9988 --cwd /chosen --no-open");
+  await app.run(args);
 
   app.shouldHaveStartedOn(9988, "/chosen");
 });
