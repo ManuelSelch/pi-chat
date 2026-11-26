@@ -73,6 +73,28 @@ describe("MessageList", () => {
     expect(await screen.findByText("Final answer")).not.toBeNull();
   });
 
+  it("summarizes MCP tools by server in first-use order without changing expanded names", () => {
+    const names = [
+      "codemode", "mcp__sonar_personal__search_issues", "read",
+      "mcp__sonar_personal__quality_gate", "mcp__gitlab__list_mrs",
+      "mcp__gitlab__list_mrs", "bash",
+    ];
+    renderMessages(names.map((name, index) => tool(`m${index}`, name)), undefined, true);
+
+    const group = screen.getByTestId("tool-group") as HTMLDetailsElement;
+    expect(group.querySelector("summary")?.textContent).toBe("Used 7 codemode, Sonar Personal, read, Gitlab, bash");
+    expect(group.open).toBe(false);
+    const cards = group.querySelectorAll("[data-testid='tool-card']");
+    expect(cards).toHaveLength(names.length);
+    names.forEach((name, index) => expect(cards[index]?.querySelector("summary")?.textContent).toContain(name));
+  });
+
+  it.each(["mcp__", "mcp____search", "mcp__server__", "mcp__server", "custom__server__tool"])("leaves non-MCP or incomplete tool names unchanged: %s", (name) => {
+    renderMessages([tool("tool", name)], undefined, true);
+
+    expect(screen.getByTestId("tool-group").querySelector("summary")?.textContent).toBe(`Used 1 ${name}`);
+  });
+
   it("moves the final answer's thinking into the group without hiding its text", async () => {
     renderMessages([tool("r", "read"), { id: "answer", role: "assistant", text: "Final answer", thinking: "Conclusion" }], undefined, true);
     const group = screen.getByTestId("tool-group");

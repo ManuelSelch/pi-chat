@@ -8,6 +8,13 @@ import { THEME } from "../../../../config/theme.js";
 export type ToolMessage = Extract<ChatMessage, { role: "tool" }>;
 export type ActivityMessage = ToolMessage | { id: string; role: "thinking"; thinking: string; streaming?: boolean };
 
+/** MCP action names stay in the cards; the group only needs each server. */
+function summaryName(name: string): string {
+  const server = /^mcp__([^_]+(?:_[^_]+)*)__.+$/.exec(name)?.[1];
+  if (!server) return name;
+  return server.split(/[_-]+/).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
+
 /** One closed disclosure for tools and reasoning, in transcript order. */
 export const ToolGroup = memo(function ToolGroup({ messages, onLocalLink }: { messages: ActivityMessage[]; onLocalLink?: (path: string) => void }) {
   const names = new Set<string>();
@@ -17,7 +24,7 @@ export const ToolGroup = memo(function ToolGroup({ messages, onLocalLink }: { me
   for (const message of messages) {
     if (message.role !== "tool") continue;
     const { tool } = message;
-    names.add(tool.name);
+    names.add(summaryName(tool.name));
     total++;
     if (tool.status === "running") running++;
     if (tool.status === "error") failed++;

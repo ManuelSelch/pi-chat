@@ -25,6 +25,7 @@
 - Linked-worktree rows emphasize branch names; conversation subtitles appear when multiple conversations need disambiguation. Main checkouts emphasize conversation titles. Actual Git branch names and session identities are unchanged.
 - The bottom gear opens Settings. On phones it dismisses navigation; real dialogs retain focus ownership. Settings contains Feature Toggles, Backend server and Versions, not model/thinking/compaction controls.
 - **Feature Toggles** retains chimes, Agentation feedback and Compact transcript. Sidebar navigation, hidden paths and hidden archived history are fixed behavior; old stored preferences are ignored.
+- Compact tool groups list normal tool names and one humanized name per MCP server (for example, `sonar_personal` becomes `Sonar Personal`), in first-use order. Call counts and expanded tool names/details are unchanged.
 
 ## Changes panel
 
