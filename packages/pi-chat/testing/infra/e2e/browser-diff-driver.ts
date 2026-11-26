@@ -42,7 +42,7 @@ export class BrowserDiffDriver {
   }
   async editComment(original:string,replacement:string) {
     const card=this.page.getByText(original,{exact:true}).locator("..");
-    await card.getByRole("button",{name:"Edit",exact:true}).click();
+    await card.getByRole("button",{name:"Edit comment",exact:true}).click();
     await this.page.getByRole("textbox",{name:"Review comment"}).fill(replacement);
     await this.page.getByRole("textbox",{name:"Review comment"}).press("Control+Enter");
     await expect(this.page.getByText(replacement,{exact:true})).toBeVisible();
