@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { eventSchema, type Event } from "@manuelselch/pi-sdk/protocol";
+import { eventSchema, type Event, type ProjectCatalogue } from "@manuelselch/pi-sdk/protocol";
 import type { ChatApplicationService } from "../../../../src/application/chat-application-service.js";
 import type { RuntimeSnapshot } from "../../../../src/runtime/contracts.js";
 import { ServerPublisher } from "../../../../src/transport/server-publisher.js";
@@ -11,16 +11,17 @@ const replacement: RuntimeSnapshot = {
 
 /** A switched runtime publishes one atomic replacement, never a preceding close. */
 function setup(prepareSnapshot: () => Promise<() => RuntimeSnapshot> = async () => () => replacement) {
+  const currentCatalogue = vi.fn<ChatApplicationService["currentCatalogue"]>(async () => ({ projects: [] }));
   const chat = {
     openSessionIds: () => ["worktree"],
     openSessionSnapshots: () => [replacement],
     captureSnapshot: () => replacement,
     prepareSnapshot,
-    currentCatalogue: async () => ({ projects: [] }),
+    currentCatalogue,
   } as unknown as ChatApplicationService;
   const events: Event[] = [];
   const publisher = new ServerPublisher(chat, event => events.push(eventSchema.parse(event)));
-  return { publisher, events, switch: () => {
+  return { publisher, events, currentCatalogue, switch: () => {
     const previous = publisher.wireId("old-project"); const next = publisher.wireId("worktree");
     publisher.publish("worktree", { type: "sessionSwitch", previousSessionId: "old-project", sessionId: "worktree" });
     return { previous, next };
@@ -40,6 +41,28 @@ describe("v2 session replacement publication", () => {
     expect(inventory).toMatchObject({ event: "session.list.changed", data: { sessions: [{ sessionId: next }] } });
     expect(JSON.stringify(inventory)).not.toContain(previous);
   });
+  it("publishes worktree labels before replacement snapshot preparation or global history completes", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const context = setup(async () => { await gate; return () => replacement; });
+    const fresh: ProjectCatalogue = { projects: [{ path: replacement.projectPath, name: "checkout", displayPath: replacement.projectPath, exists: true, modified: 0, sessionCount: 0, sessions: [], repositoryName: "project", worktree: { primary: false, detached: false, branch: "feature/new" } }] };
+    context.currentCatalogue.mockImplementation(async options => {
+      if (options?.checkoutPaths) return fresh;
+      await gate;
+      return fresh;
+    });
+
+    context.switch();
+
+    try {
+      await vi.waitFor(() => expect(context.publisher.projects().catalogue).toEqual(fresh));
+      expect(context.events.some(event => event.event === "session.replaced")).toBe(false);
+      expect(context.currentCatalogue).toHaveBeenCalledWith({ checkoutPaths: [replacement.projectPath] });
+    } finally { release(); }
+    await vi.waitFor(() => expect(context.events.some(event => event.event === "session.replaced")).toBe(true));
+    await context.publisher.refreshProjects();
+  });
+
   it("still publishes a synchronous replacement snapshot when the extension refresh fails", async () => {
     const { events, switch: replace } = setup(async () => { throw new Error("refresh failed"); });
     const { previous, next } = replace();

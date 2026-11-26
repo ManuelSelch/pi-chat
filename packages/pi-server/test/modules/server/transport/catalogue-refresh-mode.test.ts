@@ -68,8 +68,10 @@ describe("catalogue refresh mode after v2 mutations", () => {
     const { path, lister, discovery, chat, publisher } = await setup();
     await chat.currentCatalogue(); lister.listAll.mockClear(); discovery.forDirectory.mockClear();
     await settle(await executeOperation({ version: 2, type: "request", requestId: "r", method: "session.open", params: { sessionPath: path } }, chat, publisher));
+    await vi.waitFor(() => expect(publisher.projects().revision).toBe(2));
     expect(lister.listAll).toHaveBeenCalledOnce();
-    expect(discovery.forDirectory).toHaveBeenCalledOnce();
+    // One targeted checkout lookup, then the independent history reconciliation.
+    expect(discovery.forDirectory).toHaveBeenCalledTimes(2);
     await chat.dispose();
   });
 });

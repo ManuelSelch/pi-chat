@@ -15,6 +15,10 @@ export class ServerPublisher {
   private inventoryRevision = 0;
   private projectRevision = 0;
   private projectScan = 0;
+  private checkoutRefresh = 0;
+  private disposed = false;
+  private projectRefresh?: Promise<void>;
+  private pendingRefresh?: { metadataOnly: boolean };
   private catalogue: Result<"project.list">["catalogue"] = { projects: [] };
   constructor(private readonly chat: ChatApplicationService, private readonly send: (event: Event) => void, private readonly logger?: FileLogger) {
     for (const id of chat.openSessionIds()) this.wireId(id);
@@ -58,14 +62,55 @@ export class ServerPublisher {
     return { revision: this.inventoryRevision, sessions };
   }
   projects(): Result<"project.list"> { return { revision: this.projectRevision, catalogue: this.catalogue }; }
-  async refreshProjects(metadataOnly = false): Promise<void> {
-    const scan = ++this.projectScan;
+  dispose(): void {
+    this.disposed = true;
+    ++this.projectScan;
+    ++this.checkoutRefresh;
+    this.pendingRefresh = undefined;
+  }
+  refreshProjects(metadataOnly = false): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    ++this.projectScan;
+    this.pendingRefresh = { metadataOnly: metadataOnly && (this.pendingRefresh?.metadataOnly ?? true) };
+    if (!this.projectRefresh) this.projectRefresh = this.drainProjectRefreshes().finally(() => {
+      this.projectRefresh = undefined;
+      // A request can arrive between the drain finishing and this continuation.
+      if (this.pendingRefresh) return this.refreshProjects(this.pendingRefresh.metadataOnly);
+    });
+    return this.projectRefresh;
+  }
+  private async drainProjectRefreshes(): Promise<void> {
+    while (this.pendingRefresh) {
+      const options = this.pendingRefresh;
+      this.pendingRefresh = undefined;
+      const scan = this.projectScan;
+      try {
+        const catalogue = await this.chat.currentCatalogue(options);
+        if (scan !== this.projectScan) continue;
+        this.publishCatalogue(catalogue);
+      } catch (error) { this.logRefreshError(error); }
+    }
+  }
+  /** Checkout labels do not wait for the global transcript scan or snapshot preparation. */
+  async refreshCheckouts(checkoutPaths: readonly string[]): Promise<void> {
+    if (this.disposed) return;
+    const refresh = ++this.checkoutRefresh;
+    ++this.projectScan;
+    const paths = () => JSON.stringify(this.chat.openSessionSnapshots().map(snapshot => snapshot.projectPath));
+    const before = paths();
     try {
-      const catalogue = await this.chat.currentCatalogue({ metadataOnly });
-      if (scan !== this.projectScan) return;
-      this.catalogue = catalogue; ++this.projectRevision;
-      this.global("project.list.changed", this.projects());
-    } catch (error) { this.logger?.error("projects.refresh_failed", { message: redactRuntimeError(error instanceof Error ? error.message : "Refresh failed") }); }
+      const catalogue = await this.chat.currentCatalogue({ checkoutPaths });
+      if (refresh === this.checkoutRefresh && before === paths()) this.publishCatalogue(catalogue);
+    } catch (error) { this.logRefreshError(error); }
+    finally { void this.refreshProjects(); }
+  }
+  private publishCatalogue(catalogue: Result<"project.list">["catalogue"]): void {
+    if (this.disposed) return;
+    this.catalogue = catalogue; ++this.projectRevision;
+    this.global("project.list.changed", this.projects());
+  }
+  private logRefreshError(error: unknown): void {
+    this.logger?.error("projects.refresh_failed", { message: redactRuntimeError(error instanceof Error ? error.message : "Refresh failed") });
   }
   async prepareSnapshot(id: string): Promise<() => SessionSnapshot> {
     const raw = this.rawId(id, true); const incarnation = this.sessions.get(raw)!;
@@ -77,6 +122,7 @@ export class ServerPublisher {
     };
   }
   async opened(raw: string): Promise<Result<"session.open">> {
+    void this.refreshCheckouts([this.chat.captureSnapshot(raw).projectPath]);
     const id = this.wireId(raw);
     const capture = await this.prepareSnapshot(id);
     const snapshot = capture();
@@ -122,6 +168,7 @@ export class ServerPublisher {
       // the old tab before the replacement is known and lose their selection.
       this.sessions.delete(event.previousSessionId);
       const id = this.wireId(event.sessionId);
+      void this.refreshCheckouts([this.chat.captureSnapshot(event.sessionId).projectPath]);
       void this.prepareSnapshot(id).then(capture => {
         if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: capture() });
       }).catch(error => {
@@ -130,7 +177,6 @@ export class ServerPublisher {
         if (previousSessionId) this.global("session.replaced", { previousSessionId, snapshot: this.snapshot(event.sessionId, this.chat.captureSnapshot(event.sessionId)) });
       }).finally(() => {
         this.inventoryChanged();
-        void this.refreshProjects();
       });
       return;
     }

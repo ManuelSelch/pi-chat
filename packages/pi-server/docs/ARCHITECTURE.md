@@ -37,6 +37,13 @@ External boundaries, intentionally not diagram boxes:
 4. Runtime events reach the application and then the transport publisher. Ready clients receive snapshots/events filtered by negotiated capabilities. UI tab order and focus remain client-owned.
 5. Disconnect disposes connection-local state, **not** live agent sessions. A reconnect resynchronizes from current state; explicit session close or host shutdown disposes retained runtimes.
 
+### Project catalogue refresh
+
+- Opening, creating or replacing a runtime starts targeted Git discovery for its checkout independently of snapshot preparation and global history scanning. The publisher sends repository/branch metadata through the existing `project.list.changed` event, then reconciles saved history in the background.
+- `ProjectSessionService` keeps saved-history scans and generation-ordered repository metadata separately. Targeted refreshes reuse history (empty on cold start), seed all live directories without synthetic sessions, and apply fresh archive/removal state. Older discovery cannot overwrite newer repository metadata.
+- Full publisher refreshes are single-flight with one coalesced follow-up; superseded results are not published. Targeted results are discarded after another checkout refresh or a change in live runtime paths. Failed discovery retains cached metadata or leaves a new directory ungrouped. Transport shutdown invalidates in-flight results and prevents follow-up discovery.
+- Regression tests: [blocked history and checkout metadata](../test/modules/server/projects/live-checkout-metadata.test.ts), [publication races](../test/modules/server/transport/snapshot-publication.test.ts), and [session replacement](../test/modules/server/transport/session-replacement.test.ts).
+
 Host `close()` is idempotent: terminate transport connections, close HTTP, dispose host plugins, then application runtimes. All teardown steps are attempted even if one fails. Startup failure rolls back owned resources; see [plugin lifecycle](PLUGINS.md).
 Embedding callers own flushing/closing injected loggers. The CLI owns signals, PID/log setup and standalone restart; embedding may inject restart behavior, including an explicit build callback.
 A failed explicit restart build leaves the existing process serving.

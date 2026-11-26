@@ -46,6 +46,27 @@ describe("project archives", () => {
     expect(discover).toHaveBeenCalledOnce();
   });
 
+  it("preserves saved history and fresh archives during targeted checkout discovery", async () => {
+    const { service, path, cwd, lister, discovery } = await setup();
+    await service.catalogue();
+    const list = vi.spyOn(lister, "listAll");
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    vi.spyOn(discovery, "forDirectory").mockImplementationOnce(async () => { await gate; return undefined; });
+    const refreshing = service.catalogue(undefined, { checkoutPaths: [cwd], projectPaths: [cwd] });
+
+    try {
+      await service.archive(path, true);
+      release();
+      const catalogue = await refreshing;
+
+      expect(catalogue.projects[0]!.sessions).toHaveLength(1);
+      expect(catalogue.projects[0]!.sessions[0]).toMatchObject({ title: "Hello", archivedAt: expect.any(Number) });
+      expect(catalogue.projects[0]!.sessionCount).toBe(0);
+      expect(list).not.toHaveBeenCalled();
+    } finally { release(); await refreshing; }
+  });
+
   it("retains repository discovery for an active session not yet listed on disk", async () => {
     const { cwd, sessionsRoot, metadata } = await setup();
     const discovery = { forDirectory: vi.fn(async () => ({ repositoryPath: cwd, worktrees: [{ path: cwd, primary: true, detached: false, branch: "main" }] })) };

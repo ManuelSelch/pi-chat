@@ -205,7 +205,7 @@ export class ChatApplicationService {
   }
 
   /** Catalogue and history are independent of local focus/navigation. */
-  currentCatalogue(options: { metadataOnly?: boolean } = {}): Promise<ProjectCatalogue> {
+  currentCatalogue(options: { metadataOnly?: boolean; checkoutPaths?: readonly string[] } = {}): Promise<ProjectCatalogue> {
     const projectPaths = this.sessions.list().map(({ sessionId }) => this.sessions.get(sessionId).snapshot().projectPath);
     return this.projectSessions.catalogue(undefined, { ...options, projectPaths });
   }

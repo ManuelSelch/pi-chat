@@ -15,7 +15,7 @@ function setup() {
   const runtime = new FakeRuntimeAdapter("s1"); let state = runtime.snapshot();
   vi.spyOn(runtime, "snapshot").mockImplementation(() => state);
   const replacement = new FakeRuntimeAdapter("s1");
-  const catalogue = vi.fn(async (): Promise<ProjectCatalogue> => ({ projects: [] }));
+  const catalogue = vi.fn<ChatApplicationService["currentCatalogue"]>(async () => ({ projects: [] }));
   const chat = new ChatApplicationService(runtime, { continueProject: async () => replacement, openSession: async () => replacement, newSession: async () => replacement }, { catalogue } as unknown as ProjectSessionService);
   const messages: Event[] = []; const publisher = new ServerPublisher(chat, event => messages.push(eventSchema.parse(event)));
   const addUser = (id: string, text: string) => {
@@ -133,12 +133,80 @@ describe("v2 atomic snapshot publication", () => {
     await context.chat.dispose();
   });
 
-  it("does not rewind independently revisioned projects when an older scan completes last", async () => {
+  it("coalesces overlapping history refreshes and discards the superseded scan", async () => {
     const context = setup(); const gate = deferred();
     context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; });
     const older = context.publisher.refreshProjects(); await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
-    await context.publisher.refreshProjects(); const revision = context.publisher.projects().revision;
-    gate.resolve(); await older; expect(context.publisher.projects().revision).toBe(revision);
-    expect(context.messages.filter(message => message.event === "project.list.changed")).toHaveLength(1); await context.chat.dispose();
+    const newer = context.publisher.refreshProjects();
+    const newest = context.publisher.refreshProjects();
+
+    expect(context.catalogue).toHaveBeenCalledOnce();
+    gate.resolve(); await Promise.all([older, newer, newest]);
+
+    expect(context.catalogue).toHaveBeenCalledTimes(2);
+    expect(context.messages.filter(message => message.event === "project.list.changed")).toHaveLength(1);
+    await context.chat.dispose();
+  });
+
+  it("does not publish or schedule more discovery after publisher disposal", async () => {
+    const context = setup(); const gate = deferred();
+    context.catalogue.mockImplementation(async () => { await gate.promise; return { projects: [] }; });
+    const history = context.publisher.refreshProjects();
+    const checkout = context.publisher.refreshCheckouts(["/project"]);
+    const queued = context.publisher.refreshProjects();
+
+    context.publisher.dispose();
+    gate.resolve(); await Promise.all([history, checkout, queued]);
+    await context.publisher.refreshProjects();
+    await context.publisher.refreshCheckouts(["/project"]);
+
+    expect(context.catalogue).toHaveBeenCalledTimes(2);
+    expect(context.messages).toEqual([]);
+    await context.chat.dispose();
+  });
+
+  it("discards checkout publication if the runtime closes during discovery", async () => {
+    const context = setup(); const gate = deferred();
+    const fresh: ProjectCatalogue = { projects: [{ path: "/project", displayPath: "/project", name: "Project", exists: true, modified: 0, sessions: [], sessionCount: 0 }] };
+    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return fresh; });
+    const refresh = context.publisher.refreshCheckouts(["/project"]);
+
+    await context.chat.closeTab("s1");
+    gate.resolve(); await refresh;
+    await context.publisher.refreshProjects();
+
+    expect(context.messages.filter(message => message.event === "project.list.changed").every(message => message.data.catalogue.projects.length === 0)).toBe(true);
+    await context.chat.dispose();
+  });
+
+  it("keeps the latest checkout when discoveries complete in reverse order", async () => {
+    const context = setup(); const gate = deferred();
+    const newer: ProjectCatalogue = { projects: [{ path: "/newer", displayPath: "/newer", name: "Newer", exists: true, modified: 0, sessions: [], sessionCount: 0 }] };
+    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; }).mockResolvedValue(newer);
+    const older = context.publisher.refreshCheckouts(["/older"]);
+
+    await context.publisher.refreshCheckouts(["/newer"]);
+    gate.resolve(); await older;
+    await context.publisher.refreshProjects();
+
+    expect(context.publisher.projects().catalogue).toEqual(newer);
+    expect(context.messages.filter(message => message.event === "project.list.changed").every(message => message.data.catalogue.projects.length === 1)).toBe(true);
+    await context.chat.dispose();
+  });
+
+  it("publishes targeted checkouts before blocked history and never rewinds them", async () => {
+    const context = setup(); const gate = deferred();
+    const fresh: ProjectCatalogue = { projects: [{ path: "/project", displayPath: "/project", name: "Project", exists: true, modified: 0, sessions: [], sessionCount: 0, repositoryName: "repo", worktree: { primary: false, detached: false, branch: "feature/new" } }] };
+    context.catalogue.mockImplementationOnce(async () => { await gate.promise; return { projects: [] }; }).mockResolvedValue(fresh);
+    const history = context.publisher.refreshProjects();
+    await vi.waitFor(() => expect(context.catalogue).toHaveBeenCalledOnce());
+
+    try {
+      await context.publisher.refreshCheckouts(["/project"]);
+
+      expect(context.publisher.projects().catalogue).toEqual(fresh);
+      gate.resolve(); await history;
+      expect(context.publisher.projects().catalogue).toEqual(fresh);
+    } finally { gate.resolve(); await history; await context.chat.dispose(); }
   });
 });
