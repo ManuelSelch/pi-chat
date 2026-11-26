@@ -38,6 +38,7 @@ export class WebSocketTransport {
   }
   async close(): Promise<void> {
     this.unsubscribe();
+    this.publisher.dispose();
     for (const socket of this.server.clients) socket.terminate();
     await new Promise<void>(resolve => this.server.close(() => resolve()));
   }

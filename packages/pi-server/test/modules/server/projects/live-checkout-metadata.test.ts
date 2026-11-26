@@ -58,6 +58,71 @@ it("drops runtime-only checkout groups after their last runtime closes", async (
   expect(catalogue.projects).toEqual([]);
 });
 
+it("publishes checkout metadata while saved history is blocked", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  listAll.mockImplementation(async () => { await gate; return []; });
+  const scan = service.catalogue();
+
+  try {
+    const catalogue = await service.catalogue(undefined, { projectPaths: ["/trees/fresh"], checkoutPaths: ["/trees/fresh"] });
+
+    expect(catalogue.projects.find(project => project.path === "/trees/fresh")).toMatchObject({
+      repositoryName: "project", worktree: { branch: "feature/setup" }, sessions: [],
+    });
+    expect(listAll).toHaveBeenCalledOnce();
+  } finally { release(); await scan; }
+});
+
+it("keeps targeted metadata when an older history discovery finishes later", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  forDirectory.mockImplementationOnce(async () => {
+    await gate;
+    return { repositoryPath: "/repos/project", worktrees: [{ path: "/trees/fresh", branch: "old", detached: false, primary: false }] };
+  });
+  const scan = service.catalogue(undefined, { projectPaths: ["/trees/fresh"] });
+  await vi.waitFor(() => expect(forDirectory).toHaveBeenCalledOnce());
+
+  try {
+    await service.catalogue(undefined, { projectPaths: ["/trees/fresh"], checkoutPaths: ["/trees/fresh"] });
+    release();
+    const catalogue = await scan;
+
+    expect(catalogue.projects.find(project => project.path === "/trees/fresh")?.worktree?.branch).toBe("feature/setup");
+  } finally { release(); await scan; }
+});
+
+it("uses fresh checkout metadata during subsequent metadata-only refreshes", async () => {
+  await service.catalogue(undefined, { projectPaths: ["/trees/fresh"] });
+  forDirectory.mockResolvedValue({ repositoryPath: "/repos/project", worktrees: [
+    { path: "/trees/fresh", branch: "feature/renamed", primary: false, detached: false },
+  ] });
+
+  await service.catalogue(undefined, { projectPaths: ["/trees/fresh"], checkoutPaths: ["/trees/fresh"] });
+  const catalogue = await service.catalogue(undefined, { projectPaths: ["/trees/fresh"], metadataOnly: true });
+
+  expect(catalogue.projects.find(project => project.path === "/trees/fresh")?.worktree?.branch).toBe("feature/renamed");
+});
+
+it("drops a targeted runtime-only checkout after its last runtime closes", async () => {
+  await service.catalogue(undefined, { projectPaths: ["/trees/fresh"], checkoutPaths: ["/trees/fresh"] });
+
+  const catalogue = await service.catalogue(undefined, { metadataOnly: true });
+
+  expect(catalogue.projects).toEqual([]);
+});
+
+it("retains a plain folder when targeted Git discovery fails", async () => {
+  forDirectory.mockResolvedValue(undefined);
+
+  const catalogue = await service.catalogue(undefined, { projectPaths: ["/folders/plain"], checkoutPaths: ["/folders/plain"] });
+
+  expect(catalogue.projects).toHaveLength(1);
+  expect(catalogue.projects[0]?.worktree).toBeUndefined();
+  expect(listAll).not.toHaveBeenCalled();
+});
+
 it("retains a live non-git folder without inventing worktree identity", async () => {
   forDirectory.mockResolvedValue(undefined);
 

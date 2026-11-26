@@ -6,7 +6,7 @@ import { ProjectMetadataStore } from "./project-metadata-store.js";
 import type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 import { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
 import { PiSessionStore, readLatestSessionNameInfo } from "./pi-session-store.js";
-import { WorktreeDiscovery } from "./worktree-discovery.js";
+import { type WorktreeRepository, WorktreeDiscovery } from "./worktree-discovery.js";
 export { readLatestSessionNameInfo } from "./pi-session-store.js";
 export type { ActiveSessionSummary, ChatProjectSummary, ChatSessionSummary, ProjectCatalogue, ProjectSessionLister } from "./catalogue-types.js";
 export { formatProjectDisplayPath, formatProjectName } from "./project-display.js";
@@ -20,10 +20,19 @@ async function canonicalPath(path: string): Promise<string> {
  *  generic project, and is not user-managed. */
 export const QUICK_CHATS_NAME = "Quick Chats";
 
+export interface CatalogueOptions {
+  metadataOnly?: boolean;
+  projectPaths?: readonly string[];
+  /** Refresh only these checkouts, reusing saved history even on cold start. */
+  checkoutPaths?: readonly string[];
+}
+
 export class ProjectSessionService {
   private readonly store: PiSessionStore;
   /** Last disk/worktree scan, before the archive overlay. */
   private scannedProjects?: Map<string, ChatProjectSummary>;
+  private discoveryGeneration = 0;
+  private readonly repositories = new Map<string, { generation: number; repository: WorktreeRepository }>();
 
   constructor(
     private readonly lister: ProjectSessionLister = new PiSessionStore(),
@@ -64,6 +73,7 @@ export class ProjectSessionService {
   }
 
   private async scanProjects(projectPaths: readonly string[], active?: ActiveSessionSummary): Promise<Map<string, ChatProjectSummary>> {
+    const generation = ++this.discoveryGeneration;
     const sessions = await this.lister.listAll();
     const byProject = new Map<string, ChatProjectSummary>();
 
@@ -109,24 +119,37 @@ export class ProjectSessionService {
       });
     }
     if (active) this.includeActiveSession(byProject, active);
-    await this.includeRegisteredWorktrees(byProject);
+    await this.includeRegisteredWorktrees(byProject, generation);
     await this.includeQuickChats(byProject);
     this.scannedProjects = structuredClone(byProject);
     return byProject;
   }
 
-  /** Archive/restore and project removal may reuse the scan; other changes still
-   *  discover new sessions, titles, projects and worktrees from disk. */
-  async catalogue(active?: ActiveSessionSummary, options: { metadataOnly?: boolean; projectPaths?: readonly string[] } = {}): Promise<ProjectCatalogue> {
+  /** Checkout refreshes reuse saved history; archive/remove reuse the full scan.
+   *  Other requests reconcile saved sessions and registered worktrees from disk. */
+  async catalogue(active?: ActiveSessionSummary, options: CatalogueOptions = {}): Promise<ProjectCatalogue> {
     const normalizedActive = active ? { ...active, cwd: await canonicalPath(active.cwd), ...(active.path ? { path: await canonicalPath(active.path) } : {}) } : undefined;
     const projectPaths = new Set(await Promise.all((options.projectPaths ?? []).map(canonicalPath)));
     let metadata = await this.metadata.read();
-    const cached = options.metadataOnly && [...projectPaths].every(path => this.scannedProjects?.has(path)) ? this.scannedProjects : undefined;
+    if (options.checkoutPaths) {
+      const generation = ++this.discoveryGeneration;
+      await Promise.all(options.checkoutPaths.map(async path => this.discoverRepository(await canonicalPath(path), generation)));
+    }
+    const cached = options.checkoutPaths ? this.scannedProjects ?? new Map<string, ChatProjectSummary>()
+      : options.metadataOnly && [...projectPaths].every(path => this.scannedProjects?.has(path)) ? this.scannedProjects : undefined;
     const byProject = cached ? structuredClone(cached) : await this.scanProjects([...projectPaths], normalizedActive);
+    if (options.checkoutPaths) {
+      for (const path of projectPaths) {
+        if (!byProject.has(path)) byProject.set(path, this.emptyProject(path));
+      }
+      await this.includeQuickChats(byProject);
+      metadata = await this.metadata.read();
+    }
     // A scan can overlap an archive write. Overlay fresh metadata, never the
     // state captured before reading all transcripts and discovering worktrees.
     if (!cached) metadata = await this.metadata.read();
     if (cached && normalizedActive) this.includeActiveSession(byProject, normalizedActive);
+    this.includeRepositoryMetadata(byProject);
     // Live directories seed discovery but never create synthetic saved sessions.
     // Keep their groups until the last runtime closes.
     const populatedGroups = new Set([...byProject.values()]
@@ -182,21 +205,35 @@ export class ProjectSessionService {
     byProject.set(path, project);
   }
 
-  private async includeRegisteredWorktrees(byProject: Map<string, ChatProjectSummary>): Promise<void> {
-    const repositories = new Map<string, Awaited<ReturnType<WorktreeDiscovery["forDirectory"]>>>();
+  private async discoverRepository(path: string, generation: number): Promise<WorktreeRepository | undefined> {
+    const repository = await this.discovery.forDirectory(path);
+    if (repository && generation >= (this.repositories.get(repository.repositoryPath)?.generation ?? 0))
+      this.repositories.set(repository.repositoryPath, { generation, repository });
+    return repository;
+  }
+
+  private emptyProject(path: string): ChatProjectSummary {
+    return { path, displayPath: formatProjectDisplayPath(path), name: formatProjectName(path),
+      exists: existsSync(path), modified: 0, sessionCount: 0, sessions: [] };
+  }
+
+  private async includeRegisteredWorktrees(byProject: Map<string, ChatProjectSummary>, generation: number): Promise<void> {
     const checkedPaths = new Set<string>();
     for (const path of byProject.keys()) {
       if (checkedPaths.has(path)) continue;
-      const repository = await this.discovery.forDirectory(path);
+      const repository = await this.discoverRepository(path, generation);
       if (repository) {
-        repositories.set(repository.repositoryPath, repository);
         checkedPaths.add(repository.repositoryPath);
         repository.worktrees.forEach((worktree) => checkedPaths.add(resolve(worktree.path)));
       }
     }
 
-    for (const repository of repositories.values()) {
-      if (!repository) continue;
+    this.includeRepositoryMetadata(byProject);
+  }
+
+  private includeRepositoryMetadata(byProject: Map<string, ChatProjectSummary>): void {
+    for (const { repository } of this.repositories.values()) {
+      if (!repository.worktrees.some(worktree => byProject.has(resolve(worktree.path)))) continue;
       for (const worktree of repository.worktrees) {
         const projectPath = resolve(worktree.path);
         let project = byProject.get(projectPath);

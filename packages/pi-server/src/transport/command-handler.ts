@@ -33,8 +33,9 @@ export async function executeOperation(command: Exclude<Request, Request<"server
       case "session.list": return completed(publisher.inventory());
       case "project.list": await publisher.refreshProjects(); return completed(publisher.projects());
       case "session.snapshot": { const capture = await publisher.prepareSnapshot(command.sessionId); return completed(capture()); }
-      case "session.create": return completed(await publisher.opened(await chat.newSession(command.params.projectPath)), refresh);
-      case "session.open": return completed(await publisher.opened(await chat.openSession(command.params.sessionPath)), refresh);
+      // opened() refreshes checkout metadata immediately, then reconciles history.
+      case "session.create": return completed(await publisher.opened(await chat.newSession(command.params.projectPath)), () => publisher.inventoryChanged());
+      case "session.open": return completed(await publisher.opened(await chat.openSession(command.params.sessionPath)), () => publisher.inventoryChanged());
       case "session.close": {
         publisher.closing(raw!);
         try { await chat.closeTab(raw!); }

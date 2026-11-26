@@ -64,7 +64,10 @@ describe("v2 WebSocket transport", () => {
   });
   it.each(["session.create", "session.open"])("returns %s before the post-mutation project scan completes", async method => {
     let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
-    const scan = vi.spyOn(ProjectSessionService.prototype, "catalogue").mockResolvedValueOnce({ projects: [] }).mockImplementation(async () => { await gate; return { projects: [] }; });
+    const scan = vi.spyOn(ProjectSessionService.prototype, "catalogue").mockResolvedValueOnce({ projects: [] }).mockImplementation(async (_active, options) => {
+      if (!options?.checkoutPaths) await gate;
+      return { projects: [] };
+    });
     vi.spyOn(ProjectSessionService.prototype, "rememberProject").mockResolvedValue(undefined);
     const next = new FakeRuntimeAdapter("next");
     server = await createPiServer({ runtime: new FakeRuntimeAdapter(), runtimeFactory: { continueProject: async () => next, openSession: async () => next, newSession: async () => next } });
@@ -73,7 +76,8 @@ describe("v2 WebSocket transport", () => {
     try {
       client.send(method, "open", method === "session.open" ? { sessionPath: "next.jsonl" } : {});
       const response = await client.response("open"); expect(response).toMatchObject({ ok: true, result: { snapshot: { runtime: { status: "idle" } } } });
-      await vi.waitFor(() => expect(scan).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => expect(scan.mock.calls.filter(([, options]) => !options?.checkoutPaths)).toHaveLength(2));
+      expect(scan.mock.calls.some(([, options]) => options?.checkoutPaths?.includes(next.snapshot().projectPath))).toBe(true);
     } finally { release(); }
   });
   it("does not expose optional presentation without capability selection", async () => {
